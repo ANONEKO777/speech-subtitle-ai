@@ -1,0 +1,9 @@
+*.mp4
+*.mkv
+*.gguf
+*.bin
+models/
+runtimes/
+.venv/
+__pycache__/
+node_modules/
