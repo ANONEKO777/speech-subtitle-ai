@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "cues": [
+    {
+      "id": 1,
+      "start_ms": 0,
+      "end_ms": 2400,
+      "en": "Good morning, everyone.",
+      "zh": "大家早安。"
+    },
+    {
+      "id": 2,
+      "start_ms": 2600,
+      "end_ms": 6125,
+      "en": "Today I want to talk about\nthree ideas that changed my work.",
+      "zh": "今天我想談談\n改變我工作方式的三個想法。"
+    },
+    {
+      "id": 3,
+      "start_ms": 3723456,
+      "end_ms": 3726789,
+      "en": "Over an hour in, we revisit <the plan> & the \"numbers\".",
+      "zh": "一小時後，我們回頭看看〈計畫〉與「數字」。"
+    },
+    {
+      "id": 4,
+      "start_ms": 36000000,
+      "end_ms": 36002500,
+      "en": "Q&A time 😀 {applause}",
+      "zh": ""
+    }
+  ]
+}

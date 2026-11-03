@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "video_path": "C:\\Videos\\talk.mp4",
+  "steps": {
+    "audio": {
+      "status": "done",
+      "updated_at_ms": 1762137600000,
+      "error": null
+    },
+    "vad": {
+      "status": "done",
+      "updated_at_ms": 1762137610000,
+      "error": null
+    },
+    "asr": {
+      "status": "done",
+      "updated_at_ms": 1762137900000,
+      "error": null
+    },
+    "segment": {
+      "status": "done",
+      "updated_at_ms": 1762137901000,
+      "error": null
+    },
+    "translate": {
+      "status": "failed",
+      "updated_at_ms": 1762138000000,
+      "error": "LLM returned 17 items for 20"
+    },
+    "export": {
+      "status": "pending",
+      "updated_at_ms": null,
+      "error": null
+    },
+    "summarize": {
+      "status": "pending",
+      "updated_at_ms": null,
+      "error": null
+    }
+  }
+}
