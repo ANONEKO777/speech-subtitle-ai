@@ -1,0 +1,18 @@
+{
+ "engine": "engine-a",
+ "audio": "talk.wav",
+ "audio_seconds": 400.0,
+ "exit_code": 0,
+ "wall_seconds": 20.0,
+ "rtf": 0.05,
+ "vram_baseline_mib": 1000,
+ "vram_peak_mib": 3000,
+ "segments": [
+  {"text": "So today we talk about agents.", "start": 0.5, "end": 3.0,
+   "words": [{"text": "So", "start": 0.5, "end": 0.7}, {"text": "today", "start": 0.7, "end": 1.1},
+             {"text": "we", "start": 1.1, "end": 1.3}, {"text": "talk", "start": 1.3, "end": 1.6},
+             {"text": "about", "start": 1.6, "end": 2.0}, {"text": "agents.", "start": 2.0, "end": 3.0}]},
+  {"text": "Each one opens a PR.", "start": 3.0, "end": 5.0, "words": null},
+  {"text": "And then we merge.", "start": 390.0, "end": 395.0, "words": null}
+ ]
+}

@@ -1,6 +1,6 @@
 # video-subtitle-translator — 技術規格（給開發 Agent）
 
-> 文件日期：2026-11-03。ASR 排行榜與各專案狀態變動很快，標示「待驗證」的項目請在 M0 實測後再定案，不要直接假設可用。
+> 文件日期：2026-11-03。ASR 排行榜與各專案狀態變動很快。M0 的實測結論在 §2 與 `docs/m0-report.md`，標明「仍未證明」的項目不要直接假設可用。
 
 ## 1. 專案目標
 
@@ -17,7 +17,7 @@
 - 影片剪輯、配音（TTS）。
 - 多人帳號、雲端同步。
 
-## 2. 已確認的事實與待驗證假設
+## 2. 已確認的事實與 M0 實測結論
 
 ### 已由資料確認
 - Whisper 已非榜首。Hugging Face Open ASR Leaderboard（2026-10）上，Qwen3-ASR-1.7B 為開源英文平均 WER 約 5.40%，Apache 2.0；Whisper large-v3 約 7.1–7.6%。
@@ -28,10 +28,12 @@
 - **whisper.cpp 官方不支援 Qwen3-ASR**（架構不同）。Qwen3-ASR 有社群 C++/ggml 方案：CrispASR、audio.cpp（皆有 GGUF、CUDA/Metal/Vulkan）。
 - 使用者**不需要安裝 CUDA Toolkit**，只需 NVIDIA 驅動；PyTorch / ONNX Runtime GPU 版自帶所需 CUDA 函式庫。
 
-### 待驗證（M0 必做）
-- CrispASR / audio.cpp 對 **Qwen3-ASR-1.7B** 的實際完整度（範例以 0.6B 為主）、長音訊（>30 分鐘）穩定性、與 ForcedAligner 搭配的時間軸準確度。
-- 它們的授權、維護狀態、能否以子行程方式嵌入並穩定輸出 JSON/SRT。
-- Whisper large-v3-turbo（whisper.cpp）在相同影片上的錯字數與速度對照。
+### M0 實測結論（2026-11-03，詳見 `docs/m0-report.md`）
+- **CrispASR 對 Qwen3-ASR-1.7B 可用。** CrispASR v0.8.49 有官方 Windows CUDA 版，搭配 `cstr/qwen3-asr-1.7b-GGUF` 與 `cstr/qwen3-forced-aligner-0.6b-GGUF`（q8_0），兩支演講（38 與 57 分鐘）都跑完，沒有中斷，時間軸單調遞增。RTF 約 0.042，顯存約 7.3 GB（扣除其他程式）。
+- **對齊準確度。** 以「安靜後開始說話」的時間點為準，CrispASR 加 ForcedAligner 的字詞起點誤差中位數 0.04 s，82% 到 91% 在 0.5 s 內。whisper.cpp 預設 token 時間中位數 0.12 到 0.14 s，87% 到 90% 在 0.5 s 內。中位數 CrispASR 較準，但這來自切塊內的字（aligner），每個 VAD 切塊的第一個字約晚 0.36 s。尾端兩者互有勝負。whisper.cpp 開 `-nfa -dtw large.v3.turbo` 後字詞時間和 aligner 有 97% 在 0.5 s 內，但整體晚約 0.2 s。
+- **授權與維護。** CrispASR 與 whisper.cpp 的程式都是 MIT，Qwen3 權重是 Apache-2.0。兩個 Windows zip 都附 NVIDIA CUDA DLL，屬 NVIDIA CUDA EULA，打包時要另外確認可否再散布。CrispASR 有 GitHub release。CrispASR v0.8.49 打不開含非 ASCII 字元（例如中文檔名）的輸入檔路徑，這點有實測證明；執行檔、模型、輸出目錄的路徑沒有試過，但保險起見也只傳 ASCII。傳給它的輸入檔必須先轉成 ASCII 路徑。兩者都能以子行程執行，輸出 JSON 與 SRT；CrispASR 加 `--strict-pipeline` 時，VAD 或對齊失敗會回傳非零結束碼。
+- **whisper.cpp large-v3-turbo 對照。** 6 段抽樣共 12 分鐘，讀上下文判定的錯字 whisper.cpp 10 個（3 個只是拼法）、CrispASR 8 個，會改變內容的錯 7 比 8，差異不明顯。whisper.cpp 有一處把 `can't` 聽成 `can`，意思相反。whisper.cpp RTF 約 0.018（CPU 忙時到 0.038），快 1.1 到 2.4 倍，顯存約 2.3 GB。CrispASR 會在每個 VAD 切塊邊界把句子切斷（6 段共 18 處）。整檔執行的 whisper.cpp 沒有，但跑在相同切塊上時 5 處邊界有 2 處加句號（不加大寫）。兩者都需要修補切塊邊界的標點。
+- **仍未證明。** 錯字數沒有人工聽寫對照。audio.cpp、Qwen3-ASR 的 f16 與 q4_k 沒有測。whisper.cpp 在 15 秒的 LibriVox 測試音檔上漏了頭尾兩句，但在 25 秒演講片段與真實 VAD 切塊上沒有重現。P04 用演講切塊測頭尾漏字。8 GB 顯卡能否跑 CrispASR 由 P11 驗證。
 
 ## 3. 技術選型（已決定：Tauri 2 + Python）
 
@@ -69,7 +71,7 @@ video-subtitle-translator/
 │  ├─ engines/
 │  │  ├─ base.py           # ASREngine 抽象類別
 │  │  ├─ whispercpp.py
-│  │  ├─ crispasr.py       # Qwen3-ASR 等（待驗證）
+│  │  ├─ crispasr.py       # Qwen3-ASR 等（M0 實測可用，備援引擎）
 │  │  └─ nemo_parakeet.py  # 選配
 │  ├─ llm/
 │  │  ├─ client.py         # OpenAI 相容客戶端
@@ -115,7 +117,7 @@ video-subtitle-translator/
 
 ```python
 class ASREngine(Protocol):
-    id: str                        # "whispercpp-large-v3-turbo", "crispasr-qwen3-1.7b"
+    id: str                        # "whispercpp-large-v3-turbo", "crispasr-qwen3-asr-1.7b"
     supports_word_timestamps: bool
     def is_available(self) -> bool: ...
     def transcribe(self, wav_path: str, language: str = "en",
@@ -131,8 +133,8 @@ class Segment: text: str; start: float; end: float; words: list[Word] | None
 
 | 引擎 | 角色 | 狀態 |
 |---|---|---|
-| `whispercpp` (large-v3-turbo) | **預設 / 穩定備援** | 成熟，優先做 |
-| `crispasr` (Qwen3-ASR-1.7B + ForcedAligner) | **高準確度選項** | M0 驗證後決定 |
+| `whispercpp` (large-v3-turbo) | **預設** | M0 選定：速度、顯存、段落形狀最好，錯字數與 Qwen3 相當 |
+| `crispasr` (Qwen3-ASR-1.7B + ForcedAligner) | **備援** | M0 實測可用：57 分鐘不中斷，切塊內的字詞起點誤差中位數較小（尾端互有勝負，切塊第一個字約晚 0.36 s），但較慢、較耗顯存，會在 VAD 切塊處斷句，且路徑必須是 ASCII |
 | `nemo_parakeet` (TDT 0.6B v2/v3) | 英文高速選項（需 PyTorch/NeMo 或 ONNX 版） | 選配 |
 | Nemotron 3.5 Transcribe | 高階顯卡選項 | 未來 |
 
