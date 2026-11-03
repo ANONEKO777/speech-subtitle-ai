@@ -33,11 +33,11 @@
 - 它們的授權、維護狀態、能否以子行程方式嵌入並穩定輸出 JSON/SRT。
 - Whisper large-v3-turbo（whisper.cpp）在相同影片上的錯字數與速度對照。
 
-## 3. 技術選型（預設，使用者尚未最終確認）
+## 3. 技術選型（已決定：Tauri 2 + Python）
 
-| 層 | 預設選擇 | 備案 |
+| 層 | 選擇 | 已否決/備援 |
 |---|---|---|
-| 桌面外殼 | Tauri 2 | Electron；或 PySide6（純 Python） |
+| 桌面外殼 | Tauri 2 | Electron（已否決，僅作備援） |
 | 前端 | TypeScript + React（或 Svelte），HTML5 video | libmpv（HTML5 播不動的格式） |
 | 後端 | Python 3.11+ / FastAPI，本機 127.0.0.1 服務，以 sidecar 啟動 | — |
 | ASR 引擎 | 抽象介面 + 多實作（見 §6） | — |
@@ -46,7 +46,7 @@
 | VAD | silero-vad（ONNX） | webrtcvad |
 | 後端打包 | PyInstaller 或 Nuitka | — |
 
-> 待使用者決定：目標平台（Windows / macOS / Linux）與團隊熟悉的語言。若未決定，先以 **Windows + NVIDIA** 為主要開發目標，保留 macOS（Metal）路徑。
+> 已決定（2026-11-03）：主要開發目標為 **Windows + NVIDIA**，保留 macOS（Metal）路徑。技術棧為 Tauri 2 + Python。詳見 §17。
 
 ## 4. 目錄結構
 
@@ -248,7 +248,9 @@ summary.md
 
 ## 13. 授權與合規
 
-- 不要直接複製 GPLv3 專案（如 VideoCaptioner、KrillinAI/OpenCreator）的程式碼進來，除非本專案接受 GPLv3。可以參考其設計。
+- 本專案採用 **AGPL-3.0-or-later**（與 `pyproject.toml` 一致；完整授權文字在 repo 根目錄的 `LICENSE`）。
+- GPLv3 專案（如 VideoCaptioner、KrillinAI/OpenCreator）的程式碼可以併入本專案：GPLv3 與 AGPLv3 的第 13 條允許兩者結合。被複製的 GPLv3 部分仍維持 GPLv3，結合後的整體只多適用 AGPLv3 第 13 條（網路互動時須向網路使用者提供原始碼）。複製的檔案必須同時保留原作者的版權聲明與 GPLv3 授權聲明。複製前必須先查證該專案確切的授權：授權為 GPLv2-only 者不相容，不得複製；帶有額外條款或例外者也不得複製；GPLv3-only 可以。
+- 授權不明或與 AGPL-3.0 不相容的程式碼不得複製，只能參考設計。
 - FFmpeg 使用 LGPL 建置，並遵守其散佈條款（附授權聲明、提供對應原始碼取得方式）。
 - 模型授權記錄在 `registry.json` 的 `license` 欄位；介面提供「第三方授權」頁。Parakeet（CC-BY-4.0）需標註出處。
 - 使用者下載模型時，顯示授權名稱與連結。若模型需同意條款（gated），要引導使用者到來源頁處理。
@@ -292,9 +294,11 @@ summary.md
 - **第三方社群專案可能停止維護**：引擎走抽象介面，且至少保留一個成熟備援（whisper.cpp）。
 - **安全**：本機服務只綁 127.0.0.1 並驗證 token；不要把使用者影片路徑或內容傳到外部（除非使用者啟用雲端 LLM，並在介面明確告知）。
 
-## 17. 待使用者決定
+## 17. 已決定事項
 
-1. 目標平台（Windows / macOS / Linux）。
-2. 偏好的技術棧（Tauri + Python，或 PySide6 純 Python）。
-3. 預期使用者的顯卡等級（決定預設模型與 LLM 大小）。
-4. 本專案是否開源，以及採用的授權。
+操作者於 2026-11-03 決定：
+
+1. 目標平台：先以 **Windows + NVIDIA** 為主，保留 macOS（Metal）路徑。
+2. 技術棧：**Tauri 2 + Python**（FastAPI 後端以 sidecar 啟動）。
+3. 硬體設定：預設以 **24 GB 顯存（RTX 4090）** 為準。程式內另外提供兩組設定：8 GB 顯卡，以及只有 CPU 加內顯。
+4. 授權：**AGPL-3.0-or-later**，本專案開源。GPLv3 程式碼可依兩份授權的第 13 條結合：被複製的部分仍屬 GPLv3，整體只多適用 AGPLv3 第 13 條，且須保留原版權聲明與 GPLv3 授權聲明。複製前要逐一查證來源專案的確切授權：GPLv2-only 不相容，有額外條款或例外者不得複製，GPLv3-only 可以。
