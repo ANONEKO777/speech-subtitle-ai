@@ -1,0 +1,230 @@
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from backend.core.model import Cue
+from backend.core.translate import (
+    Batch,
+    ReplyError,
+    Unit,
+    build_request,
+    parse_reply,
+)
+from backend.core.zh_tw import (
+    SIMPLIFIED_IN_BIG5,
+    SIMPLIFIED_ONLY,
+    in_big5,
+    simplified_chars,
+    strip_markdown_emphasis,
+    taiwan_terms,
+)
+
+TAIWAN_SENTENCES = [
+    "這個演算法很快。",
+    "透過更好的資料結構或演算法讓事情變得可能。",
+    "世界面臨新的挑戰。",
+    "他的個性能讓人放心。",
+    "這是一種特性能夠被重複使用。",
+    "我們用程式碼和原始碼來溝通。",
+    "點擊介面上的按鈕，使用者就能看到影片。",
+    "地球繞著太陽運行。",
+    "這台機器運行良好。",
+    "大數據改變了世界，數據機也還在用。",
+    "零組件供應商和小組件都換了。",
+    "針線程序很細。",
+    "我們在內存在的問題上很小心。",
+    "他們在路障設置了崗哨。",
+    "我們設置了新的廚房。",
+    "主程序員負責審查。",
+    "我相信息不會洩漏。",
+    "預設值是記憶體、螢幕和滑鼠的設定。",
+]
+
+
+KITCHEN_CUES = [
+    "成果負責任，並思考我們的廚房設置，對吧？",
+    "根據你如何設置你的主廚、副廚，你知道的，他們所使用的設備種類，",
+    "你真的可以設置，嗯，一個米其林廚房或一個軟體工廠，其中，嗯，因為你花了很多",
+    "我們正在以一種有邏輯的方式設置我們的廚房，對吧？為了",
+    "嗯，嗯，我想你可以透過Grokbot為自己設置這個個人米其林廚房，",
+    "[[1]]我們正在訓練他們，[[2]]我們正在設置[[3]]廚房。",
+]
+
+MAINLAND_CUES = [
+    (
+        "我今天這場演講的論點和主張是，如果你為你的代理設置一個非常好的環境，",
+        "我今天這場演講的論點和主張是，如果你為你的代理設定一個非常好的環境，",
+    ),
+    (
+        "你可以花時間去設置你的[[169]]程式碼庫，以一種方式，",
+        "你可以花時間去設定你的[[169]]程式碼庫，以一種方式，",
+    ),
+    ("我想，是如何設置它，讓即使代理人，嗯，", "我想，是如何設定它，讓即使代理人，嗯，"),
+    ("它們可以運行[[87]]應用程式，但只是在猜測", "它們可以執行[[87]]應用程式，但只是在猜測"),
+    ("不允許在渲染執行緒上運行。我們有意地", "不允許在渲染執行緒上執行。我們有意地"),
+    ("不允許在渲染線程上運行。我們有意地", "不允許在渲染執行緒上執行。我們有意地"),
+    ("嗯，會導致運行緩慢的程式碼。而，嗯，在渲染", "嗯，會導致執行緩慢的程式碼。而，嗯，在渲染"),
+    ("telemetry 關於應用程序的表現。嗯，因此，", "telemetry 關於應用程式的表現。嗯，因此，"),
+    (
+        "例如Grogbot常規程序，讓你可以訂閱，你知道的，Slack線程，到",
+        "例如Grogbot常規程式，讓你可以訂閱，你知道的，Slack討論串，到",
+    ),
+    ("你可以在設置中調整，也可以進行設置。", "你可以在設定中調整，也可以進行設定。"),
+    ("設置好之後，程式運行在雲端，你也能運行它。", "設定好之後，程式執行在雲端，你也能執行它。"),
+    ("我們用 Docker 運行中的容器，不用運行程式。", "我們用 Docker 執行中的容器，不用執行程式。"),
+    ("這是主線程，也是工作線程。", "這是主執行緒，也是工作執行緒。"),
+]
+
+KEPT_PROCEDURES = [
+    "這違反了程序正義。",
+    "依照法律程序處理。",
+    "他走完了手續程序。",
+    "標準作業程序很重要。",
+    "針線程序很細。",
+]
+
+
+def reply_for(zh: str, en: str = "") -> str:
+    en = en or " ".join(["word"] * len(zh))
+    cues = [Cue(1, 0, 1000, en)]
+    reply = json.dumps({"translations": [{"id": 1, "zh": zh}]}, ensure_ascii=False)
+    return parse_reply(reply, build_request(cues, Batch((Unit(0, 1),))), cues)[1]
+
+
+@pytest.mark.parametrize("zh", TAIWAN_SENTENCES)
+def test_correct_taiwan_text_is_left_alone(zh: str) -> None:
+    assert taiwan_terms(zh) == zh
+    assert reply_for(zh) == zh
+
+
+@pytest.mark.parametrize(
+    ("mainland", "taiwan"),
+    [
+        ("這個算法很快", "這個演算法很快"),
+        ("程式代碼和源代碼", "程式碼和原始碼"),
+        ("閱讀代碼", "閱讀程式碼"),
+        ("系統性能很好", "系統效能很好"),
+        ("高性能計算", "高效能計算"),
+        ("用戶界面", "使用者介面"),
+        ("統計數據和數據庫", "統計資料和資料庫"),
+        ("多線程和主線程", "多執行緒和主執行緒"),
+        ("安裝插件", "安裝外掛"),
+        ("拆成組件", "拆成元件"),
+        ("運行在主程序上", "執行在主程式上"),
+        ("運行應用程式", "執行應用程式"),
+        ("你教你的代理如何運行你的應用程式", "你教你的代理如何執行你的應用程式"),
+        ("設置環境", "設定環境"),
+        ("你為你的代理設置環境", "你為你的代理設定環境"),
+        ("設置你的程式碼庫", "設定你的程式碼庫"),
+        ("視頻、軟件、信息、網絡", "影片、軟體、資訊、網路"),
+        ("默認服務器和內存", "預設伺服器和記憶體"),
+        ("屏幕、鼠標、調試", "螢幕、滑鼠、除錯"),
+        ("拉取請求", "合併請求"),
+    ],
+)
+def test_mainland_terms_become_taiwan_terms(mainland: str, taiwan: str) -> None:
+    assert taiwan_terms(mainland) == taiwan
+
+
+@pytest.mark.parametrize("zh", KITCHEN_CUES)
+def test_kitchen_setup_and_physical_running_are_not_touched(zh: str) -> None:
+    assert taiwan_terms(zh) == zh
+
+
+@pytest.mark.parametrize(("mainland", "taiwan"), MAINLAND_CUES)
+def test_configuration_and_running_software_terms_from_a_real_talk_are_replaced(
+    mainland: str, taiwan: str
+) -> None:
+    assert taiwan_terms(mainland) == taiwan
+
+
+@pytest.mark.parametrize("zh", KEPT_PROCEDURES)
+def test_procedure_senses_of_chengxu_are_kept(zh: str) -> None:
+    assert taiwan_terms(zh) == zh
+
+
+def test_a_term_split_across_cues_is_replaced_in_the_reply() -> None:
+    cues = [
+        Cue(1, 0, 1000, "You can set up your"),
+        Cue(2, 1000, 2000, "code base"),
+        Cue(3, 2000, 3000, "and run it."),
+    ]
+    body = json.dumps(
+        {"translations": [{"id": 1, "zh": "[[1]]你可以設置你的[[2]]程式碼庫，[[3]]並運行它。"}]},
+        ensure_ascii=False,
+    )
+    request = build_request(cues, Batch((Unit(0, 3),)))
+    assert parse_reply(body, request, cues) == {
+        1: "你可以設定你的",
+        2: "程式碼庫，",
+        3: "並執行它。",
+    }
+
+
+@pytest.mark.parametrize(
+    ("zh", "clean"),
+    [
+        ("但當我們結合_CLI_與功能圖時", "但當我們結合CLI與功能圖時"),
+        ("這是 **重要** 的和 *斜體* 字", "這是 重要 的和 斜體 字"),
+        ("檔名是 my_file_name.py 和 __init__。", "檔名是 my_file_name.py 和 __init__。"),
+        ("2*3*4 等於 24，_ 單獨一個底線", "2*3*4 等於 24，_ 單獨一個底線"),
+    ],
+)
+def test_markdown_emphasis_is_stripped_only_when_it_wraps_a_token(zh: str, clean: str) -> None:
+    assert strip_markdown_emphasis(zh) == clean
+    assert reply_for(zh) == clean
+
+
+def test_replacing_twice_changes_nothing_more() -> None:
+    for zh in ("演算法和算法", "程式代碼、源代碼、代碼", "設置環境，運行程式", "數據、數據庫"):
+        once = taiwan_terms(zh)
+        assert taiwan_terms(once) == once
+
+
+def test_every_simplified_character_is_outside_big5_apart_from_the_named_exceptions() -> None:
+    inside = {char for char in SIMPLIFIED_ONLY if in_big5(char)}
+    assert inside == set(SIMPLIFIED_IN_BIG5)
+
+
+def test_valid_traditional_characters_are_not_treated_as_simplified() -> None:
+    for text in ("矽谷和谷歌", "伙伴", "胜肽", "珍惜", "骨髓", "甚麼", "裡面和裏面", "臺灣"):
+        assert simplified_chars(text) == []
+
+
+@pytest.mark.parametrize("char", list("这们说个么发无体广厂国时会"))
+def test_common_simplified_characters_are_caught(char: str) -> None:
+    assert simplified_chars(f"我們{char}樣") == [char]
+
+
+@pytest.mark.parametrize(
+    "zh",
+    [
+        "我搬到了矽谷。",
+        "他們是我在這個專案上的伙伴。",
+        "胜肽、珍珠和骨髓。",
+        "谷歌的影子在這間公司裡到處都是。",
+    ],
+)
+def test_traditional_text_with_dual_use_characters_is_accepted(zh: str) -> None:
+    assert reply_for(zh, "I moved to Silicon Valley with my partner, you know.") == zh
+
+
+def test_simplified_text_is_rejected_with_the_characters_named() -> None:
+    with pytest.raises(ReplyError, match="Simplified characters.*个"):
+        reply_for("这是一个测试，没有问题。", "This is a test and there is no problem.")
+
+
+def test_a_cue_that_is_only_names_joined_by_chinese_punctuation_is_accepted() -> None:
+    for en, zh in [
+        ("Claude Code, Cursor, Windsurf, Copilot.", "Claude Code、Cursor、Windsurf、Copilot。"),
+        ("GPT-4o, o3, o4-mini, Gemini 2.5 Pro.", "GPT-4o、o3、o4-mini、Gemini 2.5 Pro。"),
+    ]:
+        assert reply_for(zh, en) == zh
+
+
+def test_an_english_copy_with_english_punctuation_is_still_rejected() -> None:
+    en = "Claude Code, Cursor, Windsurf, Copilot."
+    with pytest.raises(ReplyError, match="not translated"):
+        reply_for(en, en)
