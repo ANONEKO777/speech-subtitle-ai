@@ -5,8 +5,8 @@ import itertools
 import json
 import os
 import re
-import tempfile
 import time
+import uuid
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Literal, NamedTuple, cast
@@ -38,6 +38,7 @@ _VTT_TAG = re.compile(
     r"|<(?:\d+:)?\d{2}:\d{2}\.\d{3}>"
 )
 _HTML_CHAR_REF = re.compile(r"&(?:#\d+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);")
+_LINE_BREAK = re.compile(r"\r\n|[\r\n]")
 _ASS_JOINER = "⁠"
 _ASS_BACKSLASH_HAZARD = re.compile(rf"\\(?=[Nnh{_ASS_JOINER}])")
 _ASS_TOKEN = re.compile(rf"\\N|\\n|\\\{{|\\\}}|\\{_ASS_JOINER}|\{{[^}}]*\}}")
@@ -81,6 +82,10 @@ def _replace_with_retry(src: Path, dst: Path) -> None:
             os.replace(src, dst)
             return
         except PermissionError as exc:
+            if dst.is_dir():
+                raise PermissionError(exc.errno, f"cannot replace {dst}: it is a folder") from exc
+            if dst.exists() and not os.access(dst, os.W_OK):
+                raise PermissionError(exc.errno, f"cannot replace {dst}: it is read-only") from exc
             if delay is None:
                 raise PermissionError(
                     exc.errno, f"cannot replace {dst}: it is open in another program"
@@ -93,8 +98,13 @@ def write_text_file(path: Path, text: str) -> None:
         data = text.encode("utf-8")
     except UnicodeEncodeError as exc:
         raise FormatError(f"{path}: text is not valid UTF-8 ({exc.reason})") from exc
-    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
-    tmp = Path(tmp_name)
+    tmp = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o666)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            exc.errno, f"cannot write {path}: the folder {path.parent} does not exist"
+        ) from exc
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
@@ -201,7 +211,7 @@ def _parse_timed_blocks(
             )
         body = block[head + 1 :]
         if vtt:
-            body = [t for t in (_vtt_unescape(line) for line in body) if t]
+            body = [part for line in body for part in _vtt_unescape(line)]
         text = "\n".join(body)
         try:
             start_ms, end_ms = _timing_ms(match, 1), _timing_ms(match, 5)
@@ -236,9 +246,10 @@ def _vtt_escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _vtt_unescape(line: str) -> str:
+def _vtt_unescape(line: str) -> list[str]:
     untagged = _VTT_TAG.sub("", line)
-    return _HTML_CHAR_REF.sub(lambda ref: html.unescape(ref.group()), untagged).strip()
+    decoded = _HTML_CHAR_REF.sub(lambda ref: html.unescape(ref.group()), untagged)
+    return [part for part in map(str.strip, _LINE_BREAK.split(decoded)) if part]
 
 
 def render_vtt(cues: Iterable[Cue], lang: RenderLang) -> str:

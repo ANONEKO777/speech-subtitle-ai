@@ -12,3 +12,11 @@ A 15 second English speech clip, 16 kHz, mono, 16-bit PCM. Regenerate it with `u
 - Cut: 15 seconds starting at 5 seconds into the source.
 
 Large media (`*.mp4`, `*.mkv`) and models (`*.gguf`, `*.bin`) never go in the repo.
+
+## en_15s.words.json
+
+Word timestamps that CrispASR (Qwen3-ASR with the forced aligner) produced for `en_15s.wav`, taken from the P01 run `crispasr-en_15s-r1`. One object per ASR segment, with `words` as `text`, `start_ms`, `end_ms`. `tests/test_segmenter.py` and `scripts/check_cues.py` read it. The text is the LibriVox outro, spoken at the start of the clip.
+
+## en_15s.probs.json
+
+The silero-vad v6.2.3 speech probability for each 32 ms frame of `en_15s.wav`, rounded to 4 decimals, from `frame_probs` on the pinned ONNX model. `tests/test_vad.py` compares fresh output with it, which pins the context window, the gain, and the state handling. Regenerate it only when the model pin changes.

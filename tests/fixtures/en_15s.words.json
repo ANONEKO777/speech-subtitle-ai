@@ -1,0 +1,140 @@
+[
+ {
+  "words": [
+   {
+    "text": "Recordings",
+    "start_ms": 30,
+    "end_ms": 830
+   },
+   {
+    "text": "are",
+    "start_ms": 830,
+    "end_ms": 910
+   },
+   {
+    "text": "in",
+    "start_ms": 910,
+    "end_ms": 990
+   },
+   {
+    "text": "the",
+    "start_ms": 990,
+    "end_ms": 1070
+   },
+   {
+    "text": "public",
+    "start_ms": 1070,
+    "end_ms": 1390
+   },
+   {
+    "text": "domain.",
+    "start_ms": 1390,
+    "end_ms": 1870
+   },
+   {
+    "text": "For",
+    "start_ms": 2430,
+    "end_ms": 2590
+   },
+   {
+    "text": "more",
+    "start_ms": 2590,
+    "end_ms": 2830
+   },
+   {
+    "text": "information",
+    "start_ms": 2830,
+    "end_ms": 3550
+   },
+   {
+    "text": "or",
+    "start_ms": 3630,
+    "end_ms": 3790
+   },
+   {
+    "text": "to",
+    "start_ms": 3790,
+    "end_ms": 3870
+   },
+   {
+    "text": "volunteer,",
+    "start_ms": 3870,
+    "end_ms": 4670
+   },
+   {
+    "text": "please",
+    "start_ms": 5070,
+    "end_ms": 5390
+   },
+   {
+    "text": "visit",
+    "start_ms": 5390,
+    "end_ms": 5710
+   },
+   {
+    "text": "librivox.",
+    "start_ms": 5710,
+    "end_ms": 6430
+   },
+   {
+    "text": "org.",
+    "start_ms": 6750,
+    "end_ms": 7230
+   }
+  ]
+ },
+ {
+  "words": [
+   {
+    "text": "This",
+    "start_ms": 9030,
+    "end_ms": 9270
+   },
+   {
+    "text": "recording",
+    "start_ms": 9270,
+    "end_ms": 9830
+   },
+   {
+    "text": "is",
+    "start_ms": 9830,
+    "end_ms": 9990
+   },
+   {
+    "text": "by",
+    "start_ms": 9990,
+    "end_ms": 10070
+   },
+   {
+    "text": "Mark",
+    "start_ms": 10070,
+    "end_ms": 10390
+   },
+   {
+    "text": "Smith",
+    "start_ms": 10390,
+    "end_ms": 10790
+   },
+   {
+    "text": "of",
+    "start_ms": 10790,
+    "end_ms": 11030
+   },
+   {
+    "text": "Simpsonville,",
+    "start_ms": 11110,
+    "end_ms": 11750
+   },
+   {
+    "text": "South",
+    "start_ms": 11750,
+    "end_ms": 12070
+   },
+   {
+    "text": "Carolina.",
+    "start_ms": 12070,
+    "end_ms": 12710
+   }
+  ]
+ }
+]

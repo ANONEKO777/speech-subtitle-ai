@@ -1,5 +1,6 @@
 import os
 import random
+import stat
 import sys
 import threading
 import time
@@ -855,3 +856,96 @@ def test_ass_times_must_be_exactly_h_mm_ss_cc() -> None:
     for bad in ("x0:00:02.40", "0:00:02.40x", "0:00:02.400"):
         with pytest.raises(FormatError, match="bad ASS time"):
             parse_ass(ass.replace("0:00:02.40", bad, 1))
+
+
+def test_vtt_turns_encoded_line_breaks_into_line_breaks_instead_of_rejecting_the_file() -> None:
+    cue = parse_vtt(_vtt_body("first&#13;&#10;second&#x0D;&#xA;third&#10;&#10;fourth"), "en")[0]
+    assert cue.en == "first\nsecond\nthird\nfourth"
+
+
+def test_vtt_drops_an_encoded_line_break_at_the_edge_of_a_line() -> None:
+    cue = parse_vtt(_vtt_body("&#13;hello&#10;", "&#10;&#13;world&#13;"), "en")[0]
+    assert cue.en == "hello\nworld"
+
+
+def test_vtt_cue_made_only_of_encoded_line_breaks_parses_as_empty() -> None:
+    assert parse_vtt(_vtt_body("&#13;&#10;"), "en")[0].en == ""
+
+
+def test_write_text_file_fails_fast_on_a_read_only_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "out.srt"
+    target.write_bytes(b"old")
+    target.chmod(stat.S_IREAD)
+    if os.access(target, os.W_OK):
+        pytest.skip("this account can write read-only files")
+    sleeps: list[float] = []
+    monkeypatch.setattr(os, "replace", _replace_always_denied)
+    monkeypatch.setattr(time, "sleep", sleeps.append)
+    try:
+        with pytest.raises(PermissionError, match=r"out\.srt.*read-only") as info:
+            write_text_file(target, "new")
+        assert "another program" not in str(info.value)
+        assert sleeps == []
+        assert target.read_bytes() == b"old"
+        assert [p.name for p in tmp_path.iterdir()] == ["out.srt"]
+    finally:
+        target.chmod(stat.S_IWRITE | stat.S_IREAD)
+
+
+def test_write_text_file_names_the_target_when_its_folder_is_missing(tmp_path: Path) -> None:
+    target = tmp_path / "gone" / "out.srt"
+    with pytest.raises(FileNotFoundError) as info:
+        write_text_file(target, "new")
+    assert str(target) in str(info.value)
+    assert ".tmp" not in str(info.value)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="POSIX replaces a read-only file")
+def test_write_text_file_reports_a_real_read_only_file_on_windows(tmp_path: Path) -> None:
+    target = tmp_path / "out.srt"
+    target.write_bytes(b"old")
+    target.chmod(stat.S_IREAD)
+    try:
+        with pytest.raises(PermissionError, match="read-only"):
+            write_text_file(target, "new")
+    finally:
+        target.chmod(stat.S_IWRITE | stat.S_IREAD)
+    assert target.read_bytes() == b"old"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="POSIX replaces a directory only when empty")
+def test_write_text_file_names_a_directory_target(tmp_path: Path) -> None:
+    target = tmp_path / "out.srt"
+    target.mkdir()
+    with pytest.raises(PermissionError, match="folder"):
+        write_text_file(target, "new")
+    assert [p.name for p in tmp_path.iterdir()] == ["out.srt"]
+
+
+def test_write_text_file_asks_for_umask_governed_permissions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    modes: list[int] = []
+    real_open = os.open
+
+    def recording_open(path: Any, flags: int, mode: int = 0o777, **kwargs: Any) -> int:
+        modes.append(mode)
+        return real_open(path, flags, mode, **kwargs)
+
+    monkeypatch.setattr(os, "open", recording_open)
+    write_text_file(tmp_path / "out.srt", "x")
+    assert modes == [0o666]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no POSIX permission bits")
+@pytest.mark.parametrize("umask", [0o022, 0o077, 0o002])
+def test_write_text_file_leaves_a_file_with_normal_permissions(tmp_path: Path, umask: int) -> None:
+    old = os.umask(umask)
+    try:
+        write_text_file(tmp_path / "out.srt", "x")
+    finally:
+        os.umask(old)
+    assert stat.S_IMODE((tmp_path / "out.srt").stat().st_mode) == 0o666 & ~umask
