@@ -17,7 +17,7 @@ _SHA256 = re.compile(r"[0-9a-f]{64}")
 _DRIVER = re.compile(r"\d+\.\d+")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 PLATFORMS = frozenset({"win-x64"})
-BACKENDS = frozenset({"cuda"})
+BACKENDS = frozenset({"cuda", "cpu"})
 
 
 class RegistryError(ValueError):

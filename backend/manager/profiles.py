@@ -51,6 +51,9 @@ QWEN3_ASR = "qwen3-asr-1.7b-q8_0"
 CRISPASR_RUNTIME = "crispasr-v0.8.49-win-cuda"
 QWEN3_8B = "qwen3-8b-q4_k_m"
 LLAMA_RUNTIME = "llama.cpp-b12068-win-cuda12.4"
+WHISPER_CPU_RUNTIME = "whispercpp-b5454-win-cpu"
+LLAMA_CPU_RUNTIME = "llama.cpp-b12068-win-cpu"
+VAD_MODEL = "silero-vad-onnx-v6.2.3"
 LLM_CTX_8GB = 8192
 CPU_MIN_RAM_MIB = 15_000
 
@@ -86,9 +89,9 @@ PROFILES: Mapping[ProfileId, Profile] = MappingProxyType(
                 id=ProfileId.CPU,
                 label="CPU only, no GPU acceleration",
                 min_vram_mib=None,
-                asr=Stage(WHISPER_TURBO, WHISPER_RUNTIME, Device.CPU),
+                asr=Stage(WHISPER_TURBO, WHISPER_CPU_RUNTIME, Device.CPU),
                 asr_fallback=None,
-                llm=Stage(QWEN3_8B, LLAMA_RUNTIME, Device.CPU),
+                llm=Stage(QWEN3_8B, LLAMA_CPU_RUNTIME, Device.CPU),
                 recommend_cloud=True,
                 concurrent_stages=True,
                 llm_ctx=None,
@@ -134,6 +137,21 @@ class Selection:
     asr_fallback: Stage | None = None
     fallback_blocked: DriverTooOld | None = None
     low_ram: LowRam | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Assets:
+    models: tuple[str, ...]
+    runtimes: tuple[str, ...]
+
+
+def required_assets(selection: Selection) -> Assets:
+    stages = [selection.profile.asr, selection.profile.llm]
+    if selection.asr_fallback is not None:
+        stages.insert(1, selection.asr_fallback)
+    models = dict.fromkeys([VAD_MODEL, *(stage.model for stage in stages)])
+    runtimes = dict.fromkeys(stage.runtime for stage in stages)
+    return Assets(tuple(models), tuple(runtimes))
 
 
 def required_driver(stages: Iterable[Stage], registry: Registry) -> str | None:

@@ -7,9 +7,17 @@ from typing import Any
 
 import pytest
 
-from backend.manager import registry
+from backend.manager import profiles, registry
 from backend.manager.hardware import Hardware
-from backend.manager.profiles import PROFILES, Device, ProfileId, Stage, describe, select
+from backend.manager.profiles import (
+    PROFILES,
+    VAD_MODEL,
+    Device,
+    ProfileId,
+    Stage,
+    describe,
+    select,
+)
 from backend.manager.registry import ModelKind, RegistryError
 
 REGISTRY = registry.load()
@@ -233,3 +241,91 @@ def test_a_model_may_not_need_a_runtime_id() -> None:
 
     with pytest.raises(RegistryError, match="unknown id"):
         registry.parse(with_field("models", "needs", [runtime_id]))
+
+
+def hardware(vram: int, driver: str) -> Hardware:
+    return Hardware("NVIDIA GeForce RTX", vram, driver, 65536, 500_000)
+
+
+def test_the_cpu_profile_uses_official_cpu_only_builds_and_the_gpu_ones_use_cuda() -> None:
+    for profile in PROFILES.values():
+        for stage in profile.main_stages:
+            backend = REGISTRY.runtimes[stage.runtime].backend
+            assert backend == stage.device.value, f"{profile.id} {stage.runtime}"
+    cpu = PROFILES[ProfileId.CPU]
+    assert [REGISTRY.runtimes[s.runtime].min_driver for s in cpu.main_stages] == [None, None]
+
+
+def test_the_cpu_runtimes_are_the_official_release_assets_with_their_published_digests() -> None:
+    whisper = REGISTRY.runtimes["whispercpp-b5454-win-cpu"]
+    llama = REGISTRY.runtimes["llama.cpp-b12068-win-cpu"]
+
+    assert whisper.url == (
+        "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip"
+    )
+    assert whisper.sha256 == "6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb"
+    assert llama.url == (
+        "https://github.com/ggml-org/llama.cpp/releases/download/b12068/"
+        "llama-b12068-bin-win-cpu-x64.zip"
+    )
+    assert llama.sha256 == "0d7099439d489de2921e23c16a27cc432e48ad14d6fe80406187368b3928ce43"
+    assert (whisper.size_bytes, llama.size_bytes) == (8_928_640, 24_609_139)
+    assert whisper.needs == llama.needs == ()
+
+
+def test_silero_vad_onnx_v6_2_3_is_in_the_registry() -> None:
+    vad = REGISTRY.models[VAD_MODEL]
+
+    assert vad.kind is ModelKind.VAD
+    assert vad.version == "v6.2.3"
+    assert vad.sha256 == "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3"
+    assert vad.size_bytes == 2_327_524
+
+
+def assets(hw: Hardware) -> profiles.Assets:
+    return profiles.required_assets(select(hw, REGISTRY))
+
+
+def test_a_4090_needs_the_vad_both_asr_models_both_runtimes_and_the_llm() -> None:
+    needed = assets(hardware(24564, "596.36"))
+
+    assert needed.models == (
+        VAD_MODEL,
+        "whisper-large-v3-turbo",
+        "qwen3-asr-1.7b-q8_0",
+        "qwen3-8b-q4_k_m",
+    )
+    assert needed.runtimes == (
+        "whispercpp-b5454-win-cuda12.4",
+        "crispasr-v0.8.49-win-cuda",
+        "llama.cpp-b12068-win-cuda12.4",
+    )
+
+
+def test_an_old_driver_means_the_crispasr_fallback_is_not_downloaded() -> None:
+    needed = assets(hardware(24564, "560.94"))
+
+    assert "qwen3-asr-1.7b-q8_0" not in needed.models
+    assert "crispasr-v0.8.49-win-cuda" not in needed.runtimes
+    assert "whispercpp-b5454-win-cuda12.4" in needed.runtimes
+
+
+def test_an_8gb_card_gets_no_fallback_and_cpu_gets_no_cuda_files() -> None:
+    eight = assets(hardware(8192, "596.36"))
+    cpu = profiles.required_assets(select(Hardware(None, None, None, 32768, 100_000), REGISTRY))
+
+    assert "qwen3-asr-1.7b-q8_0" not in eight.models
+    assert cpu.runtimes == ("whispercpp-b5454-win-cpu", "llama.cpp-b12068-win-cpu")
+    assert {REGISTRY.runtimes[r].backend for r in cpu.runtimes} == {"cpu"}
+    assert VAD_MODEL in cpu.models
+
+
+def test_the_cpu_profile_downloads_far_less_than_the_cuda_one() -> None:
+    cpu = assets(Hardware(None, None, None, 32768, 100_000))
+    gpu = assets(hardware(8192, "596.36"))
+
+    def runtime_bytes(a: profiles.Assets) -> int:
+        return sum(REGISTRY.runtimes[r].size_bytes for r in a.runtimes)
+
+    assert runtime_bytes(cpu) < 50_000_000
+    assert runtime_bytes(gpu) > 900_000_000

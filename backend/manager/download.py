@@ -1,0 +1,654 @@
+from __future__ import annotations
+
+import errno
+import hashlib
+import http.client
+import os
+import queue
+import re
+import shutil
+import threading
+import time
+import urllib.error
+import urllib.request
+import uuid
+import zipfile
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
+from enum import StrEnum
+from pathlib import Path
+from types import MappingProxyType
+from typing import Any
+
+CHUNK = 1 << 20
+PART_SUFFIX = ".part"
+STAGING_SUFFIX = ".extracting"
+USER_AGENT = "video-subtitle-translator/0"
+_RETRYABLE_HTTP = frozenset({408, 425, 429})
+_SPEED_WINDOW_S = 0.5
+_KEEP_JOBS = 100
+_NON_NAME = re.compile(r"^[\s.]*$")
+
+
+class JobState(StrEnum):
+    QUEUED = "queued"
+    DOWNLOADING = "downloading"
+    VERIFYING = "verifying"
+    EXTRACTING = "extracting"
+    DONE = "done"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+TERMINAL = frozenset({JobState.DONE, JobState.FAILED, JobState.CANCELLED})
+
+_NEXT: Mapping[JobState, frozenset[JobState]] = MappingProxyType(
+    {
+        JobState.QUEUED: frozenset({JobState.DOWNLOADING, JobState.DONE, JobState.CANCELLED}),
+        JobState.DOWNLOADING: frozenset(
+            {
+                JobState.VERIFYING,
+                JobState.EXTRACTING,
+                JobState.DONE,
+                JobState.FAILED,
+                JobState.CANCELLED,
+            }
+        ),
+        JobState.VERIFYING: frozenset(
+            {
+                JobState.DOWNLOADING,
+                JobState.EXTRACTING,
+                JobState.DONE,
+                JobState.FAILED,
+                JobState.CANCELLED,
+            }
+        ),
+        JobState.EXTRACTING: frozenset({JobState.DONE, JobState.FAILED, JobState.CANCELLED}),
+        JobState.DONE: frozenset(),
+        JobState.FAILED: frozenset(),
+        JobState.CANCELLED: frozenset(),
+    }
+)
+
+
+class InstallState(StrEnum):
+    NOT_INSTALLED = "not_installed"
+    PARTIAL = "partial"
+    INSTALLING = "installing"
+    INSTALLED = "installed"
+
+
+class Outcome(StrEnum):
+    INSTALLED = "installed"
+    ALREADY_PRESENT = "already_present"
+
+
+class FailureKind(StrEnum):
+    NETWORK = "network"
+    HTTP = "http"
+    HASH_MISMATCH = "hash_mismatch"
+    SIZE_MISMATCH = "size_mismatch"
+    INSUFFICIENT_SPACE = "insufficient_space"
+    ARCHIVE = "archive"
+    IO = "io"
+
+
+@dataclass(frozen=True, slots=True)
+class Failure:
+    kind: FailureKind
+    message: str
+    needed_bytes: int | None = None
+    available_bytes: int | None = None
+
+
+class DownloadError(Exception):
+    def __init__(self, failure: Failure) -> None:
+        super().__init__(failure.message)
+        self.failure = failure
+
+
+class Cancelled(Exception):
+    pass
+
+
+class _Transient(Exception):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class Item:
+    url: str
+    dest: Path
+    sha256: str
+    size_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class Plan:
+    asset_id: str
+    items: tuple[Item, ...]
+    unpack_to: Path | None = None
+    entry_point: str | None = None
+    shared: tuple[Item, ...] = ()
+
+    def is_satisfied(self) -> bool:
+        if self.unpack_to is not None:
+            return self.unpack_to.is_dir()
+        return all(_present(item) for item in self.items)
+
+    def state(self) -> InstallState:
+        if self.is_satisfied():
+            return InstallState.INSTALLED
+        leftovers = [
+            p
+            for item in self.items
+            if item not in self.shared
+            for p in (item.dest, part_of(item.dest))
+        ]
+        if self.unpack_to is not None:
+            leftovers.append(staging_of(self.unpack_to))
+        return (
+            InstallState.PARTIAL
+            if any(p.exists() for p in leftovers)
+            else InstallState.NOT_INSTALLED
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class RetryPolicy:
+    max_failures: int = 10
+    backoff_s: float = 1.0
+    max_backoff_s: float = 30.0
+    timeout_s: float = 30.0
+
+
+@dataclass(frozen=True, slots=True)
+class JobStatus:
+    id: str
+    asset_id: str
+    state: JobState
+    bytes_done: int
+    bytes_total: int
+    speed_bps: float
+    resumed_from: int
+    retries: int
+    note: str | None
+    outcome: Outcome | None
+    failure: Failure | None
+
+
+Opener = Callable[[urllib.request.Request, float], Any]
+
+
+def _urlopen(request: urllib.request.Request, timeout: float) -> Any:
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
+def part_of(dest: Path) -> Path:
+    return dest.with_name(dest.name + PART_SUFFIX)
+
+
+def staging_of(folder: Path) -> Path:
+    return folder.with_name(folder.name + STAGING_SUFFIX)
+
+
+def _present(item: Item) -> bool:
+    try:
+        return item.dest.stat().st_size == item.size_bytes
+    except OSError:
+        return False
+
+
+def format_bytes(count: int) -> str:
+    power = min((count.bit_length() - 1) // 10, 3)
+    if power < 1:
+        return f"{count} B"
+    return f"{count / (1 << 10 * power):.1f} {('KiB', 'MiB', 'GiB')[power - 1]}"
+
+
+class Job:
+    def __init__(self, plan: Plan) -> None:
+        self.id = uuid.uuid4().hex[:12]
+        self.plan = plan
+        self.cancel = threading.Event()
+        self.finished = threading.Event()
+        self._lock = threading.Lock()
+        self._state = JobState.QUEUED
+        self._total = sum(item.size_bytes for item in plan.items)
+        self._settled = 0
+        self._current = 0
+        self._speed = 0.0
+        self._window = (time.monotonic(), 0)
+        self._resumed_from = 0
+        self._retries = 0
+        self._note: str | None = None
+        self._outcome: Outcome | None = None
+        self._failure: Failure | None = None
+
+    def snapshot(self) -> JobStatus:
+        with self._lock:
+            done = self._total if self._outcome else self._settled + self._current
+            return JobStatus(
+                id=self.id,
+                asset_id=self.plan.asset_id,
+                state=self._state,
+                bytes_done=done,
+                bytes_total=self._total,
+                speed_bps=self._speed if self._state is JobState.DOWNLOADING else 0.0,
+                resumed_from=self._resumed_from,
+                retries=self._retries,
+                note=self._note,
+                outcome=self._outcome,
+                failure=self._failure,
+            )
+
+    def move(self, state: JobState) -> None:
+        with self._lock:
+            if state is self._state:
+                return
+            if state not in _NEXT[self._state]:
+                raise AssertionError(f"illegal job transition {self._state} -> {state}")
+            self._state = state
+            if state in TERMINAL:
+                self.finished.set()
+
+    def try_start(self) -> bool:
+        with self._lock:
+            if self._state is not JobState.QUEUED:
+                return False
+            self._state = JobState.DOWNLOADING
+            self._window = (time.monotonic(), self._settled)
+            return True
+
+    def request_cancel(self) -> None:
+        self.cancel.set()
+        with self._lock:
+            if self._state is JobState.QUEUED:
+                self._state = JobState.CANCELLED
+                self.finished.set()
+
+    def complete(self, outcome: Outcome) -> None:
+        self.move(JobState.DONE)
+        with self._lock:
+            self._outcome = outcome
+            self._note = None
+
+    def fail(self, failure: Failure) -> None:
+        with self._lock:
+            self._failure = failure
+            self._note = None
+        self.move(JobState.FAILED)
+
+    def raise_if_cancelled(self) -> None:
+        if self.cancel.is_set():
+            raise Cancelled
+
+    def advance(self, received: int) -> None:
+        with self._lock:
+            self._current = received
+            now = time.monotonic()
+            began, base = self._window
+            if now - began >= _SPEED_WINDOW_S:
+                rate = (self._settled + received - base) / (now - began)
+                self._speed = rate if self._speed == 0 else (self._speed + rate) / 2
+                self._window = (now, self._settled + received)
+
+    def settle(self, size: int) -> None:
+        with self._lock:
+            self._settled += size
+            self._current = 0
+            self._window = (time.monotonic(), self._settled)
+
+    def note_resume(self, offset: int) -> None:
+        with self._lock:
+            self._resumed_from = offset
+
+    def note_retry(self, note: str | None) -> None:
+        with self._lock:
+            if note is not None:
+                self._retries += 1
+            self._note = note
+
+
+def _anchor(path: Path) -> Path:
+    probe = path
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    return probe
+
+
+def check_space(needs: Iterable[tuple[Path, int]]) -> None:
+    by_volume: dict[int, tuple[Path, int]] = {}
+    for folder, count in needs:
+        anchor = _anchor(folder)
+        volume = anchor.stat().st_dev
+        first, total = by_volume.get(volume, (anchor, 0))
+        by_volume[volume] = (first, total + count)
+    for anchor, needed in by_volume.values():
+        available = shutil.disk_usage(anchor).free
+        if needed > available:
+            raise DownloadError(
+                Failure(
+                    FailureKind.INSUFFICIENT_SPACE,
+                    f"Not enough free disk space on {anchor}: need {format_bytes(needed)} more, "
+                    f"{format_bytes(available)} is free.",
+                    needed_bytes=needed,
+                    available_bytes=available,
+                )
+            )
+
+
+def _remaining(item: Item) -> int:
+    if _present(item):
+        return 0
+    try:
+        held = part_of(item.dest).stat().st_size
+    except OSError:
+        held = 0
+    return item.size_bytes - (held if held <= item.size_bytes else 0)
+
+
+def _hash_existing(path: Path, job: Job) -> Any:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while block := handle.read(CHUNK):
+            job.raise_if_cancelled()
+            digest.update(block)
+    return digest
+
+
+def _content_range_start(header: str | None) -> int | None:
+    match = re.fullmatch(r"bytes (\d+)-\d+/(?:\d+|\*)", header or "")
+    return int(match.group(1)) if match else None
+
+
+def _attempt(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy) -> str:
+    part = part_of(item.dest)
+    start = part.stat().st_size if part.exists() else 0
+    if start > item.size_bytes:
+        part.unlink()
+        start = 0
+    digest = _hash_existing(part, job) if start else hashlib.sha256()
+    job.advance(start)
+    if start == item.size_bytes:
+        return digest.hexdigest()
+    check_space([(item.dest.parent, item.size_bytes - start)])
+    headers = {"User-Agent": USER_AGENT}
+    if start:
+        headers["Range"] = f"bytes={start}-"
+    try:
+        response = opener(urllib.request.Request(url, headers=headers), policy.timeout_s)
+    except urllib.error.HTTPError as exc:
+        exc.close()
+        if exc.code == 416 and start:
+            part.unlink(missing_ok=True)
+            raise _Transient("server refused the resume range, restarting") from exc
+        if exc.code in _RETRYABLE_HTTP or exc.code >= 500:
+            raise _Transient(f"HTTP {exc.code}") from exc
+        raise DownloadError(Failure(FailureKind.HTTP, f"{url} answered HTTP {exc.code}")) from exc
+    except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
+        raise _Transient(str(exc)) from exc
+    with response:
+        append = False
+        if start:
+            if (
+                response.status == 206
+                and _content_range_start(response.headers.get("Content-Range")) == start
+            ):
+                append = True
+                job.note_resume(start)
+            else:
+                start, digest = 0, hashlib.sha256()
+        length = response.headers.get("Content-Length")
+        if length and length.isdigit() and int(length) != item.size_bytes - start:
+            raise DownloadError(
+                Failure(
+                    FailureKind.SIZE_MISMATCH,
+                    f"{url} sends {length} bytes, expected {item.size_bytes - start}",
+                )
+            )
+        received = start
+        buffer = bytearray(CHUNK)
+        view = memoryview(buffer)
+        try:
+            with part.open("ab" if append else "wb", buffering=CHUNK) as out:
+                job.advance(received)
+                while received < item.size_bytes:
+                    job.raise_if_cancelled()
+                    want = min(CHUNK, item.size_bytes - received)
+                    try:
+                        got = response.readinto(view[:want])
+                    except (OSError, http.client.HTTPException) as exc:
+                        raise _Transient(str(exc)) from exc
+                    if not got:
+                        break
+                    out.write(view[:got])
+                    digest.update(view[:got])
+                    received += got
+                    job.advance(received)
+                out.flush()
+                os.fsync(out.fileno())
+        except OSError as exc:
+            raise _disk_failure(exc) from exc
+    if received < item.size_bytes:
+        raise _Transient("connection closed before the whole file arrived")
+    return digest.hexdigest()
+
+
+def _disk_failure(exc: OSError) -> DownloadError:
+    kind = FailureKind.INSUFFICIENT_SPACE if exc.errno == errno.ENOSPC else FailureKind.IO
+    return DownloadError(Failure(kind, f"disk write failed: {exc}"))
+
+
+def fetch(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy) -> None:
+    if _present(item):
+        job.settle(item.size_bytes)
+        return
+    item.dest.parent.mkdir(parents=True, exist_ok=True)
+    part = part_of(item.dest)
+    failures = 0
+    while True:
+        job.raise_if_cancelled()
+        before = part.stat().st_size if part.exists() else 0
+        try:
+            actual = _attempt(item, job, url, opener, policy)
+            break
+        except _Transient as exc:
+            after = part.stat().st_size if part.exists() else 0
+            failures = 1 if after > before else failures + 1
+            if failures > policy.max_failures:
+                raise DownloadError(
+                    Failure(
+                        FailureKind.NETWORK,
+                        f"Download interrupted and not recovered after {policy.max_failures} "
+                        f"retries ({exc}). The partial file is kept; start the download again "
+                        "to continue.",
+                    )
+                ) from exc
+            delay = min(policy.backoff_s * 2 ** (failures - 1), policy.max_backoff_s)
+            job.note_retry(f"{exc}; retrying in {delay:.0f}s ({failures}/{policy.max_failures})")
+            job.cancel.wait(delay)
+    job.note_retry(None)
+    job.move(JobState.VERIFYING)
+    if actual != item.sha256:
+        part.unlink(missing_ok=True)
+        raise DownloadError(
+            Failure(
+                FailureKind.HASH_MISMATCH,
+                f"{item.dest.name} failed its SHA256 check (expected {item.sha256}, "
+                f"got {actual}); the download was deleted.",
+            )
+        )
+    try:
+        os.replace(part, item.dest)
+    except OSError as exc:
+        raise _disk_failure(exc) from exc
+    job.settle(item.size_bytes)
+
+
+def safe_members(archive: zipfile.ZipFile, into: Path) -> list[tuple[zipfile.ZipInfo, Path]]:
+    root = into.resolve()
+    members: list[tuple[zipfile.ZipInfo, Path]] = []
+    for info in archive.infolist():
+        name = info.filename
+        parts = [p for p in re.split(r"[\\/]", name) if p != ""]
+        if (
+            not parts
+            or name.startswith(("/", "\\"))
+            or any(":" in p or _NON_NAME.match(p) or "\x00" in p for p in parts)
+            or (info.external_attr >> 16) & 0o170000 == 0o120000
+        ):
+            raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+        target = (root.joinpath(*parts)).resolve()
+        if not target.is_relative_to(root):
+            raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+        members.append((info, target))
+    return members
+
+
+def extract_zip(archive_path: Path, into: Path, job: Job) -> None:
+    try:
+        with zipfile.ZipFile(archive_path) as archive:
+            members = safe_members(archive, into)
+            check_space([(into, sum(info.file_size for info, _ in members))])
+            for info, target in members:
+                job.raise_if_cancelled()
+                if info.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(info) as source, target.open("wb") as out:
+                    shutil.copyfileobj(source, out, CHUNK)
+    except zipfile.BadZipFile as exc:
+        raise DownloadError(Failure(FailureKind.ARCHIVE, f"{archive_path.name}: {exc}")) from exc
+    except OSError as exc:
+        raise _disk_failure(exc) from exc
+
+
+def unpack(plan: Plan, job: Job) -> None:
+    folder = plan.unpack_to
+    if folder is None:
+        return
+    staging = staging_of(folder)
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    try:
+        for item in plan.items:
+            extract_zip(item.dest, staging, job)
+        if plan.entry_point and not (staging / plan.entry_point).is_file():
+            raise DownloadError(
+                Failure(FailureKind.ARCHIVE, f"archive does not contain {plan.entry_point}")
+            )
+        os.replace(staging, folder)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    for item in plan.items:
+        item.dest.unlink(missing_ok=True)
+
+
+class JobRunner:
+    def __init__(
+        self,
+        resolve_url: Callable[[str], str] = lambda url: url,
+        policy: RetryPolicy | None = None,
+        opener: Opener | None = None,
+    ) -> None:
+        self._resolve_url = resolve_url
+        self._policy = policy or RetryPolicy()
+        self._opener = opener or _urlopen
+        self._lock = threading.Lock()
+        self._jobs: dict[str, Job] = {}
+        self._active: dict[str, Job] = {}
+        self._queue: queue.Queue[Job] = queue.Queue()
+        threading.Thread(target=self._work, name="downloads", daemon=True).start()
+
+    def submit(self, plan: Plan) -> JobStatus:
+        with self._lock:
+            running = self._active.get(plan.asset_id)
+            if running is not None:
+                return running.snapshot()
+            job = Job(plan)
+            self._jobs[job.id] = job
+            self._prune()
+            if plan.is_satisfied():
+                job.complete(Outcome.ALREADY_PRESENT)
+            else:
+                self._active[plan.asset_id] = job
+                self._queue.put(job)
+            return job.snapshot()
+
+    def state(self, plan: Plan) -> InstallState:
+        with self._lock:
+            if plan.asset_id in self._active:
+                return InstallState.INSTALLING
+        return plan.state()
+
+    def active_job(self, asset_id: str) -> JobStatus | None:
+        with self._lock:
+            job = self._active.get(asset_id)
+        return job.snapshot() if job else None
+
+    def status(self, job_id: str) -> JobStatus | None:
+        job = self._jobs.get(job_id)
+        return job.snapshot() if job else None
+
+    def jobs(self) -> list[JobStatus]:
+        with self._lock:
+            return [job.snapshot() for job in self._jobs.values()]
+
+    def cancel(self, job_id: str) -> JobStatus | None:
+        job = self._jobs.get(job_id)
+        if job is None:
+            return None
+        job.request_cancel()
+        if job.finished.is_set():
+            self._release(job)
+        return job.snapshot()
+
+    def wait(self, job_id: str, timeout: float | None = None) -> JobStatus | None:
+        job = self._jobs.get(job_id)
+        if job is None:
+            return None
+        job.finished.wait(timeout)
+        return job.snapshot()
+
+    def shutdown(self) -> None:
+        with self._lock:
+            for job in self._jobs.values():
+                job.request_cancel()
+
+    def _prune(self) -> None:
+        stale = [j for j in self._jobs.values() if j.finished.is_set()]
+        for job in stale[: max(0, len(stale) - _KEEP_JOBS)]:
+            del self._jobs[job.id]
+
+    def _release(self, job: Job) -> None:
+        with self._lock:
+            if self._active.get(job.plan.asset_id) is job:
+                del self._active[job.plan.asset_id]
+
+    def _work(self) -> None:
+        while True:
+            job = self._queue.get()
+            if job.try_start():
+                self._run(job)
+            self._release(job)
+
+    def _run(self, job: Job) -> None:
+        plan = job.plan
+        try:
+            check_space((item.dest.parent, _remaining(item)) for item in plan.items)
+            for item in plan.items:
+                job.move(JobState.DOWNLOADING)
+                fetch(item, job, self._resolve_url(item.url), self._opener, self._policy)
+            if plan.unpack_to is not None:
+                job.move(JobState.EXTRACTING)
+                unpack(plan, job)
+            job.complete(Outcome.INSTALLED)
+        except Cancelled:
+            job.move(JobState.CANCELLED)
+        except DownloadError as exc:
+            job.fail(exc.failure)
+        except Exception as exc:
+            job.fail(Failure(FailureKind.IO, f"{type(exc).__name__}: {exc}"))
