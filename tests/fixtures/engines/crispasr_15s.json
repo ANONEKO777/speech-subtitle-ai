@@ -1,0 +1,617 @@
+{
+ "crispasr": {
+  "backend": "qwen3",
+  "model": "qwen3-asr-1.7b-q8_0.gguf",
+  "language": "en"
+ },
+ "transcription": [
+  {
+   "timestamps": {
+    "from": "00:00:00,000",
+    "to": "00:00:12,720"
+   },
+   "offsets": {
+    "from": 0,
+    "to": 12720
+   },
+   "text": "Box recordings are in the public domain. For more information or to volunteer, please visit librivox.org. This recording is by Mark Smith of Simpsonville, South Carolina.",
+   "words": [
+    {
+     "text": "Box",
+     "t0": 0,
+     "t1": 24,
+     "offsets": {
+      "from": 0,
+      "to": 240
+     }
+    },
+    {
+     "text": "recordings",
+     "t0": 24,
+     "t1": 80,
+     "offsets": {
+      "from": 240,
+      "to": 800
+     }
+    },
+    {
+     "text": "are",
+     "t0": 80,
+     "t1": 88,
+     "offsets": {
+      "from": 800,
+      "to": 880
+     }
+    },
+    {
+     "text": "in",
+     "t0": 88,
+     "t1": 104,
+     "offsets": {
+      "from": 880,
+      "to": 1040
+     }
+    },
+    {
+     "text": "the",
+     "t0": 104,
+     "t1": 104,
+     "offsets": {
+      "from": 1040,
+      "to": 1040
+     }
+    },
+    {
+     "text": "public",
+     "t0": 104,
+     "t1": 144,
+     "offsets": {
+      "from": 1040,
+      "to": 1440
+     }
+    },
+    {
+     "text": "domain.",
+     "t0": 144,
+     "t1": 184,
+     "offsets": {
+      "from": 1440,
+      "to": 1840
+     }
+    },
+    {
+     "text": "For",
+     "t0": 248,
+     "t1": 256,
+     "offsets": {
+      "from": 2480,
+      "to": 2560
+     }
+    },
+    {
+     "text": "more",
+     "t0": 256,
+     "t1": 280,
+     "offsets": {
+      "from": 2560,
+      "to": 2800
+     }
+    },
+    {
+     "text": "information",
+     "t0": 280,
+     "t1": 352,
+     "offsets": {
+      "from": 2800,
+      "to": 3520
+     }
+    },
+    {
+     "text": "or",
+     "t0": 360,
+     "t1": 376,
+     "offsets": {
+      "from": 3600,
+      "to": 3760
+     }
+    },
+    {
+     "text": "to",
+     "t0": 376,
+     "t1": 392,
+     "offsets": {
+      "from": 3760,
+      "to": 3920
+     }
+    },
+    {
+     "text": "volunteer,",
+     "t0": 392,
+     "t1": 464,
+     "offsets": {
+      "from": 3920,
+      "to": 4640
+     }
+    },
+    {
+     "text": "please",
+     "t0": 512,
+     "t1": 536,
+     "offsets": {
+      "from": 5120,
+      "to": 5360
+     }
+    },
+    {
+     "text": "visit",
+     "t0": 536,
+     "t1": 576,
+     "offsets": {
+      "from": 5360,
+      "to": 5760
+     }
+    },
+    {
+     "text": "librivox.",
+     "t0": 576,
+     "t1": 640,
+     "offsets": {
+      "from": 5760,
+      "to": 6400
+     }
+    },
+    {
+     "text": "org.",
+     "t0": 672,
+     "t1": 720,
+     "offsets": {
+      "from": 6720,
+      "to": 7200
+     }
+    },
+    {
+     "text": "This",
+     "t0": 904,
+     "t1": 928,
+     "offsets": {
+      "from": 9040,
+      "to": 9280
+     }
+    },
+    {
+     "text": "recording",
+     "t0": 928,
+     "t1": 976,
+     "offsets": {
+      "from": 9280,
+      "to": 9760
+     }
+    },
+    {
+     "text": "is",
+     "t0": 976,
+     "t1": 992,
+     "offsets": {
+      "from": 9760,
+      "to": 9920
+     }
+    },
+    {
+     "text": "by",
+     "t0": 992,
+     "t1": 1008,
+     "offsets": {
+      "from": 9920,
+      "to": 10080
+     }
+    },
+    {
+     "text": "Mark",
+     "t0": 1008,
+     "t1": 1040,
+     "offsets": {
+      "from": 10080,
+      "to": 10400
+     }
+    },
+    {
+     "text": "Smith",
+     "t0": 1040,
+     "t1": 1080,
+     "offsets": {
+      "from": 10400,
+      "to": 10800
+     }
+    },
+    {
+     "text": "of",
+     "t0": 1080,
+     "t1": 1104,
+     "offsets": {
+      "from": 10800,
+      "to": 11040
+     }
+    },
+    {
+     "text": "Simpsonville,",
+     "t0": 1112,
+     "t1": 1176,
+     "offsets": {
+      "from": 11120,
+      "to": 11760
+     }
+    },
+    {
+     "text": "South",
+     "t0": 1176,
+     "t1": 1208,
+     "offsets": {
+      "from": 11760,
+      "to": 12080
+     }
+    },
+    {
+     "text": "Carolina.",
+     "t0": 1208,
+     "t1": 1272,
+     "offsets": {
+      "from": 12080,
+      "to": 12720
+     }
+    }
+   ],
+   "tokens": [
+    {
+     "text": "Box",
+     "p": 0.443919,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " recordings",
+     "p": 0.990578,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " are",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " in",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " the",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " public",
+     "p": 0.999882,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " domain",
+     "p": 0.999999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ".",
+     "p": 0.999947,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " For",
+     "p": 0.999999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " more",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " information",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " or",
+     "p": 0.999423,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " to",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " volunteer",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ",",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " please",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " visit",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " lib",
+     "p": 0.652316,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": "riv",
+     "p": 0.916547,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": "ox",
+     "p": 0.999994,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ".org",
+     "p": 0.993203,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ".",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " This",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " recording",
+     "p": 0.999999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " is",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " by",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " Mark",
+     "p": 0.997999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " Smith",
+     "p": 0.999966,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " of",
+     "p": 0.999995,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " Simpson",
+     "p": 0.997207,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": "ville",
+     "p": 0.999992,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ",",
+     "p": 0.999999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " South",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": " Carolina",
+     "p": 1,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    },
+    {
+     "text": ".",
+     "p": 0.999999,
+     "t0": -1,
+     "t1": -1,
+     "offsets": {
+      "from": -10,
+      "to": -10
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,297 @@
+{
+ "systeminfo": "sanitized",
+ "model": {
+  "type": "large",
+  "multilingual": true,
+  "vocab": 51866,
+  "audio": {
+   "ctx": 1500,
+   "state": 1280,
+   "head": 20,
+   "layer": 32
+  },
+  "text": {
+   "ctx": 448,
+   "state": 1280,
+   "head": 20,
+   "layer": 4
+  },
+  "mels": 128,
+  "ftype": 1
+ },
+ "params": {
+  "model": "ggml-large-v3-turbo.bin",
+  "language": "en",
+  "translate": false
+ },
+ "result": {
+  "language": "en"
+ },
+ "transcription": [
+  {
+   "timestamps": {
+    "from": "00:00:00,000",
+    "to": "00:00:07,160"
+   },
+   "offsets": {
+    "from": 0,
+    "to": 7160
+   },
+   "text": " For more information or to volunteer, please visit LibriVox.org.",
+   "tokens": [
+    {
+     "text": "[_BEG_]",
+     "timestamps": {
+      "from": "00:00:00,000",
+      "to": "00:00:00,000"
+     },
+     "offsets": {
+      "from": 0,
+      "to": 0
+     },
+     "id": 50365,
+     "p": 0.8659,
+     "t_dtw": -1
+    },
+    {
+     "text": " For",
+     "timestamps": {
+      "from": "00:00:00,000",
+      "to": "00:00:00,560"
+     },
+     "offsets": {
+      "from": 0,
+      "to": 560
+     },
+     "id": 1171,
+     "p": 0.0592171,
+     "t_dtw": -1
+    },
+    {
+     "text": " more",
+     "timestamps": {
+      "from": "00:00:00,560",
+      "to": "00:00:01,300"
+     },
+     "offsets": {
+      "from": 560,
+      "to": 1300
+     },
+     "id": 544,
+     "p": 0.996042,
+     "t_dtw": -1
+    },
+    {
+     "text": " information",
+     "timestamps": {
+      "from": "00:00:01,300",
+      "to": "00:00:03,360"
+     },
+     "offsets": {
+      "from": 1300,
+      "to": 3360
+     },
+     "id": 1589,
+     "p": 0.987775,
+     "t_dtw": -1
+    },
+    {
+     "text": " or",
+     "timestamps": {
+      "from": "00:00:03,360",
+      "to": "00:00:03,500"
+     },
+     "offsets": {
+      "from": 3360,
+      "to": 3500
+     },
+     "id": 420,
+     "p": 0.734548,
+     "t_dtw": -1
+    },
+    {
+     "text": " to",
+     "timestamps": {
+      "from": "00:00:03,510",
+      "to": "00:00:03,640"
+     },
+     "offsets": {
+      "from": 3510,
+      "to": 3640
+     },
+     "id": 281,
+     "p": 0.995311,
+     "t_dtw": -1
+    },
+    {
+     "text": " volunteer",
+     "timestamps": {
+      "from": "00:00:03,670",
+      "to": "00:00:04,320"
+     },
+     "offsets": {
+      "from": 3670,
+      "to": 4320
+     },
+     "id": 13835,
+     "p": 0.992748,
+     "t_dtw": -1
+    },
+    {
+     "text": ",",
+     "timestamps": {
+      "from": "00:00:04,350",
+      "to": "00:00:04,500"
+     },
+     "offsets": {
+      "from": 4350,
+      "to": 4500
+     },
+     "id": 11,
+     "p": 0.969753,
+     "t_dtw": -1
+    },
+    {
+     "text": " please",
+     "timestamps": {
+      "from": "00:00:04,500",
+      "to": "00:00:05,050"
+     },
+     "offsets": {
+      "from": 4500,
+      "to": 5050
+     },
+     "id": 1767,
+     "p": 0.737784,
+     "t_dtw": -1
+    },
+    {
+     "text": " visit",
+     "timestamps": {
+      "from": "00:00:05,110",
+      "to": "00:00:05,540"
+     },
+     "offsets": {
+      "from": 5110,
+      "to": 5540
+     },
+     "id": 3441,
+     "p": 0.997728,
+     "t_dtw": -1
+    },
+    {
+     "text": " Lib",
+     "timestamps": {
+      "from": "00:00:05,540",
+      "to": "00:00:05,820"
+     },
+     "offsets": {
+      "from": 5540,
+      "to": 5820
+     },
+     "id": 15834,
+     "p": 0.940417,
+     "t_dtw": -1
+    },
+    {
+     "text": "ri",
+     "timestamps": {
+      "from": "00:00:05,820",
+      "to": "00:00:06,000"
+     },
+     "offsets": {
+      "from": 5820,
+      "to": 6000
+     },
+     "id": 470,
+     "p": 0.991261,
+     "t_dtw": -1
+    },
+    {
+     "text": "V",
+     "timestamps": {
+      "from": "00:00:06,000",
+      "to": "00:00:06,090"
+     },
+     "offsets": {
+      "from": 6000,
+      "to": 6090
+     },
+     "id": 53,
+     "p": 0.993515,
+     "t_dtw": -1
+    },
+    {
+     "text": "ox",
+     "timestamps": {
+      "from": "00:00:06,090",
+      "to": "00:00:06,240"
+     },
+     "offsets": {
+      "from": 6090,
+      "to": 6240
+     },
+     "id": 5230,
+     "p": 0.998369,
+     "t_dtw": -1
+    },
+    {
+     "text": ".",
+     "timestamps": {
+      "from": "00:00:06,270",
+      "to": "00:00:06,550"
+     },
+     "offsets": {
+      "from": 6270,
+      "to": 6550
+     },
+     "id": 13,
+     "p": 0.998294,
+     "t_dtw": -1
+    },
+    {
+     "text": "org",
+     "timestamps": {
+      "from": "00:00:06,550",
+      "to": "00:00:06,830"
+     },
+     "offsets": {
+      "from": 6550,
+      "to": 6830
+     },
+     "id": 4646,
+     "p": 0.997067,
+     "t_dtw": -1
+    },
+    {
+     "text": ".",
+     "timestamps": {
+      "from": "00:00:06,830",
+      "to": "00:00:07,130"
+     },
+     "offsets": {
+      "from": 6830,
+      "to": 7130
+     },
+     "id": 13,
+     "p": 0.871324,
+     "t_dtw": -1
+    },
+    {
+     "text": "[_TT_358]",
+     "timestamps": {
+      "from": "00:00:07,160",
+      "to": "00:00:07,160"
+     },
+     "offsets": {
+      "from": 7160,
+      "to": 7160
+     },
+     "id": 50723,
+     "p": 0.271395,
+     "t_dtw": -1
+    }
+   ]
+  }
+ ]
+}

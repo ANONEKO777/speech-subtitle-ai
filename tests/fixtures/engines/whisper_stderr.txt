@@ -1,0 +1,15 @@
+main: processing 'a.wav' (240000 samples, 15.0 sec), 4 threads, 1 processors, 5 beams + best of 5, lang = en, task = transcribe, timestamps = 1 ...
+whisper_print_progress_callback: progress = 100%
+output_json: saving output to 'oa.json'
+main: processing 'b.wav' (240000 samples, 15.0 sec), 4 threads, 1 processors, 5 beams + best of 5, lang = en, task = transcribe, timestamps = 1 ...
+whisper_print_progress_callback: progress = 100%
+output_json: saving output to 'ob.json'
+whisper_print_timings:     load time =  2084.82 ms
+whisper_print_timings:     fallbacks =   0 p /   0 h
+whisper_print_timings:      mel time =    19.40 ms
+whisper_print_timings:   sample time =   120.78 ms /   166 runs (     0.73 ms per run)
+whisper_print_timings:   encode time = 22777.51 ms /     2 runs ( 11388.75 ms per run)
+whisper_print_timings:   decode time =    16.36 ms /     2 runs (     8.18 ms per run)
+whisper_print_timings:   batchd time =   610.41 ms /   160 runs (     3.82 ms per run)
+whisper_print_timings:   prompt time =     0.00 ms /     1 runs (     0.00 ms per run)
+whisper_print_timings:    total time = 25673.82 ms

@@ -20,3 +20,7 @@ Word timestamps that CrispASR (Qwen3-ASR with the forced aligner) produced for `
 ## en_15s.probs.json
 
 The silero-vad v6.2.3 speech probability for each 32 ms frame of `en_15s.wav`, rounded to 4 decimals, from `frame_probs` on the pinned ONNX model. `tests/test_vad.py` compares fresh output with it, which pins the context window, the gain, and the state handling. Regenerate it only when the model pin changes.
+
+## engines/
+
+Recorded engine output for `tests/test_engines.py`. `whisper_15s.json` and `crispasr_15s.json` are the `-ojf` files that whisper.cpp b5454 (large-v3-turbo, `-ng`) and CrispASR v0.8.49 (Qwen3-ASR-1.7B q8_0 with the Qwen3 aligner, `-ng`) wrote for `en_15s.wav`, with the local model and system strings blanked. `whisper_stderr.txt` and `crispasr_stderr.txt` are the lines the same runs printed to stderr that the progress parser reads, for two input files, with the local paths cut to file names. `fake_cli.py` replays them in place of the engine binary.

@@ -1,0 +1,4 @@
+crispasr: audio: 240000 samples (15.0 s) @ 16000 Hz, 4 threads
+crispasr: transcribed 15.0s audio in 18.09s (0.8x realtime)
+crispasr: audio: 240000 samples (15.0 s) @ 16000 Hz, 4 threads
+crispasr: transcribed 15.0s audio in 6.04s (2.5x realtime)
