@@ -5,7 +5,7 @@ This directory is the maintained source for verifying what a user does in the Vi
 ## Baseline preconditions
 
 - The release exe is built (`cd app && npx tauri build --no-bundle`) and `.venv` exists at the repo root.
-- Use a disposable projects folder per run. To skip the GPU, copy an already processed project folder (for example `D:\WebProject\m0-work\p09-projects-seed`, video `D:\WebProject\m0-work\audio\talk38.wav`) and import that same video path.
+- Use a disposable projects folder per run. To skip the GPU, copy an already processed project folder (for example `D:\WebProject\speech-subtitle-ai\.work\p09-projects-seed`, video `D:\WebProject\speech-subtitle-ai\.work\audio\talk38.wav`) and import that same video path.
 - A first import of a new video needs the GPU free: `tasklist | grep -iE "whisper-cli|crispasr|llama-server"` exits 1.
 - Never drive a window this run did not start.
 
