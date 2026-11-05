@@ -13,7 +13,7 @@ from typing import Any, cast
 
 import pytest
 
-from backend.core import translate
+from backend.core import summarize, translate
 from backend.core.model import Cue, FormatError
 from backend.core.subtitle_io import parse_subs, render_subs, write_text_file
 from backend.core.translate import (
@@ -31,6 +31,7 @@ from backend.core.translate import (
     sentence_units,
 )
 from backend.llm import client
+from backend.llm.ask import MAX_BACKOFF_S, MAX_RETRIES, json_chat
 from backend.llm.client import LlmConfig, LlmError, Message
 
 
@@ -85,7 +86,7 @@ def run_all(
     glossary: Sequence[GlossaryEntry] = (),
     *,
     batch_size: int = translate.BATCH_SIZE,
-    max_retries: int = translate.MAX_RETRIES,
+    max_retries: int = MAX_RETRIES,
     checkpoint: Callable[[list[Cue]], None] | None = None,
     on_progress: Callable[[Progress], None] | None = None,
 ) -> list[Cue]:
@@ -733,7 +734,7 @@ def test_a_server_that_keeps_failing_is_reported_not_split() -> None:
 
     with pytest.raises(LlmError, match="llm.test.*HTTP 503"):
         run(cues, chat, sleep=waits.append)
-    assert len(calls) == translate.MAX_RETRIES + 1
+    assert len(calls) == MAX_RETRIES + 1
 
 
 def test_retry_after_from_the_server_sets_the_wait() -> None:
@@ -745,7 +746,7 @@ def test_retry_after_from_the_server_sets_the_wait() -> None:
         return good_reply(messages)
 
     run(make_cues(2), chat, sleep=waits.append)
-    assert waits == [20.0, translate.MAX_BACKOFF_S]
+    assert waits == [20.0, MAX_BACKOFF_S]
 
 
 def test_glossary_terms_with_quotes_stay_inside_their_quotes() -> None:
@@ -760,11 +761,19 @@ def test_glossary_terms_with_quotes_stay_inside_their_quotes() -> None:
 
 def test_json_chat_asks_for_a_json_object() -> None:
     with serve(lambda h, b: send(h, 200, completion('{"translations": []}'))) as server:
-        chat = translate.json_chat(LlmConfig(server.url, "m"))
+        chat = json_chat(LlmConfig(server.url, "m"))
         assert chat([USER], 0.3) == '{"translations": []}'
     body = server.requests[0][1]
     assert body["response_format"] == {"type": "json_object"}
     assert body["temperature"] == 0.3
+
+
+def test_summary_chat_caps_the_reply_length() -> None:
+    with serve(lambda h, b: send(h, 200, completion("{}"))) as server:
+        summarize.summary_chat(LlmConfig(server.url, "m"))([USER], 0.0)
+        json_chat(LlmConfig(server.url, "m"))([USER], 0.0)
+    assert server.requests[0][1]["max_tokens"] == summarize.REPLY_MAX_TOKENS
+    assert "max_tokens" not in server.requests[1][1]
 
 
 def test_a_key_echoed_by_the_server_is_redacted_from_the_error() -> None:

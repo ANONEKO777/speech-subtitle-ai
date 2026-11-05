@@ -34,6 +34,7 @@ from backend.core.subtitle_io import (
     write_text_file,
 )
 from backend.core.translate import GlossaryEntry, Progress
+from backend.llm.ask import json_chat
 from backend.llm.client import LlmConfig
 
 PORT = 18080
@@ -46,13 +47,13 @@ _PROMPT_EVAL = re.compile(r"prompt eval time =\s*([\d.]+) ms /\s*(\d+) tokens")
 RIVALS = ("whisper-cli.exe", "crispasr.exe")
 
 
-def _rival_running() -> bool:
+def rival_running() -> bool:
     raw = subprocess.run(["tasklist"], capture_output=True, check=False).stdout
     out = raw.decode("oem", errors="replace").lower()
     return any(name in out for name in RIVALS)
 
 
-class _GpuSampler(threading.Thread):
+class GpuSampler(threading.Thread):
     def __init__(self) -> None:
         super().__init__(daemon=True)
         self.util: list[int] = []
@@ -67,7 +68,7 @@ class _GpuSampler(threading.Thread):
             "--format=csv,noheader,nounits",
         ]
         while not self._halt.wait(1.0):
-            self.contended |= _rival_running()
+            self.contended |= rival_running()
             out = subprocess.run(query, capture_output=True, text=True, check=False).stdout
             first = out.strip().splitlines()[0].split(",") if out.strip() else []
             if len(first) == 2:
@@ -79,7 +80,7 @@ class _GpuSampler(threading.Thread):
         self.join()
 
 
-def _wait_healthy(base: str, server: subprocess.Popen[bytes], timeout_s: float = 300.0) -> None:
+def wait_healthy(base: str, server: subprocess.Popen[bytes], timeout_s: float = 300.0) -> None:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         if server.poll() is not None:
@@ -99,7 +100,7 @@ def _rate(samples: list[tuple[float, int]]) -> float:
     return round(sum(n for _, n in samples) / seconds, 1) if samples else 0.0
 
 
-def _server_stats(log_path: Path) -> dict[str, float]:
+def server_stats(log_path: Path) -> dict[str, float]:
     text = log_path.read_text(encoding="utf-8", errors="replace")
     decode = [(float(ms), int(n)) for ms, n in _EVAL.findall(text)]
     prompt = [(float(ms), int(n)) for ms, n in _PROMPT_EVAL.findall(text)]
@@ -130,7 +131,7 @@ class _Retries(logging.Handler):
 
 
 def run_once(args: argparse.Namespace, index: int, cues: list[Cue]) -> dict[str, object]:
-    if _rival_running():
+    if rival_running():
         raise SystemExit("another GPU job (whisper-cli or crispasr) is running; not starting")
     out_dir = cast("Path", args.out_dir) / f"run{index}"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -148,17 +149,17 @@ def run_once(args: argparse.Namespace, index: int, cues: list[Cue]) -> dict[str,
     with server_log.open("wb") as sink:
         server = subprocess.Popen(command, stdout=sink, stderr=subprocess.STDOUT)
         try:
-            _wait_healthy(base, server)
+            wait_healthy(base, server)
             config = LlmConfig(base, "qwen3-8b", extra_body=NO_THINK)
             progress: list[Progress] = []
 
-            sampler = _GpuSampler()
+            sampler = GpuSampler()
             sampler.start()
             started = time.monotonic()
             translate.translate_file(
                 source,
                 dest,
-                translate.json_chat(config),
+                json_chat(config),
                 _glossary(args.glossary),
                 batch_size=args.batch_size,
                 on_progress=progress.append,
@@ -189,7 +190,7 @@ def run_once(args: argparse.Namespace, index: int, cues: list[Cue]) -> dict[str,
         "contended_by_other_gpu_job": sampler.contended,
         "gpu_util_mean_pct": round(statistics.mean(sampler.util), 1) if sampler.util else None,
         "gpu_mem_max_mib": max(sampler.mem_mib) if sampler.mem_mib else None,
-        "server": _server_stats(server_log),
+        "server": server_stats(server_log),
         "output": str(dest),
     }
 

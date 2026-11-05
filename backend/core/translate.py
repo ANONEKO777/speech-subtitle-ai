@@ -13,29 +13,21 @@ from typing import cast
 from backend.core.model import Cue, FormatError
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
 from backend.core.zh_tw import CJK_TEXT, simplified_chars, strip_markdown_emphasis, taiwan_terms
-from backend.llm import client
-from backend.llm.client import LlmConfig, LlmError, Message
+from backend.llm.ask import (
+    MAX_RETRIES,
+    ChatFn,
+    RepliesRejected,
+    ReplyError,
+    ask,
+    parse_json_reply,
+)
+from backend.llm.client import Message
 
 log = logging.getLogger(__name__)
 
 BATCH_SIZE = 10
 CONTEXT_CUES = 5
 MAX_UNIT_CUES = 6
-MAX_RETRIES = 3
-RETRY_TEMPERATURE = 0.3
-MAX_BACKOFF_S = 60.0
-
-ChatFn = Callable[[Sequence[Message], float], str]
-
-
-def json_chat(config: LlmConfig) -> ChatFn:
-    """The `ChatFn` for an OpenAI-compatible endpoint, asking for a JSON object back."""
-
-    def chat(messages: Sequence[Message], temperature: float) -> str:
-        return client.chat(config, messages, temperature=temperature, json_mode=True)
-
-    return chat
-
 
 _MAX_ZH_PER_EN_CHAR = 1.2
 _ZH_SLACK = 6
@@ -44,12 +36,6 @@ _LONG_EN_CHARS = 25
 _GLOSSARY_MARK = "<<GLOSSARY>>"
 _MARKER = re.compile(r"\[\[(\d+)\]\]")
 _SENTENCE_END = re.compile(r"[.?!…][\"')\]”]*\Z")
-_THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
-_FENCE = re.compile(r"\A\s*```[A-Za-z]*\s*\n(.*?)\n\s*```\s*\Z", re.DOTALL)
-
-
-class ReplyError(ValueError):
-    """The model's reply is not a usable translation of the batch it was asked for."""
 
 
 class TranslationError(RuntimeError):
@@ -190,17 +176,22 @@ def _quoted(text: str) -> str:
     return json.dumps(text, ensure_ascii=False)
 
 
-def _system_prompt(glossary: Sequence[GlossaryEntry]) -> str:
-    template = (files("backend.core") / "prompts" / "translate.md").read_text(encoding="utf-8")
+def glossary_block(glossary: Sequence[GlossaryEntry]) -> str:
+    """The glossary lines for a system prompt, empty when there are no entries."""
     if not glossary:
-        return template.replace(_GLOSSARY_MARK, "").rstrip() + "\n"
+        return ""
     lines = ["", "Glossary. Whenever one of these terms appears, in any capitalisation:"]
     for entry in glossary:
         if entry.zh:
             lines.append(f"- {_quoted(entry.term)} must be translated as {_quoted(entry.zh)}")
         else:
             lines.append(f"- {_quoted(entry.term)} must stay in its original English spelling")
-    return template.replace(_GLOSSARY_MARK, "\n".join(lines)).rstrip() + "\n"
+    return "\n".join(lines)
+
+
+def _system_prompt(glossary: Sequence[GlossaryEntry]) -> str:
+    template = (files("backend.core") / "prompts" / "translate.md").read_text(encoding="utf-8")
+    return template.replace(_GLOSSARY_MARK, glossary_block(glossary)).rstrip() + "\n"
 
 
 def _flat(cue: Cue) -> str:
@@ -243,12 +234,7 @@ def build_request(
 
 
 def _reply_entries(text: str) -> list[object]:
-    text = _THINK.sub("", text).strip()
-    fenced = _FENCE.match(text)
-    try:
-        doc = cast("object", json.loads(fenced.group(1) if fenced else text))
-    except json.JSONDecodeError as exc:
-        raise ReplyError(f"the reply is not valid JSON ({exc})") from exc
+    doc = parse_json_reply(text)
     if isinstance(doc, dict):
         doc = cast("dict[str, object]", doc).get("translations")
     if not isinstance(doc, list):
@@ -381,51 +367,32 @@ class _Run:
         request = build_request(self.cues, batch, self.glossary, self.context)
         started = time.monotonic()
         first, last = self.cues[batch.start].id, self.cues[batch.stop - 1].id
-        messages: list[Message] = list(request.messages)
-        attempts = self.max_retries + 1
-        reason = ""
-        server_error: LlmError | None = None
-        answered = False
-        for attempt in range(1, attempts + 1):
-            try:
-                text = self.chat(messages, 0.0 if attempt == 1 else RETRY_TEMPERATURE)
-            except LlmError as exc:
-                if not exc.retryable:
-                    raise
-                reason, server_error = str(exc), exc
-                log.warning("cues %d-%d attempt %d failed: %s", first, last, attempt, reason)
-                delay = min(2.0 ** (attempt - 1), 8.0)
-                if exc.retry_after_s is not None:
-                    delay = min(max(delay, exc.retry_after_s), MAX_BACKOFF_S)
-                self.sleep(delay)
-                continue
-            answered = True
-            try:
-                translations = parse_reply(text, request, self.cues)
-            except ReplyError as exc:
-                reason = str(exc)
-                log.warning("cues %d-%d attempt %d rejected: %s", first, last, attempt, reason)
-                messages = [
-                    *request.messages,
-                    {"role": "assistant", "content": text},
-                    {
-                        "role": "user",
-                        "content": f"That reply was rejected: {reason}. Reply again with the "
-                        f'complete JSON for all {len(request.ids)} entries in "translate".',
-                    },
-                ]
-                continue
-            self.store(batch, translations, started, attempt)
-            return
-        if server_error and not answered:
-            raise server_error
-        if len(batch) == 1:
-            raise TranslationError(
-                f"cue {first} could not be translated after {attempts} attempts: {reason}"
+        try:
+            translations, attempts = ask(
+                self.chat,
+                request.messages,
+                lambda text: parse_reply(text, request, self.cues),
+                reprompt=lambda reason: (
+                    f"That reply was rejected: {reason}. Reply again with the "
+                    f'complete JSON for all {len(request.ids)} entries in "translate".'
+                ),
+                label=f"cues {first}-{last}",
+                retries=self.max_retries,
+                sleep=self.sleep,
             )
-        log.warning("cues %d-%d failed %d attempts; splitting the batch", first, last, attempts)
-        for half in batch.halves():
-            self.translate(half)
+        except RepliesRejected as exc:
+            if len(batch) == 1:
+                raise TranslationError(
+                    f"cue {first} could not be translated after {exc.attempts} attempts: "
+                    f"{exc.reason}"
+                ) from exc
+            log.warning(
+                "cues %d-%d failed %d attempts; splitting the batch", first, last, exc.attempts
+            )
+            for half in batch.halves():
+                self.translate(half)
+            return
+        self.store(batch, translations, started, attempts)
 
     def store(
         self, batch: Batch, translations: dict[int, str], started: float, attempts: int

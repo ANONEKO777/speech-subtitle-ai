@@ -93,7 +93,11 @@ def _opener(config: LlmConfig) -> urllib.request.OpenerDirector:
 
 
 def _request_body(
-    config: LlmConfig, messages: Sequence[Message], temperature: float, json_mode: bool
+    config: LlmConfig,
+    messages: Sequence[Message],
+    temperature: float,
+    json_mode: bool,
+    max_tokens: int | None,
 ) -> bytes:
     body: dict[str, object] = {
         **config.extra_body,
@@ -104,6 +108,8 @@ def _request_body(
     }
     if json_mode:
         body["response_format"] = {"type": "json_object"}
+    if max_tokens is not None:
+        body["max_tokens"] = max_tokens
     return json.dumps(body, ensure_ascii=False).encode("utf-8")
 
 
@@ -165,10 +171,11 @@ def chat(
     *,
     temperature: float = 0.0,
     json_mode: bool = False,
+    max_tokens: int | None = None,
 ) -> str:
     request = urllib.request.Request(
         config.chat_url,
-        data=_request_body(config, messages, temperature, json_mode),
+        data=_request_body(config, messages, temperature, json_mode, max_tokens),
         headers={
             "Content-Type": "application/json",
             **({"Authorization": f"Bearer {config.api_key}"} if config.api_key else {}),
