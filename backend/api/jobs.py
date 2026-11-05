@@ -7,10 +7,12 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.api.projects import jobs_of, store_of
 from backend.core.jobs import Job, JobEvent, JobOptions, OptionsError, ProjectBusy, Resolver
+from backend.core.languages import DEFAULT_CODE
+from backend.core.languages import get as get_language
 from backend.core.projects import UnknownProject
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
 from backend.manager.profiles import QWEN3_8B
@@ -36,6 +38,12 @@ class JobBody(BaseModel):
     glossary: list[GlossaryBody] = []
     summary_en: bool = False
     batch_size: int = Field(default=BATCH_SIZE, ge=1, le=4 * BATCH_SIZE)
+    target_lang: str = DEFAULT_CODE
+
+    @field_validator("target_lang")
+    @classmethod
+    def _known_language(cls, code: str) -> str:
+        return get_language(code).code
 
     def options(self) -> JobOptions:
         return JobOptions(
@@ -46,6 +54,7 @@ class JobBody(BaseModel):
             tuple(GlossaryEntry(g.term.strip(), g.zh.strip()) for g in self.glossary),
             self.summary_en,
             self.batch_size,
+            self.target_lang,
         )
 
 

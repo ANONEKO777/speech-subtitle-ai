@@ -12,10 +12,11 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Literal, cast
 
+from backend.core.language_prompts import EN_SUMMARY, SummaryText
+from backend.core.languages import DEFAULT_CODE, ENGLISH, get
 from backend.core.model import Cue, FormatError
 from backend.core.subtitle_io import parse_subs, read_text_file, write_text_file
 from backend.core.translate import GlossaryEntry, glossary_block
-from backend.core.zh_tw import CJK_TEXT, simplified_chars, taiwan_terms
 from backend.llm.ask import (
     MAX_RETRIES,
     ChatFn,
@@ -29,7 +30,8 @@ from backend.llm.client import LlmConfig, Message
 
 log = logging.getLogger(__name__)
 
-Lang = Literal["zh-TW", "en"]
+Lang = str
+"""A language code from `backend.core.languages`, or "en" for the English summary."""
 Stage = Literal["map", "reduce"]
 
 WINDOW_TOKENS = 3000
@@ -56,19 +58,11 @@ _LANGUAGE_MARK = "<<LANGUAGE>>"
 _CLOCK = re.compile(r"\[?(?:(\d+):)?(\d{1,2}):(\d{2})\]?")
 CHAPTER_LINK = re.compile(r"\[(?:\d+:)?\d{2}:\d{2}\]\(#t=(\d+)\)")
 
-_LANGUAGE_RULE: Mapping[Lang, str] = {
-    "zh-TW": (
-        "Write every field in Traditional Chinese as used in Taiwan (繁體中文, 台灣慣用語), never "
-        "Simplified characters. Use Taiwan vocabulary: 影片 (not 視頻), 軟體 (not 軟件), 程式 "
-        "(not 程序), 資料 (not 數據), 伺服器, 使用者, 專案, 設定, 執行, 效能. Keep names, "
-        "products and code in their original spelling."
-    ),
-    "en": "Write every field in English.",
-}
-_LABELS: Mapping[Lang, tuple[str, str, str, str, str, str]] = {
-    "zh-TW": ("重點整理", "章節", "關鍵觀點", "結論與金句", "未涵蓋時段", "："),
-    "en": ("Summary", "Chapters", "Key points", "Takeaways", "Not covered", ": "),
-}
+ENGLISH_SUMMARY_FILE = "summary.en.md"
+
+
+def _summary_text(lang: Lang) -> SummaryText:
+    return EN_SUMMARY if lang == ENGLISH else get(lang).summary
 
 
 class SummaryError(RuntimeError):
@@ -343,7 +337,7 @@ def reduce_messages(job: ReduceInput) -> tuple[Message, ...]:
         )
     system = (
         _template("summarize_reduce.md")
-        .replace(_LANGUAGE_MARK, _LANGUAGE_RULE[job.lang])
+        .replace(_LANGUAGE_MARK, _summary_text(job.lang).rule)
         .replace(_GLOSSARY_MARK, glossary_block(job.glossary))
         .rstrip()
         + "\n"
@@ -355,13 +349,12 @@ def _localised(
     job: ReduceInput, value: object, name: str, limit: int, *, prose: bool = True
 ) -> str:
     text = _text(value, name, limit)
-    if job.lang == "en":
+    if job.lang == ENGLISH:
         return text
-    text = taiwan_terms(text)
-    if simplified := simplified_chars(text):
-        raise ReplyError(f'"{name}" uses Simplified characters {"".join(simplified)}')
-    if prose and not CJK_TEXT.search(text):
-        raise ReplyError(f'"{name}" must be written in Traditional Chinese')
+    language = get(job.lang)
+    text = language.terms(text)
+    if problem := language.prose_problem(text) if prose else language.title_problem(text):
+        raise ReplyError(f'"{name}" {problem}')
     return text
 
 
@@ -419,7 +412,9 @@ def parse_reduce(text: str, job: ReduceInput) -> ReduceResult:
 
 
 def render_summary(doc: SummaryDoc) -> str:
-    title, chapters, key_points, takeaways, missing, sep = _LABELS[doc.lang]
+    text = _summary_text(doc.lang)
+    title, chapters, key_points = text.title, text.chapters, text.key_points
+    takeaways, missing, sep = text.takeaways, text.missing, text.separator
     result = doc.result
     out = [f"# {title}", "", f"> {result.one_liner}", "", f"## {chapters}", ""]
     out += [
@@ -436,7 +431,9 @@ def render_summary(doc: SummaryDoc) -> str:
 
 
 def summary_path(dest: Path, lang: Lang) -> Path:
-    return dest if lang == "zh-TW" else dest.with_name(f"{dest.stem}.en{dest.suffix}")
+    """`dest` holds the summary in the target language, and `summary.en.md` beside it the English
+    one."""
+    return dest.with_name(ENGLISH_SUMMARY_FILE) if lang == ENGLISH else dest
 
 
 def reprompt(reason: str) -> str:
@@ -620,7 +617,7 @@ class _Run:
 def run(
     lines: Sequence[Line],
     chat: ChatFn,
-    lang: Lang = "zh-TW",
+    lang: Lang = DEFAULT_CODE,
     glossary: Sequence[GlossaryEntry] = (),
     *,
     parts: Parts | None = None,
@@ -673,16 +670,16 @@ def summarize_file(
     source: Path,
     dest: Path,
     chat: ChatFn,
-    langs: Sequence[Lang] = ("zh-TW",),
+    langs: Sequence[Lang] = (DEFAULT_CODE,),
     glossary: Sequence[GlossaryEntry] = (),
     *,
     context_tokens: int = CONTEXT_TOKENS,
     on_progress: Callable[[Progress], None] | None = None,
 ) -> list[Path]:
-    """Summarise the English of `source` (a subs json) into `dest` (`summary.md`) and, for `en`,
-    `summary.en.md`. Finished model calls are kept in `summary.parts.json` beside `dest`, so a run
-    after a crash or a failure asks only for what is missing, and a run with nothing new asks
-    for nothing."""
+    """Summarise the English of `source` (a subs json) into `dest`, in the language `langs` names,
+    and, for `en`, into `summary.en.md` beside it. Finished model calls are kept in the
+    `.parts.json` file named after `dest`, so a run after a crash or a failure asks only for
+    what is missing, and a run with nothing new asks for nothing."""
     lines = lines_from_cues(parse_subs(read_text_file(source)))
     state = dest.with_name(f"{dest.stem}.parts.json")
     parts = Parts()

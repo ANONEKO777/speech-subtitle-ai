@@ -23,6 +23,8 @@ from pathlib import Path
 
 from backend.core import summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
+from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
+from backend.core.languages import get as get_language
 from backend.core.model import Cue, Project, Segment, Step, StepState, StepStatus, Word
 from backend.core.segmenter import CueRules, to_cues
 from backend.core.subtitle_io import (
@@ -36,7 +38,6 @@ from backend.core.subtitle_io import (
     render_vtt,
     write_text_file,
 )
-from backend.core.summarize import Lang
 from backend.core.translate import BATCH_SIZE, DEFAULT_GLOSSARY, GlossaryEntry
 from backend.core.vad import Chunk, VadParams
 from backend.llm.ask import ChatFn
@@ -48,20 +49,15 @@ PROJECT_JSON = "project.json"
 
 
 class File(StrEnum):
-    """Every file name in a project folder."""
+    """The file names in a project folder that do not depend on the target language. The others
+    are `Language.files`."""
 
     AUDIO = "audio.wav"
     CHUNKS = "chunks.json"
     WORDS = "segments.json"
     SUBS_EN = "subs.en.json"
-    SUBS_ZH = "subs.zh-TW.json"
     EN_SRT = "en.srt"
-    ZH_SRT = "zh-TW.srt"
-    ASS = "bilingual.ass"
-    VTT = "bilingual.vtt"
-    SUMMARY = "summary.md"
-    SUMMARY_EN = "summary.en.md"
-    SUMMARY_PARTS = "summary.parts.json"
+    SUMMARY_EN = summarize.ENGLISH_SUMMARY_FILE
     AUDIO_STAMP = "audio.wav.src.json"
 
 
@@ -94,8 +90,21 @@ class Settings:
     vad: VadParams = field(default_factory=VadParams)
     cues: CueRules = field(default_factory=CueRules)
     glossary: tuple[GlossaryEntry, ...] = DEFAULT_GLOSSARY
-    summary_langs: tuple[Lang, ...] = ("zh-TW",)
+    target_lang: str = DEFAULT_CODE
+    summary_en: bool = False
     batch_size: int = BATCH_SIZE
+
+    def __post_init__(self) -> None:
+        get_language(self.target_lang)
+
+    @property
+    def lang(self) -> Language:
+        return get_language(self.target_lang)
+
+    @property
+    def summary_langs(self) -> tuple[str, ...]:
+        """The summaries to write: one in the target language, and one in English when asked."""
+        return (self.target_lang, ENGLISH) if self.summary_en else (self.target_lang,)
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,8 +179,8 @@ class _Ctx:
     report: Callable[[Step, float, str], None]
     llm: Callable[[], LlmSession]
 
-    def path(self, name: File) -> Path:
-        return self.dir / name.value
+    def path(self, name: str) -> Path:
+        return self.dir / name
 
     def progress(self, fraction: float, message: str = "") -> None:
         if self.cancel.is_set():
@@ -184,13 +193,13 @@ class _StepSpec:
     step: Step
     version: int
     needs: tuple[Step, ...]
-    outputs: Callable[[Settings], tuple[File, ...]]
+    outputs: Callable[[Settings], tuple[str, ...]]
     key_parts: Callable[[Settings, str], object]
     body: Callable[[_Ctx], None]
-    partials: tuple[File, ...] = ()
+    partials: Callable[[Settings], tuple[str, ...]] = lambda s: ()
 
 
-def _read(ctx: _Ctx, name: File) -> str:
+def _read(ctx: _Ctx, name: str) -> str:
     return read_text_file(ctx.path(name))
 
 
@@ -222,30 +231,33 @@ def _segment(ctx: _Ctx) -> None:
 def _translate(ctx: _Ctx) -> None:
     translate.translate_file(
         ctx.path(File.SUBS_EN),
-        ctx.path(File.SUBS_ZH),
+        ctx.path(ctx.settings.lang.files.subs),
         ctx.llm().translate,
         ctx.settings.glossary,
         batch_size=ctx.settings.batch_size,
         on_progress=lambda p: ctx.progress(p.done / max(p.total, 1)),
         keep_english=True,
+        lang=ctx.settings.lang,
     )
 
 
-def write_exports(folder: Path, cues: Sequence[Cue]) -> None:
+def write_exports(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
+    files = lang.files
     write_text_file(folder / File.EN_SRT, render_srt(cues, "en"))
-    write_text_file(folder / File.ZH_SRT, render_srt(cues, "zh"))
-    write_text_file(folder / File.ASS, render_ass(cues))
-    write_text_file(folder / File.VTT, render_vtt(cues, "bilingual"))
+    write_text_file(folder / files.srt, render_srt(cues, "zh"))
+    write_text_file(folder / files.ass, render_ass(cues, lang.wrap))
+    write_text_file(folder / files.vtt, render_vtt(cues, "bilingual"))
 
 
 def _export(ctx: _Ctx) -> None:
-    write_exports(ctx.dir, parse_subs(_read(ctx, File.SUBS_ZH)))
+    lang = ctx.settings.lang
+    write_exports(ctx.dir, parse_subs(_read(ctx, lang.files.subs)), lang)
 
 
 def _summarize(ctx: _Ctx) -> None:
     summarize.summarize_file(
         ctx.path(File.SUBS_EN),
-        ctx.path(File.SUMMARY),
+        ctx.path(ctx.settings.lang.files.summary),
         ctx.llm().summarize,
         ctx.settings.summary_langs,
         ctx.settings.glossary,
@@ -261,14 +273,34 @@ def _prompt_digest(*names: str) -> str:
     return digest.hexdigest()
 
 
+@cache
+def _translate_prompt_digest(code: str) -> str:
+    """The digest of the translation prompt as `code` sees it, glossary left unfilled. For the
+    default language it is the digest of the file the prompt was before languages existed."""
+    text = translate.system_prompt_template(get_language(code))
+    return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
+
+
+def _lang_key(settings: Settings) -> dict[str, str]:
+    """The target language, for the cache keys that depend on it. The default language adds
+    nothing, so a project made before languages existed stays cached."""
+    return {} if settings.lang.is_default else {"lang": settings.target_lang}
+
+
 def _glossary(settings: Settings) -> list[dict[str, str]]:
     return [asdict(entry) for entry in settings.glossary]
 
 
-def _summary_files(settings: Settings) -> tuple[File, ...]:
+def _summary_files(settings: Settings) -> tuple[str, ...]:
     return tuple(
-        File.SUMMARY if lang == "zh-TW" else File.SUMMARY_EN for lang in settings.summary_langs
+        File.SUMMARY_EN.value if lang == ENGLISH else settings.lang.files.summary
+        for lang in settings.summary_langs
     )
+
+
+def _summary_partials(settings: Settings) -> tuple[str, ...]:
+    files = settings.lang.files
+    return (files.summary, File.SUMMARY_EN.value, files.summary_parts)
 
 
 STEPS: tuple[_StepSpec, ...] = (
@@ -276,16 +308,16 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.AUDIO,
         1,
         (),
-        lambda s: (File.AUDIO,),
+        lambda s: (File.AUDIO.value,),
         lambda s, video: {"video": video},
         _audio,
-        partials=(File.AUDIO_STAMP,),
+        partials=lambda s: (File.AUDIO_STAMP.value,),
     ),
     _StepSpec(
         Step.VAD,
         1,
         (Step.AUDIO,),
-        lambda s: (File.CHUNKS,),
+        lambda s: (File.CHUNKS.value,),
         lambda s, video: {"vad": s.vad_identity, "params": asdict(s.vad)},
         _vad,
     ),
@@ -293,7 +325,7 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.ASR,
         1,
         (Step.VAD,),
-        lambda s: (File.WORDS,),
+        lambda s: (File.WORDS.value,),
         lambda s, video: {"engine": s.asr_engine, "model": s.asr_identity, "lang": s.language},
         _asr,
     ),
@@ -301,7 +333,7 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.SEGMENT,
         1,
         (Step.ASR,),
-        lambda s: (File.SUBS_EN,),
+        lambda s: (File.SUBS_EN.value,),
         lambda s, video: {"rules": asdict(s.cues)},
         _segment,
     ),
@@ -309,12 +341,13 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.TRANSLATE,
         2,
         (Step.SEGMENT,),
-        lambda s: (File.SUBS_ZH,),
+        lambda s: (s.lang.files.subs,),
         lambda s, video: {
             "llm": s.llm_identity,
             "glossary": _glossary(s),
             "batch": s.batch_size,
-            "prompt": _prompt_digest("translate.md"),
+            "prompt": _translate_prompt_digest(s.target_lang),
+            **_lang_key(s),
         },
         _translate,
     ),
@@ -322,8 +355,8 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.EXPORT,
         1,
         (Step.TRANSLATE,),
-        lambda s: (File.EN_SRT, File.ZH_SRT, File.ASS, File.VTT),
-        lambda s, video: {},
+        lambda s: (File.EN_SRT.value, s.lang.files.srt, s.lang.files.ass, s.lang.files.vtt),
+        lambda s, video: _lang_key(s),
         _export,
     ),
     _StepSpec(
@@ -338,7 +371,7 @@ STEPS: tuple[_StepSpec, ...] = (
             "prompt": _prompt_digest("summarize_map.md", "summarize_reduce.md"),
         },
         _summarize,
-        partials=(File.SUMMARY, File.SUMMARY_EN, File.SUMMARY_PARTS),
+        partials=_summary_partials,
     ),
 )
 
@@ -382,8 +415,14 @@ class _Store:
         self.path = folder / PROJECT_JSON
         folder.mkdir(parents=True, exist_ok=True)
         previous = parse_project(read_text_file(self.path)) if self.path.is_file() else None
-        steps: dict[Step, StepState] = dict(previous.steps) if previous else {}
-        self.project = Project(str(video.absolute()), steps)
+        video_path = str(video.absolute())
+        self.project = replace(previous, video_path=video_path) if previous else Project(video_path)
+
+    def activate(self, lang: str) -> None:
+        """Make `lang` the language this run works on, keeping the other languages' states."""
+        if lang != self.project.active_lang:
+            self.project = self.project.activate(lang)
+            write_text_file(self.path, render_project(self.project))
 
     def reset(self, step: Step) -> None:
         self.project = self.project.with_step(step, StepState())
@@ -398,6 +437,14 @@ class _Store:
         state = StepState(status, _now_ms(), error, key)
         self.project = self.project.with_step(step, state)
         write_text_file(self.path, render_project(self.project))
+
+
+def _kept_for_other_languages(name: str, state: StepState) -> bool:
+    """The English files do not depend on the target language, and a project holds one language
+    after another. `en.srt` is rewritten by every export, so it is never deleted. The English
+    summary is kept when this language has not run the step yet, because another language made
+    it."""
+    return name == File.EN_SRT or (name == File.SUMMARY_EN and state.key is None)
 
 
 def _plan(
@@ -417,14 +464,15 @@ def _plan(
         state = store.project.steps[spec.step]
         outputs = spec.outputs(settings)
         if state.key != key:
-            for stale in (*outputs, *spec.partials):
-                (folder / stale.value).unlink(missing_ok=True)
+            for stale in (*outputs, *spec.partials(settings)):
+                if not _kept_for_other_languages(stale, state):
+                    (folder / stale).unlink(missing_ok=True)
             if state.status is not StepStatus.PENDING or state.key is not None:
                 store.reset(spec.step)
         fresh[spec.step] = (
             state.key == key
             and state.status is StepStatus.DONE
-            and all((folder / f.value).is_file() for f in outputs)
+            and all((folder / name).is_file() for name in outputs)
             and all(fresh[need] for need in spec.needs)
         )
         if state.status is StepStatus.DONE and state.key == key and not fresh[spec.step]:
@@ -432,13 +480,15 @@ def _plan(
     return keys, fresh
 
 
-def save_edited_cues(folder: Path, cues: Sequence[Cue]) -> None:
-    """Store cues a person corrected: the translated cue file, every export built from it, and
-    the export step's time in `project.json`. The steps keep their keys, so a later run with the
-    same settings skips them and the edits stay. The caller makes sure no run is using `folder`."""
+def save_edited_cues(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
+    """Store cues a person corrected in `lang`: its translated cue file, every export built from
+    it, and the export step's time in `project.json`, where `lang` becomes the active language.
+    The steps keep their keys, so a later run with the same settings skips them and the edits
+    stay. The caller makes sure no run is using `folder`."""
     store = _Store(folder, Path(parse_project(read_text_file(folder / PROJECT_JSON)).video_path))
-    write_text_file(folder / File.SUBS_ZH, render_subs(cues))
-    write_exports(folder, cues)
+    store.activate(lang.code)
+    write_text_file(folder / lang.files.subs, render_subs(cues))
+    write_exports(folder, cues, lang)
     store.touch(Step.EXPORT)
 
 
@@ -469,6 +519,7 @@ def run(
             progress(Progress(step, fraction, message))
 
     reports: list[StepReport] = []
+    store.activate(settings.target_lang)
     keys, fresh = _plan(store, folder, settings, fingerprint)
     with ExitStack() as stack:
         opened: list[LlmSession] = []

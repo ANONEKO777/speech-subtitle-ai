@@ -224,7 +224,7 @@ def test_a_new_asr_model_reruns_asr_and_everything_after_it(video: Path, folder:
 def test_a_new_summary_language_reruns_only_the_summary(video: Path, folder: Path) -> None:
     run(video, folder, SETTINGS, Fakes().ports())
     fakes = Fakes()
-    report = run(video, folder, replace(SETTINGS, summary_langs=("zh-TW", "en")), fakes.ports())
+    report = run(video, folder, replace(SETTINGS, summary_en=True), fakes.ports())
     assert report.ran == (Step.SUMMARIZE,)
     assert fakes.translate_calls == 0
     assert (folder / "summary.en.md").is_file()
@@ -399,7 +399,7 @@ def test_keys_change_with_exactly_what_a_step_reads() -> None:
 
 def test_every_step_is_in_the_table_in_order() -> None:
     assert [spec.step for spec in STEPS] == list(Step)
-    names = [out.value for spec in STEPS for out in spec.outputs(SETTINGS)]
+    names = [out for spec in STEPS for out in spec.outputs(SETTINGS)]
     assert len(names) == len(set(names))
 
 
@@ -413,7 +413,7 @@ def test_project_json_keeps_the_video_path_and_a_key_per_step(video: Path, folde
 def test_dropping_the_english_summary_with_a_new_llm_leaves_no_old_summary(
     video: Path, folder: Path
 ) -> None:
-    both = replace(SETTINGS, summary_langs=("zh-TW", "en"))
+    both = replace(SETTINGS, summary_en=True)
     run(video, folder, both, Fakes().ports())
     assert (folder / "summary.en.md").is_file()
     run(video, folder, replace(SETTINGS, llm_identity="llm-b"), Fakes().ports())

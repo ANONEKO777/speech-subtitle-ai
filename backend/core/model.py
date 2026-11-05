@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from types import MappingProxyType
+
+from backend.core.languages import DEFAULT_CODE
 
 SCHEMA_VERSION = 1
 
@@ -88,6 +90,10 @@ class Step(StrEnum):
     SUMMARIZE = "summarize"
 
 
+LANG_STEPS = (Step.TRANSLATE, Step.EXPORT, Step.SUMMARIZE)
+"""The steps whose outputs belong to one target language. Every other step is the same for all."""
+
+
 class StepStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
@@ -115,11 +121,23 @@ Migration = Callable[[dict[str, object]], dict[str, object]]
 _MIGRATIONS: dict[int, Migration] = {}
 
 
+def _lang_states(states: Mapping[Step, StepState]) -> Mapping[Step, StepState]:
+    return MappingProxyType({step: states.get(step, StepState()) for step in LANG_STEPS})
+
+
 @dataclass(frozen=True, slots=True)
 class Project:
+    """`steps` holds the state of every step for the language the project was last worked on,
+    `active_lang`. The states of the language steps of every other language wait in `parked`, so
+    one project keeps a translation per language and a change of language loses none."""
+
     video_path: str
     steps: Mapping[Step, StepState] = field(default_factory=dict[Step, StepState])
     schema_version: int = SCHEMA_VERSION
+    active_lang: str = DEFAULT_CODE
+    parked: Mapping[str, Mapping[Step, StepState]] = field(
+        default_factory=dict[str, Mapping[Step, StepState]]
+    )
 
     def __post_init__(self) -> None:
         if self.schema_version != SCHEMA_VERSION:
@@ -131,9 +149,39 @@ class Project:
             raise ValueError("video_path is empty")
         steps: dict[Step, StepState] = {step: self.steps.get(step, StepState()) for step in Step}
         object.__setattr__(self, "steps", MappingProxyType(steps))
+        parked = {
+            lang: _lang_states(states)
+            for lang, states in self.parked.items()
+            if lang != self.active_lang
+        }
+        object.__setattr__(self, "parked", MappingProxyType(parked))
 
     def with_step(self, step: Step, state: StepState) -> Project:
-        return Project(self.video_path, {**self.steps, step: state}, self.schema_version)
+        return replace(self, steps={**self.steps, step: state})
+
+    def state(self, step: Step, lang: str) -> StepState:
+        """The state of `step` as it stands for the target language `lang`."""
+        if step not in LANG_STEPS or lang == self.active_lang:
+            return self.steps[step]
+        return self.parked.get(lang, _lang_states({}))[step]
+
+    def activate(self, lang: str) -> Project:
+        """Make `lang` the active language, parking the language steps of the one it replaces."""
+        if lang == self.active_lang:
+            return self
+        parked = {
+            **self.parked,
+            self.active_lang: _lang_states(self.steps),
+        }
+        incoming = parked.pop(lang, _lang_states({}))
+        steps = {**self.steps, **incoming}
+        return replace(self, steps=steps, active_lang=lang, parked=parked)
+
+    def languages(self) -> dict[str, Mapping[Step, StepState]]:
+        """The language steps of every language that has any state, the active one first."""
+        found = {self.active_lang: _lang_states(self.steps)}
+        found.update(self.parked)
+        return found
 
     @staticmethod
     def migrate(raw: Mapping[str, object]) -> dict[str, object]:

@@ -5,6 +5,7 @@ import stat
 import sys
 import threading
 import time
+import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
@@ -12,6 +13,7 @@ from typing import Any, cast
 import pytest
 
 from backend.core import model
+from backend.core.languages import Wrap
 from backend.core.model import Cue, FormatError, Project, Segment, Step, StepState, StepStatus, Word
 from backend.core.subtitle_io import (
     ASS_ZH_LINE_COLUMNS,
@@ -26,7 +28,7 @@ from backend.core.subtitle_io import (
     render_srt,
     render_subs,
     render_vtt,
-    wrap_zh_line,
+    wrap_line,
     write_text_file,
 )
 
@@ -967,11 +969,11 @@ def width(text: str) -> int:
 
 
 def test_short_chinese_line_is_not_wrapped() -> None:
-    assert wrap_zh_line("大家早安。") == ["大家早安。"]
+    assert wrap_line("大家早安。") == ["大家早安。"]
 
 
 def test_long_chinese_line_wraps_within_the_column_limit_and_joins_back() -> None:
-    parts = wrap_zh_line(LONG_ZH)
+    parts = wrap_line(LONG_ZH)
     assert len(parts) > 1
     assert "".join(parts) == LONG_ZH
     assert all(width(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
@@ -979,7 +981,7 @@ def test_long_chinese_line_wraps_within_the_column_limit_and_joins_back() -> Non
 
 
 def test_wrap_prefers_the_end_of_a_clause() -> None:
-    assert wrap_zh_line("一小時後，我們回頭看看〈計畫〉與「數字」。") == [
+    assert wrap_line("一小時後，我們回頭看看〈計畫〉與「數字」。") == [
         "一小時後，",
         "我們回頭看看〈計畫〉與「數字」。",
     ]
@@ -987,13 +989,13 @@ def test_wrap_prefers_the_end_of_a_clause() -> None:
 
 def test_wrap_never_splits_a_latin_word_or_number() -> None:
     line = "我們用 Claude Code 在 2,500 個專案上測試，" * 3
-    for part, nxt in itertools.pairwise(wrap_zh_line(line)):
+    for part, nxt in itertools.pairwise(wrap_line(line)):
         assert not (part[-1] + nxt[0]).isascii() or not (part[-1] + nxt[0]).isalnum()
 
 
 def test_a_very_long_line_wraps_into_as_many_lines_as_needed() -> None:
     line = "字" * 100
-    parts = wrap_zh_line(line)
+    parts = wrap_line(line)
     assert len(parts) == 5
     assert all(width(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
 
@@ -1022,3 +1024,93 @@ def test_a_step_key_round_trips_and_a_project_without_keys_still_parses() -> Non
     again = parse_project(render_project(keyed))
     assert again.steps[Step.ASR].key == "abc123"
     assert again == keyed
+
+
+RU_CUES = [
+    "Привет, меня зовут Лорен, вы, возможно, знаете меня как Potato на X,",
+    "Большую часть того, как я могу это делать, обеспечивает доверие",
+    "и я много думаю о доверии в том смысле, как я могу доверять своим агентам",
+    "И мое аргументы и тезисы сегодняшней речи в том, что если вы настроите",
+]
+TH_CUES = [
+    "และข้อโต้แย้งและทฤษฎีของผมในงานพูดวันนี้คือว่าถ้าคุณจัดการสภาพแวดล้อมสำหรับเอเจนต์ของคุณให้ดีมาก ๆ คุณจะสามารถได้สิ่งที่ดูเหมือนกับ",  # noqa: E501
+    "แต่เมื่อฉันเริ่มต้นทำงาน ฉันก็เร็วๆ นั้นตระหนักว่ากระบวนการนี้ต้องใช้การดำเนินการด้วยมือเป็นอย่างมาก",
+    "แต่ด้วยอัตราที่คำขอ (pull requests) ถูกส่งเข้ามา รู้สึกเหมือนเป็นกำแพงที่แทบจะข้ามไม่ผ่านได้ของคำขอที่ไม่หยุดยั้ง และฉัน",  # noqa: E501
+    "แม้ว่าเราจะไม่ได้ทำอาหารส่วนประกอบแต่ละส่วนที่ใช้ในผลิตภัณฑ์อีกต่อไป",
+    "คุณรู้ไหม แม้ว่าคุณจะไม่มีความสามารถในการใช้วิธีการทางรูปแบบ",
+]
+
+
+def columns(text: str) -> int:
+    return sum(
+        0
+        if unicodedata.category(c) in ("Mn", "Me", "Cf")
+        else 2
+        if unicodedata.east_asian_width(c) in "WF"
+        else 1
+        for c in text
+    )
+
+
+@pytest.mark.parametrize("line", RU_CUES)
+def test_a_russian_line_breaks_only_after_a_space(line: str) -> None:
+    parts = wrap_line(line, Wrap.SPACES)
+    assert "".join(parts) == line
+    assert all(part.endswith(" ") for part in parts[:-1])
+    assert all(columns(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
+
+
+@pytest.mark.parametrize("line", TH_CUES)
+def test_a_thai_line_never_splits_a_grapheme_cluster(line: str) -> None:
+    parts = wrap_line(line, Wrap.THAI)
+    assert "".join(parts) == line
+    assert len(parts) > 1
+    for part in parts:
+        assert columns(part) <= ASS_ZH_LINE_COLUMNS
+        assert unicodedata.category(part[0]) != "Mn"
+        assert part[0] not in "ะาำๅๆฯ"
+        assert part.rstrip()[-1] not in "เแโใไ"
+
+
+def test_a_thai_line_prefers_a_space_to_a_break_inside_a_word() -> None:
+    parts = wrap_line(TH_CUES[2], Wrap.THAI)
+    assert parts[0].endswith("(pull requests) ")
+
+
+def test_the_cjk_rule_does_not_split_an_accented_word() -> None:
+    line = "咖啡館 café résumé naïve 討論了很多關於這個專案的問題和解決方法 café résumé naïve"
+    parts = wrap_line(line, Wrap.CJK)
+    assert len(parts) > 1
+    for part, nxt in itertools.pairwise(parts):
+        assert not (
+            part[-1].isalpha() and nxt[0].isalpha() and part[-1].isascii() + nxt[0].isascii()
+        )
+        assert not (part[-1] in "éï" and nxt[0].isalpha())
+
+
+def test_a_korean_line_breaks_at_spaces() -> None:
+    line = "사람들로 인해 조종되는 에이전트도 연락처가 적은 사람이라도 기본적으로 잘 수행할 수 있도록 해야 해요"  # noqa: E501
+    parts = wrap_line(line, Wrap.SPACES)
+    assert len(parts) > 1
+    assert all(part.endswith(" ") for part in parts[:-1])
+    assert all(columns(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
+
+
+def test_a_line_with_no_space_is_left_whole_rather_than_split_in_a_word() -> None:
+    word = "Donaudampfschifffahrtsgesellschaftskapitän" * 2
+    assert wrap_line(word, Wrap.SPACES) == [word]
+
+
+def test_a_combining_mark_takes_no_column() -> None:
+    assert columns("แม้") == 2
+    assert wrap_line("ก้" * 40, Wrap.THAI) == ["ก้" * 40]
+
+
+def test_ass_wraps_a_thai_line_by_the_language_rule_and_round_trips() -> None:
+    cue = Cue(1, 0, 4000, "But since I started working.", TH_CUES[1])
+    text = render_ass([cue], Wrap.THAI)
+    assert SOFT in text
+    assert parse_ass(text) == [cue]
+    for line in text.splitlines():
+        for after in line.split(SOFT)[1:]:
+            assert unicodedata.category(after[0]) != "Mn"

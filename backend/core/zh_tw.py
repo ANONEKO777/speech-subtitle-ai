@@ -21,7 +21,6 @@ _PROCEDURE_HEAD = (
     "標準|選舉|破產|仲裁|救濟|調解|審判|表決|針線|縫線"
 )
 _NOT_PROCEDURE = "".join(f"(?<!{head})" for head in _PROCEDURE_HEAD.split("|"))
-_MARKDOWN_TOKEN = r"[^\s_*]+"
 
 
 def _after(words: str) -> str:
@@ -64,11 +63,6 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
     )
 )
 
-_WRAPPED_TOKEN = re.compile(
-    rf"(?<![A-Za-z0-9_])_({_MARKDOWN_TOKEN})_(?![A-Za-z0-9_])"
-    rf"|(?<![A-Za-z0-9*])(\*{{1,2}})({_MARKDOWN_TOKEN})\2(?![A-Za-z0-9*])"
-)
-
 
 def taiwan_terms(text: str) -> str:
     """Replace Mainland computing terms with their Taiwan equivalents."""
@@ -77,35 +71,7 @@ def taiwan_terms(text: str) -> str:
     return text
 
 
-_LATIN_FILLER = re.compile(r"(?<![A-Za-z])(?:uh+|um+|hmm+)(?![A-Za-z])[,，]?\s*", re.IGNORECASE)
-_YOU_KNOW_FILLER = re.compile(r"(?<![^，。？！\s])你知不知道(?=[，,\s]|$)[，,]?")
-_ENGLISH_YOU_KNOW = re.compile(r"\byou know\b", re.IGNORECASE)
-_ANY_YOU_KNOW_ZH = re.compile(r"你知不知道[，,]?\s*")
-_DOUBLE_COMMA = re.compile(r"([，,])\s*[，,]+")
-_LEADING_COMMA = re.compile(r"^[，,\s]+")
-
-
-def drop_fillers(text: str, en: str = "") -> str:
-    """Remove "uh" and "um" left in Latin letters, and the filler 你知不知道.
-
-    When `en` is given and says "you know" without asking a question, every 你知不知道 is a
-    filler. Otherwise only one standing alone between commas is dropped. A text that would be
-    empty afterwards is returned unchanged."""
-    cleaned = _LATIN_FILLER.sub("", text)
-    if _ENGLISH_YOU_KNOW.search(en) and "?" not in en:
-        cleaned = _ANY_YOU_KNOW_ZH.sub("", cleaned)
-    else:
-        cleaned = _YOU_KNOW_FILLER.sub("", cleaned)
-    cleaned = _LEADING_COMMA.sub("", _DOUBLE_COMMA.sub(r"", cleaned)).strip()
-    return cleaned if cleaned else text
-
-
-def strip_markdown_emphasis(text: str) -> str:
-    """Unwrap a token the model wrapped in _underscores_ or *asterisks*."""
-    return _WRAPPED_TOKEN.sub(lambda m: m.group(1) or m.group(3), text)
-
-
-def _gb2312_hanzi() -> str:
+def gb2312_hanzi() -> str:
     chars: list[str] = []
     for lead in range(0xB0, 0xF8):
         for trail in range(0xA1, 0xFF):
@@ -127,7 +93,7 @@ def in_big5(char: str) -> bool:
 TRADITIONAL_BEYOND_BIG5 = frozenset("肽麽")
 SIMPLIFIED_IN_BIG5 = frozenset("么体厂")
 SIMPLIFIED_ONLY = (
-    frozenset(char for char in _gb2312_hanzi() if not in_big5(char)) - TRADITIONAL_BEYOND_BIG5
+    frozenset(char for char in gb2312_hanzi() if not in_big5(char)) - TRADITIONAL_BEYOND_BIG5
 ) | SIMPLIFIED_IN_BIG5
 
 

@@ -12,10 +12,11 @@ import hashlib
 import os
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from pathlib import Path
 from typing import Literal
 
+from backend.core.languages import ENGLISH, LANGUAGES, get
 from backend.core.model import Cue, FormatError, Project, Step, StepStatus
 from backend.core.pipeline import PROJECT_JSON, File, save_edited_cues
 from backend.core.subtitle_io import (
@@ -30,7 +31,7 @@ from backend.core.subtitle_io import (
     render_vtt,
     write_text_file,
 )
-from backend.core.summarize import Lang
+from backend.core.summarize import ENGLISH_SUMMARY_FILE, Lang
 
 SubFormat = Literal["srt", "vtt", "ass", "json"]
 _ID = re.compile(r"[0-9a-f]{16}")
@@ -40,6 +41,16 @@ MEDIA_TYPES: dict[SubFormat, str] = {
     "ass": "text/x-ssa",
     "json": "application/json",
 }
+
+
+_KNOWN_FILES = tuple(
+    dict.fromkeys(
+        [
+            *(f.value for f in File),
+            *(name for lang in LANGUAGES.values() for name in astuple(lang.files)),
+        ]
+    )
+)
 
 
 class UnknownProject(LookupError):
@@ -94,53 +105,73 @@ class ProjectStore:
             project = parse_project(read_text_file(folder / PROJECT_JSON))
         except FormatError as exc:
             raise UnknownProject(f"{pid}: {exc}") from exc
-        files = {f.value: folder / f.value for f in File if (folder / f.value).is_file()}
+        files = {name: folder / name for name in _KNOWN_FILES if (folder / name).is_file()}
         return ProjectInfo(pid, folder, project, files)
 
-    def _done(self, info: ProjectInfo, step: Step) -> bool:
-        return info.project.steps[step].status is StepStatus.DONE
+    def _done(self, info: ProjectInfo, step: Step, lang: str) -> bool:
+        return info.project.state(step, lang).status is StepStatus.DONE
 
-    def cues(self, pid: str) -> list[Cue]:
-        """The translated cues once translation has finished, else the English ones."""
+    def active_lang(self, pid: str) -> str:
+        """The language the project was last worked on."""
+        return self.info(pid).project.active_lang
+
+    def cues(self, pid: str, target: str | None = None) -> list[Cue]:
+        """The cues translated into `target` (the active language by default) once translation
+        has finished, else the English ones."""
         info = self.info(pid)
-        if self._done(info, Step.TRANSLATE):
-            return parse_subs(read_text_file(info.folder / File.SUBS_ZH))
-        if self._done(info, Step.SEGMENT):
+        lang = get(target or info.project.active_lang)
+        if self._done(info, Step.TRANSLATE, lang.code):
+            return parse_subs(read_text_file(info.folder / lang.files.subs))
+        if self._done(info, Step.SEGMENT, lang.code):
             return parse_subs(read_text_file(info.folder / File.SUBS_EN))
         raise NotReady("no subtitles yet: the segment step has not finished")
 
-    def subtitles(self, pid: str, lang: RenderLang, fmt: SubFormat) -> str:
+    def subtitles(
+        self, pid: str, lang: RenderLang, fmt: SubFormat, target: str | None = None
+    ) -> str:
+        """`lang` picks which texts to show. `zh` is the text in the target language, whatever
+        language `target` is."""
         info = self.info(pid)
-        if lang != "en" and not self._done(info, Step.TRANSLATE):
-            raise NotReady("no Chinese subtitles yet: the translate step has not finished")
+        code = get(target or info.project.active_lang).code
+        if lang != "en" and not self._done(info, Step.TRANSLATE, code):
+            raise NotReady(f"no {code} subtitles yet: the translate step has not finished")
         if fmt == "ass" and lang != "bilingual":
             raise ValueError("ass is only available as bilingual")
-        cues = self.cues(pid)
+        cues = self.cues(pid, code)
         match fmt:
             case "srt":
                 return render_srt(cues, lang)
             case "vtt":
                 return render_vtt(cues, lang)
             case "ass":
-                return render_ass(cues)
+                return render_ass(cues, get(code).wrap)
             case "json":
                 return render_subs(cues)
 
-    def summary(self, pid: str, lang: Lang) -> bytes:
+    def summary(self, pid: str, lang: Lang | None = None) -> bytes:
         info = self.info(pid)
-        name = File.SUMMARY if lang == "zh-TW" else File.SUMMARY_EN
-        if not self._done(info, Step.SUMMARIZE) or name.value not in info.files:
-            raise NotReady(f"no {lang} summary yet: the summarize step has not finished")
-        return info.files[name.value].read_bytes()
+        code = lang or info.project.active_lang
+        name = ENGLISH_SUMMARY_FILE if code == ENGLISH else get(code).files.summary
+        if code == ENGLISH:
+            done = any(
+                states[Step.SUMMARIZE].status is StepStatus.DONE
+                for states in info.project.languages().values()
+            )
+        else:
+            done = self._done(info, Step.SUMMARIZE, code)
+        if not done or name not in info.files:
+            raise NotReady(f"no {code} summary yet: the summarize step has not finished")
+        return info.files[name].read_bytes()
 
-    def save_cues(self, pid: str, cues: Sequence[Cue]) -> None:
+    def save_cues(self, pid: str, cues: Sequence[Cue], target: str | None = None) -> None:
         """Replace the translated cues with corrected ones that keep the same ids. The caller
         makes sure no job is running on the project."""
         info = self.info(pid)
-        if not self._done(info, Step.TRANSLATE):
+        lang = get(target or info.project.active_lang)
+        if not self._done(info, Step.TRANSLATE, lang.code):
             raise NotReady("nothing to correct yet: the translate step has not finished")
-        current = [c.id for c in self.cues(pid)]
+        current = [c.id for c in self.cues(pid, lang.code)]
         if sorted(c.id for c in cues) != sorted(current):
             raise BadCues("the cues must have exactly the ids the project has")
         ordered = sorted(cues, key=lambda c: (c.start_ms, c.id))
-        save_edited_cues(info.folder, ordered)
+        save_edited_cues(info.folder, ordered, lang)

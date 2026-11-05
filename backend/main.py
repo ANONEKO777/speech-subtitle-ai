@@ -20,7 +20,7 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI
 
-from backend.api import downloads, jobs, models, projects, runtimes
+from backend.api import downloads, jobs, languages, models, projects, runtimes
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
 from backend.api.deps import Context
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
@@ -59,6 +59,7 @@ def default_resolver(user_data: Path) -> Resolver:
             glossary=options.glossary,
             summary_en=options.summary_en,
             batch_size=options.batch_size,
+            target_lang=options.target_lang,
         )
         try:
             return r.resolve(request, folder)
@@ -89,7 +90,7 @@ def create_app(config: AppConfig) -> FastAPI:
     app.state.projects = ProjectStore(config.projects_dir or config.user_data / "projects")
     app.state.jobs = jobs_book
     app.state.resolver = config.resolver
-    for module in (downloads, models, runtimes, projects, jobs):
+    for module in (downloads, models, runtimes, projects, jobs, languages):
         app.include_router(module.router)
 
     @app.get("/api/health")

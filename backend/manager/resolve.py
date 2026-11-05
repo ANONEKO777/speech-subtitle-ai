@@ -13,9 +13,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from backend.core import audio, vad
+from backend.core.languages import DEFAULT_CODE, UnknownLanguage
+from backend.core.languages import get as get_language
 from backend.core.model import Word
 from backend.core.pipeline import LlmSession, Ports, ProgressCb, Settings
-from backend.core.summarize import Lang, summary_chat
+from backend.core.summarize import summary_chat
 from backend.core.translate import BATCH_SIZE, DEFAULT_GLOSSARY, GlossaryEntry
 from backend.core.vad import Chunk
 from backend.engines.chunks import transcribe_chunks
@@ -23,7 +25,7 @@ from backend.engines.crispasr import ENGINE_ID as CRISPASR_ID
 from backend.engines.table import create_engine, engine_paths, spec_for
 from backend.engines.whispercpp import ENGINE_ID as WHISPERCPP_ID
 from backend.llm.ask import json_chat
-from backend.llm.client import LlmConfig
+from backend.llm.client import LLM_SEED, LlmConfig
 from backend.llm.local_server import NO_THINK, LlamaServer
 from backend.manager import registry as registry_module
 from backend.manager.profiles import (
@@ -63,6 +65,7 @@ class Request:
     glossary: tuple[GlossaryEntry, ...] = ()
     summary_en: bool = False
     batch_size: int = BATCH_SIZE
+    target_lang: str = DEFAULT_CODE
 
 
 def _file_id(path: Path) -> str:
@@ -134,7 +137,9 @@ def _remote_config(request: Request) -> LlmConfig:
         raise SettingsError("--llm-model is required when --llm is a URL")
     key = os.environ.get(request.llm_key_env, "")
     try:
-        return LlmConfig(request.llm.rstrip("/"), request.llm_model, key)
+        return LlmConfig(
+            request.llm.rstrip("/"), request.llm_model, key, extra_body={"seed": LLM_SEED}
+        )
     except ValueError as exc:
         raise SettingsError(str(exc)) from exc
 
@@ -192,18 +197,24 @@ def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
             with LlamaServer(
                 server, gguf, log_path=log_path, ctx=LLM_CONTEXT, cancel=cancel
             ) as running:
-                config = LlmConfig(running.base_url, "local", extra_body=NO_THINK)
+                config = LlmConfig(
+                    running.base_url, "local", extra_body={**NO_THINK, "seed": LLM_SEED}
+                )
                 yield LlmSession(json_chat(config), summary_chat(config))
 
         opener = open_local
-    langs: tuple[Lang, ...] = ("zh-TW", "en") if request.summary_en else ("zh-TW",)
+    try:
+        target = get_language(request.target_lang)
+    except UnknownLanguage as exc:
+        raise SettingsError(str(exc)) from exc
     settings = Settings(
         asr_engine=engine_id,
         asr_identity=asr_identity,
         vad_identity=vad_identity,
         llm_identity=llm_identity,
         glossary=(*DEFAULT_GLOSSARY, *request.glossary),
-        summary_langs=langs,
+        target_lang=target.code,
+        summary_en=request.summary_en,
         batch_size=request.batch_size,
     )
     return settings, Ports(extract_audio, split_vad, transcribe, opener)

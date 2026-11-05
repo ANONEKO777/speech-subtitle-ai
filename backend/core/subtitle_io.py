@@ -12,6 +12,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Literal, NamedTuple, cast
 
+from backend.core.languages import DEFAULT_CODE, UnknownLanguage, Wrap
+from backend.core.languages import get as get_language
 from backend.core.model import (
     Cue,
     FormatError,
@@ -46,6 +48,9 @@ _ASS_TOKEN = re.compile(rf"\\N|\\n|\\\{{|\\\}}|\\{_ASS_JOINER}|\{{[^}}]*\}}")
 _ASS_EN_MARK = "{\\rEn}"
 _ASS_SOFT_BREAK = "\\N{\\q0}"
 ASS_ZH_LINE_COLUMNS = 40
+_EXTRA_LINES = 3
+_NARROW = ("N", "Na", "A")
+_THAI_LEADING_VOWELS = "เแโใไ"
 _ASS_OPENERS = "(（[【「『《〈“‘"
 _ASS_CLOSERS = "，。？！、；：)）]】」』》〉”’…"
 _ASS_CLAUSE_END = "，。？！、；："
@@ -287,25 +292,48 @@ def _ass_time(ms: int) -> str:
 
 
 def _columns(char: str) -> int:
+    """Display columns: a full-width character is two, a combining mark none."""
+    if unicodedata.category(char) in ("Mn", "Me", "Cf"):
+        return 0
     return 2 if unicodedata.east_asian_width(char) in "WF" else 1
 
 
-def _can_break(before: str, after: str) -> bool:
+def _in_a_word(char: str) -> bool:
+    """A letter or digit of a script written in words (Latin, Cyrillic, Greek). A Thai, kana or
+    ideograph character is not: those scripts do not mark word ends with spaces."""
+    return char.isalnum() and unicodedata.east_asian_width(char) in _NARROW and not _is_thai(char)
+
+
+def _is_thai(char: str) -> bool:
+    return "฀" <= char <= "๿"
+
+
+def _can_break(before: str, after: str, wrap: Wrap) -> bool:
+    """Whether a line may end with `before` and the next begin with `after`."""
     if before in _ASS_OPENERS or before == "\\" or after in _ASS_CLOSERS:
         return False
-    return not (before.isascii() and before.isalnum() and after.isascii() and after.isalnum())
+    match wrap:
+        case Wrap.SPACES:
+            return before.isspace() and not after.isspace()
+        case Wrap.THAI:
+            if before.isspace():
+                return not after.isspace()
+            if _in_a_word(before) and _in_a_word(after):
+                return False
+            if before in _THAI_LEADING_VOWELS:
+                return False
+            return after in _THAI_LEADING_VOWELS or "ก" <= after <= "ฮ" or not _is_thai(after)
+        case Wrap.CJK:
+            return not (_in_a_word(before) and _in_a_word(after))
 
 
-def wrap_zh_line(line: str, limit: int = ASS_ZH_LINE_COLUMNS) -> list[str]:
-    """Split one long Chinese line into at most ceil(width / `limit`) parts that each fit `limit`
-    columns (a full-width character is two). A break prefers the end of a clause that is not too
-    close to the line start, then the point nearest an even split. It never splits a Latin word or
-    a number and never starts a line with closing punctuation. Joining the parts gives `line`."""
-    total = sum(_columns(c) for c in line)
-    if total <= limit:
-        return [line]
-    parts = -(-total // limit)
+def _cuts(line: str, limit: int, parts: int, wrap: Wrap) -> list[int]:
+    """Up to `parts - 1` break indexes that split `line` into `parts` lines of at most `limit`
+    columns, each at a break `_can_break` allows. A break prefers the end of a clause (a space,
+    in Thai) that is not too close to the line start, then the point nearest an even split."""
     ends = list(itertools.accumulate(_columns(c) for c in line))
+    total = ends[-1]
+    clause_end = _ASS_CLAUSE_END + (" " if wrap is Wrap.THAI else "")
     cuts: list[int] = []
     start_col = 0
     for k in range(1, parts):
@@ -315,20 +343,39 @@ def wrap_zh_line(line: str, limit: int = ASS_ZH_LINE_COLUMNS) -> list[str]:
             col = ends[i - 1]
             if col - start_col > limit:
                 break
-            if total - col <= limit * (parts - k) and _can_break(line[i - 1], line[i]):
-                clause = line[i - 1] in _ASS_CLAUSE_END and col - start_col >= limit // 4
+            if total - col <= limit * (parts - k) and _can_break(line[i - 1], line[i], wrap):
+                clause = line[i - 1] in clause_end and col - start_col >= limit // 4
                 found.append((abs(col - ideal), i, clause))
         if not found:
             break
         near = [f for f in found if f[2] and f[0] <= limit // 2] or found
         cuts.append(min(near)[1])
         start_col = ends[cuts[-1] - 1]
+    return cuts
+
+
+def wrap_line(line: str, wrap: Wrap = Wrap.CJK, limit: int = ASS_ZH_LINE_COLUMNS) -> list[str]:
+    """Split one long line into as few parts as fit `limit` display columns, where `wrap` says
+    where a break may go. It never splits a word of a spaced script or a Thai grapheme cluster and
+    never starts a line with closing punctuation. A line with no room to break is returned
+    whole. Joining the parts gives `line`."""
+    total = sum(_columns(c) for c in line)
+    if total <= limit:
+        return [line]
+    least = -(-total // limit)
+    cuts: list[int] = []
+    for parts in range(least, least + _EXTRA_LINES + 1):
+        cuts = _cuts(line, limit, parts, wrap)
+        if len(cuts) == parts - 1:
+            break
+    else:
+        cuts = _cuts(line, limit, least, wrap)
     bounds = [0, *cuts, len(line)]
     return [line[a:b] for a, b in itertools.pairwise(bounds)]
 
 
-def _ass_zh(text: str) -> str:
-    return _ASS_SOFT_BREAK.join(_ass_escape(part) for part in wrap_zh_line(text))
+def _ass_zh(text: str, wrap: Wrap) -> str:
+    return _ASS_SOFT_BREAK.join(_ass_escape(part) for part in wrap_line(text, wrap))
 
 
 def _ass_escape(text: str) -> str:
@@ -336,10 +383,12 @@ def _ass_escape(text: str) -> str:
     return text.replace("{", "\\{").replace("}", "\\}").replace("\n", "\\N")
 
 
-def render_ass(cues: Iterable[Cue]) -> str:
+def render_ass(cues: Iterable[Cue], wrap: Wrap = Wrap.CJK) -> str:
     events: list[str] = []
     for cue in _check_unique_ids(list(cues)):
-        zh = "\\N".join(_ass_zh(line) for line in cue.zh.split("\n")) + "\\N" if cue.zh else ""
+        zh = (
+            "\\N".join(_ass_zh(line, wrap) for line in cue.zh.split("\n")) + "\\N" if cue.zh else ""
+        )
         text = f"{zh}{_ASS_EN_MARK}{_ass_escape(cue.en)}"
         start, end = _ass_time(cue.start_ms), _ass_time(cue.end_ms)
         events.append(f"Dialogue: 0,{start},{end},Zh,{cue.id},0,0,0,,{text}\n")
@@ -503,51 +552,85 @@ def parse_subs(text: str) -> list[Cue]:
     return _check_unique_ids(cues)
 
 
-def render_project(project: Project) -> str:
-    return _dump_json(
-        {
-            "schema_version": project.schema_version,
-            "video_path": project.video_path,
-            "steps": {
-                step.value: {
-                    "status": state.status.value,
-                    "updated_at_ms": state.updated_at_ms,
-                    "error": state.error,
-                    **({"key": state.key} if state.key is not None else {}),
-                }
-                for step, state in project.steps.items()
-            },
+def _render_steps(steps: Mapping[Step, StepState]) -> dict[str, object]:
+    return {
+        step.value: {
+            "status": state.status.value,
+            "updated_at_ms": state.updated_at_ms,
+            "error": state.error,
+            **({"key": state.key} if state.key is not None else {}),
         }
-    )
+        for step, state in steps.items()
+    }
+
+
+def render_project(project: Project) -> str:
+    """`active_lang` and `parked` are written only when the project has left the default
+    language, so a project that never did reads the same as before they existed."""
+    doc: dict[str, object] = {
+        "schema_version": project.schema_version,
+        "video_path": project.video_path,
+        "steps": _render_steps(project.steps),
+    }
+    if project.active_lang != DEFAULT_CODE:
+        doc["active_lang"] = project.active_lang
+    if project.parked:
+        doc["parked"] = {lang: _render_steps(states) for lang, states in project.parked.items()}
+    return _dump_json(doc)
+
+
+def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
+    raw_steps = _json_object(raw, where)
+    unknown = raw_steps.keys() - {step.value for step in Step}
+    if unknown:
+        raise FormatError(f"{where} has unknown step names {sorted(unknown)}")
+    steps: dict[Step, StepState] = {}
+    for name, item in raw_steps.items():
+        here = f"{where}.{name}"
+        obj = _json_object(item, here)
+        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional={"key"})
+        updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
+        try:
+            steps[Step(name)] = StepState(
+                StepStatus(_json_str(obj["status"], f"{here}.status")),
+                None if updated is None else _json_int(updated, f"{here}.updated_at_ms"),
+                None if error is None else _json_str(error, f"{here}.error"),
+                None if key is None else _json_str(key, f"{here}.key"),
+            )
+        except ValueError as exc:
+            raise FormatError(f"{here}: {exc}") from exc
+    return steps
+
+
+def _language(code: object, where: str) -> str:
+    text = _json_str(code, where)
+    try:
+        return get_language(text).code
+    except UnknownLanguage as exc:
+        raise FormatError(f"{where}: {exc}") from exc
 
 
 def parse_project(text: str) -> Project:
     doc = Project.migrate(_load_json(text, "project.json"))
-    _json_keys(doc, {"schema_version", "video_path", "steps"}, "project.json")
-    raw_steps = _json_object(doc["steps"], "steps")
-    unknown = raw_steps.keys() - {step.value for step in Step}
-    if unknown:
-        raise FormatError(f"steps has unknown step names {sorted(unknown)}")
-    steps: dict[Step, StepState] = {}
-    for name, item in raw_steps.items():
-        where = f"steps.{name}"
-        obj = _json_object(item, where)
-        _json_keys(obj, {"status", "updated_at_ms", "error"}, where, optional={"key"})
-        updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
-        try:
-            steps[Step(name)] = StepState(
-                StepStatus(_json_str(obj["status"], f"{where}.status")),
-                None if updated is None else _json_int(updated, f"{where}.updated_at_ms"),
-                None if error is None else _json_str(error, f"{where}.error"),
-                None if key is None else _json_str(key, f"{where}.key"),
-            )
-        except ValueError as exc:
-            raise FormatError(f"{where}: {exc}") from exc
+    _json_keys(
+        doc,
+        {"schema_version", "video_path", "steps"},
+        "project.json",
+        optional={"active_lang", "parked"},
+    )
+    steps = _parse_steps(doc["steps"], "steps")
+    active = _language(doc.get("active_lang", DEFAULT_CODE), "active_lang")
+    parked = {
+        _language(lang, "parked"): _parse_steps(states, f"parked.{lang}")
+        for lang, states in _json_object(doc.get("parked", {}), "parked").items()
+    }
     try:
         return Project(
             _json_str(doc["video_path"], "video_path"),
             steps,
             _json_int(doc["schema_version"], "schema_version"),
+            active,
+            parked,
         )
     except ValueError as exc:
         raise FormatError(f"project.json: {exc}") from exc

@@ -1,9 +1,11 @@
-"""Turn an English talk video into English and Traditional Chinese (Taiwan) subtitles and a summary.
+"""Turn an English talk video into English and translated subtitles and a summary.
 
-    python -m backend.cli talk.mp4 --engine whispercpp --llm qwen3-8b-q4_k_m
+    python -m backend.cli talk.mp4 --engine whispercpp --llm qwen3-8b-q4_k_m --lang ja
 
-Writes en.srt, zh-TW.srt, bilingual.ass, bilingual.vtt, summary.md and project.json into a project
-folder. Running the same command again does no work. If a run stops, the same command resumes it.
+Writes en.srt, the translation (zh-TW.srt for the default Traditional Chinese, ja.srt for
+`--lang ja`), the bilingual .ass and .vtt, the summary and project.json into a project folder.
+Another `--lang` on the same folder adds that language and keeps the others.
+Running the same command again does no work. If a run stops, the same command resumes it.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from backend.core.languages import DEFAULT_CODE, LANGUAGES
+from backend.core.languages import get as get_language
 from backend.core.model import FormatError
 from backend.core.pipeline import (
     PROJECT_JSON,
@@ -37,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m backend.cli",
         description=(
-            "Turn an English talk video into English and Traditional Chinese (Taiwan) subtitles "
+            "Turn an English talk video into English and translated subtitles "
             "and a key-points summary. Steps whose inputs did not change are skipped, so running "
             "the same command again does nothing, and a stopped run resumes where it stopped."
         ),
@@ -81,6 +85,15 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="TERM[=ZH]",
         help="a term to keep in English (TERM) or to translate in a fixed way (TERM=ZH_TEXT); "
         "may be repeated. Product names such as Cursor and Claude Code are always kept in English",
+    )
+    parser.add_argument(
+        "--lang",
+        default=DEFAULT_CODE,
+        choices=list(LANGUAGES),
+        metavar="CODE",
+        help="the language to translate into: "
+        + ", ".join(f"{lang.code} ({lang.name})" for lang in LANGUAGES.values())
+        + f" (default: {DEFAULT_CODE}). A project keeps one translation per language",
     )
     parser.add_argument(
         "--summary-en", action="store_true", help="also write summary.en.md in English"
@@ -171,6 +184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             glossary=_glossary(args.glossary),
             summary_en=args.summary_en,
             batch_size=args.batch_size,
+            target_lang=args.lang,
         )
         settings, ports = resolve(request, folder)
     except (SettingsError, ValueError) as exc:
@@ -188,7 +202,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_FAILED
     print(report.describe())
-    print(f"project: {folder}  ({PROJECT_JSON}, en.srt, zh-TW.srt, bilingual.ass, summary.md)")
+    files = get_language(args.lang).files
+    print(f"project: {folder}  ({PROJECT_JSON}, en.srt, {files.srt}, {files.ass}, {files.summary})")
     return 0
 
 

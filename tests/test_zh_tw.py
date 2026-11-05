@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from backend.core.fillers import drop_fillers, strip_markdown_emphasis
 from backend.core.model import Cue
 from backend.core.translate import (
     Batch,
@@ -15,10 +16,8 @@ from backend.core.translate import (
 from backend.core.zh_tw import (
     SIMPLIFIED_IN_BIG5,
     SIMPLIFIED_ONLY,
-    drop_fillers,
     in_big5,
     simplified_chars,
-    strip_markdown_emphasis,
     taiwan_terms,
 )
 

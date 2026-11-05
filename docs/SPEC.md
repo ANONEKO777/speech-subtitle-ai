@@ -7,7 +7,7 @@
 桌面應用程式，讓使用者對**沒有字幕的英文演講影片**：
 
 1. 自動語音辨識（STT），產生帶時間軸的英文字幕。
-2. 翻譯成**繁體中文（台灣用語）**，產生中英雙語字幕。
+2. 翻譯成使用者選的目標語言（預設**繁體中文（台灣用語）**，另支援 12 種，見 §8.4），產生雙語字幕。
 3. 內建播放器，在影片**下方**顯示中英字幕（不燒進影片，字幕為獨立檔案）。
 4. 用本地 LLM（或可選的雲端 API）產生重點整理。
 5. 可打包成安裝程式給他人安裝。CUDA 執行環境與模型**不放進安裝包**，由程式內介面另外下載。
@@ -97,8 +97,8 @@ video-subtitle-translator/
   → [2] VAD 分段（約 20–30 秒，邊界落在靜音處，段間重疊 0.5 s 以內）
   → [3] ASR 辨識 → 原文文字 + 時間戳
   → [4] 斷句 / 字幕行切分（見 §5.1）
-  → [5] 翻譯成繁體中文（見 §8）
-  → [6] 輸出：en.srt、zh-TW.srt、bilingual.ass/vtt、project.json
+  → [5] 翻譯成目標語言（見 §8）
+  → [6] 輸出：en.srt、<語言>.srt（繁中為 zh-TW.srt）、bilingual.ass/vtt、project.json
   → [7] 摘要（獨立步驟，可延後或重跑）→ summary.md
 ```
 
@@ -185,17 +185,31 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 
 ### 8.2 翻譯
 - 輸入：字幕條目批次（建議 20–40 條）+ 前後各 5 條上下文。
-- 要求輸出：**嚴格 JSON**（`[{"id": n, "zh": "..."}]`），條目數必須與輸入一致；解析失敗或條數不符 → 自動重試，最多 3 次，仍失敗則該批降為較小批次。
-- System prompt 要點：翻成**繁體中文（台灣慣用語）**；口語化但準確；保留專有名詞（可附原文）；不增刪資訊；不合併/拆分條目。
-- 支援**術語表**（使用者可預填人名、產品名、專有名詞）並注入 prompt。
+- 要求輸出：**嚴格 JSON**（`[{"id": n, "zh": "..."}]`；`zh` 是中文目標語言的欄位名，其他語言用 `text`），條目數必須與輸入一致；解析失敗或條數不符 → 自動重試，最多 3 次，仍失敗則該批降為較小批次。
+- System prompt 要點：翻成目標語言（預設**繁體中文（台灣慣用語）**）；口語化但準確；保留專有名詞（可附原文）；不增刪資訊；不合併/拆分條目。
+- 支援**術語表**（使用者可預填人名、產品名、專有名詞）並注入 prompt。「保留英文」的術語對所有目標語言一律生效。
+- **可重現**：每個請求都帶固定的 `seed`，第一次嘗試溫度為 0，重試才用 0.3。
+- 口頭禪：英文那一條是被逗號隔開、不是問句的 "you know" 時，譯文中單獨成句的「你知道」「你知」「你知不知道」會被刪除，真正的 "do you know" 保留。
 - 可選：先用 LLM 從全文抽取專有名詞再翻譯，以保持前後一致。
 
 ### 8.3 摘要（map-reduce）
 1. 依時間將逐字稿切成章節片段（約 2,000–4,000 tokens，片段間少量重疊）。
 2. Map：每段產出要點與時間範圍。
 3. Reduce：合併成 `summary.md`，包含：一句話總結、3–7 個主題章節（附起始時間戳，可點擊跳轉）、關鍵觀點條列、可行動的結論/金句（若有）。
-4. 輸出語言預設繁體中文；可選同時輸出英文版。
+4. 輸出語言為目標語言（預設繁體中文）；可選同時輸出英文版。
 - 長影片不可整份塞入單次請求（小模型會遺漏前段）。
+
+### 8.4 目標語言（多國語系）
+- 目標語言是型別化的登錄表（`backend/core/languages.py`），每筆有：代碼、英文名、母語名、檔名代碼、文字系統檢查、提示詞片段、後處理、摘要標題、ASS 折行規則（`wrap`）與品質標籤（`quality`）。支援 13 種：`zh-TW`（預設）、`zh-CN`、`ja`、`ko`、`es`、`fr`、`de`、`pt`、`it`、`ru`、`vi`、`th`、`id`。
+- 後處理：台灣用語替換（`zh_tw.py`）只套用在 `zh-TW`。`zh-CN` 檢查不含只在繁體出現的字元。`ja` 檢查假名或漢字（超過 5 個英文字的句子必須有假名），`ko` 檢查韓文字母，`th` 檢查泰文，`ru` 檢查西里爾字母，其餘拉丁語系檢查沒有其他文字系統的字元，且回覆不是英文。檢查不過就當作回覆被拒絕，走重試與降批次。
+- 後處理另含：所有目標語言都丟掉獨立的 uh、um、hmm 贅詞。葡語與德語的 um 是一般單字，只有在英文句子含贅詞 um/uh/hmm 且該 um 前後是標點或句首句尾時才丟。
+- ASS 折行（40 欄，欄寬用顯示寬度，組合符號不佔欄）依語言：`cjk`（中日文，可在字間斷，不拆拉丁字或數字，韓文用 `spaces`）；`spaces`（拉丁、西里爾、越南、印尼、韓文，只在空白後斷，沒有空白就不斷）；`thai`（泰文，不拆字元叢集，不讓一行以母音符號或聲調符號開頭，優先在空白斷）。泰文沒有使用分詞套件：PyThaiNLP（Apache-2.0）約 17 MB 且依賴多，不符合輕量；因此泰文可能在詞中斷行，但不會拆壞字元。
+- `quality`：`ko`、`th` 標為 `experimental`（Qwen3-8B 的韓文、泰文品質較差，常有漏譯或誤譯），其餘為 `stable`；`GET /api/languages` 的每筆都帶 `quality`，UI 可據此標示。
+- 換語言時 `en.srt` 永遠不刪；`summary.en.md` 在新語言第一次執行時不刪。
+- 單句翻譯重試用盡後，若只因詞彙表（保留英文的專有名詞）檢查失敗，再問一次不帶詞彙表檢查的版本，保留其譯文；否則才保留英文。
+- 目標語言屬於翻譯、輸出、摘要三步的設定與快取鍵；換語言只重跑這三步，音訊、VAD、ASR、斷句與英文檔都不動。預設語言不改變快取鍵，所以舊專案不必重翻。
+- 一個專案可同時保有多個語言：每個語言各自的步驟狀態停放在 `project.json` 的 `parked`，目前使用中的語言是 `active_lang`；兩者只在離開預設語言後才寫入。
+- 檔名：`subs.<代碼>.json`、`<代碼>.srt`、`bilingual.en-<代碼>.ass/.vtt`、`summary.<代碼>.md`。繁中保留 `subs.zh-TW.json`、`zh-TW.srt`、`bilingual.ass/.vtt`、`summary.md`。英文摘要一律是 `summary.en.md`。
 
 ## 9. 後端 API（草案）
 
@@ -207,14 +221,15 @@ POST /api/runtimes/{id}/install          # 觸發下載（job）
 POST /api/models/{id}/download
 DELETE /api/models/{id}
 POST /api/projects                       # body: {video_path}
-GET  /api/projects/{id}                  # 狀態、檔案路徑、設定
-POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size}；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
+GET  /api/projects/{id}                  # 狀態、檔案路徑、設定；steps 是 active_lang 的各步驟，languages 是每個語言的 translate/export/summarize 狀態
+GET  /api/languages                      # 可用的目標語言、品質標籤（stable|experimental）與各自的輸出檔名
+POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size, target_lang}；target_lang 對照登錄表，未知代碼回 422，預設 zh-TW；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
 GET  /api/jobs/{id}/events               # SSE 進度
 GET  /api/jobs/{id}                       # job 狀態與總進度
 POST /api/jobs/{id}/cancel
-GET  /api/projects/{id}/subtitles?lang=en|zh|bilingual&format=srt|vtt|ass|json
-PUT  /api/projects/{id}/subtitles        # 使用者手動校對後存回
-GET  /api/projects/{id}/summary?lang=zh-TW|en
+GET  /api/projects/{id}/subtitles?lang=en|zh|bilingual&format=srt|vtt|ass|json&target_lang=<代碼>   # zh 指目標語言的文字；target_lang 預設為最近處理的語言
+PUT  /api/projects/{id}/subtitles?target_lang=<代碼>   # 使用者手動校對後存回該語言
+GET  /api/projects/{id}/summary?lang=<代碼>|en          # 預設為最近處理的語言
 ```
 後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。啟動後 stdout 印出 `READY port=<n> token=<t>`；每個請求（含下載路由）都要 `Authorization: Bearer <token>`，並檢查 `Host` 與 `Origin`；SSE 可改用 `?token=`。事件為 `status`、`progress`，最後一則是 `done`、`failed` 或 `cancelled`。
 
@@ -234,9 +249,9 @@ GET  /api/projects/{id}/summary?lang=zh-TW|en
 project.json        # 影片路徑、引擎/模型版本、設定、各步驟狀態與時間
 audio.wav           # 快取
 segments.json       # ASR 原始結果（含字詞時間戳）
-subs.en.json / subs.zh-TW.json   # 內部字幕表示
-en.srt / zh-TW.srt / bilingual.ass / bilingual.vtt
-summary.md
+subs.en.json / subs.zh-TW.json   # 內部字幕表示（其他語言 subs.<代碼>.json）
+en.srt / zh-TW.srt / bilingual.ass / bilingual.vtt   # 其他語言 <代碼>.srt、bilingual.en-<代碼>.ass/.vtt
+summary.md                       # 其他語言 summary.<代碼>.md；英文版 summary.en.md
 ```
 `project.json` 要有 `schema_version`，之後升級可遷移。
 
@@ -266,7 +281,7 @@ summary.md
 - 驗收：確定預設引擎與備援引擎；更新本文件 §2、§6。
 
 **M1 — 命令列版核心流程**
-- `python -m backend.cli input.mp4 --engine ... --llm ...` 可產出 en.srt、zh-TW.srt、bilingual.ass、summary.md。
+- `python -m backend.cli input.mp4 --engine ... --llm ... [--lang ja]` 可產出 en.srt、zh-TW.srt（或 ja.srt 等）、bilingual.ass、summary.md。
 - 驗收：測試影片的字幕可被 VLC/mpv 正常載入；條目數一致；無時間重疊。
 
 **M2 — 後端服務 + 簡易播放器**

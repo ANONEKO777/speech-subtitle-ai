@@ -11,6 +11,8 @@ from typing import IO, Literal, TypedDict, cast
 from urllib.parse import urlsplit
 
 DEFAULT_TIMEOUT_S = 600.0
+LLM_SEED = 20261105
+"""Sent with every request, so a retry at a positive temperature draws the same tokens each run."""
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _ERROR_BODY_BYTES = 4096
 _ERROR_DETAIL_CHARS = 500

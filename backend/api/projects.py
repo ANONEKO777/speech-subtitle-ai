@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -7,7 +8,8 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.core.jobs import JobBook
-from backend.core.model import Cue
+from backend.core.languages import UnknownLanguage
+from backend.core.model import Cue, Step, StepState
 from backend.core.projects import (
     MEDIA_TYPES,
     BadCues,
@@ -50,19 +52,30 @@ def jobs_of(request: Request) -> JobBook:
     return request.app.state.jobs
 
 
+def _steps_json(steps: Mapping[Step, StepState]) -> dict[str, Any]:
+    return {
+        step.value: {
+            "status": state.status.value,
+            "updated_at_ms": state.updated_at_ms,
+            "error": state.error,
+        }
+        for step, state in steps.items()
+    }
+
+
 def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
+    """`steps` is every step as it stands for `active_lang`, the language last worked on.
+    `languages` has the translate, export and summarize steps of every language the project
+    has been given."""
     active = jobs.active(info.id)
     return {
         "id": info.id,
         "video_path": info.project.video_path,
         "folder": str(info.folder),
-        "steps": {
-            step.value: {
-                "status": state.status.value,
-                "updated_at_ms": state.updated_at_ms,
-                "error": state.error,
-            }
-            for step, state in info.project.steps.items()
+        "active_lang": info.project.active_lang,
+        "steps": _steps_json(info.project.steps),
+        "languages": {
+            lang: _steps_json(states) for lang, states in info.project.languages().items()
         },
         "files": {name: str(path) for name, path in info.files.items()},
         "active_job": active.id if active else None,
@@ -99,11 +112,14 @@ def get_subtitles(
     request: Request,
     lang: Annotated[RenderLang, Query()] = "bilingual",
     format: Annotated[SubFormat, Query()] = "srt",
+    target_lang: Annotated[str | None, Query()] = None,
 ) -> Response:
+    """`lang` picks the texts to show and `target_lang` the translation they come from, by
+    default the language the project was last worked on."""
     store = store_of(request)
     _known(store, pid)
     try:
-        text = store.subtitles(pid, lang, format)
+        text = store.subtitles(pid, lang, format, target_lang)
     except NotReady as exc:
         raise HTTPException(409, str(exc)) from exc
     except ValueError as exc:
@@ -112,7 +128,12 @@ def get_subtitles(
 
 
 @router.put("/{pid}/subtitles")
-def put_subtitles(pid: str, body: CuesBody, request: Request) -> dict[str, Any]:
+def put_subtitles(
+    pid: str,
+    body: CuesBody,
+    request: Request,
+    target_lang: Annotated[str | None, Query()] = None,
+) -> dict[str, Any]:
     store, jobs = store_of(request), jobs_of(request)
     _known(store, pid)
     try:
@@ -123,20 +144,25 @@ def put_subtitles(pid: str, body: CuesBody, request: Request) -> dict[str, Any]:
         if busy:
             raise HTTPException(409, f"job {busy} is using this project")
         try:
-            store.save_cues(pid, cues)
+            store.save_cues(pid, cues, target_lang)
         except NotReady as exc:
             raise HTTPException(409, str(exc)) from exc
-        except BadCues as exc:
+        except (BadCues, UnknownLanguage) as exc:
             raise HTTPException(422, str(exc)) from exc
     return project_json(store.info(pid), jobs)
 
 
 @router.get("/{pid}/summary")
-def get_summary(pid: str, request: Request, lang: Annotated[Lang, Query()] = "zh-TW") -> Response:
+def get_summary(
+    pid: str, request: Request, lang: Annotated[Lang | None, Query()] = None
+) -> Response:
+    """`lang` is a language code or `en`. The default is the language last worked on."""
     store = store_of(request)
     _known(store, pid)
     try:
         content = store.summary(pid, lang)
     except NotReady as exc:
         raise HTTPException(409, str(exc)) from exc
+    except UnknownLanguage as exc:
+        raise HTTPException(422, str(exc)) from exc
     return Response(content, media_type="text/markdown; charset=utf-8")

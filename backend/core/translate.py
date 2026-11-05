@@ -10,15 +10,9 @@ from importlib.resources import files
 from pathlib import Path
 from typing import cast
 
+from backend.core.languages import DEFAULT, Language
 from backend.core.model import Cue, FormatError
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
-from backend.core.zh_tw import (
-    CJK_TEXT,
-    drop_fillers,
-    simplified_chars,
-    strip_markdown_emphasis,
-    taiwan_terms,
-)
 from backend.llm.ask import (
     MAX_RETRIES,
     ChatFn,
@@ -35,11 +29,8 @@ BATCH_SIZE = 10
 CONTEXT_CUES = 5
 MAX_UNIT_CUES = 6
 
-_MAX_ZH_PER_EN_CHAR = 1.2
-_ZH_SLACK = 6
-_MIN_ZH_PER_EN_CHAR = 0.12
 _LONG_EN_CHARS = 25
-_GLOSSARY_MARK = "<<GLOSSARY>>"
+GLOSSARY_MARK = "<<GLOSSARY>>"
 _MARKER = re.compile(r"\[\[(\d+)\]\]")
 _SENTENCE_END = re.compile(r"[.?!…][\"')\]”]*\Z")
 
@@ -50,7 +41,8 @@ class TranslationError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class GlossaryEntry:
-    """A term the translation must treat in a fixed way. An empty `zh` keeps `term` as written."""
+    """A term the translation must treat in a fixed way. An empty `zh` keeps `term` as written, in
+    every target language. A `zh` is the fixed translation, in whichever language is the target."""
 
     term: str
     zh: str = ""
@@ -206,9 +198,28 @@ def glossary_block(glossary: Sequence[GlossaryEntry]) -> str:
     return "\n".join(lines)
 
 
-def _system_prompt(glossary: Sequence[GlossaryEntry]) -> str:
-    template = (files("backend.core") / "prompts" / "translate.md").read_text(encoding="utf-8")
-    return template.replace(_GLOSSARY_MARK, glossary_block(glossary)).rstrip() + "\n"
+def system_prompt_template(lang: Language) -> str:
+    """The system prompt of `lang`, with the glossary still marked by `GLOSSARY_MARK`."""
+    prompt = lang.prompt
+    text = (files("backend.core") / "prompts" / "translate.md").read_text(encoding="utf-8")
+    for mark, value in (
+        ("<<STYLE_RULES>>\n", prompt.style),
+        ("<<TARGET>>", prompt.target),
+        ("<<REPLY_NAME>>", prompt.reply_name),
+        ("<<EXAMPLE>>", prompt.example),
+        ("<<FILLER_NOT>>", prompt.filler_not),
+        ("<<YOU_KNOW>>", prompt.you_know),
+        ("<<FILLER_CUE>>", prompt.filler_cue),
+        ("<<KEY>>", prompt.key),
+        ("<<NAME>>", prompt.name),
+    ):
+        text = text.replace(mark, value)
+    return text
+
+
+def _system_prompt(glossary: Sequence[GlossaryEntry], lang: Language) -> str:
+    template = system_prompt_template(lang)
+    return template.replace(GLOSSARY_MARK, glossary_block(glossary)).rstrip() + "\n"
 
 
 def _flat(cue: Cue) -> str:
@@ -234,6 +245,7 @@ def build_request(
     batch: Batch,
     glossary: Sequence[GlossaryEntry] = (),
     context: int = CONTEXT_CUES,
+    lang: Language = DEFAULT,
 ) -> BatchRequest:
     groups = [cues[unit.start : unit.stop] for unit in batch.units]
     body = {
@@ -244,41 +256,36 @@ def build_request(
     return BatchRequest(
         tuple(tuple(cue.id for cue in group) for group in groups),
         (
-            {"role": "system", "content": _system_prompt(glossary)},
+            {"role": "system", "content": _system_prompt(glossary, lang)},
             {"role": "user", "content": json.dumps(body, ensure_ascii=False)},
         ),
     )
 
 
-def _reply_entries(text: str) -> list[object]:
+def _reply_entries(text: str, key: str) -> list[object]:
     doc = parse_json_reply(text)
     if isinstance(doc, dict):
         doc = cast("dict[str, object]", doc).get("translations")
     if not isinstance(doc, list):
-        raise ReplyError('the reply must be {"translations": [{"id": n, "zh": "..."}]}')
+        raise ReplyError(f'the reply must be {{"translations": [{{"id": n, "{key}": "..."}}]}}')
     return cast("list[object]", doc)
 
 
-def _clean_zh(zh: str, en: str = "") -> str:
-    zh = drop_fillers(strip_markdown_emphasis(taiwan_terms(zh)), en)
+def _clean(lang: Language, zh: str, en: str = "") -> str:
+    zh = lang.clean(zh, en)
     lines = (line.strip() for line in zh.replace("\r", "\n").split("\n"))
     return "\n".join(line for line in lines if line)
 
 
-def _check_zh(cue_id: int, zh: str, en: str) -> None:
+def _check_text(lang: Language, cue_id: int, zh: str, en: str) -> None:
     if not zh:
         raise ReplyError(f"cue {cue_id} has an empty translation of {_quoted(en)}")
-    simplified = simplified_chars(zh)
-    if simplified:
-        raise ReplyError(
-            f"cue {cue_id} uses Simplified characters {''.join(simplified)}; "
-            "write Traditional characters"
-        )
-    if not CJK_TEXT.search(zh) and len(en.split()) > 3:
-        raise ReplyError(f"cue {cue_id} is not translated into Chinese")
-    if len(zh) > _MAX_ZH_PER_EN_CHAR * len(en) + _ZH_SLACK:
+    if problem := lang.problem(zh, en):
+        raise ReplyError(f"cue {cue_id} {problem}")
+    density = lang.density
+    if len(zh) > density.max_per_en_char * len(en) + density.slack:
         raise ReplyError(f"cue {cue_id} is far longer than its English; translate only that cue")
-    if len(en) > _LONG_EN_CHARS and len(zh) < _MIN_ZH_PER_EN_CHAR * len(en):
+    if len(en) > _LONG_EN_CHARS and len(zh) < density.min_per_en_char * len(en):
         raise ReplyError(f"cue {cue_id} is far shorter than its English; translate all of it")
 
 
@@ -298,11 +305,11 @@ def _check_glossary(cue_id: int, zh: str, en: str, glossary: Sequence[GlossaryEn
 
 
 def _split_at_markers(
-    unit_id: int, zh: str, cue_ids: tuple[int, ...], english: Mapping[int, str]
+    unit_id: int, zh: str, cue_ids: tuple[int, ...], english: Mapping[int, str], lang: Language
 ) -> dict[int, str]:
     if len(cue_ids) == 1:
-        return {cue_ids[0]: _clean_zh(_MARKER.sub("", zh), english[cue_ids[0]])}
-    zh = taiwan_terms(zh)
+        return {cue_ids[0]: _clean(lang, _MARKER.sub("", zh), english[cue_ids[0]])}
+    zh = lang.terms(zh)
     marks = list(_MARKER.finditer(zh))
     found = [int(m.group(1)) for m in marks]
     if found != list(cue_ids):
@@ -320,7 +327,7 @@ def _split_at_markers(
         raise ReplyError(f"entry {unit_id} has text before {_mark(cue_ids[0])}")
     ends = [m.start() for m in marks[1:]] + [len(zh)]
     return {
-        cue_id: _clean_zh(zh[mark.end() : end], english[cue_id])
+        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id])
         for cue_id, mark, end in zip(cue_ids, marks, ends, strict=True)
     }
 
@@ -330,8 +337,9 @@ def parse_reply(
     request: BatchRequest,
     cues: Sequence[Cue],
     glossary: Sequence[GlossaryEntry] = (),
+    lang: Language = DEFAULT,
 ) -> dict[int, str]:
-    """Return one cleaned `zh` for each cue of the request, or raise `ReplyError`.
+    """Return one cleaned translation for each cue of the request, or raise `ReplyError`.
 
     A glossary term kept in English must appear in the `zh` of each cue whose English has it."""
     wanted = set(request.ids)
@@ -340,13 +348,14 @@ def parse_reply(
     found: dict[int, str] = {}
     extra: list[int] = []
     duplicate: list[int] = []
-    for position, item in enumerate(_reply_entries(text)):
+    for position, item in enumerate(_reply_entries(text, lang.prompt.key)):
         if not isinstance(item, dict):
             raise ReplyError(f"entry {position} is not an object")
         entry = cast("dict[str, object]", item)
-        cue_id, zh = entry.get("id"), entry.get("zh")
+        key = lang.prompt.key
+        cue_id, zh = entry.get("id"), entry.get(key)
         if type(cue_id) is not int or not isinstance(zh, str):
-            raise ReplyError(f'entry {position} must have an integer "id" and a string "zh"')
+            raise ReplyError(f'entry {position} must have an integer "id" and a string "{key}"')
         if cue_id not in wanted:
             extra.append(cue_id)
         elif cue_id in found:
@@ -363,9 +372,9 @@ def parse_reply(
         raise ReplyError(f"expected {len(request.ids)} entries; " + ", ".join(problems))
     cleaned: dict[int, str] = {}
     for unit in request.units:
-        cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english))
+        cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english, lang))
     for cue_id, zh in cleaned.items():
-        _check_zh(cue_id, zh, english[cue_id])
+        _check_text(lang, cue_id, zh, english[cue_id])
         _check_glossary(cue_id, zh, english[cue_id], glossary)
     return cleaned
 
@@ -394,8 +403,10 @@ class _Run:
         on_progress: Callable[[Progress], None] | None,
         sleep: Callable[[float], None],
         keep_english: bool,
+        lang: Language,
     ) -> None:
         self.keep_english = keep_english
+        self.lang = lang
         self.cues = list(cues)
         self.chat = chat
         self.glossary = glossary
@@ -406,14 +417,14 @@ class _Run:
         self.sleep = sleep
 
     def translate(self, batch: Batch) -> None:
-        request = build_request(self.cues, batch, self.glossary, self.context)
+        request = build_request(self.cues, batch, self.glossary, self.context, self.lang)
         started = time.monotonic()
         first, last = self.cues[batch.start].id, self.cues[batch.stop - 1].id
         try:
             translations, attempts = ask(
                 self.chat,
                 request.messages,
-                lambda text: parse_reply(text, request, self.cues, self.glossary),
+                lambda text: parse_reply(text, request, self.cues, self.glossary, self.lang),
                 reprompt=lambda reason: (
                     f"That reply was rejected: {reason}. Reply again with the "
                     f'complete JSON for all {len(request.ids)} entries in "translate".'
@@ -424,15 +435,7 @@ class _Run:
             )
         except RepliesRejected as exc:
             if len(batch) == 1 and self.keep_english:
-                log.warning(
-                    "cue %d could not be translated after %d attempts (%s); keeping its English",
-                    first,
-                    exc.attempts,
-                    exc.reason,
-                )
-                self.store(
-                    batch, {self.cues[batch.start].id: self.cues[batch.start].en}, started, 0
-                )
+                self.keep_or_relax(batch, request, exc, started)
                 return
             if len(batch) == 1:
                 raise TranslationError(
@@ -446,6 +449,38 @@ class _Run:
                 self.translate(half)
             return
         self.store(batch, translations, started, attempts)
+
+    def keep_or_relax(
+        self, batch: Batch, request: BatchRequest, exc: RepliesRejected, started: float
+    ) -> None:
+        """A cue that failed every attempt. When only the glossary check failed, a reply that
+        translates the cue but writes a product name in the target script (Japanese writes
+        "cursor" as katakana) is better than English, so ask once more without the glossary."""
+        cue = self.cues[batch.start]
+        if "must keep" in exc.reason:
+            try:
+                relaxed, attempts = ask(
+                    self.chat,
+                    request.messages,
+                    lambda text: parse_reply(text, request, self.cues, (), self.lang),
+                    reprompt=lambda reason: reason,
+                    label=f"cue {cue.id} without the glossary",
+                    retries=0,
+                    sleep=self.sleep,
+                )
+            except RepliesRejected:
+                pass
+            else:
+                log.warning("cue %d: keeping a translation that renames a glossary term", cue.id)
+                self.store(batch, relaxed, started, attempts)
+                return
+        log.warning(
+            "cue %d could not be translated after %d attempts (%s); keeping its English",
+            cue.id,
+            exc.attempts,
+            exc.reason,
+        )
+        self.store(batch, {cue.id: cue.en}, started, 0)
 
     def store(
         self, batch: Batch, translations: dict[int, str], started: float, attempts: int
@@ -479,11 +514,13 @@ def run(
     on_progress: Callable[[Progress], None] | None = None,
     sleep: Callable[[float], None] = time.sleep,
     keep_english: bool = False,
+    lang: Language = DEFAULT,
 ) -> list[Cue]:
-    """Translate every cue whose `zh` is empty and return all cues, timing and `en` unchanged.
+    """Translate every cue whose `zh` is empty into `lang` and return all cues, timing and `en`
+    unchanged. The `zh` field holds the translation whatever the language is.
 
-    Cues are sent as whole sentences, each cue marked inside its sentence, and the Chinese is cut
-    back into cues at the markers. A batch whose replies fail `max_retries` retries is split in
+    Cues are sent as whole sentences, each cue marked inside its sentence, and the translation is
+    cut back into cues at the markers. A batch whose replies fail `max_retries` retries is split in
     half, and a lone sentence is split between cues. A single cue that still fails raises
     `TranslationError`, unless `keep_english` is set: then that cue keeps its English as its `zh`
     and the run goes on. A server that fails every attempt raises its `LlmError` at once, because
@@ -500,6 +537,7 @@ def run(
         on_progress=on_progress,
         sleep=sleep,
         keep_english=keep_english,
+        lang=lang,
     )
     for batch in plan_batches(job.cues, batch_size):
         job.translate(batch)
@@ -515,6 +553,7 @@ def translate_file(
     batch_size: int = BATCH_SIZE,
     on_progress: Callable[[Progress], None] | None = None,
     keep_english: bool = False,
+    lang: Language = DEFAULT,
 ) -> list[Cue]:
     """Translate `source` (a subs json) into `dest`, saving `dest` after every batch.
 
@@ -538,6 +577,7 @@ def translate_file(
         checkpoint=save,
         on_progress=on_progress,
         keep_english=keep_english,
+        lang=lang,
     )
     save(result)
     return result
