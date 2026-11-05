@@ -100,6 +100,8 @@ class StepState:
     status: StepStatus = StepStatus.PENDING
     updated_at_ms: int | None = None
     error: str | None = None
+    key: str | None = None
+    """The cache key of the run this state describes. `done` means the outputs match it."""
 
     def __post_init__(self) -> None:
         if self.updated_at_ms is not None:

@@ -1,3 +1,4 @@
+import itertools
 import os
 import random
 import stat
@@ -13,6 +14,7 @@ import pytest
 from backend.core import model
 from backend.core.model import Cue, FormatError, Project, Segment, Step, StepState, StepStatus, Word
 from backend.core.subtitle_io import (
+    ASS_ZH_LINE_COLUMNS,
     parse_ass,
     parse_project,
     parse_srt,
@@ -24,6 +26,7 @@ from backend.core.subtitle_io import (
     render_srt,
     render_subs,
     render_vtt,
+    wrap_zh_line,
     write_text_file,
 )
 
@@ -949,3 +952,73 @@ def test_write_text_file_leaves_a_file_with_normal_permissions(tmp_path: Path, u
     finally:
         os.umask(old)
     assert stat.S_IMODE((tmp_path / "out.srt").stat().st_mode) == 0o666 & ~umask
+
+
+HARD = chr(92) + "N"
+SOFT = HARD + "{" + chr(92) + "q0}"
+LONG_ZH = (
+    "我們花了很多時間讓代理人能夠自己執行應用程式、收集追蹤資料，"
+    "然後根據結果修正自己的錯誤，這就是整個流程的重點。"
+)
+
+
+def width(text: str) -> int:
+    return sum(2 if ord(c) > 0x2E80 else 1 for c in text)
+
+
+def test_short_chinese_line_is_not_wrapped() -> None:
+    assert wrap_zh_line("大家早安。") == ["大家早安。"]
+
+
+def test_long_chinese_line_wraps_within_the_column_limit_and_joins_back() -> None:
+    parts = wrap_zh_line(LONG_ZH)
+    assert len(parts) > 1
+    assert "".join(parts) == LONG_ZH
+    assert all(width(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
+    assert all(part[0] not in "，。？！、；：」）" for part in parts)
+
+
+def test_wrap_prefers_the_end_of_a_clause() -> None:
+    assert wrap_zh_line("一小時後，我們回頭看看〈計畫〉與「數字」。") == [
+        "一小時後，",
+        "我們回頭看看〈計畫〉與「數字」。",
+    ]
+
+
+def test_wrap_never_splits_a_latin_word_or_number() -> None:
+    line = "我們用 Claude Code 在 2,500 個專案上測試，" * 3
+    for part, nxt in itertools.pairwise(wrap_zh_line(line)):
+        assert not (part[-1] + nxt[0]).isascii() or not (part[-1] + nxt[0]).isalnum()
+
+
+def test_a_very_long_line_wraps_into_as_many_lines_as_needed() -> None:
+    line = "字" * 100
+    parts = wrap_zh_line(line)
+    assert len(parts) == 5
+    assert all(width(part) <= ASS_ZH_LINE_COLUMNS for part in parts)
+
+
+def test_ass_wraps_a_long_chinese_line_with_a_soft_break_that_round_trips() -> None:
+    cue = Cue(1, 0, 4000, "We taught the agent to run the app.", LONG_ZH)
+    text = render_ass([cue])
+    assert SOFT in text
+    assert text.count(HARD) == text.count(SOFT) + 1
+    assert parse_ass(text) == [cue]
+
+
+def test_ass_keeps_an_explicit_line_break_as_a_hard_break() -> None:
+    cue = Cue(1, 0, 1000, "Hello.", "你好。\n再見。")
+    assert "你好。" + HARD + "再見。" in render_ass([cue])
+    assert parse_ass(render_ass([cue])) == [cue]
+
+
+def test_a_step_key_round_trips_and_a_project_without_keys_still_parses() -> None:
+    from backend.core.model import Step, StepState, StepStatus
+
+    project = parse_project(golden_text("project.json"))
+    assert all(state.key is None for state in project.steps.values())
+    assert '"key"' not in render_project(project)
+    keyed = project.with_step(Step.ASR, StepState(StepStatus.DONE, 5, None, "abc123"))
+    again = parse_project(render_project(keyed))
+    assert again.steps[Step.ASR].key == "abc123"
+    assert again == keyed

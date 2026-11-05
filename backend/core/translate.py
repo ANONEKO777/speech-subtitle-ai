@@ -12,7 +12,13 @@ from typing import cast
 
 from backend.core.model import Cue, FormatError
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
-from backend.core.zh_tw import CJK_TEXT, simplified_chars, strip_markdown_emphasis, taiwan_terms
+from backend.core.zh_tw import (
+    CJK_TEXT,
+    drop_fillers,
+    simplified_chars,
+    strip_markdown_emphasis,
+    taiwan_terms,
+)
 from backend.llm.ask import (
     MAX_RETRIES,
     ChatFn,
@@ -54,6 +60,17 @@ class GlossaryEntry:
             raise ValueError(
                 f"glossary term and translation must be single non-empty lines: {self}"
             )
+
+
+_PRODUCT_NAMES = (
+    "Cursor, Claude Code, Claude, Copilot, GitHub Copilot, ChatGPT, Codex, Gemini, Windsurf, "
+    "Devin, OpenAI, Anthropic, GitHub, VS Code, Xcode, TypeScript, Slack, Docker, Kubernetes, "
+    "Figma, Notion"
+)
+DEFAULT_GLOSSARY: tuple[GlossaryEntry, ...] = tuple(
+    GlossaryEntry(name) for name in _PRODUCT_NAMES.split(", ")
+)
+"""Product names that stay in English in every run. A user's own entries come after them."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -242,8 +259,8 @@ def _reply_entries(text: str) -> list[object]:
     return cast("list[object]", doc)
 
 
-def _clean_zh(zh: str) -> str:
-    zh = strip_markdown_emphasis(taiwan_terms(zh))
+def _clean_zh(zh: str, en: str = "") -> str:
+    zh = drop_fillers(strip_markdown_emphasis(taiwan_terms(zh)), en)
     lines = (line.strip() for line in zh.replace("\r", "\n").split("\n"))
     return "\n".join(line for line in lines if line)
 
@@ -265,11 +282,26 @@ def _check_zh(cue_id: int, zh: str, en: str) -> None:
         raise ReplyError(f"cue {cue_id} is far shorter than its English; translate all of it")
 
 
+def _check_glossary(cue_id: int, zh: str, en: str, glossary: Sequence[GlossaryEntry]) -> None:
+    lowered = zh.lower()
+    for entry in glossary:
+        if entry.zh:
+            continue
+        term = re.escape(entry.term)
+        if re.search(rf"(?<![A-Za-z0-9]){term}(?![A-Za-z0-9])", en, re.IGNORECASE) and (
+            entry.term.lower() not in lowered
+        ):
+            raise ReplyError(
+                f"cue {cue_id} must keep {_quoted(entry.term)} in its original English spelling, "
+                f"as in {_quoted(en)}"
+            )
+
+
 def _split_at_markers(
     unit_id: int, zh: str, cue_ids: tuple[int, ...], english: Mapping[int, str]
 ) -> dict[int, str]:
     if len(cue_ids) == 1:
-        return {cue_ids[0]: _clean_zh(_MARKER.sub("", zh))}
+        return {cue_ids[0]: _clean_zh(_MARKER.sub("", zh), english[cue_ids[0]])}
     zh = taiwan_terms(zh)
     marks = list(_MARKER.finditer(zh))
     found = [int(m.group(1)) for m in marks]
@@ -288,13 +320,20 @@ def _split_at_markers(
         raise ReplyError(f"entry {unit_id} has text before {_mark(cue_ids[0])}")
     ends = [m.start() for m in marks[1:]] + [len(zh)]
     return {
-        cue_id: _clean_zh(zh[mark.end() : end])
+        cue_id: _clean_zh(zh[mark.end() : end], english[cue_id])
         for cue_id, mark, end in zip(cue_ids, marks, ends, strict=True)
     }
 
 
-def parse_reply(text: str, request: BatchRequest, cues: Sequence[Cue]) -> dict[int, str]:
-    """Return one cleaned `zh` for each cue of the request, or raise `ReplyError`."""
+def parse_reply(
+    text: str,
+    request: BatchRequest,
+    cues: Sequence[Cue],
+    glossary: Sequence[GlossaryEntry] = (),
+) -> dict[int, str]:
+    """Return one cleaned `zh` for each cue of the request, or raise `ReplyError`.
+
+    A glossary term kept in English must appear in the `zh` of each cue whose English has it."""
     wanted = set(request.ids)
     wanted_cues = {cue_id for unit in request.units for cue_id in unit}
     english = {cue.id: cue.en for cue in cues if cue.id in wanted_cues}
@@ -327,6 +366,7 @@ def parse_reply(text: str, request: BatchRequest, cues: Sequence[Cue]) -> dict[i
         cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english))
     for cue_id, zh in cleaned.items():
         _check_zh(cue_id, zh, english[cue_id])
+        _check_glossary(cue_id, zh, english[cue_id], glossary)
     return cleaned
 
 
@@ -353,7 +393,9 @@ class _Run:
         checkpoint: Callable[[list[Cue]], None] | None,
         on_progress: Callable[[Progress], None] | None,
         sleep: Callable[[float], None],
+        keep_english: bool,
     ) -> None:
+        self.keep_english = keep_english
         self.cues = list(cues)
         self.chat = chat
         self.glossary = glossary
@@ -371,7 +413,7 @@ class _Run:
             translations, attempts = ask(
                 self.chat,
                 request.messages,
-                lambda text: parse_reply(text, request, self.cues),
+                lambda text: parse_reply(text, request, self.cues, self.glossary),
                 reprompt=lambda reason: (
                     f"That reply was rejected: {reason}. Reply again with the "
                     f'complete JSON for all {len(request.ids)} entries in "translate".'
@@ -381,6 +423,17 @@ class _Run:
                 sleep=self.sleep,
             )
         except RepliesRejected as exc:
+            if len(batch) == 1 and self.keep_english:
+                log.warning(
+                    "cue %d could not be translated after %d attempts (%s); keeping its English",
+                    first,
+                    exc.attempts,
+                    exc.reason,
+                )
+                self.store(
+                    batch, {self.cues[batch.start].id: self.cues[batch.start].en}, started, 0
+                )
+                return
             if len(batch) == 1:
                 raise TranslationError(
                     f"cue {first} could not be translated after {exc.attempts} attempts: "
@@ -425,13 +478,15 @@ def run(
     checkpoint: Callable[[list[Cue]], None] | None = None,
     on_progress: Callable[[Progress], None] | None = None,
     sleep: Callable[[float], None] = time.sleep,
+    keep_english: bool = False,
 ) -> list[Cue]:
     """Translate every cue whose `zh` is empty and return all cues, timing and `en` unchanged.
 
     Cues are sent as whole sentences, each cue marked inside its sentence, and the Chinese is cut
     back into cues at the markers. A batch whose replies fail `max_retries` retries is split in
     half, and a lone sentence is split between cues. A single cue that still fails raises
-    `TranslationError`. A server that fails every attempt raises its `LlmError` at once, because
+    `TranslationError`, unless `keep_english` is set: then that cue keeps its English as its `zh`
+    and the run goes on. A server that fails every attempt raises its `LlmError` at once, because
     splitting cannot help. Cues stored before a failure stay stored: `checkpoint` has already
     seen them.
     """
@@ -444,6 +499,7 @@ def run(
         checkpoint=checkpoint,
         on_progress=on_progress,
         sleep=sleep,
+        keep_english=keep_english,
     )
     for batch in plan_batches(job.cues, batch_size):
         job.translate(batch)
@@ -458,6 +514,7 @@ def translate_file(
     *,
     batch_size: int = BATCH_SIZE,
     on_progress: Callable[[Progress], None] | None = None,
+    keep_english: bool = False,
 ) -> list[Cue]:
     """Translate `source` (a subs json) into `dest`, saving `dest` after every batch.
 
@@ -474,7 +531,13 @@ def translate_file(
         write_text_file(dest, render_subs(state))
 
     result = run(
-        cues, chat, glossary, batch_size=batch_size, checkpoint=save, on_progress=on_progress
+        cues,
+        chat,
+        glossary,
+        batch_size=batch_size,
+        checkpoint=save,
+        on_progress=on_progress,
+        keep_english=keep_english,
     )
     save(result)
     return result

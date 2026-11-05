@@ -1,0 +1,51 @@
+{
+ "schema_version": 1,
+ "engine": "whispercpp-large-v3-turbo",
+ "words": [
+  {
+   "text": "For",
+   "start_ms": 0,
+   "end_ms": 560
+  },
+  {
+   "text": "more",
+   "start_ms": 560,
+   "end_ms": 1300
+  },
+  {
+   "text": "information",
+   "start_ms": 1300,
+   "end_ms": 3360
+  },
+  {
+   "text": "or",
+   "start_ms": 3360,
+   "end_ms": 3500
+  },
+  {
+   "text": "to",
+   "start_ms": 3510,
+   "end_ms": 3640
+  },
+  {
+   "text": "volunteer,",
+   "start_ms": 3670,
+   "end_ms": 4500
+  },
+  {
+   "text": "please",
+   "start_ms": 4500,
+   "end_ms": 5050
+  },
+  {
+   "text": "visit",
+   "start_ms": 5110,
+   "end_ms": 5540
+  },
+  {
+   "text": "LibriVox.org.",
+   "start_ms": 5540,
+   "end_ms": 7130
+  }
+ ]
+}

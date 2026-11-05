@@ -15,6 +15,7 @@ from backend.core.translate import (
 from backend.core.zh_tw import (
     SIMPLIFIED_IN_BIG5,
     SIMPLIFIED_ONLY,
+    drop_fillers,
     in_big5,
     simplified_chars,
     strip_markdown_emphasis,
@@ -75,6 +76,15 @@ MAINLAND_CUES = [
     ("設置好之後，程式運行在雲端，你也能運行它。", "設定好之後，程式執行在雲端，你也能執行它。"),
     ("我們用 Docker 運行中的容器，不用運行程式。", "我們用 Docker 執行中的容器，不用執行程式。"),
     ("這是主線程，也是工作線程。", "這是主執行緒，也是工作執行緒。"),
+    ("就像它能運行", "就像它能執行"),
+    ("它們可以運行[[88]]", "它們可以執行[[88]]"),
+    ("來運行 Grochbot。我們", "來執行 Grochbot。我們"),
+    ("某些在主程式或主執行緒中運行的程式碼", "某些在主程式或主執行緒中執行的程式碼"),
+    ("不允許在渲染執行緒中運行。我們", "不允許在渲染執行緒中執行。我們"),
+    ("不允許運行在渲染執行緒上。我們", "不允許執行在渲染執行緒上。我們"),
+    ("導致運行速度變慢。", "導致執行速度變慢。"),
+    ("是運行整個 Dune 應用程式的東西", "是執行整個 Dune 應用程式的東西"),
+    ("在 Grochbot 虛擬機器上運行。當然", "在 Grochbot 虛擬機器上執行。當然"),
 ]
 
 KEPT_PROCEDURES = [
@@ -228,3 +238,79 @@ def test_an_english_copy_with_english_punctuation_is_still_rejected() -> None:
     en = "Claude Code, Cursor, Windsurf, Copilot."
     with pytest.raises(ReplyError, match="not translated"):
         reply_for(en, en)
+
+
+@pytest.mark.parametrize(
+    ("raw", "clean"),
+    [
+        (
+            "uh，不變式是否，你知不知道，總是正確。Um，而且這，um，uh，你可以",
+            "不變式是否，總是正確。而且這，你可以",
+        ),
+        ("開始思考，你知不知道，", "開始思考，"),
+        ("你知不知道，驗證，使得你可以檢查", "驗證，使得你可以檢查"),
+        ("你知不知道這件事嗎", "你知不知道這件事嗎"),
+        ("你知不知道？", "你知不知道？"),
+        ("Um，", "Um，"),
+        ("這個 umbrella 專案很好用", "這個 umbrella 專案很好用"),
+        ("Hmm, 所以我們出貨了", "所以我們出貨了"),
+    ],
+)
+def test_drop_fillers(raw: str, clean: str) -> None:
+    assert drop_fillers(raw) == clean
+
+
+FILLER_CUES = [
+    ("and uh you know propagate it", "而且你知不知道，將其散播給所有人"),
+    ("in a high trust environment, you know", "一個高信任度的環境，你知不知道 "),
+]
+
+
+@pytest.mark.parametrize(("en", "zh"), FILLER_CUES)
+def test_you_know_is_dropped_wherever_the_english_was_you_know(en: str, zh: str) -> None:
+    assert "你知不知道" not in reply_for(zh, en)
+
+
+def test_a_real_do_you_know_question_keeps_its_translation() -> None:
+    assert (
+        reply_for("你知不知道答案是什麼？", "Do you know what the answer is?")
+        == "你知不知道答案是什麼？"
+    )
+
+
+def test_a_filler_glued_to_a_conjunction_leaves_the_sentence_readable() -> None:
+    assert (
+        reply_for("而且你知不知道，將其散播給所有人", "and uh you know propagate it to everyone")
+        == "而且將其散播給所有人"
+    )
+
+
+def test_a_filler_before_a_marker_is_dropped_with_its_trailing_space() -> None:
+    cues = [
+        Cue(1, 0, 1000, "in a high trust environment, you know"),
+        Cue(2, 1000, 2000, "your agents can move fast."),
+    ]
+    body = json.dumps(
+        {
+            "translations": [
+                {"id": 1, "zh": "[[1]]一個高信任度的環境，你知不知道 [[2]]代理可以很快。"}
+            ]
+        },
+        ensure_ascii=False,
+    )
+    request = build_request(cues, Batch((Unit(0, 2),)))
+    assert parse_reply(body, request, cues) == {1: "一個高信任度的環境，", 2: "代理可以很快。"}
+
+
+@pytest.mark.parametrize(
+    ("mainland", "taiwan"),
+    [
+        ("你有一個主機，運行在，你知，", "你有一個主機，執行在，你知，"),
+        ("雲端，運行更多的代理", "雲端，執行更多的代理"),
+        ("在 CI 上運行", "在 CI 上執行"),
+        ("像這樣運行", "像這樣執行"),
+        ("運行這類模型", "執行這類模型"),
+    ],
+)
+def test_run_in_software_talk_becomes_zhixing(mainland: str, taiwan: str) -> None:
+    assert taiwan_terms(mainland) == taiwan

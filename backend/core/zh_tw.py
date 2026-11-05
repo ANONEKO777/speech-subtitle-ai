@@ -8,19 +8,12 @@ _SOFTWARE_NOUN = (
     "介面|系統|資料庫|帳號|帳戶|密碼|金鑰|路徑|連線|憑證|版本|快捷鍵|工作流程|管線|指令|提示|"
     "程式碼|程式|CI|CD|Docker|App"
 )
-_POSSESSIVE = "(?:[你您我他妳們]*的)?"
 _CLAUSE_CHAR = r"(?:[^，。？！、；：\s\[\]]|\[\[\d+\]\])"
 _CONFIGURE_TAIL = "它們|它|好|為|成|選項|頁面|頁|畫面|選單|檔|面板|中|裡"
 _CONFIGURE_HEAD = "進行|重新|完成|調整|更改|修改|變更|需要|無需|不用"
-_RUN_TARGET = (
-    "應用程式|應用程序|程式碼|程式|程序|應用|腳本|指令|測試|命令|容器|服務|模型|代理|行程|主機|工具|沙盒|沙箱|"
-    "軟體|App|CLI|Docker|[A-Za-z]"
-)
-_RUN_PLACE = "主程序|主程式|主機|背景|伺服器|本機|本地|雲端|GPU|CPU|瀏覽器|容器|[A-Za-z]"
-_RUN_SUBJECT = "程式|應用程式|應用程序|軟體|腳本|容器|服務|測試|指令|代理|App|CLI|Docker"
-_RUN_HOST = (
-    "執行緒|線程|伺服器|主機|本機|本地|雲端|GPU|CPU|瀏覽器|容器|背景|沙盒|沙箱|模擬器|裝置|"
-    "系統|平台|Mac|Windows|Linux|[A-Za-z]"
+_NOT_PHYSICAL_RUN = "".join(
+    f"(?<!{head})"
+    for head in "地球|太陽|月球|行星|星球|星系|天體|軌道|列車|火車|機器|機械|時鐘|鐘錶".split("|")
 )
 _CHAT_APP = "Slack|Discord|Teams|Telegram|Reddit|Twitter|Gmail|Email|email|Mastodon|Bluesky"
 _PROCEDURE_HEAD = (
@@ -60,14 +53,7 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         (f"設置(?={_MARK}(?:{_CONFIGURE_TAIL}))", "設定"),
         (f"{_after(_CONFIGURE_HEAD)}設置", "設定"),
         ("(?<=在)設置(?=中|裡)", "設定"),
-        (
-            f"運行(?={_MARK}(?:在|於)?{_POSSESSIVE}{_MARK}(?:{_RUN_TARGET}|{_RUN_PLACE}))",
-            "執行",
-        ),
-        (f"運行(?={_CLAUSE_CHAR}{{0,6}}?(?:程式碼|程式|應用程式|應用程序|軟體|腳本))", "執行"),
-        (f"運行(?={_MARK}(?:它們|它|中的))", "執行"),
-        (f"{_after(_RUN_SUBJECT)}運行", "執行"),
-        (f"((?:{_RUN_HOST})上)運行", r"\1執行"),
+        (f"{_NOT_PHYSICAL_RUN}運行", "執行"),
         ("(?<!大)數據(?!機)", "資料"),
         (f"{_after(_CHAT_APP)} ?線程", "討論串"),
         ("(?<![針縫])線程", "執行緒"),
@@ -89,6 +75,29 @@ def taiwan_terms(text: str) -> str:
     for pattern, taiwan in _TERMS:
         text = pattern.sub(taiwan, text)
     return text
+
+
+_LATIN_FILLER = re.compile(r"(?<![A-Za-z])(?:uh+|um+|hmm+)(?![A-Za-z])[,，]?\s*", re.IGNORECASE)
+_YOU_KNOW_FILLER = re.compile(r"(?<![^，。？！\s])你知不知道(?=[，,\s]|$)[，,]?")
+_ENGLISH_YOU_KNOW = re.compile(r"\byou know\b", re.IGNORECASE)
+_ANY_YOU_KNOW_ZH = re.compile(r"你知不知道[，,]?\s*")
+_DOUBLE_COMMA = re.compile(r"([，,])\s*[，,]+")
+_LEADING_COMMA = re.compile(r"^[，,\s]+")
+
+
+def drop_fillers(text: str, en: str = "") -> str:
+    """Remove "uh" and "um" left in Latin letters, and the filler 你知不知道.
+
+    When `en` is given and says "you know" without asking a question, every 你知不知道 is a
+    filler. Otherwise only one standing alone between commas is dropped. A text that would be
+    empty afterwards is returned unchanged."""
+    cleaned = _LATIN_FILLER.sub("", text)
+    if _ENGLISH_YOU_KNOW.search(en) and "?" not in en:
+        cleaned = _ANY_YOU_KNOW_ZH.sub("", cleaned)
+    else:
+        cleaned = _YOU_KNOW_FILLER.sub("", cleaned)
+    cleaned = _LEADING_COMMA.sub("", _DOUBLE_COMMA.sub(r"", cleaned)).strip()
+    return cleaned if cleaned else text
 
 
 def strip_markdown_emphasis(text: str) -> str:

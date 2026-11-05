@@ -883,3 +883,97 @@ def test_retry_after_seconds_are_read_from_the_header() -> None:
             client.chat(LlmConfig(server.url, "m"), [USER])
     assert info.value.retryable
     assert info.value.retry_after_s == 7.0
+
+
+def test_default_glossary_keeps_product_names_in_english() -> None:
+    from backend.core.translate import DEFAULT_GLOSSARY, glossary_block
+
+    terms = {entry.term for entry in DEFAULT_GLOSSARY}
+    assert {"Cursor", "Claude Code", "Copilot"} <= terms
+    assert all(not entry.zh for entry in DEFAULT_GLOSSARY)
+    assert '"Claude Code" must stay in its original English spelling' in glossary_block(
+        DEFAULT_GLOSSARY
+    )
+
+
+def test_prompt_tells_the_model_to_drop_fillers_and_not_ask_do_you_know() -> None:
+    system = build_request(make_cues(1), span(0, 1)).messages[0]["content"]
+    assert "你知不知道" in system
+    assert '"uh", "um"' in system
+
+
+def test_parse_reply_drops_latin_fillers_left_by_the_model() -> None:
+    cues = [Cue(1, 0, 1000, "uh, we shipped it, you know,")]
+    request = build_request(cues, span(0, 1))
+    reply = json.dumps([{"id": 1, "zh": "uh，我們出貨了，你知不知道，"}], ensure_ascii=False)
+    assert parse_reply(reply, request, cues) == {1: "我們出貨了，"}
+
+
+def untranslatable_third(_: int, messages: Sequence[Message]) -> str | None:
+    items = payload(messages[:2])["translate"]
+    if any(item["id"] == 3 for item in items):
+        reply = [
+            {"id": i["id"], "zh": i["en"] if i["id"] == 3 else f"第{i['id']}句在這裡。"}
+            for i in items
+        ]
+        return json.dumps({"translations": reply}, ensure_ascii=False)
+    return None
+
+
+def test_a_cue_that_cannot_be_translated_stops_the_run_by_default() -> None:
+    with pytest.raises(TranslationError, match="cue 3"):
+        run_all(make_cues(5), FakeLlm(untranslatable_third), batch_size=5)
+
+
+def test_keep_english_lets_one_stubborn_cue_through_and_translates_the_rest() -> None:
+    cues = make_cues(5)
+    result = translate.run(
+        cues,
+        FakeLlm(untranslatable_third),
+        batch_size=5,
+        sleep=no_sleep,
+        keep_english=True,
+    )
+    assert result[2].zh == cues[2].en
+    assert [c.zh for c in result if c.id != 3] == [f"第{i}句在這裡。" for i in (1, 2, 4, 5)]
+
+
+KEEP_CURSOR = (GlossaryEntry("Cursor"),)
+
+
+@pytest.mark.parametrize("zh", ["我們使用 Cursor。", "我們用 cursor 工具。"])
+def test_a_kept_glossary_term_in_the_english_must_be_in_the_chinese(zh: str) -> None:
+    cues = [Cue(1, 0, 1000, "We learned from cursor's agent window.")]
+    request = build_request(cues, span(0, 1))
+    reply = json.dumps([{"id": 1, "zh": zh}], ensure_ascii=False)
+    assert parse_reply(reply, request, cues, KEEP_CURSOR) == {1: zh}
+
+
+def test_a_dropped_or_translated_kept_term_is_rejected_with_the_reason() -> None:
+    cues = [Cue(1, 0, 1000, "We learned from cursor's agent window.")]
+    request = build_request(cues, span(0, 1))
+    reply = json.dumps([{"id": 1, "zh": "我們從游標的代理視窗學到。"}], ensure_ascii=False)
+    with pytest.raises(ReplyError, match="must keep .Cursor."):
+        parse_reply(reply, request, cues, KEEP_CURSOR)
+
+
+def test_a_kept_term_is_not_required_inside_another_word() -> None:
+    cues = [Cue(1, 0, 1000, "Pick the cursors you like, okay?")]
+    request = build_request(cues, span(0, 1))
+    reply = json.dumps([{"id": 1, "zh": "挑你喜歡的游標，好嗎？"}], ensure_ascii=False)
+    assert parse_reply(reply, request, cues, KEEP_CURSOR)[1] == "挑你喜歡的游標，好嗎？"
+
+
+def test_the_run_reprompts_when_the_model_drops_a_kept_term() -> None:
+    cues = [Cue(1, 0, 1000, "We learned from Cursor's agent window.")]
+    replies = ["我們從游標的代理視窗學到。", "我們從 Cursor 的代理視窗學到。"]
+
+    def script(call: int, _messages: Sequence[Message]) -> str:
+        return json.dumps(
+            {"translations": [{"id": 1, "zh": replies[call - 1]}]}, ensure_ascii=False
+        )
+
+    llm = FakeLlm(script)
+    out = run_all(cues, llm, KEEP_CURSOR)
+    assert out[0].zh == replies[1]
+    assert "must keep" in str(llm.calls[1][-1])

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import time
+import unicodedata
 import uuid
 from collections.abc import Iterable, Mapping
 from pathlib import Path
@@ -43,6 +44,11 @@ _ASS_JOINER = "⁠"
 _ASS_BACKSLASH_HAZARD = re.compile(rf"\\(?=[Nnh{_ASS_JOINER}])")
 _ASS_TOKEN = re.compile(rf"\\N|\\n|\\\{{|\\\}}|\\{_ASS_JOINER}|\{{[^}}]*\}}")
 _ASS_EN_MARK = "{\\rEn}"
+_ASS_SOFT_BREAK = "\\N{\\q0}"
+ASS_ZH_LINE_COLUMNS = 40
+_ASS_OPENERS = "(（[【「『《〈“‘"
+_ASS_CLOSERS = "，。？！、；：)）]】」』》〉”’…"
+_ASS_CLAUSE_END = "，。？！、；："
 
 _ASS_STYLE_FIELDS = (
     "Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
@@ -280,6 +286,51 @@ def _ass_time(ms: int) -> str:
     return f"{hours}:{minutes:02d}:{seconds:02d}.{centis:02d}"
 
 
+def _columns(char: str) -> int:
+    return 2 if unicodedata.east_asian_width(char) in "WF" else 1
+
+
+def _can_break(before: str, after: str) -> bool:
+    if before in _ASS_OPENERS or before == "\\" or after in _ASS_CLOSERS:
+        return False
+    return not (before.isascii() and before.isalnum() and after.isascii() and after.isalnum())
+
+
+def wrap_zh_line(line: str, limit: int = ASS_ZH_LINE_COLUMNS) -> list[str]:
+    """Split one long Chinese line into at most ceil(width / `limit`) parts that each fit `limit`
+    columns (a full-width character is two). A break prefers the end of a clause that is not too
+    close to the line start, then the point nearest an even split. It never splits a Latin word or
+    a number and never starts a line with closing punctuation. Joining the parts gives `line`."""
+    total = sum(_columns(c) for c in line)
+    if total <= limit:
+        return [line]
+    parts = -(-total // limit)
+    ends = list(itertools.accumulate(_columns(c) for c in line))
+    cuts: list[int] = []
+    start_col = 0
+    for k in range(1, parts):
+        ideal = start_col + (total - start_col) / (parts - k + 1)
+        found: list[tuple[float, int, bool]] = []
+        for i in range(cuts[-1] + 1 if cuts else 1, len(line)):
+            col = ends[i - 1]
+            if col - start_col > limit:
+                break
+            if total - col <= limit * (parts - k) and _can_break(line[i - 1], line[i]):
+                clause = line[i - 1] in _ASS_CLAUSE_END and col - start_col >= limit // 4
+                found.append((abs(col - ideal), i, clause))
+        if not found:
+            break
+        near = [f for f in found if f[2] and f[0] <= limit // 2] or found
+        cuts.append(min(near)[1])
+        start_col = ends[cuts[-1] - 1]
+    bounds = [0, *cuts, len(line)]
+    return [line[a:b] for a, b in itertools.pairwise(bounds)]
+
+
+def _ass_zh(text: str) -> str:
+    return _ASS_SOFT_BREAK.join(_ass_escape(part) for part in wrap_zh_line(text))
+
+
 def _ass_escape(text: str) -> str:
     text = _ASS_BACKSLASH_HAZARD.sub(lambda m: m.group() + _ASS_JOINER, text)
     return text.replace("{", "\\{").replace("}", "\\}").replace("\n", "\\N")
@@ -288,7 +339,7 @@ def _ass_escape(text: str) -> str:
 def render_ass(cues: Iterable[Cue]) -> str:
     events: list[str] = []
     for cue in _check_unique_ids(list(cues)):
-        zh = _ass_escape(cue.zh) + "\\N" if cue.zh else ""
+        zh = "\\N".join(_ass_zh(line) for line in cue.zh.split("\n")) + "\\N" if cue.zh else ""
         text = f"{zh}{_ASS_EN_MARK}{_ass_escape(cue.en)}"
         start, end = _ass_time(cue.start_ms), _ass_time(cue.end_ms)
         events.append(f"Dialogue: 0,{start},{end},Zh,{cue.id},0,0,0,,{text}\n")
@@ -306,6 +357,7 @@ def _ass_unescape(text: str) -> str:
             "\\" + _ASS_JOINER: "\\",
         }.get(token, "")
 
+    text = text.replace(_ASS_SOFT_BREAK, "")
     lines = (line.strip() for line in _ASS_TOKEN.sub(decode, text).split("\n"))
     return "\n".join(line for line in lines if line)
 
@@ -387,8 +439,10 @@ def _json_str(value: object, where: str) -> str:
     return value
 
 
-def _json_keys(obj: Mapping[str, object], keys: set[str], where: str) -> None:
-    if set(obj) != keys:
+def _json_keys(
+    obj: Mapping[str, object], keys: set[str], where: str, optional: set[str] | None = None
+) -> None:
+    if not keys <= set(obj) <= keys | (optional or set()):
         raise FormatError(f"{where} must have exactly the keys {sorted(keys)}, got {sorted(obj)}")
 
 
@@ -459,6 +513,7 @@ def render_project(project: Project) -> str:
                     "status": state.status.value,
                     "updated_at_ms": state.updated_at_ms,
                     "error": state.error,
+                    **({"key": state.key} if state.key is not None else {}),
                 }
                 for step, state in project.steps.items()
             },
@@ -477,13 +532,14 @@ def parse_project(text: str) -> Project:
     for name, item in raw_steps.items():
         where = f"steps.{name}"
         obj = _json_object(item, where)
-        _json_keys(obj, {"status", "updated_at_ms", "error"}, where)
-        updated, error = obj["updated_at_ms"], obj["error"]
+        _json_keys(obj, {"status", "updated_at_ms", "error"}, where, optional={"key"})
+        updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
         try:
             steps[Step(name)] = StepState(
                 StepStatus(_json_str(obj["status"], f"{where}.status")),
                 None if updated is None else _json_int(updated, f"{where}.updated_at_ms"),
                 None if error is None else _json_str(error, f"{where}.error"),
+                None if key is None else _json_str(key, f"{where}.key"),
             )
         except ValueError as exc:
             raise FormatError(f"{where}: {exc}") from exc

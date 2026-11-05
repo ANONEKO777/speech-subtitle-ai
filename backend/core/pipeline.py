@@ -1,0 +1,502 @@
+"""The cached, resumable pipeline from a video to subtitles and a summary.
+
+One table (`STEPS`) says, for each step, which steps it reads, which files it writes and what its
+cache key is made of. `run` walks the table. A step is skipped when `project.json` says it is done
+under the same key and its files exist. Keys chain, so a change reaches exactly the steps that
+read from it. Everything that starts a process or touches the network is behind `Ports`.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import threading
+import time
+from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager, ExitStack
+from dataclasses import asdict, dataclass, field
+from enum import StrEnum
+from functools import cache
+from importlib.resources import files as package_files
+from pathlib import Path
+
+from backend.core import summarize, translate
+from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
+from backend.core.model import Cue, Project, Segment, Step, StepState, StepStatus, Word
+from backend.core.segmenter import CueRules, to_cues
+from backend.core.subtitle_io import (
+    parse_project,
+    parse_subs,
+    read_text_file,
+    render_ass,
+    render_project,
+    render_srt,
+    render_subs,
+    render_vtt,
+    write_text_file,
+)
+from backend.core.summarize import Lang
+from backend.core.translate import BATCH_SIZE, DEFAULT_GLOSSARY, GlossaryEntry
+from backend.core.vad import Chunk, VadParams
+from backend.llm.ask import ChatFn
+from backend.llm.client import Message
+
+log = logging.getLogger(__name__)
+
+PROJECT_JSON = "project.json"
+
+
+class File(StrEnum):
+    """Every file name in a project folder."""
+
+    AUDIO = "audio.wav"
+    CHUNKS = "chunks.json"
+    WORDS = "segments.json"
+    SUBS_EN = "subs.en.json"
+    SUBS_ZH = "subs.zh-TW.json"
+    EN_SRT = "en.srt"
+    ZH_SRT = "zh-TW.srt"
+    ASS = "bilingual.ass"
+    VTT = "bilingual.vtt"
+    SUMMARY = "summary.md"
+    SUMMARY_EN = "summary.en.md"
+    SUMMARY_PARTS = "summary.parts.json"
+    AUDIO_STAMP = "audio.wav.src.json"
+
+
+class PipelineError(Exception):
+    """A step failed. `step` is the one that raised, and `__cause__` is its error."""
+
+    def __init__(self, step: Step, message: str) -> None:
+        super().__init__(f"{step.value}: {message}")
+        self.step = step
+
+
+class Cancelled(Exception):
+    """The cancel event was set. The running step is recorded as failed and a rerun resumes it."""
+
+
+class NoSpeechError(Exception):
+    """The ASR engine returned no words."""
+
+
+@dataclass(frozen=True, slots=True)
+class Settings:
+    """Everything that decides what the outputs are. Identities are strings that change when the
+    model or runtime does. Nothing here is a path, so every field can be part of a cache key."""
+
+    asr_engine: str
+    asr_identity: str
+    vad_identity: str
+    llm_identity: str
+    language: str = "en"
+    vad: VadParams = field(default_factory=VadParams)
+    cues: CueRules = field(default_factory=CueRules)
+    glossary: tuple[GlossaryEntry, ...] = DEFAULT_GLOSSARY
+    summary_langs: tuple[Lang, ...] = ("zh-TW",)
+    batch_size: int = BATCH_SIZE
+
+
+@dataclass(frozen=True, slots=True)
+class LlmSession:
+    """The chat functions of one open LLM. Summary replies are capped, translations are not."""
+
+    translate: ChatFn
+    summarize: ChatFn
+
+
+ProgressCb = Callable[[float], None]
+
+
+@dataclass(frozen=True, slots=True)
+class Ports:
+    """What touches a process, the GPU or the network. Tests replace these."""
+
+    extract_audio: Callable[[Path, Path, threading.Event], None]
+    split_vad: Callable[[Path], list[Chunk]]
+    transcribe: Callable[[Path, Sequence[Chunk], ProgressCb, threading.Event], list[Word]]
+    open_llm: Callable[[threading.Event], AbstractContextManager[LlmSession]]
+
+
+@dataclass(frozen=True, slots=True)
+class Progress:
+    step: Step
+    fraction: float
+    message: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class StepReport:
+    step: Step
+    ran: bool
+    seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class RunReport:
+    steps: tuple[StepReport, ...]
+    total_s: float
+
+    @property
+    def ran(self) -> tuple[Step, ...]:
+        return tuple(r.step for r in self.steps if r.ran)
+
+    @property
+    def overhead_s(self) -> float:
+        """Total time minus the time inside step bodies."""
+        return self.total_s - sum(r.seconds for r in self.steps)
+
+    def describe(self) -> str:
+        rows = [
+            f"{r.step.value:<10} {'ran' if r.ran else 'cached':<7} {r.seconds:8.1f} s"
+            for r in self.steps
+        ]
+        rows.append(f"{'overhead':<10} {'':<7} {self.overhead_s:8.1f} s")
+        rows.append(f"{'total':<10} {'':<7} {self.total_s:8.1f} s")
+        return "\n".join(rows)
+
+
+@dataclass(frozen=True, slots=True)
+class _Ctx:
+    """What a step body gets."""
+
+    step: Step
+    dir: Path
+    video: Path
+    settings: Settings
+    ports: Ports
+    cancel: threading.Event
+    report: Callable[[Step, float, str], None]
+    llm: Callable[[], LlmSession]
+
+    def path(self, name: File) -> Path:
+        return self.dir / name.value
+
+    def progress(self, fraction: float, message: str = "") -> None:
+        if self.cancel.is_set():
+            raise Cancelled(f"{self.step.value} was cancelled")
+        self.report(self.step, min(max(fraction, 0.0), 0.99), message)
+
+
+@dataclass(frozen=True, slots=True)
+class _StepSpec:
+    step: Step
+    version: int
+    needs: tuple[Step, ...]
+    outputs: Callable[[Settings], tuple[File, ...]]
+    key_parts: Callable[[Settings, str], object]
+    body: Callable[[_Ctx], None]
+    partials: tuple[File, ...] = ()
+
+
+def _read(ctx: _Ctx, name: File) -> str:
+    return read_text_file(ctx.path(name))
+
+
+def _audio(ctx: _Ctx) -> None:
+    ctx.ports.extract_audio(ctx.video, ctx.path(File.AUDIO), ctx.cancel)
+
+
+def _vad(ctx: _Ctx) -> None:
+    chunks = ctx.ports.split_vad(ctx.path(File.AUDIO))
+    write_text_file(ctx.path(File.CHUNKS), render_chunks(chunks))
+
+
+def _asr(ctx: _Ctx) -> None:
+    chunks = parse_chunks(_read(ctx, File.CHUNKS))
+    words = ctx.ports.transcribe(ctx.path(File.AUDIO), chunks, ctx.progress, ctx.cancel)
+    if not words:
+        raise NoSpeechError("the ASR engine found no speech in this audio")
+    write_text_file(ctx.path(File.WORDS), render_words(ctx.settings.asr_engine, words))
+
+
+def _segment(ctx: _Ctx) -> None:
+    words = parse_words(_read(ctx, File.WORDS))
+    text = " ".join(w.text for w in words)
+    segment = Segment(text, words[0].start_ms, words[-1].end_ms, tuple(words))
+    cues = to_cues([segment], ctx.settings.cues)
+    write_text_file(ctx.path(File.SUBS_EN), render_subs(cues))
+
+
+def _translate(ctx: _Ctx) -> None:
+    translate.translate_file(
+        ctx.path(File.SUBS_EN),
+        ctx.path(File.SUBS_ZH),
+        ctx.llm().translate,
+        ctx.settings.glossary,
+        batch_size=ctx.settings.batch_size,
+        on_progress=lambda p: ctx.progress(p.done / max(p.total, 1)),
+        keep_english=True,
+    )
+
+
+def _export(ctx: _Ctx) -> None:
+    cues: list[Cue] = parse_subs(_read(ctx, File.SUBS_ZH))
+    write_text_file(ctx.path(File.EN_SRT), render_srt(cues, "en"))
+    write_text_file(ctx.path(File.ZH_SRT), render_srt(cues, "zh"))
+    write_text_file(ctx.path(File.ASS), render_ass(cues))
+    write_text_file(ctx.path(File.VTT), render_vtt(cues, "bilingual"))
+
+
+def _summarize(ctx: _Ctx) -> None:
+    summarize.summarize_file(
+        ctx.path(File.SUBS_EN),
+        ctx.path(File.SUMMARY),
+        ctx.llm().summarize,
+        ctx.settings.summary_langs,
+        ctx.settings.glossary,
+        on_progress=lambda p: ctx.progress(p.done / max(p.total, 1), p.stage),
+    )
+
+
+@cache
+def _prompt_digest(*names: str) -> str:
+    digest = hashlib.blake2b(digest_size=8)
+    for name in names:
+        digest.update((package_files("backend.core") / "prompts" / name).read_bytes())
+    return digest.hexdigest()
+
+
+def _glossary(settings: Settings) -> list[dict[str, str]]:
+    return [asdict(entry) for entry in settings.glossary]
+
+
+def _summary_files(settings: Settings) -> tuple[File, ...]:
+    return tuple(
+        File.SUMMARY if lang == "zh-TW" else File.SUMMARY_EN for lang in settings.summary_langs
+    )
+
+
+STEPS: tuple[_StepSpec, ...] = (
+    _StepSpec(
+        Step.AUDIO,
+        1,
+        (),
+        lambda s: (File.AUDIO,),
+        lambda s, video: {"video": video},
+        _audio,
+        partials=(File.AUDIO_STAMP,),
+    ),
+    _StepSpec(
+        Step.VAD,
+        1,
+        (Step.AUDIO,),
+        lambda s: (File.CHUNKS,),
+        lambda s, video: {"vad": s.vad_identity, "params": asdict(s.vad)},
+        _vad,
+    ),
+    _StepSpec(
+        Step.ASR,
+        1,
+        (Step.VAD,),
+        lambda s: (File.WORDS,),
+        lambda s, video: {"engine": s.asr_engine, "model": s.asr_identity, "lang": s.language},
+        _asr,
+    ),
+    _StepSpec(
+        Step.SEGMENT,
+        1,
+        (Step.ASR,),
+        lambda s: (File.SUBS_EN,),
+        lambda s, video: {"rules": asdict(s.cues)},
+        _segment,
+    ),
+    _StepSpec(
+        Step.TRANSLATE,
+        2,
+        (Step.SEGMENT,),
+        lambda s: (File.SUBS_ZH,),
+        lambda s, video: {
+            "llm": s.llm_identity,
+            "glossary": _glossary(s),
+            "batch": s.batch_size,
+            "prompt": _prompt_digest("translate.md"),
+        },
+        _translate,
+    ),
+    _StepSpec(
+        Step.EXPORT,
+        1,
+        (Step.TRANSLATE,),
+        lambda s: (File.EN_SRT, File.ZH_SRT, File.ASS, File.VTT),
+        lambda s, video: {},
+        _export,
+    ),
+    _StepSpec(
+        Step.SUMMARIZE,
+        1,
+        (Step.SEGMENT,),
+        _summary_files,
+        lambda s, video: {
+            "llm": s.llm_identity,
+            "langs": list(s.summary_langs),
+            "glossary": _glossary(s),
+            "prompt": _prompt_digest("summarize_map.md", "summarize_reduce.md"),
+        },
+        _summarize,
+        partials=(File.SUMMARY, File.SUMMARY_EN, File.SUMMARY_PARTS),
+    ),
+)
+
+
+def _check_table() -> None:
+    assert [spec.step for spec in STEPS] == list(Step), "STEPS must list every Step in order"
+    seen: set[Step] = set()
+    for spec in STEPS:
+        assert set(spec.needs) <= seen, f"{spec.step} needs a step that comes later"
+        seen.add(spec.step)
+
+
+_check_table()
+
+
+def derive_key(spec: _StepSpec, settings: Settings, video: str, upstream: dict[Step, str]) -> str:
+    """The step's cache key: its version, its own settings, and the keys of the steps it reads."""
+    material = [
+        spec.step.value,
+        spec.version,
+        spec.key_parts(settings, video),
+        [upstream[need] for need in spec.needs],
+    ]
+    text = json.dumps(material, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+    return hashlib.blake2b(text.encode("ascii"), digest_size=16).hexdigest()
+
+
+def _video_fingerprint(video: Path) -> str:
+    stat = video.stat()
+    return f"{stat.st_size}:{stat.st_mtime_ns}"
+
+
+def _now_ms() -> int:
+    return time.time_ns() // 1_000_000
+
+
+class _Store:
+    """The only writer of `project.json`."""
+
+    def __init__(self, folder: Path, video: Path) -> None:
+        self.path = folder / PROJECT_JSON
+        folder.mkdir(parents=True, exist_ok=True)
+        previous = parse_project(read_text_file(self.path)) if self.path.is_file() else None
+        steps: dict[Step, StepState] = dict(previous.steps) if previous else {}
+        self.project = Project(str(video.absolute()), steps)
+
+    def reset(self, step: Step) -> None:
+        self.project = self.project.with_step(step, StepState())
+        write_text_file(self.path, render_project(self.project))
+
+    def mark(self, step: Step, status: StepStatus, key: str, error: str | None = None) -> None:
+        state = StepState(status, _now_ms(), error, key)
+        self.project = self.project.with_step(step, state)
+        write_text_file(self.path, render_project(self.project))
+
+
+def _plan(
+    store: _Store, folder: Path, settings: Settings, video: str
+) -> tuple[dict[Step, str], dict[Step, bool]]:
+    """Work out every step's key and whether it is fresh, and fix `project.json` up front.
+
+    A step whose key changed has its files and partial files deleted and goes back to pending.
+    A step that was done but reads from a step that is not fresh goes back to pending too, keeping
+    its key, so no step claims to be done over inputs that are out of date. Doing this before the
+    first step runs means a run that stops early still leaves an honest `project.json`."""
+    keys: dict[Step, str] = {}
+    fresh: dict[Step, bool] = {}
+    for spec in STEPS:
+        key = derive_key(spec, settings, video, keys)
+        keys[spec.step] = key
+        state = store.project.steps[spec.step]
+        outputs = spec.outputs(settings)
+        if state.key != key:
+            for stale in (*outputs, *spec.partials):
+                (folder / stale.value).unlink(missing_ok=True)
+            if state.status is not StepStatus.PENDING or state.key is not None:
+                store.reset(spec.step)
+        fresh[spec.step] = (
+            state.key == key
+            and state.status is StepStatus.DONE
+            and all((folder / f.value).is_file() for f in outputs)
+            and all(fresh[need] for need in spec.needs)
+        )
+        if state.status is StepStatus.DONE and state.key == key and not fresh[spec.step]:
+            store.mark(spec.step, StepStatus.PENDING, key)
+    return keys, fresh
+
+
+def run(
+    video: Path,
+    folder: Path,
+    settings: Settings,
+    ports: Ports,
+    *,
+    progress: Callable[[Progress], None] | None = None,
+    cancel: threading.Event | None = None,
+) -> RunReport:
+    """Bring `folder` up to date for `video`. Running again with nothing changed does no work.
+
+    A step runs when it is not done under its current key, when a file it writes is missing, or
+    when a step it reads ran in this call. When the key changed, its old files, and the partial
+    files a resume would trust, are deleted before the new key is recorded. A step that stops
+    halfway keeps its key, so the next call resumes it. The LLM server starts only when a step
+    needs it, after ASR has ended, and stops before this function returns.
+    """
+    started = time.perf_counter()
+    stop = cancel or threading.Event()
+    store = _Store(folder, video)
+    fingerprint = _video_fingerprint(video)
+
+    def report(step: Step, fraction: float, message: str) -> None:
+        if progress:
+            progress(Progress(step, fraction, message))
+
+    reports: list[StepReport] = []
+    keys, fresh = _plan(store, folder, settings, fingerprint)
+    with ExitStack() as stack:
+        opened: list[LlmSession] = []
+
+        def llm() -> LlmSession:
+            """Chat functions that open the LLM on their first call, so a step whose work is all
+            cached never starts the server."""
+
+            def lazy(pick: Callable[[LlmSession], ChatFn]) -> ChatFn:
+                def chat(messages: Sequence[Message], temperature: float) -> str:
+                    if not opened:
+                        opened.append(stack.enter_context(ports.open_llm(stop)))
+                    return pick(opened[0])(messages, temperature)
+
+                return chat
+
+            return LlmSession(lazy(lambda s: s.translate), lazy(lambda s: s.summarize))
+
+        for spec in STEPS:
+            key = keys[spec.step]
+            if fresh[spec.step]:
+                reports.append(StepReport(spec.step, False, 0.0))
+                report(spec.step, 1.0, "cached")
+                continue
+            if stop.is_set():
+                raise Cancelled("cancelled before " + spec.step.value)
+            store.mark(spec.step, StepStatus.RUNNING, key)
+            report(spec.step, 0.0, "")
+            step_started = time.perf_counter()
+            try:
+                spec.body(_Ctx(spec.step, folder, video, settings, ports, stop, report, llm))
+            except BaseException as exc:
+                cancelled = stop.is_set() or isinstance(exc, KeyboardInterrupt | Cancelled)
+                store.mark(
+                    spec.step,
+                    StepStatus.FAILED,
+                    key,
+                    "cancelled" if cancelled else f"{type(exc).__name__}: {exc}",
+                )
+                if cancelled and isinstance(exc, Exception) and not isinstance(exc, Cancelled):
+                    raise Cancelled(f"{spec.step.value} was cancelled") from exc
+                if isinstance(exc, Exception) and not isinstance(exc, Cancelled):
+                    raise PipelineError(spec.step, str(exc) or type(exc).__name__) from exc
+                raise
+            seconds = time.perf_counter() - step_started
+            store.mark(spec.step, StepStatus.DONE, key)
+            reports.append(StepReport(spec.step, True, seconds))
+            report(spec.step, 1.0, "")
+    return RunReport(tuple(reports), time.perf_counter() - started)
