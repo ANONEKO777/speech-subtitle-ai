@@ -15,7 +15,7 @@ import threading
 import time
 from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager, ExitStack
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from enum import StrEnum
 from functools import cache
 from importlib.resources import files as package_files
@@ -231,12 +231,15 @@ def _translate(ctx: _Ctx) -> None:
     )
 
 
+def write_exports(folder: Path, cues: Sequence[Cue]) -> None:
+    write_text_file(folder / File.EN_SRT, render_srt(cues, "en"))
+    write_text_file(folder / File.ZH_SRT, render_srt(cues, "zh"))
+    write_text_file(folder / File.ASS, render_ass(cues))
+    write_text_file(folder / File.VTT, render_vtt(cues, "bilingual"))
+
+
 def _export(ctx: _Ctx) -> None:
-    cues: list[Cue] = parse_subs(_read(ctx, File.SUBS_ZH))
-    write_text_file(ctx.path(File.EN_SRT), render_srt(cues, "en"))
-    write_text_file(ctx.path(File.ZH_SRT), render_srt(cues, "zh"))
-    write_text_file(ctx.path(File.ASS), render_ass(cues))
-    write_text_file(ctx.path(File.VTT), render_vtt(cues, "bilingual"))
+    write_exports(ctx.dir, parse_subs(_read(ctx, File.SUBS_ZH)))
 
 
 def _summarize(ctx: _Ctx) -> None:
@@ -386,6 +389,11 @@ class _Store:
         self.project = self.project.with_step(step, StepState())
         write_text_file(self.path, render_project(self.project))
 
+    def touch(self, step: Step) -> None:
+        state = replace(self.project.steps[step], updated_at_ms=_now_ms())
+        self.project = self.project.with_step(step, state)
+        write_text_file(self.path, render_project(self.project))
+
     def mark(self, step: Step, status: StepStatus, key: str, error: str | None = None) -> None:
         state = StepState(status, _now_ms(), error, key)
         self.project = self.project.with_step(step, state)
@@ -422,6 +430,16 @@ def _plan(
         if state.status is StepStatus.DONE and state.key == key and not fresh[spec.step]:
             store.mark(spec.step, StepStatus.PENDING, key)
     return keys, fresh
+
+
+def save_edited_cues(folder: Path, cues: Sequence[Cue]) -> None:
+    """Store cues a person corrected: the translated cue file, every export built from it, and
+    the export step's time in `project.json`. The steps keep their keys, so a later run with the
+    same settings skips them and the edits stay. The caller makes sure no run is using `folder`."""
+    store = _Store(folder, Path(parse_project(read_text_file(folder / PROJECT_JSON)).video_path))
+    write_text_file(folder / File.SUBS_ZH, render_subs(cues))
+    write_exports(folder, cues)
+    store.touch(Step.EXPORT)
 
 
 def run(

@@ -208,14 +208,15 @@ POST /api/models/{id}/download
 DELETE /api/models/{id}
 POST /api/projects                       # body: {video_path}
 GET  /api/projects/{id}                  # 狀態、檔案路徑、設定
-POST /api/projects/{id}/jobs             # body: {steps:["asr","translate","summarize"], engine, llm, options}
+POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size}；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
 GET  /api/jobs/{id}/events               # SSE 進度
+GET  /api/jobs/{id}                       # job 狀態與總進度
 POST /api/jobs/{id}/cancel
-GET  /api/projects/{id}/subtitles?lang=en|zh|bilingual&format=srt|vtt|ass
+GET  /api/projects/{id}/subtitles?lang=en|zh|bilingual&format=srt|vtt|ass|json
 PUT  /api/projects/{id}/subtitles        # 使用者手動校對後存回
-GET  /api/projects/{id}/summary
+GET  /api/projects/{id}/summary?lang=zh-TW|en
 ```
-後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。
+後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。啟動後 stdout 印出 `READY port=<n> token=<t>`；每個請求（含下載路由）都要 `Authorization: Bearer <token>`，並檢查 `Host` 與 `Origin`；SSE 可改用 `?token=`。事件為 `status`、`progress`，最後一則是 `done`、`failed` 或 `cancelled`。
 
 ## 10. 前端 / 播放器
 

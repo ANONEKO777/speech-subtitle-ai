@@ -13,6 +13,7 @@ import wave
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.core import process_guard
 from backend.core.subtitle_io import read_text_file, write_text_file
 
 SAMPLE_RATE = 16_000
@@ -81,6 +82,7 @@ def _run(
         errors="replace",
         creationflags=flags,
     ) as proc:
+        process_guard.adopt(proc)
         try:
             while True:
                 if cancel is not None and cancel.is_set():

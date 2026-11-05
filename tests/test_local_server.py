@@ -88,12 +88,12 @@ def test_the_server_never_binds_beyond_loopback(tmp_path: Path) -> None:
 def test_the_server_stops_when_the_job_object_step_is_interrupted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from backend.llm import local_server
+    from backend.core import process_guard
 
     def interrupt(self: object, proc: object) -> None:
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(local_server._KillOnClose, "adopt", interrupt)  # pyright: ignore[reportPrivateUsage]
+    monkeypatch.setattr(process_guard.KillOnClose, "adopt", interrupt)
     server = LlamaServer(make_exe(tmp_path), make_gguf(tmp_path), log_path=tmp_path / "s.log")
     with pytest.raises(KeyboardInterrupt):
         server.__enter__()

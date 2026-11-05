@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Protocol, cast
 
+from backend.core import process_guard
 from backend.core.audio import wav_duration_ms
 from backend.core.model import Segment, Word
 from backend.manager.profiles import Device
@@ -301,6 +302,7 @@ class SubprocessEngine(ABC):
             )
         except OSError as exc:
             raise EngineUnavailableError(f"{self.id}: cannot start {self.binary}: {exc}") from exc
+        process_guard.adopt(proc)
         lines: queue.Queue[bytes | None] = queue.Queue()
         reader = threading.Thread(target=_pump, args=(proc, lines), daemon=True)
         reader.start()
