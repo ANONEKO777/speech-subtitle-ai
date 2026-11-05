@@ -18,3 +18,7 @@ build/
 
 # CLI project folders
 *.vst/
+
+# local scratch and git worktrees (not part of the product)
+/.work/
+/.worktrees/
