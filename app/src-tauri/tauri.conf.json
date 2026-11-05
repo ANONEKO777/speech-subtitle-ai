@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Video Subtitle Translator",
+  "version": "0.1.0",
+  "identifier": "app.videosubtitletranslator",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "字幕翻譯",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 960,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*; media-src 'self' asset: http://asset.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
+      "assetProtocol": { "enable": true, "scope": [] }
+    }
+  },
+  "bundle": { "active": false }
+}

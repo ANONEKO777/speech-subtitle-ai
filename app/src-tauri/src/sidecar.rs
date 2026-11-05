@@ -1,0 +1,212 @@
+//! Starts the Python backend, reads its `READY port=<n> token=<t>` line, and kills it, with every
+//! process it started, when the window closes or the app exits.
+//!
+//! The backend is run from the repository's own virtual environment. P14 replaces this with the
+//! packaged executable; only `command` changes.
+
+use serde::Serialize;
+use std::io::{BufRead, BufReader, Read};
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, Manager};
+
+#[derive(Clone, Serialize)]
+pub struct Backend {
+    pub port: u16,
+    pub token: String,
+}
+
+#[derive(Default)]
+struct Inner {
+    ready: Option<Backend>,
+    child: Option<Child>,
+    #[cfg(windows)]
+    job: Option<job::Job>,
+}
+
+#[derive(Default)]
+pub struct BackendState(Mutex<Inner>);
+
+impl BackendState {
+    pub fn ready(&self) -> Option<Backend> {
+        self.0.lock().unwrap().ready.clone()
+    }
+
+    /// Ends the backend and all of its children. Safe to call more than once.
+    pub fn stop(&self) {
+        let mut inner = self.0.lock().unwrap();
+        #[cfg(windows)]
+        let job = inner.job.take();
+        if let Some(mut child) = inner.child.take() {
+            #[cfg(windows)]
+            if job.is_none() {
+                kill_tree(child.id());
+            }
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
+}
+
+fn command() -> Command {
+    let root = repo_root();
+    let python = std::env::var_os("VST_BACKEND_PYTHON")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.join(".venv").join("Scripts").join("python.exe"));
+    let mut cmd = Command::new(python);
+    cmd.args(["-m", "backend.main"]).current_dir(root);
+    if let Some(dir) = std::env::var_os("VST_PROJECTS") {
+        cmd.arg("--projects").arg(dir);
+    }
+    cmd
+}
+
+fn parse_ready(line: &str) -> Option<Backend> {
+    let rest = line.strip_prefix("READY ")?;
+    let (mut port, mut token) = (None, None);
+    for part in rest.split_whitespace() {
+        match part.split_once('=') {
+            Some(("port", v)) => port = v.parse().ok(),
+            Some(("token", v)) => token = Some(v.to_string()),
+            _ => {}
+        }
+    }
+    Some(Backend { port: port?, token: token? })
+}
+
+/// Fallback when the job object could not be set up: ends the backend and the whisper and llama
+/// processes below it through their parent links.
+#[cfg(windows)]
+fn kill_tree(pid: u32) {
+    use std::os::windows::process::CommandExt;
+    let _ = Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .creation_flags(0x0800_0000)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
+/// How much of the backend's stderr is kept to explain a failed start.
+const STDERR_KEEP: usize = 64 * 1024;
+
+pub fn start(app: AppHandle) {
+    let mut cmd = command();
+    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            let _ = app.emit("backend-failed", format!("cannot start the backend: {e}"));
+            return;
+        }
+    };
+    let stdout = child.stdout.take().expect("piped");
+    let stderr = child.stderr.take().expect("piped");
+    {
+        let state = app.state::<BackendState>();
+        let mut inner = state.0.lock().unwrap();
+        #[cfg(windows)]
+        {
+            inner.job = job::Job::adopt(&child);
+            if inner.job.is_none() {
+                eprintln!("cannot put the backend in a job object; stop() will kill its process tree instead");
+            }
+        }
+        inner.child = Some(child);
+    }
+    let tail = Arc::new(Mutex::new(Vec::<u8>::new()));
+    let tail_writer = Arc::clone(&tail);
+    std::thread::spawn(move || {
+        let mut stderr = stderr;
+        let mut chunk = [0u8; 8192];
+        while let Ok(n @ 1..) = stderr.read(&mut chunk) {
+            let mut kept = tail_writer.lock().unwrap();
+            kept.extend_from_slice(&chunk[..n]);
+            if kept.len() > STDERR_KEEP {
+                let excess = kept.len() - STDERR_KEEP;
+                kept.drain(..excess);
+            }
+        }
+    });
+    std::thread::spawn(move || {
+        let mut out = BufReader::new(stdout);
+        let mut raw = Vec::new();
+        loop {
+            raw.clear();
+            if !matches!(out.read_until(b'\n', &mut raw), Ok(1..)) {
+                break;
+            }
+            if let Some(backend) = parse_ready(String::from_utf8_lossy(&raw).trim_end()) {
+                app.state::<BackendState>().0.lock().unwrap().ready = Some(backend.clone());
+                let _ = app.emit("backend-ready", backend);
+            }
+        }
+        if app.state::<BackendState>().ready().is_none() {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            let text = String::from_utf8_lossy(&tail.lock().unwrap()).into_owned();
+            let _ = app.emit("backend-failed", format!("the backend exited before it was ready\n{text}"));
+        }
+    });
+}
+
+#[cfg(windows)]
+mod job {
+    use std::os::windows::io::AsRawHandle;
+    use std::process::Child;
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+        SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+
+    /// A job object that kills every process in it when its handle closes, which also happens
+    /// when the app is killed, so a hard-killed app leaves no backend behind.
+    pub struct Job(HANDLE);
+
+    // SAFETY: a job handle is a kernel object id that any thread may use or close.
+    unsafe impl Send for Job {}
+
+    impl Job {
+        pub fn adopt(child: &Child) -> Option<Job> {
+            // SAFETY: plain Win32 calls with a zeroed, correctly sized info struct and a live
+            // process handle owned by `child`.
+            unsafe {
+                let handle = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+                if handle.is_null() {
+                    return None;
+                }
+                let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+                info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+                let set = SetInformationJobObject(
+                    handle,
+                    JobObjectExtendedLimitInformation,
+                    (&info as *const JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(),
+                    std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                );
+                if set == 0 || AssignProcessToJobObject(handle, child.as_raw_handle() as HANDLE) == 0 {
+                    CloseHandle(handle);
+                    return None;
+                }
+                Some(Job(handle))
+            }
+        }
+    }
+
+    impl Drop for Job {
+        fn drop(&mut self) {
+            // SAFETY: the handle was created in `adopt` and is closed once.
+            unsafe { CloseHandle(self.0) };
+        }
+    }
+}

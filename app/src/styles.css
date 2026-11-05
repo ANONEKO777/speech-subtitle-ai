@@ -1,0 +1,273 @@
+:root {
+  color-scheme: dark;
+  --bg: #14161a;
+  --panel: #1d2026;
+  --line: #2f343d;
+  --text: #e8eaed;
+  --muted: #9aa0aa;
+  --accent: #4c9aff;
+  font-family: "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+main {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: #2a2f38;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06101f;
+  font-weight: 600;
+}
+
+.import {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 420px;
+  min-width: 320px;
+}
+
+.import input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings input[type="range"] {
+  width: 90px;
+}
+
+.num {
+  min-width: 2ch;
+  color: var(--muted);
+}
+
+.seg {
+  display: inline-flex;
+}
+
+.seg button {
+  border-radius: 0;
+  margin-left: -1px;
+}
+
+.seg button:first-child {
+  border-radius: 6px 0 0 6px;
+  margin-left: 0;
+}
+
+.seg button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06101f;
+  font-weight: 600;
+}
+
+.hint,
+.error {
+  margin: 24px;
+  color: var(--muted);
+}
+
+.error {
+  color: #ff8a80;
+  white-space: pre-wrap;
+}
+
+.importing {
+  margin: 48px auto;
+  width: min(720px, 90%);
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+
+.importing h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.progress {
+  width: 100%;
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+
+.player {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.stage {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage video {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  background: #000;
+  object-fit: contain;
+}
+
+.notice {
+  padding: 8px 12px;
+  background: #4a3410;
+  color: #ffd699;
+}
+
+.subtitle {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  max-height: 40%;
+  overflow: auto;
+  padding: 10px 16px;
+  text-align: center;
+  background: #000;
+  border-top: 1px solid var(--line);
+  white-space: pre-line;
+}
+
+.subtitle p {
+  margin: 0;
+}
+
+.cues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.cues li button {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 10px;
+}
+
+.cues li[data-active="true"] button {
+  background: #24415f;
+}
+
+.cues .time {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cues .text {
+  display: grid;
+  gap: 2px;
+  white-space: pre-line;
+}
+
+.cues .en {
+  color: var(--muted);
+  font-size: 13px;
+}
