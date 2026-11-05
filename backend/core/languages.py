@@ -86,6 +86,14 @@ class Language:
     density: Density
     wrap: Wrap
     quality: Quality
+    spellings: Mapping[str, tuple[str, ...]]
+    """Other spellings of a keep-English term that count as keeping it, by lower-case term."""
+
+    def keeps(self, term: str, text: str) -> bool:
+        """True when `text` holds `term` as written or in one of this language's spellings of it."""
+        forms = (term, *self.spellings.get(term.lower(), ()))
+        lowered = text.lower()
+        return any(form.lower() in lowered for form in forms)
 
     def problem(self, text: str, en: str) -> str | None:
         """What is wrong with `text` as the translation of the cue `en`, or None."""
@@ -274,6 +282,12 @@ def _clean_latin_um_is_a_word(text: str, en: str) -> str:
     return fillers.drop_latin_fillers(fillers.strip_markdown_emphasis(text), en, um_is_a_word=True)
 
 
+_KATAKANA: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {"cursor": ("カーソル",), "slack": ("スラック",)}
+)
+_HANGUL_NAMES: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {"cursor": ("커서",), "slack": ("슬랙",)}
+)
 _CHINESE = Density(1.2, 6, 0.12)
 _DENSE = Density(1.4, 8, 0.12)
 _LATIN_DENSITY = Density(2.2, 12, 0.35)
@@ -293,6 +307,7 @@ def _build() -> dict[str, Language]:
         terms: Callable[[str], str] = _terms_none,
         wrap: Wrap = Wrap.SPACES,
         quality: Quality = "stable",
+        spellings: Mapping[str, tuple[str, ...]] | None = None,
     ) -> Language:
         return Language(
             code,
@@ -308,6 +323,7 @@ def _build() -> dict[str, Language]:
             density,
             wrap,
             quality,
+            spellings or MappingProxyType({}),
         )
 
     table = [
@@ -332,7 +348,16 @@ def _build() -> dict[str, Language]:
             needs_script=_more_than_a_few_words,
             wrap=Wrap.CJK,
         ),
-        make("ja", "Japanese", "日本語", _check_ja, _DENSE, clean=_clean_non_latin, wrap=Wrap.CJK),
+        make(
+            "ja",
+            "Japanese",
+            "日本語",
+            _check_ja,
+            _DENSE,
+            clean=_clean_non_latin,
+            wrap=Wrap.CJK,
+            spellings=_KATAKANA,
+        ),
         make(
             "ko",
             "Korean",
@@ -341,6 +366,7 @@ def _build() -> dict[str, Language]:
             _DENSE,
             clean=_clean_non_latin,
             quality="experimental",
+            spellings=_HANGUL_NAMES,
         ),
         make(
             "es", "Spanish", "Español", _check_latin("Spanish"), _LATIN_DENSITY, clean=_clean_latin

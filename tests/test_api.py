@@ -213,6 +213,12 @@ def test_creating_a_project_is_idempotent_and_validates_the_video(
     assert client.post("/api/projects", json={"video_path": "relative.mp4"}).status_code == 422
     missing = {"video_path": str(tmp_path / "no.mp4")}
     assert client.post("/api/projects", json=missing).status_code == 422
+    text = tmp_path / "notes.txt"
+    text.write_text("x")
+    assert client.post("/api/projects", json={"video_path": str(text)}).status_code == 422
+    audio = tmp_path / "talk.wav"
+    audio.write_bytes(b"x")
+    assert client.post("/api/projects", json={"video_path": str(audio)}).status_code == 201
     assert client.get("/api/projects/0123456789abcdef").status_code == 404
     assert client.get("/api/projects/..%2F..").status_code == 404
 
@@ -445,7 +451,7 @@ def test_overall_progress_never_goes_back_when_a_step_restarts_its_counter() -> 
         job.on_progress(Progress(step, fraction))
     job.on_progress(Progress(Step.TRANSLATE, 0.5))
     seen = [
-        float(str(e.data["overall"])) for e in job.log.snapshot() if e.kind is EventKind.PROGRESS
+        float(str(e.data["overall"])) for e in job.log.snapshot() if e.kind == EventKind.PROGRESS
     ]
     assert seen == sorted(seen)
     assert seen[-1] == seen[2]

@@ -634,17 +634,59 @@ def test_korean_and_thai_are_labelled_experimental_and_the_api_says_so(lang_clie
     assert set(quality.values()) == {"stable", "experimental"}
 
 
-def test_a_cue_whose_only_fault_is_a_renamed_glossary_term_keeps_its_translation() -> None:
-    entry = GlossaryEntry("Cursor")
+@pytest.mark.parametrize(
+    ("code", "spelling"), [("ja", "カーソル エージェント の 問題"), ("ko", "커서 에이전트 창")]
+)
+def test_a_keep_english_term_may_be_kept_in_the_languages_own_script(
+    code: str, spelling: str
+) -> None:
     cue = Cue(1, 0, 2000, "issues we saw in the cursor agent window and lessons came out")
-    replies = iter(["カーソル エージェント の 問題 から 多く を 学びました"] * 8)
+    replies = iter([spelling] * 8)
 
     def chat(messages: Sequence[Message], temperature: float) -> str:
         return json.dumps(
-            {"translations": [{"id": 1, get("ja").prompt.key: next(replies)}]}, ensure_ascii=False
+            {"translations": [{"id": 1, get(code).prompt.key: next(replies)}]}, ensure_ascii=False
         )
 
     out = translate.run(
-        [cue], chat, [entry], keep_english=True, lang=get("ja"), sleep=lambda s: None
+        [cue],
+        chat,
+        [GlossaryEntry("Cursor")],
+        keep_english=True,
+        lang=get(code),
+        sleep=lambda s: None,
     )
-    assert out[0].zh.startswith("カーソル")
+    assert out[0].zh == spelling
+
+
+@pytest.mark.parametrize("code", ["zh-TW", "zh-CN", "es"])
+def test_a_renamed_term_is_never_accepted_where_no_spelling_is_listed(code: str) -> None:
+    cue = Cue(1, 0, 2000, "issues we saw in the cursor agent window and lessons came out")
+    zh = {"zh-TW": "我們在游標代理視窗看到的問題", "zh-CN": "我们在光标代理窗口看到的问题"}.get(
+        code, "problemas que vimos en la ventana del agente"
+    )
+    asked = 0
+
+    def chat(messages: Sequence[Message], temperature: float) -> str:
+        nonlocal asked
+        asked += 1
+        return json.dumps(
+            {"translations": [{"id": 1, get(code).prompt.key: zh}]}, ensure_ascii=False
+        )
+
+    out = translate.run(
+        [cue],
+        chat,
+        [GlossaryEntry("Cursor")],
+        keep_english=True,
+        lang=get(code),
+        sleep=lambda s: None,
+    )
+    assert out[0].zh == cue.en
+    assert asked == 4
+
+
+def test_a_dropped_um_between_a_comma_and_a_word_leaves_one_space() -> None:
+    clean = get("de").clean
+    assert clean("Plus, um, Sie können", "Plus, um, you can") == "Plus, Sie können"
+    assert clean("Um, Sie können", "Um, you can") == "Sie können"

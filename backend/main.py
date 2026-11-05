@@ -20,12 +20,16 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI
 
-from backend.api import downloads, jobs, languages, models, projects, runtimes
+from backend.api import downloads, jobs, languages, models, projects, queue, runtimes
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
 from backend.api.deps import Context
+from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
 from backend.core.pipeline import Ports, Settings
+from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
 from backend.core.projects import ProjectStore
+from backend.core.queue_runner import Probe, QueueRunner
+from backend.core.queue_store import QueueStore
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.storage import default_user_data
 
@@ -40,6 +44,10 @@ class AppConfig:
     on_ready: Callable[[], None] | None = None
     manager: ManagerContext | None = field(default=None)
     projects_dir: Path | None = None
+    power: PowerExecutor | None = None
+    """What sleeps or shuts the machine down. None does nothing, so a test cannot stop the host."""
+    countdown_s: float = COUNTDOWN_S
+    probe: Probe = probe_duration_s
 
 
 def default_resolver(user_data: Path) -> Resolver:
@@ -71,13 +79,27 @@ def default_resolver(user_data: Path) -> Resolver:
 
 def create_app(config: AppConfig) -> FastAPI:
     jobs_book = JobBook()
+    projects_store = ProjectStore(config.projects_dir or config.user_data / "projects")
+    queue_store = QueueStore(config.user_data / "queue.db")
+    runner = QueueRunner(
+        queue_store,
+        projects_store,
+        jobs_book,
+        config.resolver,
+        executor=config.power,
+        countdown_s=config.countdown_s,
+        probe=config.probe,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        runner.start()
         if config.on_ready:
             config.on_ready()
         yield
+        await asyncio.to_thread(runner.stop)
         await asyncio.to_thread(jobs_book.shutdown)
+        queue_store.close()
 
     app = FastAPI(
         title="video-subtitle-translator",
@@ -87,10 +109,11 @@ def create_app(config: AppConfig) -> FastAPI:
         openapi_url=None,
     )
     app.state.manager = config.manager or build_context(config.user_data)
-    app.state.projects = ProjectStore(config.projects_dir or config.user_data / "projects")
+    app.state.projects = projects_store
     app.state.jobs = jobs_book
+    app.state.queue = runner
     app.state.resolver = config.resolver
-    for module in (downloads, models, runtimes, projects, jobs, languages):
+    for module in (downloads, models, runtimes, projects, jobs, queue, languages):
         app.include_router(module.router)
 
     @app.get("/api/health")
@@ -117,7 +140,14 @@ def serve(user_data: Path, projects_dir: Path | None, extra_origins: Sequence[st
         print(f"READY port={port} token={token}", flush=True)
 
     app = create_app(
-        AppConfig(user_data, guard, default_resolver(user_data), ready, projects_dir=projects_dir)
+        AppConfig(
+            user_data,
+            guard,
+            default_resolver(user_data),
+            ready,
+            projects_dir=projects_dir,
+            power=system_power,
+        )
     )
     server = uvicorn.Server(
         uvicorn.Config(app, log_level="warning", timeout_graceful_shutdown=GRACEFUL_SHUTDOWN_S)

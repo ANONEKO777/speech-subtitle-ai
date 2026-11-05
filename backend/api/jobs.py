@@ -10,7 +10,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.api.projects import jobs_of, store_of
-from backend.core.jobs import Job, JobEvent, JobOptions, OptionsError, ProjectBusy, Resolver
+from backend.core.jobs import (
+    EventLog,
+    Job,
+    JobEvent,
+    JobOptions,
+    OptionsError,
+    ProjectBusy,
+    Resolver,
+)
 from backend.core.languages import DEFAULT_CODE
 from backend.core.languages import get as get_language
 from backend.core.projects import UnknownProject
@@ -107,7 +115,19 @@ def cancel_job(job_id: str, request: Request) -> dict[str, Any]:
 
 def _frame(event: JobEvent) -> str:
     data = json.dumps({"seq": event.seq, **event.data}, ensure_ascii=False)
-    return f"id: {event.seq}\nevent: {event.kind.value}\ndata: {data}\n\n"
+    return f"id: {event.seq}\nevent: {event.kind}\ndata: {data}\n\n"
+
+
+def event_stream(log: EventLog, last_event_id: int | None) -> StreamingResponse:
+    async def frames() -> AsyncIterator[str]:
+        async for event in log.follow(-1 if last_event_id is None else last_event_id):
+            yield ": keepalive\n\n" if event is None else _frame(event)
+
+    return StreamingResponse(
+        frames(),
+        media_type="text/event-stream",
+        headers={"cache-control": "no-store", "x-accel-buffering": "no"},
+    )
 
 
 @router.get("/jobs/{job_id}/events")
@@ -119,14 +139,4 @@ async def job_events(
     """Server-sent events: `status`, then `progress` events, then one of `done`, `failed` or
     `cancelled`, after which the stream ends. A client that reconnects with `Last-Event-ID`
     gets the events after that one."""
-    job = _job(request, job_id)
-
-    async def frames() -> AsyncIterator[str]:
-        async for event in job.log.follow(-1 if last_event_id is None else last_event_id):
-            yield ": keepalive\n\n" if event is None else _frame(event)
-
-    return StreamingResponse(
-        frames(),
-        media_type="text/event-stream",
-        headers={"cache-control": "no-store", "x-accel-buffering": "no"},
-    )
+    return event_stream(_job(request, job_id).log, last_event_id)

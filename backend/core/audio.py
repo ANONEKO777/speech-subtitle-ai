@@ -257,3 +257,26 @@ def extract(
     write_text_file(_stamp_path(wav), json.dumps(stamp))
     log.info("extracted %s in %.1fs", wav.name, time.perf_counter() - started)
     return ExtractResult(wav, duration_ms, skipped=False)
+
+
+def probe_duration_s(video: Path, tool_dir: Path | None = None) -> float | None:
+    """The length of the media in seconds, or None when ffprobe is missing or cannot read it."""
+    try:
+        ffprobe = find_tool("ffprobe", tool_dir)
+        proc = _run(
+            [
+                str(ffprobe),
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "csv=p=0",
+                str(video.absolute()),
+            ],
+            f"ffprobe on {video.name}",
+            timeout_s=_PROBE_TIMEOUT_S,
+        )
+        return float(proc.stdout.strip()) if proc.returncode == 0 else None
+    except (AudioError, ValueError):
+        return None

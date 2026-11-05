@@ -40,6 +40,13 @@ _SET_OFF_UM = re.compile(
 _UH_HMM_FILLER = re.compile(r"(?<![A-Za-z])(?:uh+|hmm+)(?![A-Za-z])[,，、]?\s*", re.IGNORECASE)
 
 
+def _drop_set_off_um(match: re.Match[str]) -> str:
+    """Leave one space where a set-off "um" stood between a comma and a word, so "Plus, um, Sie"
+    becomes "Plus, Sie"."""
+    after = match.string[match.end() : match.end() + 1]
+    return " " if match.start() > 0 and after.isalnum() else ""
+
+
 def drop_latin_fillers(text: str, en: str = "", *, um_is_a_word: bool = False) -> str:
     """Remove "uh", "um" and "hmm" left in Latin letters: a filler the model carried over.
 
@@ -49,7 +56,7 @@ def drop_latin_fillers(text: str, en: str = "", *, um_is_a_word: bool = False) -
     if not um_is_a_word:
         return _LATIN_FILLER.sub("", text)
     text = _UH_HMM_FILLER.sub("", text)
-    return _SET_OFF_UM.sub("", text) if _UM_FILLER.search(en) else text
+    return _SET_OFF_UM.sub(_drop_set_off_um, text) if _UM_FILLER.search(en) else text
 
 
 def english_you_know_filler(en: str) -> bool:

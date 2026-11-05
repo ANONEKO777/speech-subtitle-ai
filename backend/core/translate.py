@@ -289,15 +289,16 @@ def _check_text(lang: Language, cue_id: int, zh: str, en: str) -> None:
         raise ReplyError(f"cue {cue_id} is far shorter than its English; translate all of it")
 
 
-def _check_glossary(cue_id: int, zh: str, en: str, glossary: Sequence[GlossaryEntry]) -> None:
-    lowered = zh.lower()
+def _check_glossary(
+    cue_id: int, zh: str, en: str, glossary: Sequence[GlossaryEntry], lang: Language
+) -> None:
     for entry in glossary:
         if entry.zh:
             continue
         term = re.escape(entry.term)
-        if re.search(rf"(?<![A-Za-z0-9]){term}(?![A-Za-z0-9])", en, re.IGNORECASE) and (
-            entry.term.lower() not in lowered
-        ):
+        if re.search(
+            rf"(?<![A-Za-z0-9]){term}(?![A-Za-z0-9])", en, re.IGNORECASE
+        ) and not lang.keeps(entry.term, zh):
             raise ReplyError(
                 f"cue {cue_id} must keep {_quoted(entry.term)} in its original English spelling, "
                 f"as in {_quoted(en)}"
@@ -375,7 +376,7 @@ def parse_reply(
         cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english, lang))
     for cue_id, zh in cleaned.items():
         _check_text(lang, cue_id, zh, english[cue_id])
-        _check_glossary(cue_id, zh, english[cue_id], glossary)
+        _check_glossary(cue_id, zh, english[cue_id], glossary, lang)
     return cleaned
 
 
@@ -435,7 +436,7 @@ class _Run:
             )
         except RepliesRejected as exc:
             if len(batch) == 1 and self.keep_english:
-                self.keep_or_relax(batch, request, exc, started)
+                self.keep_english_cue(batch, exc, started)
                 return
             if len(batch) == 1:
                 raise TranslationError(
@@ -450,30 +451,10 @@ class _Run:
             return
         self.store(batch, translations, started, attempts)
 
-    def keep_or_relax(
-        self, batch: Batch, request: BatchRequest, exc: RepliesRejected, started: float
-    ) -> None:
-        """A cue that failed every attempt. When only the glossary check failed, a reply that
-        translates the cue but writes a product name in the target script (Japanese writes
-        "cursor" as katakana) is better than English, so ask once more without the glossary."""
+    def keep_english_cue(self, batch: Batch, exc: RepliesRejected, started: float) -> None:
+        """A cue that failed every attempt keeps its English. The glossary check is never relaxed:
+        a language that spells a term differently says so in `Language.spellings`."""
         cue = self.cues[batch.start]
-        if "must keep" in exc.reason:
-            try:
-                relaxed, attempts = ask(
-                    self.chat,
-                    request.messages,
-                    lambda text: parse_reply(text, request, self.cues, (), self.lang),
-                    reprompt=lambda reason: reason,
-                    label=f"cue {cue.id} without the glossary",
-                    retries=0,
-                    sleep=self.sleep,
-                )
-            except RepliesRejected:
-                pass
-            else:
-                log.warning("cue %d: keeping a translation that renames a glossary term", cue.id)
-                self.store(batch, relaxed, started, attempts)
-                return
         log.warning(
             "cue %d could not be translated after %d attempts (%s); keeping its English",
             cue.id,

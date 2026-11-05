@@ -45,7 +45,7 @@ STEP_WEIGHTS: Mapping[Step, float] = {
     Step.EXPORT: 0.01,
     Step.SUMMARIZE: 0.08,
 }
-_BEFORE: Mapping[Step, float] = {
+BEFORE: Mapping[Step, float] = {
     step: sum(w for s, w in STEP_WEIGHTS.items() if list(Step).index(s) < index)
     for index, step in enumerate(Step)
 }
@@ -70,16 +70,13 @@ class EventKind(StrEnum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-    @property
-    def last(self) -> bool:
-        return self in (EventKind.DONE, EventKind.FAILED, EventKind.CANCELLED)
-
 
 @dataclass(frozen=True, slots=True)
 class JobEvent:
     seq: int
-    kind: EventKind
+    kind: str
     data: Mapping[str, object]
+    last: bool = False
 
 
 class EventLog:
@@ -90,9 +87,10 @@ class EventLog:
         self._lock = threading.Lock()
         self._waiters: list[tuple[asyncio.AbstractEventLoop, asyncio.Event]] = []
 
-    def append(self, kind: EventKind, data: Mapping[str, object]) -> None:
+    def append(self, kind: StrEnum, data: Mapping[str, object], *, last: bool = False) -> None:
+        """`last` ends the stream of every follower after this event."""
         with self._lock:
-            self._events.append(JobEvent(len(self._events), kind, data))
+            self._events.append(JobEvent(len(self._events), kind, data, last))
             waiters = list(self._waiters)
         for loop, wake in waiters:
             loop.call_soon_threadsafe(wake.set)
@@ -116,7 +114,7 @@ class EventLog:
                 for event in pending:
                     yield event
                     after = event.seq
-                    if event.kind.last:
+                    if event.last:
                         return
                 if pending:
                     continue
@@ -179,6 +177,8 @@ class Job:
         self.created_at_ms = _now_ms()
         self.log = EventLog()
         self.cancel = threading.Event()
+        self.done = threading.Event()
+        self.outcome: Mapping[str, object] = {}
         self._status = JobStatus.QUEUED
         self._step: Step | None = None
         self._overall = 0.0
@@ -218,7 +218,7 @@ class Job:
         with self._lock:
             if self._status is not JobStatus.RUNNING:
                 return
-            share = _BEFORE[progress.step] + STEP_WEIGHTS[progress.step] * progress.fraction
+            share = BEFORE[progress.step] + STEP_WEIGHTS[progress.step] * progress.fraction
             self._overall = max(self._overall, round(share, 4))
             self._step = progress.step
             self.log.append(
@@ -252,7 +252,9 @@ class Job:
             self._error = str(data.get("error"))
         if status is JobStatus.DONE:
             self._overall = 1.0
-        self.log.append(kind, {**data, "overall": self._overall})
+        self.outcome = data
+        self.log.append(kind, {**data, "overall": self._overall}, last=True)
+        self.done.set()
 
 
 class JobBook:
@@ -260,6 +262,17 @@ class JobBook:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="vst-job")
+        self._submit_listeners: list[Callable[[], None]] = []
+
+    def on_submit(self, listener: Callable[[], None]) -> None:
+        """Call `listener` after each job is registered, by any caller. It runs outside the book
+        lock."""
+        self._submit_listeners.append(listener)
+
+    def busy(self) -> bool:
+        """Whether any job, of any project, has not finished."""
+        with self._lock:
+            return any(not job.status.finished for job in self._jobs.values())
 
     def get(self, job_id: str) -> Job | None:
         with self._lock:
@@ -297,6 +310,8 @@ class JobBook:
             job = Job(project_id)
             self._jobs[job.id] = job
         self._pool.submit(_work, job, video, folder, settings, ports)
+        for listener in self._submit_listeners:
+            listener()
         return job
 
     def shutdown(self) -> None:

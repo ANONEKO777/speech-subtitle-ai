@@ -26,6 +26,15 @@ def test_a_missing_input_exits_non_zero_and_names_the_path(
     assert str(missing) in capsys.readouterr().err
 
 
+def test_an_input_that_is_not_media_exits_non_zero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = tmp_path / "notes.txt"
+    text.write_text("x")
+    assert cli.main([str(text)]) == 2
+    assert "not a media file" in capsys.readouterr().err
+
+
 def test_help_documents_every_option(capsys: pytest.CaptureFixture[str]) -> None:
     parser = cli.build_parser()
     with pytest.raises(SystemExit) as stop:

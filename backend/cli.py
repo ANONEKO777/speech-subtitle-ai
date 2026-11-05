@@ -18,6 +18,7 @@ from pathlib import Path
 
 from backend.core.languages import DEFAULT_CODE, LANGUAGES
 from backend.core.languages import get as get_language
+from backend.core.media import is_media
 from backend.core.model import FormatError
 from backend.core.pipeline import (
     PROJECT_JSON,
@@ -165,6 +166,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     video: Path = args.input
     if not video.is_file():
         print(f"error: input file not found: {video}", file=sys.stderr)
+        return EXIT_USAGE
+    if not is_media(video):
+        print(f"error: not a media file extension: {video}", file=sys.stderr)
         return EXIT_USAGE
     folder: Path = args.project or video.with_suffix(".vst")
     try:

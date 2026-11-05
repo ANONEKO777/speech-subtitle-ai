@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.core.jobs import JobBook
 from backend.core.languages import UnknownLanguage
+from backend.core.media import is_media
 from backend.core.model import Cue, Step, StepState
 from backend.core.projects import (
     MEDIA_TYPES,
@@ -96,6 +97,8 @@ def create_project(body: NewProject, request: Request, response: Response) -> di
         raise HTTPException(
             422, f"video_path must be the absolute path of an existing file: {video}"
         )
+    if not is_media(video):
+        raise HTTPException(422, f"not a media file extension: {video.suffix or video.name}")
     info, created = store_of(request).create(video)
     response.status_code = 201 if created else 200
     return project_json(info, jobs_of(request))

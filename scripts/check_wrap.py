@@ -31,13 +31,27 @@ def count(ass: str) -> dict[str, int]:
         for m in _SOFT.finditer(zh):
             breaks += 1
             before, after = m.groups()
-            in_word += before.isalpha() and after.isalpha() and not _thai(before)
+            in_word += _in_word(before, after)
             mark_starts += unicodedata.category(after).startswith("M")
     return {"breaks": breaks, "in_word": in_word, "mark_starts": mark_starts}
 
 
-def _thai(char: str) -> bool:
-    return "\u0e00" <= char <= "\u0e7f"
+def _unspaced(char: str) -> bool:
+    """Thai, kana and Han letters: scripts that break between letters by design."""
+    return any(
+        low <= char <= high
+        for low, high in (
+            ("฀", "๿"),
+            ("぀", "ヿ"),
+            ("㐀", "鿿"),
+            ("豈", "﫿"),
+            ("ｦ", "ﾟ"),
+        )
+    )
+
+
+def _in_word(before: str, after: str) -> bool:
+    return before.isalpha() and after.isalpha() and not _unspaced(before) and not _unspaced(after)
 
 
 def main(folder: str, out: str, codes: list[str]) -> int:

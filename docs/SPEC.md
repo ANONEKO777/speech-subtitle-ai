@@ -206,7 +206,7 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - ASS 折行（40 欄，欄寬用顯示寬度，組合符號不佔欄）依語言：`cjk`（中日文，可在字間斷，不拆拉丁字或數字，韓文用 `spaces`）；`spaces`（拉丁、西里爾、越南、印尼、韓文，只在空白後斷，沒有空白就不斷）；`thai`（泰文，不拆字元叢集，不讓一行以母音符號或聲調符號開頭，優先在空白斷）。泰文沒有使用分詞套件：PyThaiNLP（Apache-2.0）約 17 MB 且依賴多，不符合輕量；因此泰文可能在詞中斷行，但不會拆壞字元。
 - `quality`：`ko`、`th` 標為 `experimental`（Qwen3-8B 的韓文、泰文品質較差，常有漏譯或誤譯），其餘為 `stable`；`GET /api/languages` 的每筆都帶 `quality`，UI 可據此標示。
 - 換語言時 `en.srt` 永遠不刪；`summary.en.md` 在新語言第一次執行時不刪。
-- 單句翻譯重試用盡後，若只因詞彙表（保留英文的專有名詞）檢查失敗，再問一次不帶詞彙表檢查的版本，保留其譯文；否則才保留英文。
+- 詞彙表檢查不放寬。保留英文的專有名詞必須以原文出現在譯文中；日文與韓文另可用該語言文字的寫法（`Language.spellings`，例如 Cursor 的カーソル、커서，Slack 的スラック、슬랙）。單句重試用盡仍不過就保留英文。繁中與簡中沒有別名，所以永遠不會把產品名譯掉。
 - 目標語言屬於翻譯、輸出、摘要三步的設定與快取鍵；換語言只重跑這三步，音訊、VAD、ASR、斷句與英文檔都不動。預設語言不改變快取鍵，所以舊專案不必重翻。
 - 一個專案可同時保有多個語言：每個語言各自的步驟狀態停放在 `project.json` 的 `parked`，目前使用中的語言是 `active_lang`；兩者只在離開預設語言後才寫入。
 - 檔名：`subs.<代碼>.json`、`<代碼>.srt`、`bilingual.en-<代碼>.ass/.vtt`、`summary.<代碼>.md`。繁中保留 `subs.zh-TW.json`、`zh-TW.srt`、`bilingual.ass/.vtt`、`summary.md`。英文摘要一律是 `summary.en.md`。
@@ -231,6 +231,28 @@ GET  /api/projects/{id}/subtitles?lang=en|zh|bilingual&format=srt|vtt|ass|json&t
 PUT  /api/projects/{id}/subtitles?target_lang=<代碼>   # 使用者手動校對後存回該語言
 GET  /api/projects/{id}/summary?lang=<代碼>|en          # 預設為最近處理的語言
 ```
+### 9.1 工作佇列（批次處理）
+
+佇列存在使用者資料夾的 `queue.db`（SQLite，WAL）。項目有影片路徑、`target_lang` 與其他 job 設定、狀態（`queued`、`running`、`paused`、`done`、`failed`、`cancelled`）、時間戳、`attempts` 與 `last_error`。後端啟動時，上次沒跑完的 `running` 項目回到 `queued`，靠管線快取續跑。佇列一次只跑一個項目（GPU 單工），一個項目失敗只影響自己。
+
+```
+GET    /api/queue                          # paused、settings、running、eta_s、counts、items（state、step、progress、eta_s、job_id、last_error…）
+POST   /api/queue/items                    # body: {items:[{path,target_lang?}], folders:[{path,target_lang?,recursive?}], options:{…同 job body}}；回 {added, skipped:[{path,reason}]}。只收影片副檔名；遞迴掃描不跟隨符號連結或 junction；資料夾 10 秒內沒回應就略過；影片長度超過 5 秒探測預算的部分改在背景補上
+PUT    /api/queue/order                    # body: {ids:[…]}，列出的項目排到最前面
+POST   /api/queue/pause                    # body 可選 {interrupt:true}：中斷執行中的項目並放回原位
+POST   /api/queue/resume
+POST   /api/queue/items/{id}/pause|resume|cancel|retry   # retry 把失敗或已取消的項目排到最後
+DELETE /api/queue/items/{id}               # 只能刪已結束的項目
+DELETE /api/queue/finished
+GET    /api/queue/settings                 # PUT 設定 {on_done: notify|sleep|shutdown, allow_power}
+POST   /api/queue/power/cancel             # 取消睡眠或關機倒數
+GET    /api/queue/events                   # SSE，不會結束；item、removed、order、queue、done、countdown、countdown_cancelled、power
+```
+- 資料夾依副檔名（`.mp4 .mkv .mov .avi .webm .m4v .flv .wmv .ts .mpg .mpeg`）掃描。同一支影片同一語言在未結束前不能重複加入，會列在 `skipped`。壞檔照常入列，執行時只讓自己失敗。
+- ETA 用最近 10 次實際執行過的步驟的「每秒音訊花幾秒」估算，加上影片長度（ffprobe）。第一個項目完成前沒有 ETA（`null`）。翻譯速度因語言而異，所以只是估計。
+- 全部完成時一律送 `done` 事件（UI 負責通知）。`on_done` 為 `sleep` 或 `shutdown` 必須同時 `allow_power: true`，否則 422。完成後先送 `countdown`（60 秒，可用 `power/cancel` 取消，或加入新項目也會取消），倒數結束才送 `power` 並呼叫系統。倒數期間任何讓佇列不再閒置的變動（加入、重試、恢復項目、取消暫停）或任何設定變更（含撤回 `allow_power`）都會取消倒數；手動啟動任何工作（`POST /api/projects/{pid}/jobs`）也會取消倒數。「閒置」指沒有排隊或執行中的佇列項目，且沒有進行中的工作。呼叫系統前還會在與 `power/cancel`、設定變更相同的鎖內再檢查一次閒置（含手動工作）且 `on_done` 與 `allow_power` 仍然成立，否則不執行；檢查通過的同一步就決定執行，之後取消不再生效，且呼叫系統時不持有該鎖。佇列、CLI 與 `POST /api/projects` 共用同一份媒體副檔名清單（影片 mp4 mkv mov avi webm m4v flv wmv ts mpg mpeg，音訊 wav mp3 m4a flac ogg aac opus）。後端預設 `notify`。
+- 抽音訊預先處理下一個項目沒有做：抽 38 分鐘音訊只要數秒，相對整個項目幾分鐘到十幾分鐘，不值得多一條並行路徑。
+
 後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。啟動後 stdout 印出 `READY port=<n> token=<t>`；每個請求（含下載路由）都要 `Authorization: Bearer <token>`，並檢查 `Host` 與 `Origin`；SSE 可改用 `?token=`。事件為 `status`、`progress`，最後一則是 `done`、`failed` 或 `cancelled`。
 
 ## 10. 前端 / 播放器
