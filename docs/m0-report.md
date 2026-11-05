@@ -79,7 +79,7 @@ uv run python scripts/m0/compare.py <dir> --audio-dir <wav 目錄> --out compari
 - 不算錯：語助詞（um、uh）、重複的口吃、`code base` 與 `codebase` 這類空格差異、`20` 與 `Twenty`、大小寫、視窗邊緣的截斷。
 - 算錯：上下文明顯不對的字。兩邊都錯就各算一次。
 - 判不出來的另外列，不算進表格。
-- 每一處判定（對應 `comparison.md` 的表格編號）記在本機的 `D:/WebProject/m0-work/adjudication.md`，不進 repo，因為裡面有大段逐字稿。
+- 每一處判定（對應 `comparison.md` 的表格編號）記在本機的 `D:/WebProject/speech-subtitle-ai/.work/adjudication.md`，不進 repo，因為裡面有大段逐字稿。
 
 | 影片 | whisper.cpp 的錯 | CrispASR 的錯 |
 |---|---|---|
@@ -136,6 +136,6 @@ CrispASR 另有一種整檔執行的 whisper.cpp 沒有的錯。它在每個 VAD
 - whisper.cpp 在 20 到 30 秒短段落上是否會漏掉頭尾的句子，要在 P04 用演講切塊驗證。15 秒音檔的漏字只在 LibriVox 開場白上出現，真實演講片段沒有重現，所以不太可能改變預設的選擇。
 - 斷句的同條件比較只看了 5 處切塊邊界。P04 應該在 P03 的切塊上，對兩個引擎統計每個切塊邊界的斷句率。
 - whisper.cpp 沒開 VAD，長時間靜音時是否會產生幻覺字幕沒有專門測。兩支影片都沒有重複段落，最長的空檔 7.0 s 只有一個字，原因（講者在操作畫面）是推測。
-- whisper.cpp 的 GPU 使用率（16% 到 50%）只在主控台看過 10 秒，沒有存檔。CrispASR 的使用率存在 `D:/WebProject/m0-work/profile/crisp-util.txt`。
+- whisper.cpp 的 GPU 使用率（16% 到 50%）只在主控台看過 10 秒，沒有存檔。CrispASR 的使用率存在 `D:/WebProject/speech-subtitle-ai/.work/profile/crisp-util.txt`。
 
 預設引擎：whisper.cpp large-v3-turbo（`whispercpp-large-v3-turbo`）。備援引擎：CrispASR Qwen3-ASR-1.7B 加 Qwen3-ForcedAligner-0.6B（`crispasr-qwen3-asr-1.7b`）。
