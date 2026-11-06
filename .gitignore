@@ -10,6 +10,7 @@ dist/
 build/
 
 *.mp4
+!docs/media/*.mp4
 *.mkv
 *.gguf
 *.bin
