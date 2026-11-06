@@ -188,11 +188,31 @@ def test_chapter_timestamps_are_links_a_player_can_read_back() -> None:
     ]
 
 
-def test_chapter_counts_are_three_to_seven_for_a_talk_and_fewer_for_a_short_one() -> None:
+def test_chapter_counts_grow_with_the_length_and_are_three_to_seven_for_a_long_talk() -> None:
     assert chapter_bounds(57 * MINUTE) == (3, 7)
     assert chapter_bounds(10 * MINUTE) == (3, 3)
-    assert chapter_bounds(5 * MINUTE) == (1, 1)
     assert chapter_bounds(15_000) == (1, 1)
+    bounds = [chapter_bounds(second * 1000) for second in range(0, 3 * 3600, 5)]
+    assert all(1 <= least <= most <= 7 for least, most in bounds)
+    assert all(a[1] <= b[1] and a[0] <= b[0] for a, b in zip(bounds, bounds[1:], strict=False))
+
+
+@pytest.mark.parametrize("seconds", [353, 362, 420, 480])
+def test_a_talk_of_six_to_eight_minutes_may_have_two_or_more_chapters(seconds: int) -> None:
+    least, most = chapter_bounds(seconds * 1000, note_count=8)
+    assert most == round(seconds / 180) >= 2
+    assert least == most
+
+
+def test_a_talk_of_twenty_one_minutes_or_more_keeps_asking_for_three_to_seven() -> None:
+    for minutes in range(21, 181):
+        assert chapter_bounds(minutes * MINUTE, note_count=32) == (3, 7)
+
+
+def test_the_notes_limit_the_chapters_to_what_they_can_fill() -> None:
+    assert chapter_bounds(57 * MINUTE, note_count=5) == (2, 2)
+    assert chapter_bounds(57 * MINUTE, note_count=1) == (1, 1)
+    assert chapter_bounds(57 * MINUTE, note_count=0) == (1, 1)
 
 
 MAP_LINES = [Line(i * 5000, i * 5000 + 4500, f"line {i} has some words") for i in range(30)]
@@ -215,17 +235,37 @@ def test_map_result_holds_the_window_range_and_points_snapped_to_a_line_start() 
         ("not json", "not valid JSON"),
         ("[]", "JSON object"),
         (json.dumps({"points": []}), "topic"),
-        (json.dumps({"topic": "t", "points": []}), "1 to"),
+        (json.dumps({"topic": "t", "points": []}), "at least 1"),
         (map_reply(("00:10", "Before the window.")), "outside the lines"),
         (map_reply(("03:00", "After the window.")), "outside the lines"),
         (map_reply(("fifty", "Bad time.")), "not a time"),
         (map_reply(("00:55", " ")), "text"),
-        (map_reply(*[("00:55", f"p{i}") for i in range(9)]), "1 to"),
     ],
 )
 def test_malformed_map_replies_are_rejected_with_a_reason(reply: str, message: str) -> None:
     with pytest.raises(ReplyError, match=message):
         parse_map(reply, window(MAP_LINES[10:20]))
+
+
+def test_a_map_reply_with_too_many_points_keeps_an_even_spread_with_both_ends() -> None:
+    lines = window(MAP_LINES[:30])
+    limit = summarize.max_points(lines)
+    many = [(clock(MAP_LINES[i].start_ms), f"p{i}") for i in range(30)]
+    result = parse_map(map_reply(*many), lines)
+    assert len(result.points) == limit
+    assert result.points[0].text == "p0"
+    assert result.points[-1].text == "p29"
+    picked = [int(p.text[1:]) for p in result.points]
+    assert picked == sorted(set(picked))
+    steps = [b - a for a, b in zip(picked, picked[1:], strict=False)]
+    assert max(steps) - min(steps) <= 1
+
+
+def test_thin_leaves_a_short_list_alone_and_handles_one_slot() -> None:
+    points = [summarize.Point(i, str(i)) for i in range(5)]
+    assert summarize.thin(points, 5) == tuple(points)
+    assert summarize.thin(points, 1) == (points[0],)
+    assert summarize.thin(points, 2) == (points[0], points[4])
 
 
 def test_a_fenced_reply_with_a_think_block_is_accepted() -> None:
@@ -302,7 +342,10 @@ def reduce_job(maps: int = 4, minutes: int = 40) -> summarize.ReduceInput:
             i * span // maps,
             (i + 1) * span // maps,
             f"topic {i}",
-            (summarize.Point(i * span // maps + 7000, f"note {i}"),),
+            tuple(
+                summarize.Point(i * span // maps + 7000 + k * 60_000, f"note {i}.{k}")
+                for k in range(4)
+            ),
         )
         for i in range(maps)
     )
@@ -329,12 +372,13 @@ def test_the_first_chapter_may_start_at_the_whole_second_before_an_off_second_fi
 ) -> None:
     span = 40 * MINUTE
     notes = [first_cue_ms + n * 10 * MINUTE + 7000 for n in range(4)]
+    spare = [at + 60_000 for at in notes]
     maps = (
         summarize.MapResult(
             first_cue_ms,
             first_cue_ms + span,
             "t",
-            tuple(summarize.Point(at, "n") for at in notes),
+            tuple(summarize.Point(at, "n") for at in sorted([*notes, *spare])),
         ),
     )
     job = summarize.ReduceInput("en", first_cue_ms, first_cue_ms + span, maps, (), ())
@@ -410,7 +454,7 @@ def test_the_reduce_prompt_names_the_chapter_count_the_language_and_the_glossary
     assert '"PR" must be translated as "合併請求"' in system
     assert "<<" not in system
     assert "Write 3 to 7 chapters." in user
-    assert "== 00:00-10:00 | topic 0\n[00:07] note 0" in user
+    assert "== 00:00-10:00 | topic 0\n[00:07] note 0.0" in user
     english = summarize.reduce_messages(job)[0]["content"]
     assert "Write every field in English." in english
 
@@ -432,12 +476,12 @@ def test_every_request_in_a_real_size_run_fits_the_context_budget() -> None:
 
 
 def test_a_runaway_reply_is_not_echoed_back_in_the_retry() -> None:
-    runaway = json.dumps({"topic": "t", "points": [{"at": "00:00", "text": "x" * 40}] * 60})
+    runaway = json.dumps({"topic": "t", "points": [{"at": "99:00", "text": "x" * 40}] * 60})
     llm = FakeLlm(lambda n, m: runaway if n == 1 else None)
     summarize.run(talk(0.5), llm, "en", sleep=no_sleep)
     retry = llm.calls[1]
     assert [m["role"] for m in retry] == ["system", "user", "user"]
-    assert "holds 60" in retry[2]["content"]
+    assert "outside the lines" in retry[2]["content"]
     assert len(retry) == len(llm.calls[0]) + 1
 
 
@@ -580,3 +624,218 @@ def test_a_fifteen_second_clip_gets_one_chapter(tmp_path: Path) -> None:
     summarize_file(source, tmp_path / "summary.md", FakeLlm())
     text = (tmp_path / "summary.md").read_text(encoding="utf-8")
     assert len(CHAPTER_LINK.findall(text)) == 1
+
+
+def front_loaded_map(messages: Sequence[Message], extra: int = 0) -> str:
+    """What the 8B model does with a window: all its notes from the first minutes of the part."""
+    user = messages[1]["content"]
+    body = user.split("Lines to summarise:", 1)[1].strip().splitlines()
+    room = int(first_number(r"at most (\d+) points", user))
+    points = [
+        {"at": ln[1 : ln.index("]")], "text": f"Point: {ln}"}
+        for ln in body[: min(len(body), room + extra)]
+    ]
+    return json.dumps({"topic": "A topic", "points": points})
+
+
+def front_loaded(extra: int = 0) -> FakeLlm:
+    def script(_: int, messages: Sequence[Message]) -> str | None:
+        return (
+            front_loaded_map(messages, extra)
+            if messages[1]["content"].startswith("Part ")
+            else None
+        )
+
+    return FakeLlm(script)
+
+
+@pytest.mark.parametrize("extra", [0, 8])
+@pytest.mark.parametrize("minutes", [1, 3, 5, 6, 7, 8, 10, 15, 20, 30, 40, 57])
+def test_a_summary_is_written_at_every_length_even_when_the_notes_stop_early(
+    tmp_path: Path, minutes: int, extra: int
+) -> None:
+    llm = front_loaded(extra)
+    summarize_file(write_source(tmp_path, minutes), tmp_path / "summary.md", llm, ["zh-TW", "en"])
+    most = chapter_bounds(minutes * MINUTE)[1]
+    for name in ("summary.md", "summary.en.md"):
+        links = CHAPTER_LINK.findall((tmp_path / name).read_text(encoding="utf-8"))
+        assert 1 <= len(links) <= most
+    assert llm.kinds().count("reduce") == 2
+
+
+def test_the_notes_of_the_failed_six_minute_nasa_clip_make_one_chapter() -> None:
+    notes = [308, 308, 3858, 6138, 13158, 24198, 35236, 46896]
+    maps = (
+        summarize.MapResult(308, 362_046, "NASA", tuple(summarize.Point(n, "n") for n in notes)),
+    )
+    job = summarize.ReduceInput("en", 308, 362_046, maps, (), ())
+    assert job.bounds == (1, 1)
+    assert len(parse_reduce(reduce_reply([("00:00", "A")]), job).chapters) == 1
+    with pytest.raises(ReplyError, match="1 to 1"):
+        parse_reduce(reduce_reply([("00:00", "A"), ("00:46", "B")]), job)
+
+
+def notes_job(minutes: int, note_minutes: list[int]) -> summarize.ReduceInput:
+    points = tuple(summarize.Point(m * MINUTE, f"note {m}") for m in note_minutes)
+    maps = (summarize.MapResult(0, minutes * MINUTE, "topic", points),)
+    return summarize.ReduceInput("en", 0, minutes * MINUTE, maps, (), ())
+
+
+def test_chapters_must_still_reach_the_last_quarter_of_the_talk() -> None:
+    job = reduce_job()
+    with pytest.raises(ReplyError, match="final quarter"):
+        parse_reduce(reduce_reply([("00:00", "A"), ("10:07", "B"), ("20:07", "C")]), job)
+
+
+def test_notes_that_reach_the_last_quarter_of_the_talk_keep_the_full_floor() -> None:
+    job = notes_job(60, [0, 10, 20, 30, 42, 50, 55])
+    assert job.last_chapter_from == 45 * MINUTE
+    with pytest.raises(ReplyError, match="45:00 or later"):
+        parse_reduce(reduce_reply([("00:00", "A"), ("20:00", "B"), ("42:00", "C")]), job)
+    ok = parse_reduce(reduce_reply([("00:00", "A"), ("20:00", "B"), ("50:00", "C")]), job)
+    assert ok.chapters[-1].start_ms == 50 * MINUTE
+
+
+def test_notes_that_stop_early_move_the_floor_to_the_last_quarter_of_their_reach() -> None:
+    job = notes_job(20, [0, 2, 4, 6, 7, 8])
+    assert job.bounds == (3, 3)
+    assert job.last_chapter_from == 6 * MINUTE
+    ok = parse_reduce(reduce_reply([("00:00", "A"), ("04:00", "B"), ("06:00", "C")]), job)
+    assert ok.chapters[-1].start_ms == 6 * MINUTE
+
+
+def test_a_talk_of_two_chapters_needs_the_second_one_in_its_second_half() -> None:
+    job = notes_job(6, [0, 1, 2, 3, 4, 5])
+    assert job.bounds == (2, 2)
+    assert job.last_chapter_from == 3 * MINUTE
+    ok = parse_reduce(reduce_reply([("00:00", "A"), ("03:00", "B")]), job)
+    assert ok.chapters[-1].start_ms == 3 * MINUTE
+    with pytest.raises(ReplyError, match="final half.*Notes from there on: 03:00, 04:00, 05:00"):
+        parse_reduce(reduce_reply([("00:00", "A"), ("02:00", "B")]), job)
+
+
+def test_the_chapter_count_follows_how_far_the_notes_reach() -> None:
+    assert notes_job(6, [0, 1, 2, 3, 4, 5]).bounds == (2, 2)
+    assert notes_job(6, [0, 1]).bounds == (1, 1)
+
+
+def test_half_a_chapter_rounds_up() -> None:
+    assert chapter_bounds(450_000)[1] == 3
+    assert chapter_bounds(270_000)[1] == 2
+    assert chapter_bounds(90_000)[1] == 1
+
+
+def test_a_map_call_names_the_times_to_take_notes_at() -> None:
+    lines = [summarize.Line(i * 5000, i * 5000 + 4000, "word " * 40) for i in range(120)]
+    window = summarize.make_windows(lines)[0]
+    user = summarize.map_messages(window, 1)[1]["content"]
+    count = summarize.max_points(window)
+    assert f"at most {count} points" in user
+    times = user.split("these times: ", 1)[1].split(".\n", 1)[0].split(", ")
+    assert len(times) == count
+    assert times[0] == summarize.clock(window.start_ms)
+
+
+def never_fits(_: int, messages: Sequence[Message]) -> str | None:
+    if messages[1]["content"].startswith("Part ") or "Write 1 chapter" in messages[1]["content"]:
+        return None
+    return reduce_reply([("00:00", "A"), ("00:07", "B"), ("00:07", "C")])
+
+
+def too_early(_: int, messages: Sequence[Message]) -> str | None:
+    user = messages[1]["content"]
+    if user.startswith("Part ") or "Write 1 chapter" in user:
+        return None
+    count = int(first_number(r"Write (\d+)", user.replace(" to ", " ")))
+    early = stamps(messages, "Notes:")[:count]
+    return reduce_reply([(at, "X") for at in early])
+
+
+def test_a_last_chapter_the_model_keeps_starting_early_is_moved_to_a_late_note(
+    tmp_path: Path,
+) -> None:
+    llm = FakeLlm(too_early)
+    summarize_file(write_source(tmp_path, 40), tmp_path / "summary.md", llm, ["en"])
+    text = (tmp_path / "summary.en.md").read_text(encoding="utf-8")
+    starts = [int(t) for t in CHAPTER_LINK.findall(text)]
+    assert len(starts) >= 3
+    assert starts[-1] >= 30 * 60
+    assert llm.kinds().count("reduce") == MAX_RETRIES + 1
+
+
+def test_when_every_reply_breaks_the_chapter_rules_one_chapter_is_asked_for(tmp_path: Path) -> None:
+    llm = FakeLlm(never_fits)
+    source = write_source(tmp_path, 12)
+    dest = tmp_path / "summary.md"
+    summarize_file(source, dest, llm)
+    assert len(CHAPTER_LINK.findall(dest.read_text(encoding="utf-8"))) == 1
+    assert llm.kinds().count("reduce") == MAX_RETRIES + 1 + 1
+    assert "Write 1 chapter." in llm.calls[-1][1]["content"]
+    again = FakeLlm()
+    summarize_file(source, dest, again)
+    assert again.calls == []
+
+
+def test_a_failure_of_the_one_chapter_request_too_raises_and_keeps_the_notes(
+    tmp_path: Path,
+) -> None:
+    llm = FakeLlm(lambda _, m: None if m[1]["content"].startswith("Part ") else "not json")
+    dest = tmp_path / "summary.md"
+    with pytest.raises(SummaryError, match="not valid JSON"):
+        summarize_file(write_source(tmp_path, 12), dest, llm)
+    assert not dest.exists()
+    assert parse_parts((tmp_path / "summary.parts.json").read_text(encoding="utf-8")).maps
+
+
+def test_a_talk_that_can_only_have_one_chapter_does_not_ask_twice(tmp_path: Path) -> None:
+    llm = FakeLlm(lambda _, m: None if m[1]["content"].startswith("Part ") else "not json")
+    with pytest.raises(SummaryError):
+        summarize_file(write_source(tmp_path, 2), tmp_path / "summary.md", llm)
+    assert llm.kinds().count("reduce") == MAX_RETRIES + 1
+
+
+def test_a_glyph_the_model_keeps_writing_does_not_cost_the_whole_summary(tmp_path: Path) -> None:
+    def simplified(_: int, messages: Sequence[Message]) -> str | None:
+        if messages[1]["content"].startswith("Part "):
+            return None
+        good = json.loads(good_reduce(messages))
+        good["key_points"] = ["阿耳忒弥斯計畫很重要。"]
+        return json.dumps(good, ensure_ascii=False)
+
+    llm = FakeLlm(simplified)
+    dest = tmp_path / "summary.md"
+    summarize_file(write_source(tmp_path, 12), dest, llm)
+    text = dest.read_text(encoding="utf-8")
+    assert "弥" in text
+    assert len(CHAPTER_LINK.findall(text)) == 1
+    assert llm.kinds().count("reduce") == 2 * (MAX_RETRIES + 1)
+
+
+def test_a_summary_kept_despite_its_language_is_marked_degraded_and_stays_so(
+    tmp_path: Path,
+) -> None:
+    def english(_: int, messages: Sequence[Message]) -> str | None:
+        if messages[1]["content"].startswith("Part "):
+            return None
+        good = json.loads(good_reduce(messages))
+        good["key_points"] = ["The program matters to everyone."]
+        return json.dumps(good)
+
+    dest = tmp_path / "summary.md"
+    source = write_source(tmp_path, 12)
+    seen: list[str] = []
+    summarize_file(source, dest, FakeLlm(english), on_degraded=seen.append)
+    assert seen == ["zh-TW"]
+    assert '"degraded": true' in (tmp_path / "summary.parts.json").read_text(encoding="utf-8")
+    again: list[str] = []
+    summarize_file(source, dest, FakeLlm(), on_degraded=again.append)
+    assert again == ["zh-TW"]
+
+
+def test_a_summary_that_passes_its_language_check_is_not_degraded(tmp_path: Path) -> None:
+    seen: list[str] = []
+    summarize_file(
+        write_source(tmp_path, 12), tmp_path / "summary.md", FakeLlm(), on_degraded=seen.append
+    )
+    assert seen == []
+    assert "degraded" not in (tmp_path / "summary.parts.json").read_text(encoding="utf-8")

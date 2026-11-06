@@ -459,3 +459,32 @@ def test_a_step_that_stopped_halfway_leaves_the_steps_after_it_pending(
     state = steps_of(folder)
     assert state["asr"][0] is StepStatus.FAILED
     assert all(state[name][0] is StepStatus.PENDING for name in ("segment", "translate", "export"))
+
+
+class WrongLanguageSummary(Fakes):
+    def summarize(self, messages: Sequence[Message], temperature: float) -> str:
+        if messages[1]["content"].startswith("Part "):
+            return good_map(messages)
+        reply = json.loads(good_reduce(messages, "zh-TW"))
+        reply["key_points"] = ["The program matters to everyone."]
+        return json.dumps(reply)
+
+
+def test_a_summary_kept_despite_its_language_is_marked_degraded_everywhere(
+    video: Path, folder: Path
+) -> None:
+    report = run(video, folder, SETTINGS, WrongLanguageSummary().ports())
+    project = parse_project(read_text_file(folder / "project.json"))
+    assert report.summary_degraded
+    assert "degraded" in report.describe()
+    assert project.steps[Step.SUMMARIZE].degraded
+    assert not project.steps[Step.TRANSLATE].degraded
+    again = run(video, folder, SETTINGS, Fakes().ports())
+    assert not again.summary_degraded
+    assert parse_project(read_text_file(folder / "project.json")).steps[Step.SUMMARIZE].degraded
+
+
+def test_a_normal_summary_is_not_degraded(video: Path, folder: Path) -> None:
+    report = run(video, folder, SETTINGS, Fakes().ports())
+    assert not report.summary_degraded
+    assert "degraded" not in (folder / "project.json").read_text(encoding="utf-8")

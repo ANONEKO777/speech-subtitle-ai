@@ -60,6 +60,7 @@ def _steps_json(steps: Mapping[Step, StepState]) -> dict[str, Any]:
             "status": state.status.value,
             "updated_at_ms": state.updated_at_ms,
             "error": state.error,
+            "degraded": state.degraded,
         }
         for step, state in steps.items()
     }

@@ -559,6 +559,7 @@ def _render_steps(steps: Mapping[Step, StepState]) -> dict[str, object]:
             "updated_at_ms": state.updated_at_ms,
             "error": state.error,
             **({"key": state.key} if state.key is not None else {}),
+            **({"degraded": True} if state.degraded else {}),
         }
         for step, state in steps.items()
     }
@@ -588,7 +589,7 @@ def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
     for name, item in raw_steps.items():
         here = f"{where}.{name}"
         obj = _json_object(item, here)
-        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional={"key"})
+        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional={"key", "degraded"})
         updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
         try:
             steps[Step(name)] = StepState(
@@ -596,6 +597,7 @@ def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
                 None if updated is None else _json_int(updated, f"{here}.updated_at_ms"),
                 None if error is None else _json_str(error, f"{here}.error"),
                 None if key is None else _json_str(key, f"{here}.key"),
+                obj.get("degraded") is True,
             )
         except ValueError as exc:
             raise FormatError(f"{here}: {exc}") from exc

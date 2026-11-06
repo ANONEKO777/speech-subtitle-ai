@@ -7,7 +7,7 @@ import math
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from importlib.resources import files
 from pathlib import Path
 from typing import Literal, cast
@@ -45,8 +45,10 @@ WORDS_PER_POINT = 25
 MAX_POINTS = 8
 MAX_CHAPTERS = 7
 MIN_LONG_CHAPTERS = 3
-CHAPTER_MIN_MS = 180_000
+CHAPTER_MS = 180_000
+NOTES_PER_CHAPTER = 2
 LAST_CHAPTER_FROM = 0.75
+TWO_CHAPTER_FROM = 0.5
 _MAX_POINT_CHARS = 400
 _MAX_TITLE_CHARS = 100
 _MAX_LINE_CHARS = 500
@@ -126,6 +128,9 @@ class ReduceResult:
     chapters: tuple[Chapter, ...]
     key_points: tuple[str, ...]
     takeaways: tuple[str, ...]
+    degraded: bool = False
+    """True when the reply broke the language check and was kept anyway, so its text may be in
+    the wrong script or language."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,8 +229,13 @@ def make_windows(
     return windows
 
 
-def chapter_bounds(duration_ms: int) -> tuple[int, int]:
-    most = min(MAX_CHAPTERS, max(1, duration_ms // CHAPTER_MIN_MS))
+def chapter_bounds(duration_ms: int, note_count: int | None = None) -> tuple[int, int]:
+    """How many chapters a summary of `duration_ms` may hold: about one per `CHAPTER_MS`, at most
+    `MAX_CHAPTERS`, and no more than `note_count` notes can fill at `NOTES_PER_CHAPTER` each. The
+    least is `MIN_LONG_CHAPTERS` or the most when that is smaller. A half chapter rounds up."""
+    most = min(MAX_CHAPTERS, max(1, (duration_ms + CHAPTER_MS // 2) // CHAPTER_MS))
+    if note_count is not None:
+        most = min(most, max(1, note_count // NOTES_PER_CHAPTER))
     return min(MIN_LONG_CHAPTERS, most), most
 
 
@@ -242,9 +252,15 @@ def max_points(window: Window) -> int:
 
 
 def map_messages(window: Window, total: int) -> tuple[Message, ...]:
+    """Naming the times to take notes at is what spreads them: asked only to spread them, the
+    model spent all its points on the first minutes of a part, however long."""
+    count = max_points(window)
+    span = window.end_ms - window.start_ms
+    times = ", ".join(clock(window.start_ms + i * span // count) for i in range(count))
     body = [
         f"Part {window.index + 1} of {total}, from {clock(window.start_ms)} to "
-        f"{clock(window.end_ms)}. Write at most {max_points(window)} points."
+        f"{clock(window.end_ms)}. Write at most {count} points, one from about each of these "
+        f"times: {times}."
     ]
     if window.context:
         body += ["", "Earlier lines, only for context. Do not take notes on them:"]
@@ -281,9 +297,8 @@ def parse_map(text: str, window: Window) -> MapResult:
     doc = _object(parse_json_reply(text), '"topic" and "points"')
     topic = _text(doc.get("topic"), "topic", _MAX_TITLE_CHARS)
     raw = _list(doc.get("points"), "points")
-    limit = max_points(window)
-    if not 1 <= len(raw) <= limit:
-        raise ReplyError(f'"points" must hold 1 to {limit} points, but holds {len(raw)}')
+    if not raw:
+        raise ReplyError('"points" must hold at least 1 point, but holds none')
     starts = [line.start_ms for line in window.lines]
     low, high = window.start_ms // 1000 * 1000, window.end_ms + 999
     points: list[Point] = []
@@ -298,7 +313,18 @@ def parse_map(text: str, window: Window) -> MapResult:
         snapped = max((start for start in starts if start <= at_ms), default=starts[0])
         points.append(Point(snapped, _text(entry.get("text"), "text", _MAX_POINT_CHARS)))
     points.sort(key=lambda point: point.at_ms)
-    return MapResult(window.start_ms, window.end_ms, topic, tuple(points))
+    return MapResult(window.start_ms, window.end_ms, topic, thin(points, max_points(window)))
+
+
+def thin(points: Sequence[Point], limit: int) -> tuple[Point, ...]:
+    """At most `limit` of `points`, evenly spread and keeping the first and the last. A model
+    that writes more notes than asked, and again after being told, has still taken valid notes."""
+    if len(points) <= limit:
+        return tuple(points)
+    if limit == 1:
+        return (points[0],)
+    last = len(points) - 1
+    return tuple(points[round(i * last / (limit - 1))] for i in range(limit))
 
 
 @dataclass(frozen=True, slots=True)
@@ -314,13 +340,45 @@ class ReduceInput:
     def span_ms(self) -> int:
         return self.end_ms - self.start_ms
 
+    single_chapter: bool = False
+    check_language: bool = True
+    snap_last: bool = False
+    """Move a last chapter that starts too early to the first note that is late enough."""
+
     @property
     def note_times(self) -> list[int]:
         return sorted({point.at_ms for part in self.maps for point in part.points})
 
+    @property
+    def reach_ms(self) -> int:
+        """How far into the talk the notes go."""
+        return self.note_times[-1] - self.start_ms
+
+    @property
+    def bounds(self) -> tuple[int, int]:
+        if self.single_chapter:
+            return 1, 1
+        return chapter_bounds(min(self.span_ms, self.reach_ms), len(self.note_times))
+
+    @property
+    def last_chapter_share(self) -> float:
+        """How far into the talk the last chapter starts at the earliest. Of two chapters of
+        about three minutes each the second starts around the middle, so a talk that holds at
+        most two asks for the second half, and every other talk for the final quarter."""
+        return TWO_CHAPTER_FROM if self.bounds[1] == 2 else LAST_CHAPTER_FROM
+
+    @property
+    def last_chapter_from(self) -> int:
+        """The earliest start of the last chapter: `last_chapter_share` of the talk, or, when the
+        notes stop before that, the same share of what the notes reach."""
+        talk = self.start_ms + round(self.last_chapter_share * self.span_ms)
+        if self.note_times[-1] >= talk:
+            return talk
+        return self.start_ms + round(self.last_chapter_share * self.reach_ms)
+
 
 def reduce_messages(job: ReduceInput) -> tuple[Message, ...]:
-    least, most = chapter_bounds(job.span_ms)
+    least, most = job.bounds
     count = f"{least} to {most}" if least != most else str(most)
     body = [
         f"The talk is {clock(job.span_ms)} long, from {clock(job.start_ms)} to "
@@ -353,6 +411,8 @@ def _localised(
         return text
     language = get(job.lang)
     text = language.terms(text)
+    if not job.check_language:
+        return text
     if problem := language.prose_problem(text) if prose else language.title_problem(text):
         raise ReplyError(f'"{name}" {problem}')
     return text
@@ -368,7 +428,7 @@ def _strings(job: ReduceInput, value: object, name: str, low: int, high: int) ->
 def parse_reduce(text: str, job: ReduceInput) -> ReduceResult:
     doc = _object(parse_json_reply(text), '"one_liner", "chapters", "key_points", "takeaways"')
     one_liner = _localised(job, doc.get("one_liner"), "one_liner", _MAX_LINE_CHARS)
-    least, most = chapter_bounds(job.span_ms)
+    least, most = job.bounds
     raw = _list(doc.get("chapters"), "chapters")
     if not least <= len(raw) <= most:
         raise ReplyError(f'"chapters" must hold {least} to {most} chapters, but holds {len(raw)}')
@@ -396,12 +456,18 @@ def parse_reduce(text: str, job: ReduceInput) -> ReduceResult:
             "chapters must start at different times, in order, each at a time that appears in "
             "the notes; the chapters start at " + ", ".join(clock(start) for start in starts)
         )
-    last_from = job.start_ms + round(LAST_CHAPTER_FROM * job.span_ms)
+    last_from = job.last_chapter_from
+    if job.snap_last and len(chapters) > 1 and starts[-1] < last_from:
+        late = next((t for t in notes if t >= last_from), None)
+        if late is not None:
+            chapters[-1] = replace(chapters[-1], start_ms=late)
+            starts[-1] = late
     if len(chapters) > 1 and starts[-1] < last_from:
+        later = ", ".join(clock(t) for t in [t for t in notes if t >= last_from][:6])
         raise ReplyError(
             f"the last chapter starts at {clock(starts[-1])}, but it must start in the final "
-            f"quarter of the talk, at {clock(last_from)} or later. Spread the chapters over the "
-            "whole talk"
+            f"{'half' if job.last_chapter_share < 0.75 else 'quarter'}, at {clock(last_from)} "
+            f"or later. Spread the chapters over all the notes. Notes from there on: {later}"
         )
     return ReduceResult(
         one_liner,
@@ -462,6 +528,7 @@ def _reduce_json(result: ReduceResult) -> dict[str, object]:
         ],
         "key_points": list(result.key_points),
         "takeaways": list(result.takeaways),
+        **({"degraded": True} if result.degraded else {}),
     }
 
 
@@ -497,6 +564,7 @@ def _load_reduce(raw: Mapping[str, object]) -> ReduceResult:
         ),
         tuple(cast("list[str]", raw["key_points"])),
         tuple(cast("list[str]", raw["takeaways"])),
+        raw.get("degraded") is True,
     )
 
 
@@ -583,6 +651,59 @@ class _Run:
             self.on_progress(Progress("map", done, total, time.monotonic() - started))
         return part
 
+    def ask_reduce(self, job: ReduceInput, messages: Sequence[Message], label: str) -> ReduceResult:
+        result, _ = ask(
+            self.chat,
+            messages,
+            lambda text: parse_reduce(text, job),
+            reprompt=reprompt,
+            label=label,
+            retries=self.max_retries,
+            echo_limit=_ECHO_CHARS,
+            sleep=self.sleep,
+        )
+        return result
+
+    def ask_reduce_or_fall_back(
+        self, job: ReduceInput, messages: Sequence[Message], label: str
+    ) -> ReduceResult:
+        """Ask for the summary; when no reply passes, give up chapters before giving up the
+        summary. First the last reply with its last chapter moved to the first late enough note,
+        for a model that keeps starting it a few seconds early. Then one chapter, which needs no
+        placement. Then the last reply as it is, with
+        its language checks waived: a summary with one wrong glyph in a transliterated name serves
+        the reader better than none, and the model repeats such a glyph however it is told. That
+        result is marked `degraded`, and never passes for a normal one."""
+        try:
+            return self.ask_reduce(job, messages, label)
+        except RepliesRejected as exc:
+            failure = exc
+        log.warning("%s gave up after %d attempts: %s", label, failure.attempts, failure.reason)
+        if job.bounds != (1, 1):
+            try:
+                result = parse_reduce(failure.reply, replace(job, snap_last=True))
+            except ReplyError:
+                pass
+            else:
+                log.warning("%s: moved the last chapter to a late enough note", label)
+                return result
+            job = replace(job, single_chapter=True)
+            try:
+                return self.ask_reduce(job, reduce_messages(job), f"{label} (1 chapter)")
+            except RepliesRejected as exc:
+                failure = exc
+            log.warning("%s (1 chapter) gave up: %s", label, failure.reason)
+        try:
+            result = parse_reduce(failure.reply, replace(job, check_language=False))
+        except ReplyError as exc:
+            raise SummaryError(
+                f"the summary could not be written: {failure.reason}; the last reply: {exc}"
+            ) from exc
+        log.warning(
+            "%s: using the last reply without its language check (%s)", label, failure.reason
+        )
+        return replace(result, degraded=True)
+
     def reduce(self, job: ReduceInput) -> ReduceResult:
         messages = reduce_messages(job)
         key = _digest(messages)
@@ -591,21 +712,7 @@ class _Run:
             return cached[1]
         self.check_size(messages, f"reduce {job.lang}")
         started = time.monotonic()
-        try:
-            result, _ = ask(
-                self.chat,
-                messages,
-                lambda text: parse_reduce(text, job),
-                reprompt=reprompt,
-                label=f"reduce {job.lang}",
-                retries=self.max_retries,
-                echo_limit=_ECHO_CHARS,
-                sleep=self.sleep,
-            )
-        except RepliesRejected as exc:
-            raise SummaryError(
-                f"the summary could not be written after {exc.attempts} attempts: {exc.reason}"
-            ) from exc
+        result = self.ask_reduce_or_fall_back(job, messages, f"reduce {job.lang}")
         self.parts.reduces[job.lang] = (key, result)
         if self.checkpoint:
             self.checkpoint(self.parts)
@@ -675,11 +782,13 @@ def summarize_file(
     *,
     context_tokens: int = CONTEXT_TOKENS,
     on_progress: Callable[[Progress], None] | None = None,
+    on_degraded: Callable[[Lang], None] | None = None,
 ) -> list[Path]:
     """Summarise the English of `source` (a subs json) into `dest`, in the language `langs` names,
     and, for `en`, into `summary.en.md` beside it. Finished model calls are kept in the
     `.parts.json` file named after `dest`, so a run after a crash or a failure asks only for
-    what is missing, and a run with nothing new asks for nothing."""
+    what is missing, and a run with nothing new asks for nothing. `on_degraded` gets each language
+    whose summary was kept despite failing its language check."""
     lines = lines_from_cues(parse_subs(read_text_file(source)))
     state = dest.with_name(f"{dest.stem}.parts.json")
     parts = Parts()
@@ -707,5 +816,7 @@ def summarize_file(
         path = summary_path(dest, lang)
         write_text_file(path, render_summary(doc))
         written.append(path)
+        if doc.result.degraded and on_degraded:
+            on_degraded(lang)
     save(parts)
     return written

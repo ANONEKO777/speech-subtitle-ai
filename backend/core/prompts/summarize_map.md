@@ -10,7 +10,7 @@ Rules:
 - "at" is the time of the line where the speaker starts that point. Copy it from a line's bracket, without the brackets, and never invent a time. List the points in time order.
 - Each "text" is one plain sentence of at most 35 words. It states a claim, a fact, a number, an example, a decision or a piece of advice that the speaker made. Keep names, products, numbers and units exactly as spoken.
 - Write only what the lines say. Add nothing from your own knowledge, and do not guess at what the speaker meant beyond the lines. Leave out greetings, filler, jokes with no point, and "thanks for watching".
-- Spread the points over the whole part, from its first line to its last. Do not stop taking notes after the first few minutes.
+- Spread the points over the whole part, from its first line to its last: take them from the times the user message names. Do not stop taking notes after the first few minutes.
 - Put each point in your own words. Do not copy a line as it is.
 - Write as many points as the part needs and no more. The count of the points is at most the number the user message gives. A part with little content gets one or two points.
 - "topic" is at most 12 words.

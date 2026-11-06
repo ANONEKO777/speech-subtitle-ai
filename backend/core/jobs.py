@@ -165,6 +165,7 @@ def _report_json(report: RunReport) -> dict[str, object]:
         "total_s": round(report.total_s, 3),
         "edits_kept": report.edits_kept,
         "edits_unmatched": report.edits_unmatched,
+        "summary_degraded": report.summary_degraded,
         "steps": [
             {"step": r.step.value, "ran": r.ran, "seconds": round(r.seconds, 3)}
             for r in report.steps

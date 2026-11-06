@@ -31,10 +31,12 @@ class ReplyError(ValueError):
 class RepliesRejected(Exception):
     """Every attempt got an answer that failed validation, or a server error after one that did."""
 
-    def __init__(self, reason: str, attempts: int) -> None:
+    def __init__(self, reason: str, attempts: int, reply: str = "") -> None:
         super().__init__(f"{attempts} attempts: {reason}")
         self.reason = reason
         self.attempts = attempts
+        self.reply = reply
+        """The last reply the server gave, whatever was wrong with it."""
 
 
 def json_chat(config: LlmConfig, max_tokens: int | None = None) -> ChatFn:
@@ -81,7 +83,7 @@ def ask(
     """
     attempts = retries + 1
     sent: list[Message] = list(messages)
-    reason = ""
+    reason, text = "", ""
     server_error: LlmError | None = None
     answered = False
     for attempt in range(1, attempts + 1):
@@ -111,4 +113,4 @@ def ask(
             ]
     if server_error and not answered:
         raise server_error
-    raise RepliesRejected(reason, attempts)
+    raise RepliesRejected(reason, attempts, text)

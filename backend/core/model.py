@@ -108,6 +108,8 @@ class StepState:
     error: str | None = None
     key: str | None = None
     """The cache key of the run this state describes. `done` means the outputs match it."""
+    degraded: bool = False
+    """The step finished, but with output the reader should not trust as normal."""
 
     def __post_init__(self) -> None:
         if self.updated_at_ms is not None:

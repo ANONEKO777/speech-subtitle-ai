@@ -148,6 +148,7 @@ class RunReport:
     total_s: float
     edits_kept: int = 0
     edits_unmatched: int = 0
+    summary_degraded: bool = False
 
     @property
     def ran(self) -> tuple[Step, ...]:
@@ -169,6 +170,8 @@ class RunReport:
             rows.append(
                 f"kept {self.edits_kept} edited cues, {self.edits_unmatched} edits did not fit"
             )
+        if self.summary_degraded:
+            rows.append("summary degraded: it failed the language check and was kept anyway")
         return "\n".join(rows)
 
 
@@ -272,6 +275,7 @@ def _summarize(ctx: _Ctx) -> None:
         ctx.settings.summary_langs,
         ctx.settings.glossary,
         on_progress=lambda p: ctx.progress(p.done / max(p.total, 1), p.stage),
+        on_degraded=lambda lang: ctx.notes.update(summary_degraded=1),
     )
 
 
@@ -443,8 +447,16 @@ class _Store:
         self.project = self.project.with_step(step, state)
         write_text_file(self.path, render_project(self.project))
 
-    def mark(self, step: Step, status: StepStatus, key: str, error: str | None = None) -> None:
-        state = StepState(status, _now_ms(), error, key)
+    def mark(
+        self,
+        step: Step,
+        status: StepStatus,
+        key: str,
+        error: str | None = None,
+        *,
+        degraded: bool = False,
+    ) -> None:
+        state = StepState(status, _now_ms(), error, key, degraded)
         self.project = self.project.with_step(step, state)
         write_text_file(self.path, render_project(self.project))
 
@@ -529,6 +541,7 @@ def run(
             progress(Progress(step, fraction, message))
 
     reports: list[StepReport] = []
+    summary_degraded = False
     notes: dict[str, int] = {}
     store.activate(settings.target_lang)
     keys, fresh = _plan(store, folder, settings, fingerprint)
@@ -576,7 +589,9 @@ def run(
                     raise PipelineError(spec.step, str(exc) or type(exc).__name__) from exc
                 raise
             seconds = time.perf_counter() - step_started
-            store.mark(spec.step, StepStatus.DONE, key)
+            degraded = bool(notes.pop("summary_degraded", 0))
+            store.mark(spec.step, StepStatus.DONE, key, degraded=degraded)
+            summary_degraded = summary_degraded or degraded
             reports.append(StepReport(spec.step, True, seconds))
             report(spec.step, 1.0, "")
     return RunReport(
@@ -584,4 +599,5 @@ def run(
         time.perf_counter() - started,
         notes.get("edits_kept", 0),
         notes.get("edits_unmatched", 0),
+        summary_degraded,
     )
