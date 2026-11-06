@@ -1,3 +1,4 @@
+import { Captions, Film, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
 import { ApiError, type Backend, cancelJob, createProject, fetchCues, startJob } from "./api/client";
@@ -15,6 +16,7 @@ type Screen =
   | { readonly kind: "playing"; readonly videoPath: string; readonly cues: readonly Cue[] };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1);
 
 function Importing({
   backend,
@@ -35,11 +37,23 @@ function Importing({
   }, [view, onDone, onStop]);
   return (
     <section className="importing" data-testid="importing">
-      <h2>正在處理 {screen.videoPath}</h2>
-      <ProgressBar view={view} />
-      <button type="button" onClick={() => void cancelJob(backend, screen.jobId)}>
-        取消
-      </button>
+      <div className="card importing-card">
+        <div className="importing-head">
+          <span className="badge-icon">
+            <Film aria-hidden />
+          </span>
+          <div className="importing-title">
+            <span className="eyebrow">正在處理</span>
+            <h2>{fileName(screen.videoPath)}</h2>
+            <span className="path">{screen.videoPath}</span>
+          </div>
+        </div>
+        <ProgressBar view={view} />
+        <button type="button" className="ghost" onClick={() => void cancelJob(backend, screen.jobId)}>
+          <X className="icon" aria-hidden />
+          取消
+        </button>
+      </div>
     </section>
   );
 }
@@ -105,20 +119,34 @@ export function App() {
         {screen.kind === "playing" && <SettingsBar settings={settings} onChange={setSettings} />}
       </header>
       <main>
-        {status.kind === "starting" && <p className="hint" data-testid="starting">正在啟動後端…</p>}
+        {status.kind === "starting" && (
+          <div className="empty" data-testid="starting">
+            <LoaderCircle className="spin" aria-hidden />
+            <p>正在啟動後端…</p>
+          </div>
+        )}
         {status.kind === "failed" && (
           <pre className="error" role="alert" data-testid="backend-failed">
             {status.message}
           </pre>
         )}
         {screen.kind === "idle" && !screen.error && backend && (
-          <p className="hint" data-testid="ready">
-            後端已就緒。貼上影片路徑或按「選擇檔案」，再按「匯入」。
-          </p>
+          <div className="empty" data-testid="ready">
+            <span className="empty-mark">
+              <Captions aria-hidden />
+            </span>
+            <h1>匯入一部演講影片</h1>
+            <p>貼上影片路徑或按「選擇檔案」，再按「匯入」。</p>
+            <span className="status-pill">
+              <span className="dot" />
+              後端已就緒
+            </span>
+          </div>
         )}
         {screen.kind === "idle" && screen.error && (
           <p className="error" role="alert" data-testid="error">
-            {screen.error}
+            <TriangleAlert className="icon" aria-hidden />
+            <span>{screen.error}</span>
           </p>
         )}
         {backend && importing && (

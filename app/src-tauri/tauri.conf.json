@@ -25,5 +25,8 @@
       "assetProtocol": { "enable": true, "scope": [] }
     }
   },
-  "bundle": { "active": false }
+  "bundle": {
+    "active": false,
+    "resources": { "../../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md" }
+  }
 }

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const EXE = resolve(here, "../src-tauri/target/release/video-subtitle-translator.exe");
+export const EXE = process.env.VST_APP_EXE ?? resolve(here, "../src-tauri/target/release/video-subtitle-translator.exe");
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function powershell(script) {

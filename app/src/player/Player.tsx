@@ -15,9 +15,6 @@ function extension(path: string): string {
   return path.slice(path.lastIndexOf(".") + 1).toLowerCase();
 }
 
-/** The subtitle box is as tall as a bilingual cue of two lines per language in every mode, so switching the mode never resizes the video. */
-const SUBTITLE_LINES = 4;
-
 /** A seek lands on the frame at or before the target. Aiming a few frames into the cue makes that frame belong to the cue, so its subtitle shows. */
 const SEEK_NUDGE_MS = 50;
 
@@ -35,12 +32,11 @@ export function Player({ videoPath, cues, settings }: Props) {
   if (cue && settings.mode !== "en") lines.push({ lang: "zh", text: cue.zh });
   if (settings.zhFirst) lines.reverse();
 
-  const subtitleStyle: CSSProperties = {
-    fontSize: settings.fontSize,
+  const subtitleStyle = {
+    "--sub-size": `${settings.fontSize}px`,
+    "--sub-lh": settings.lineHeight,
     color: settings.color,
-    lineHeight: settings.lineHeight,
-    height: `${settings.fontSize * settings.lineHeight * SUBTITLE_LINES}px`,
-  };
+  } as CSSProperties;
 
   return (
     <div className="player">

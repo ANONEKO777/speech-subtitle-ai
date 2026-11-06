@@ -12,18 +12,26 @@ export function ProgressBar({ view }: { view: JobView }) {
   return (
     <div className="progress">
       <div className="progress-head">
-        <span data-testid="step-name">{label}</span>
-        <span data-testid="percent">{percent}%</span>
+        <span className="step-name" data-testid="step-name">
+          {label}
+        </span>
+        <span className="percent" data-testid="percent">
+          {percent}%
+        </span>
       </div>
-      <div
-        className="bar"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-      >
+      <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
         <div className="bar-fill" style={{ width: `${percent}%` }} />
       </div>
+      <ol className="steps">
+        {STEPS.map((step, i) => (
+          <li
+            key={step}
+            data-state={view.kind === "done" || i + 1 < stepIndex ? "done" : i + 1 === stepIndex ? "current" : "todo"}
+          >
+            {STEP_LABEL[step]}
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

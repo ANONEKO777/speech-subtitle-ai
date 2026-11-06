@@ -40,6 +40,8 @@ Helpers, all in `app/e2e/` (run from the repo root, they import `playwright-core
 
 - `node app/e2e/import-play.mjs <projects-dir> <video> <shots-dir> [png-name]` is lane 1: import, wait for the player, click cue 3, check the subtitle is below the video, save the screenshot, close the window, check no backend is left. Exit 0 is a pass.
 - `node app/e2e/lanes.mjs <projects-dir> <video> <shots-dir> [<video.mkv>]` runs lanes 1 to 9 (progress, below-video layout, three modes, jump to cue 200, 60 s autoscroll, latency probe, style persistence across restart, 1280x720 window, shutdown, MKV). It restarts the app once.
+- `node app/e2e/style-shots.mjs <projects-dir> <video> <shots-dir> [cue-n] [<progress-video>]` saves the visual review set: `empty.png`, `1280-{en,zh,both}.png`, `960-{en,zh,both}.png`, `hover.png`, and `progress.png` when a second, unprocessed video is given (that one runs the GPU). It fails if the video or subtitle box moves between modes.
+- Set `VST_APP_EXE=<path to another build's exe>` before any driver to run that build, for before and after pairs.
 - `app/e2e/lib.mjs` exports `launch({projects, shots})` returning `{page, shot(name), closeWindow(), coldStartMs, pageStartMs, readyMarkMs}`, and `strayProcesses()`.
 
 Stable handles (`data-testid`): `video-path`, `import`, `ready`, `importing`, `step-name`, `percent`, `video`, `subtitle` (children `p[data-lang=en|zh]`), `cue-list`, `cue-<n>` (1-based, `data-start` in ms, `data-active`), `mode-en|zh|both`, `font-size`, `font-color`, `unplayable`, `error`, `backend-failed`. Use them, not coordinates. The native file dialog cannot be driven, so type the path into `video-path`.

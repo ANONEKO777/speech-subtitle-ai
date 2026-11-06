@@ -1,3 +1,4 @@
+import { ArrowDownToLine, FileVideo, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { pickVideo } from "../api/backend";
 
@@ -23,17 +24,22 @@ export function ImportPanel({ busy, onImport }: Props) {
         if (trimmed) onImport(trimmed);
       }}
     >
-      <input
-        data-testid="video-path"
-        value={path}
-        onChange={(e) => setPath(e.target.value)}
-        placeholder="影片的完整路徑，例如 D:\\talks\\talk.mp4"
-        spellCheck={false}
-      />
-      <button type="button" onClick={() => void browse()} disabled={busy}>
-        選擇檔案
+      <div className="field">
+        <FileVideo className="icon" aria-hidden />
+        <input
+          data-testid="video-path"
+          value={path}
+          onChange={(e) => setPath(e.target.value)}
+          placeholder="影片的完整路徑，例如 D:\talks\talk.mp4"
+          spellCheck={false}
+        />
+      </div>
+      <button type="button" title="選擇檔案" onClick={() => void browse()} disabled={busy}>
+        <FolderOpen className="icon" aria-hidden />
+        <span className="collapsible">選擇檔案</span>
       </button>
       <button type="submit" className="primary" data-testid="import" disabled={busy || !trimmed}>
+        <ArrowDownToLine className="icon" aria-hidden />
         匯入
       </button>
     </form>
