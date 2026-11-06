@@ -19,6 +19,7 @@ from backend.manager.profiles import (
 )
 from backend.manager.registry import ModelKind, Registry
 from backend.manager.registry import load as load_registry
+from backend.manager.runtimes import recover_runtime
 from backend.manager.storage import Storage
 
 Factory = Callable[[Path, Path, Path | None, Device, float | None], SubprocessEngine]
@@ -82,6 +83,7 @@ def engine_paths(
         (registry.models[n] for n in model.needs if registry.models[n].kind is ModelKind.ALIGNER),
         None,
     )
+    recover_runtime(runtime, storage)
     return EnginePaths(
         binary=storage.runtime_dir(runtime) / (runtime.executable or ""),
         model=storage.model_file(model),

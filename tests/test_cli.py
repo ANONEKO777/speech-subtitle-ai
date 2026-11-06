@@ -7,6 +7,7 @@ import pytest
 from test_pipeline import SETTINGS, Fakes
 
 from backend import cli
+from backend.core.media import is_media
 from backend.core.pipeline import Ports, Settings
 from backend.manager.resolve import Request
 
@@ -32,7 +33,17 @@ def test_an_input_that_is_not_media_exits_non_zero(
     text = tmp_path / "notes.txt"
     text.write_text("x")
     assert cli.main([str(text)]) == 2
-    assert "not a media file" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "not a media file" in err
+    assert all(ext in err for ext in (".mp4", ".wav", ".wma", ".3gp", ".mts", ".m2ts", ".ogv"))
+    assert ".aiff" in err and ".aif" in err
+
+
+@pytest.mark.parametrize(
+    "ext", [".wma", ".3gp", ".mts", ".m2ts", ".ogv", ".aiff", ".aif", ".WMA", ".M2TS"]
+)
+def test_the_extra_media_extensions_are_media(ext: str) -> None:
+    assert is_media(Path(f"clip{ext}"))
 
 
 def test_help_documents_every_option(capsys: pytest.CaptureFixture[str]) -> None:

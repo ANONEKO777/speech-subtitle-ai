@@ -705,6 +705,28 @@ def test_starting_a_job_by_hand_during_a_countdown_cancels_it(
         rig.release.set()
 
 
+def test_no_countdown_starts_while_a_job_started_by_hand_runs_and_it_starts_after(
+    tmp_path: Path, rig: QueueRig, power: Power
+) -> None:
+    app = make_app(tmp_path, rig, power, countdown_s=0.05)
+    with open_client(app) as client:
+        client.put("/api/queue/settings", json={"on_done": "sleep", "allow_power": True})
+        rig.release.clear()
+        item_id = add(client, video(tmp_path, "a"))["added"][0]["id"]
+        rig.started.wait(5)
+        job_id = start_manual_job(client, tmp_path)
+        client.post(f"/api/queue/items/{item_id}/cancel")
+        wait_for(client, {"a": "cancelled"})
+        time.sleep(1.5)
+        assert client.get(f"/api/jobs/{job_id}").json()["status"] == "running"
+        assert "countdown" not in kinds(app) and "done" not in kinds(app)
+        rig.release.set()
+        wait_kind(app, "power")
+    assert power.calls == [PowerAction.SLEEP]
+    assert client.get(f"/api/jobs/{job_id}").json()["status"] == "done"
+    assert kinds(app).index("countdown") < kinds(app).index("power")
+
+
 def test_the_final_power_check_counts_a_job_started_by_hand(
     tmp_path: Path, rig: QueueRig, power: Power
 ) -> None:

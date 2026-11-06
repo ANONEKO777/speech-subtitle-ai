@@ -4,9 +4,10 @@ from dataclasses import asdict
 from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from backend.manager.context import ManagerContext
-from backend.manager.download import JobStatus
+from backend.manager.download import JobStatus, is_locked, readable_os_error
 from backend.manager.maintain import Refused
 
 
@@ -39,3 +40,11 @@ def refuse_while_busy(request: Request, action: str) -> None:
 def refusal(exc: Refused) -> HTTPException:
     detail = {"message": str(exc), "blockers": list(exc.blockers), "can_force": exc.status == 409}
     return HTTPException(exc.status, detail)
+
+
+def locked_path_response(_: Request, exc: Exception) -> JSONResponse:
+    """The one mapping for a file another program holds: a readable 409 naming the path. Any
+    route that touches files gets it. Other OS errors stay a server error."""
+    if not (isinstance(exc, OSError) and is_locked(exc)):
+        raise exc
+    return JSONResponse({"detail": {"message": readable_os_error(exc)}}, status_code=409)

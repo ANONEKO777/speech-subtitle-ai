@@ -93,6 +93,11 @@ def put_settings(body: SettingsBody, ctx: Context) -> dict[str, Any]:
         key = body.llm.api_key if body.llm else None
         if llm.source is LlmSource.CLOUD and not (key or (key is None and _key_saved(ctx))):
             raise SettingsError("an API key is required for a cloud LLM")
+        if _url_changed(current.llm, llm) and key is None:
+            raise SettingsError(
+                "the cloud address changed, so the saved API key is not sent to it; "
+                "enter the API key for the new address"
+            )
         if key is not None:
             if key:
                 ctx.secrets.set(LLM_KEY, key)
@@ -102,6 +107,13 @@ def put_settings(body: SettingsBody, ctx: Context) -> dict[str, Any]:
         raise _unprocessable(exc) from exc
     ctx.settings.save(updated)
     return view(ctx)
+
+
+def _url_changed(saved: LlmSettings, new: LlmSettings) -> bool:
+    """A saved key belongs to the address it was entered for, so a cloud save that moves to
+    another address needs its own key. Asking is safer than deleting the old key behind the
+    user's back, and the old key and address stay as they were when the save is refused."""
+    return new.source is LlmSource.CLOUD and new.cloud_url != saved.cloud_url
 
 
 def _saved_key_for(ctx: Context, llm: LlmSettings) -> str | None:

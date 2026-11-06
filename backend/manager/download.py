@@ -446,7 +446,39 @@ def _attempt(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy
     return digest.hexdigest()
 
 
+_LOCKED_WINERRORS = frozenset({5, 32, 33})
+_LOCKED_ERRNOS = frozenset({errno.EACCES, errno.EPERM, errno.EBUSY})
+
+
+def is_locked(exc: BaseException) -> bool:
+    """A Windows permission or sharing error: another program holds the file or folder."""
+    return isinstance(exc, OSError) and (
+        isinstance(exc, PermissionError)
+        or getattr(exc, "winerror", None) in _LOCKED_WINERRORS
+        or exc.errno in _LOCKED_ERRNOS
+    )
+
+
+def readable_os_error(exc: Exception) -> str:
+    """What to show a user for a failed file operation. A locked path is named, with what to do
+    about it. The original error goes to the log."""
+    if not (isinstance(exc, OSError) and is_locked(exc)):
+        return f"{type(exc).__name__}: {exc}"
+    log.warning("locked path: %r", exc)
+    path, other = exc.filename, exc.filename2
+    where = f"{path} (while moving it to {other})" if path and other else str(path or other)
+    if not (path or other):
+        where = "a file or folder of the runtime or model"
+    return (
+        f"{where} is locked by another program. Close the program that holds it, such as a "
+        "running transcription or LLM server, a command window or a File Explorer window "
+        "open in that folder, then try again."
+    )
+
+
 def _disk_failure(exc: OSError) -> DownloadError:
+    if is_locked(exc):
+        return DownloadError(Failure(FailureKind.IO, readable_os_error(exc)))
     kind = FailureKind.INSUFFICIENT_SPACE if exc.errno == errno.ENOSPC else FailureKind.IO
     return DownloadError(Failure(kind, f"disk write failed: {exc}"))
 
@@ -536,21 +568,51 @@ def extract_zip(archive_path: Path, into: Path, job: Job) -> None:
         raise _disk_failure(exc) from exc
 
 
+_swap_lock = threading.Lock()
+
+
+def old_of(folder: Path) -> Path:
+    return folder.with_name(folder.name + OLD_SUFFIX)
+
+
+def recover_swap(folder: Path, entry_point: str | None) -> bool:
+    """Settle what a swap killed halfway leaves behind. With no live `folder` the set-aside copy
+    is the working install, so it goes back. With a live folder that holds its `entry_point`
+    (the swap finished and the new files were checked) the leftover copy is deleted. Returns
+    whether it changed anything."""
+    old = old_of(folder)
+    with _swap_lock:
+        if not old.exists():
+            return False
+        if not folder.exists():
+            os.replace(old, folder)
+            log.warning("restored %s from %s: an earlier swap was interrupted", folder, old)
+            return True
+        if entry_point is not None and not (folder / entry_point).is_file():
+            return False
+        shutil.rmtree(old, ignore_errors=True)
+        log.info("removed %s, left over from an earlier swap", old)
+        return True
+
+
 def _swap_folder(staging: Path, folder: Path) -> None:
     """Put `staging` at `folder`. An existing folder is set aside first and put back if the
-    swap fails, so a failed replace leaves the old files as they were."""
-    if not folder.exists():
-        os.replace(staging, folder)
-        return
-    old = folder.with_name(folder.name + OLD_SUFFIX)
-    shutil.rmtree(old, ignore_errors=True)
-    os.replace(folder, old)
-    try:
-        os.replace(staging, folder)
-    except BaseException:
-        os.replace(old, folder)
-        raise
-    shutil.rmtree(old, ignore_errors=True)
+    swap fails, so a failed replace leaves the old files as they were. A kill between the two
+    renames is settled by `recover_swap`."""
+    old = old_of(folder)
+    with _swap_lock:
+        if not folder.exists():
+            os.replace(staging, folder)
+            shutil.rmtree(old, ignore_errors=True)
+            return
+        shutil.rmtree(old, ignore_errors=True)
+        os.replace(folder, old)
+        try:
+            os.replace(staging, folder)
+        except BaseException:
+            os.replace(old, folder)
+            raise
+        shutil.rmtree(old, ignore_errors=True)
 
 
 def unpack(plan: Plan, job: Job) -> None:
@@ -707,4 +769,4 @@ class JobRunner:
         except DownloadError as exc:
             job.fail(exc.failure)
         except Exception as exc:
-            job.fail(Failure(FailureKind.IO, f"{type(exc).__name__}: {exc}"))
+            job.fail(Failure(FailureKind.IO, readable_os_error(exc)))

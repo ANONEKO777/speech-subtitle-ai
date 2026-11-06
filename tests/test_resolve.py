@@ -154,3 +154,14 @@ def test_crispasr_identity_carries_the_model_runtime_and_aligner_versions(tmp_pa
     assert model.sha256[:16] in settings.asr_identity
     assert aligner.sha256[:16] in settings.asr_identity
     assert CRISPASR_RUNTIME in settings.asr_identity
+
+
+def test_resolving_restores_a_llama_runtime_that_a_kill_left_as_old(tmp_path: Path) -> None:
+    storage = install(tmp_path)
+    folder = storage.runtime_dir(REGISTRY.runtimes[LLAMA_RUNTIME])
+    folder.rename(folder.with_name(folder.name + ".old"))
+
+    _, ports = resolve(Request(user_data=tmp_path), tmp_path / "p")
+
+    assert ports is not None
+    assert (folder / (REGISTRY.runtimes[LLAMA_RUNTIME].executable or "")).is_file()

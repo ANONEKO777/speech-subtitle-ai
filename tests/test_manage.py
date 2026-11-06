@@ -543,6 +543,26 @@ def test_a_cloud_source_with_consent_saves_and_the_key_never_comes_back(rig: Rig
     assert rig.secrets.get("llm_api_key") is None
 
 
+def test_a_new_cloud_address_needs_its_own_key_and_the_old_key_stays_with_the_old_one(
+    rig: Rig,
+) -> None:
+    cloud = {"source": "cloud", "cloud_model": "m", "cloud_consent": True}
+    first = put_llm(rig, cloud_url="https://a.example.test/v1", api_key="sk-a", **cloud)
+    assert first.status_code == 200
+
+    moved = put_llm(rig, cloud_url="https://b.example.test/v1", **cloud)
+
+    assert moved.status_code == 422 and "API key" in moved.json()["detail"]
+    saved = rig.client.get("/api/settings").json()["llm"]
+    assert saved["cloud_url"] == "https://a.example.test/v1" and saved["api_key_set"] is True
+    assert rig.secrets.get("llm_api_key") == "sk-a"
+
+    again = put_llm(rig, cloud_url="https://b.example.test/v1", api_key="sk-b", **cloud)
+    assert again.status_code == 200 and rig.secrets.get("llm_api_key") == "sk-b"
+    same = put_llm(rig, cloud_url="https://b.example.test/v1", **cloud)
+    assert same.status_code == 200 and rig.secrets.get("llm_api_key") == "sk-b"
+
+
 @pytest.mark.parametrize(
     "fields",
     [

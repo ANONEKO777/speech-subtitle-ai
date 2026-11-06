@@ -32,6 +32,7 @@ from backend.api import (
     settings,
 )
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
+from backend.api.deps import locked_path_response
 from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
 from backend.core.pipeline import Ports, Settings
@@ -139,6 +140,7 @@ def create_app(config: AppConfig) -> FastAPI:
         redoc_url=None,
         openapi_url=None,
     )
+    app.add_exception_handler(OSError, locked_path_response)
     app.state.manager = config.manager or build_context(config.user_data)
     app.state.projects = projects_store
     app.state.jobs = jobs_book

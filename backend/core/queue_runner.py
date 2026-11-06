@@ -265,7 +265,10 @@ class QueueRunner:
         self._wake.set()
 
     def _check_done(self) -> None:
-        if not self._worked or not self._idle():
+        """The queue is done when nothing is waiting and no job, a hand-started one included, is
+        still active. While a job runs this returns and the loop asks again, so the countdown
+        starts when the last job finishes."""
+        if not self._worked or not self._idle() or self._book.busy():
             return
         self._worked = False
         self._emit("done", {"counts": self._counts()})

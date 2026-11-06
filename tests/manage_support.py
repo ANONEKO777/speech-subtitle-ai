@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.api import downloads, inventory, models, profile, runtimes, settings
+from backend.api.deps import locked_path_response
 from backend.manager import registry
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.hardware import Hardware
@@ -95,6 +96,7 @@ class Rig:
             fetch_remote=self.fetch_remote,
         )
         app = FastAPI()
+        app.add_exception_handler(OSError, locked_path_response)
         app.state.manager = self.ctx
         app.state.jobs = self.jobs
         for module in (downloads, models, runtimes, inventory, profile, settings):

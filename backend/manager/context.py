@@ -10,6 +10,7 @@ from backend.manager.hardware import Hardware, detect
 from backend.manager.inventory import Inventory
 from backend.manager.manifest import Manifest
 from backend.manager.registry import Registry
+from backend.manager.runtimes import recover_runtimes
 from backend.manager.secrets import DpapiSecretStore, SecretStore
 from backend.manager.selftest import Probe, real_probe
 from backend.manager.selftest_store import SelfTestStore
@@ -47,6 +48,7 @@ def build_context(
 ) -> ManagerContext:
     registry = registry or registry_module.load()
     storage = Storage(user_data)
+    recover_runtimes(registry, storage)
     manifest = Manifest(user_data)
     inventory = Inventory(registry, storage, manifest)
     runner = JobRunner(storage.resolve_url, policy, opener, inventory.record_install)

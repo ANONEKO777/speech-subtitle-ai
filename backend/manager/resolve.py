@@ -37,6 +37,7 @@ from backend.manager.profiles import (
     Device,
 )
 from backend.manager.registry import Model, Registry, Runtime
+from backend.manager.runtimes import recover_runtimes
 from backend.manager.storage import Storage, default_user_data
 
 ENGINE_ALIASES = {"whispercpp": WHISPERCPP_ID, "crispasr": CRISPASR_ID}
@@ -170,6 +171,7 @@ def _local_llm(request: Request, storage: Storage, registry: Registry) -> tuple[
 def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
     storage = Storage(request.user_data or default_user_data())
     registry = registry_module.load()
+    recover_runtimes(registry, storage)
     engine_id, asr_identity, transcribe = _asr(request, storage, registry)
     vad_path, vad_identity = _vad_model(request, storage, registry)
     ffmpeg_dir = request.ffmpeg_dir

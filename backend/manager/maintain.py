@@ -8,7 +8,7 @@ from enum import StrEnum
 
 from backend.manager.active import resolve_active
 from backend.manager.context import ManagerContext
-from backend.manager.download import InstallState, JobStatus, Plan
+from backend.manager.download import InstallState, JobStatus, Plan, readable_os_error
 from backend.manager.inventory import Entry, active_assets, asset
 from backend.manager.manifest import Record
 from backend.manager.models import delete_model, model_plan
@@ -68,10 +68,13 @@ def delete_asset(ctx: ManagerContext, asset_id: str, force: bool, reason: str) -
             )
         log.warning("forced delete of %s over %s: %s", asset_id, blockers, reason.strip())
     found = asset(ctx.registry, asset_id)
-    if isinstance(found, Model):
-        delete_model(asset_id, ctx.registry, ctx.storage)
-    elif isinstance(found, Runtime):
-        delete_runtime(asset_id, ctx.registry, ctx.storage)
+    try:
+        if isinstance(found, Model):
+            delete_model(asset_id, ctx.registry, ctx.storage)
+        elif isinstance(found, Runtime):
+            delete_runtime(asset_id, ctx.registry, ctx.storage)
+    except OSError as exc:
+        raise Refused(f"cannot delete {asset_id}: {readable_os_error(exc)}") from exc
     ctx.manifest.forget(asset_id)
 
 

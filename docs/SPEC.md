@@ -250,7 +250,7 @@ GET    /api/queue/events                   # SSE，不會結束；item、removed
 ```
 - 資料夾依副檔名（`.mp4 .mkv .mov .avi .webm .m4v .flv .wmv .ts .mpg .mpeg`）掃描。同一支影片同一語言在未結束前不能重複加入，會列在 `skipped`。壞檔照常入列，執行時只讓自己失敗。
 - ETA 用最近 10 次實際執行過的步驟的「每秒音訊花幾秒」估算，加上影片長度（ffprobe）。第一個項目完成前沒有 ETA（`null`）。翻譯速度因語言而異，所以只是估計。
-- 全部完成時一律送 `done` 事件（UI 負責通知）。`on_done` 為 `sleep` 或 `shutdown` 必須同時 `allow_power: true`，否則 422。完成後先送 `countdown`（60 秒，可用 `power/cancel` 取消，或加入新項目也會取消），倒數結束才送 `power` 並呼叫系統。倒數期間任何讓佇列不再閒置的變動（加入、重試、恢復項目、取消暫停）或任何設定變更（含撤回 `allow_power`）都會取消倒數；手動啟動任何工作（`POST /api/projects/{pid}/jobs`）也會取消倒數。「閒置」指沒有排隊或執行中的佇列項目，且沒有進行中的工作。呼叫系統前還會在與 `power/cancel`、設定變更相同的鎖內再檢查一次閒置（含手動工作）且 `on_done` 與 `allow_power` 仍然成立，否則不執行；檢查通過的同一步就決定執行，之後取消不再生效，且呼叫系統時不持有該鎖。佇列、CLI 與 `POST /api/projects` 共用同一份媒體副檔名清單（影片 mp4 mkv mov avi webm m4v flv wmv ts mpg mpeg，音訊 wav mp3 m4a flac ogg aac opus）。後端預設 `notify`。
+- 全部完成時一律送 `done` 事件（UI 負責通知）。`on_done` 為 `sleep` 或 `shutdown` 必須同時 `allow_power: true`，否則 422。完成後先送 `countdown`（60 秒，可用 `power/cancel` 取消，或加入新項目也會取消），倒數結束才送 `power` 並呼叫系統。倒數期間任何讓佇列不再閒置的變動（加入、重試、恢復項目、取消暫停）或任何設定變更（含撤回 `allow_power`）都會取消倒數；手動啟動任何工作（`POST /api/projects/{pid}/jobs`）也會取消倒數。「閒置」指沒有排隊或執行中的佇列項目，且沒有進行中的工作。呼叫系統前還會在與 `power/cancel`、設定變更相同的鎖內再檢查一次閒置（含手動工作）且 `on_done` 與 `allow_power` 仍然成立，否則不執行；檢查通過的同一步就決定執行，之後取消不再生效，且呼叫系統時不持有該鎖。佇列、CLI 與 `POST /api/projects` 共用同一份媒體副檔名清單（影片 mp4 mkv mov avi webm m4v flv wmv ts mpg mpeg 3gp mts m2ts ogv，音訊 wav mp3 m4a flac ogg aac opus wma aiff aif）；CLI 與 `POST /api/projects` 拒絕其他副檔名時，訊息會列出全部可接受的副檔名。倒數只在佇列閒置且沒有任何進行中的工作時才開始：最後一個項目結束時若手動工作仍在跑，不送 `done` 也不開始倒數，等最後一個工作結束後才送 `done` 並開始倒數。後端預設 `notify`。
 - 抽音訊預先處理下一個項目沒有做：抽 38 分鐘音訊只要數秒，相對整個項目幾分鐘到十幾分鐘，不值得多一條並行路徑。
 
 後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。啟動後 stdout 印出 `READY port=<n> token=<t>`；每個請求（含下載路由）都要 `Authorization: Bearer <token>`，並檢查 `Host` 與 `Origin`；SSE 可改用 `?token=`。事件為 `status`、`progress`，最後一則是 `done`、`failed` 或 `cancelled`。
@@ -283,7 +283,8 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 - 更新檢查：已安裝版本是 `installed.json` 記錄的版本。沒設遠端時只對照隨 app 附的 registry，訊息為「registry version X installed, no remote configured」。設了 `registry_url`（https）才讀遠端；遠端比內建新的項目 `installable: false`，要更新 app 才能安裝。不會假設任何遠端網址。
 - 設定檔：`PUT /api/profile` 隨時可用，不下載也不刪除，回應列出缺的資產與警告（例如 VRAM 不足）；pipeline 的 ASR 後端與 LLM 依使用中設定檔。切換設定檔會清掉先前的自檢回退紀錄。
 - 自檢約 5 秒：ASR 用真模型轉 1 秒靜音並確認用到 CUDA；LLM 用 `llama-server --list-devices`（不載入 5 GB 模型）。GPU 失敗就改試 CPU 執行環境，`fallback.reason` 是人看得懂的原因，並存起來，之後的 job 用 CPU。CPU 執行環境沒裝時不存回退（它跑不起來），回報「GPU failed and the CPU runtime is not installed」與要下載的資產，`ok: false`。`VST_SIMULATE_CUDA_FAILURE=1` 讓每個 CUDA 檢查失敗，用來測試回退。缺少的資產回報 `installed: false`，不算 GPU 失敗。
-- LLM 來源：`cloud` 必須 `cloud_consent: true`（內容會離開本機，文字見 `cloud_consent_text`），缺少回 422。API 金鑰用 Windows DPAPI 加密存到使用者資料夾 `secrets/`，不進 `settings.json`、日誌或回應；`api_key` 省略表示保留，空字串表示刪除。job 沒指定 LLM 時才用設定頁的來源。
+- 執行環境資料夾的替換：重新下載時舊資料夾先改名為 `<名稱>.old`，新資料夾就位後才刪除。若在兩次改名之間被中止，後端啟動時與每次使用該執行環境前，發現 `.old` 而沒有正式資料夾就改回並寫入日誌；正式資料夾完整（含執行檔）時則刪除殘留的 `.old`。刪除執行環境同時刪除 `.old`：先把資料夾改名為 `<名稱>.trash-<亂數>`（任何檔案被鎖住時改名會失敗，執行環境原封不動並回 409），再刪除改名後的資料夾；刪到一半失敗的殘留在下次啟動時清除。CLI、佇列與應用程式在解析任何執行環境之前都先做同樣的 `.old` 還原。任何路由遇到被鎖住的檔案（含 verify、repair）一律由 API 邊界統一轉成 409 並指出路徑。Windows 的權限或檔案被占用錯誤（WinError 5/32/33）在替換、搬移與刪除時回報被鎖住的路徑並建議關閉占用它的程式，原始錯誤寫入日誌。
+- LLM 來源：`cloud` 必須 `cloud_consent: true`（內容會離開本機，文字見 `cloud_consent_text`），缺少回 422。API 金鑰用 Windows DPAPI 加密存到使用者資料夾 `secrets/`，不進 `settings.json`、日誌或回應；`api_key` 省略表示保留，空字串表示刪除。金鑰屬於它當初輸入時的雲端網址：存成 `cloud` 且網址與已存的不同時，body 必須帶新的 `api_key`，否則 422，舊金鑰與舊網址維持原樣（不會悄悄刪除金鑰，也不會把舊金鑰綁到新網址）。job 沒指定 LLM 時才用設定頁的來源。
 - `registry.json` 每個資產有 `license` 與 `license_url`（授權全文或模型卡），授權頁由它產生。
 
 ## 10. 前端 / 播放器

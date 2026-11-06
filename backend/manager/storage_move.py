@@ -20,7 +20,7 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
 
-from backend.manager.download import CHUNK, DownloadError, check_space, part_of
+from backend.manager.download import CHUNK, DownloadError, check_space, part_of, readable_os_error
 from backend.manager.registry import Registry
 from backend.manager.storage import Storage, StorageConfig
 
@@ -152,7 +152,7 @@ class MoveRunner:
                 dest.unlink(missing_ok=True)
                 part_of(dest).unlink(missing_ok=True)
                 _rmdir(dest.parent)
-            self._set(state=MoveState.FAILED, error=f"{type(exc).__name__}: {exc}")
+            self._set(state=MoveState.FAILED, error=readable_os_error(exc))
             return
         warnings: list[str] = []
         for _model_id, path, _size in files:
@@ -160,7 +160,7 @@ class MoveRunner:
                 path.unlink()
                 _rmdir(path.parent)
             except OSError as exc:
-                warnings.append(f"could not remove {path}: {exc}")
+                warnings.append(f"could not remove {path}: {readable_os_error(exc)}")
         self._set(state=MoveState.DONE, warnings=tuple(warnings))
 
     def _transfer(self, src: Path, dest: Path) -> None:
