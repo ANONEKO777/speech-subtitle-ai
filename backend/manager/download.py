@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import hashlib
 import http.client
+import logging
 import os
 import queue
 import re
@@ -14,15 +15,18 @@ import urllib.request
 import uuid
 import zipfile
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+log = logging.getLogger(__name__)
 CHUNK = 1 << 20
 PART_SUFFIX = ".part"
 STAGING_SUFFIX = ".extracting"
+REPLACING_SUFFIX = ".new"
+OLD_SUFFIX = ".old"
 USER_AGENT = "video-subtitle-translator/0"
 _RETRYABLE_HTTP = frozenset({408, 425, 429})
 _SPEED_WINDOW_S = 0.5
@@ -130,8 +134,11 @@ class Plan:
     unpack_to: Path | None = None
     entry_point: str | None = None
     shared: tuple[Item, ...] = ()
+    replacing: bool = False
 
     def is_satisfied(self) -> bool:
+        if self.replacing:
+            return False
         if self.unpack_to is not None:
             return self.unpack_to.is_dir()
         return all(_present(item) for item in self.items)
@@ -190,6 +197,10 @@ def part_of(dest: Path) -> Path:
 
 def staging_of(folder: Path) -> Path:
     return folder.with_name(folder.name + STAGING_SUFFIX)
+
+
+def replacing_of(dest: Path) -> Path:
+    return dest.with_name(dest.name + REPLACING_SUFFIX)
 
 
 def _present(item: Item) -> bool:
@@ -525,6 +536,23 @@ def extract_zip(archive_path: Path, into: Path, job: Job) -> None:
         raise _disk_failure(exc) from exc
 
 
+def _swap_folder(staging: Path, folder: Path) -> None:
+    """Put `staging` at `folder`. An existing folder is set aside first and put back if the
+    swap fails, so a failed replace leaves the old files as they were."""
+    if not folder.exists():
+        os.replace(staging, folder)
+        return
+    old = folder.with_name(folder.name + OLD_SUFFIX)
+    shutil.rmtree(old, ignore_errors=True)
+    os.replace(folder, old)
+    try:
+        os.replace(staging, folder)
+    except BaseException:
+        os.replace(old, folder)
+        raise
+    shutil.rmtree(old, ignore_errors=True)
+
+
 def unpack(plan: Plan, job: Job) -> None:
     folder = plan.unpack_to
     if folder is None:
@@ -539,12 +567,24 @@ def unpack(plan: Plan, job: Job) -> None:
             raise DownloadError(
                 Failure(FailureKind.ARCHIVE, f"archive does not contain {plan.entry_point}")
             )
-        os.replace(staging, folder)
+        _swap_folder(staging, folder)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
     for item in plan.items:
         item.dest.unlink(missing_ok=True)
+
+
+def _staged_items(plan: Plan) -> dict[Item, Item]:
+    """For a replace of single files, where each new file is downloaded and checked before it
+    takes the old one's place. A runtime replaces its folder in `unpack`."""
+    if not plan.replacing or plan.unpack_to is not None:
+        return {}
+    return {
+        item: replace(item, dest=replacing_of(item.dest))
+        for item in plan.items
+        if item not in plan.shared
+    }
 
 
 class JobRunner:
@@ -553,7 +593,9 @@ class JobRunner:
         resolve_url: Callable[[str], str] = lambda url: url,
         policy: RetryPolicy | None = None,
         opener: Opener | None = None,
+        on_installed: Callable[[Plan, tuple[Item, ...]], None] | None = None,
     ) -> None:
+        self._on_installed = on_installed
         self._resolve_url = resolve_url
         self._policy = policy or RetryPolicy()
         self._opener = opener or _urlopen
@@ -635,16 +677,30 @@ class JobRunner:
                 self._run(job)
             self._release(job)
 
+    def _note_installed(self, plan: Plan, fresh: tuple[Item, ...]) -> None:
+        if self._on_installed is None:
+            return
+        try:
+            self._on_installed(plan, fresh)
+        except Exception:
+            log.exception("could not record the install of %s", plan.asset_id)
+
     def _run(self, job: Job) -> None:
         plan = job.plan
         try:
-            check_space((item.dest.parent, _remaining(item)) for item in plan.items)
-            for item in plan.items:
+            staged = _staged_items(plan)
+            work = tuple(staged.get(item, item) for item in plan.items)
+            check_space((item.dest.parent, _remaining(item)) for item in work)
+            fresh = tuple(item for item in plan.items if item in staged or not _present(item))
+            for item in work:
                 job.move(JobState.DOWNLOADING)
                 fetch(item, job, self._resolve_url(item.url), self._opener, self._policy)
+            for item, new in staged.items():
+                os.replace(new.dest, item.dest)
             if plan.unpack_to is not None:
                 job.move(JobState.EXTRACTING)
                 unpack(plan, job)
+            self._note_installed(plan, fresh)
             job.complete(Outcome.INSTALLED)
         except Cancelled:
             job.move(JobState.CANCELLED)

@@ -24,14 +24,15 @@ def raw_registry(rt_zip: bytes, addon_zip: bytes) -> dict[str, Any]:
         return {
             "id": mid, "kind": "asr", "engine": "e", "version": "1", "url": f"{ORIGIN}{mid}.bin",
             "file": f"{mid}.bin", "sha256": sha(data), "size_bytes": len(data), "license": "MIT",
-            "vram_mib": None, "params_b": None, "needs": needs,
+            "license_url": "https://l.test/x", "vram_mib": None, "params_b": None, "needs": needs,
         }  # fmt: skip
 
     def runtime(rid: str, data: bytes, exe: str | None, needs: list[str]) -> dict[str, Any]:
         return {
             "id": rid, "engine": "e", "version": "1", "platform": "win-x64", "backend": "cpu",
             "url": f"{ORIGIN}{rid}.zip", "file": f"{rid}.zip", "sha256": sha(data),
-            "size_bytes": len(data), "license": "MIT", "executable": exe, "min_driver": None,
+            "size_bytes": len(data), "license": "MIT", "license_url": "https://l.test/x",
+            "executable": exe, "min_driver": None,
             "ascii_paths_only": False, "needs": needs,
         }  # fmt: skip
 

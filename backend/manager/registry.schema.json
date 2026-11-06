@@ -24,7 +24,7 @@
       "additionalProperties": false,
       "required": [
         "id", "kind", "engine", "version", "url", "file", "sha256", "size_bytes",
-        "license", "vram_mib", "params_b", "needs"
+        "license", "license_url", "vram_mib", "params_b", "needs"
       ],
       "properties": {
         "id": {"$ref": "#/$defs/id"},
@@ -36,6 +36,7 @@
         "sha256": {"$ref": "#/$defs/sha256"},
         "size_bytes": {"type": "integer", "minimum": 1},
         "license": {"type": "string", "minLength": 1},
+        "license_url": {"$ref": "#/$defs/url"},
         "vram_mib": {"type": ["integer", "null"], "minimum": 1},
         "params_b": {"type": ["integer", "null"], "minimum": 1},
         "needs": {"$ref": "#/$defs/needs"}
@@ -46,7 +47,7 @@
       "additionalProperties": false,
       "required": [
         "id", "engine", "version", "platform", "backend", "url", "file", "sha256",
-        "size_bytes", "license", "executable", "min_driver", "ascii_paths_only", "needs"
+        "size_bytes", "license", "license_url", "executable", "min_driver", "ascii_paths_only", "needs"
       ],
       "properties": {
         "id": {"$ref": "#/$defs/id"},
@@ -59,6 +60,7 @@
         "sha256": {"$ref": "#/$defs/sha256"},
         "size_bytes": {"type": "integer", "minimum": 1},
         "license": {"type": "string", "minLength": 1},
+        "license_url": {"$ref": "#/$defs/url"},
         "executable": {"anyOf": [{"$ref": "#/$defs/relative_path"}, {"type": "null"}]},
         "min_driver": {"type": ["string", "null"], "pattern": "^\\d+\\.\\d+$"},
         "ascii_paths_only": {"type": "boolean"},

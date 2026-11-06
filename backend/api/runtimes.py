@@ -1,19 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from backend.api.deps import Context, job_json, unknown
+from backend.api.deps import Context, job_json, refusal, refuse_while_busy, unknown
+from backend.manager.active import resolve_active
 from backend.manager.context import ManagerContext
 from backend.manager.download import InstallState, JobState
+from backend.manager.maintain import Refused, delete_asset
 from backend.manager.registry import Runtime
-from backend.manager.runtimes import (
-    NotInstallable,
-    delete_runtime,
-    runtime_executable,
-    runtime_plan,
-)
+from backend.manager.runtimes import NotInstallable, runtime_executable, runtime_plan
+from backend.manager.selftest import run_selftest
 
 router = APIRouter(prefix="/api/runtimes", tags=["runtimes"])
 
@@ -59,16 +58,39 @@ def install_runtime(runtime_id: str, ctx: Context) -> dict[str, Any]:
     return job_json(ctx.runner.submit(plan))
 
 
+@router.get("/selftest")
+def last_selftest(ctx: Context) -> dict[str, Any] | None:
+    report = ctx.selftest.load()
+    return asdict(report) if report else None
+
+
+@router.post("/selftest")
+def selftest(request: Request, ctx: Context) -> dict[str, Any]:
+    """Run the active profile's ASR and LLM runtimes for a few seconds. When the GPU backend
+    fails, the CPU backend is tried and the reason is saved for the pipeline and the page."""
+    refuse_while_busy(request, "run the self-test")
+    active = resolve_active(ctx.settings.current, ctx.detect_hardware(), ctx.registry)
+    report = run_selftest(
+        active.selection.profile, ctx.registry, ctx.storage, ctx.selftest, ctx.probe
+    )
+    return asdict(report)
+
+
 @router.delete("/{runtime_id}", status_code=204)
-def remove_runtime(runtime_id: str, ctx: Context) -> None:
+def remove_runtime(
+    runtime_id: str, request: Request, ctx: Context, force: bool = False, reason: str = ""
+) -> None:
     if runtime_id not in ctx.registry.runtimes:
         raise unknown("runtime", runtime_id)
+    refuse_while_busy(request, "delete a runtime")
     active = ctx.runner.active_job(runtime_id)
     if active and active.state is not JobState.QUEUED:
         raise HTTPException(409, f"{runtime_id} is being installed; cancel the install first")
-    if active:
-        ctx.runner.cancel(active.id)
     try:
-        delete_runtime(runtime_id, ctx.registry, ctx.storage)
+        delete_asset(ctx, runtime_id, force, reason)
+    except Refused as exc:
+        raise refusal(exc) from exc
     except NotInstallable as exc:
         raise HTTPException(400, str(exc)) from exc
+    if active:
+        ctx.runner.cancel(active.id)

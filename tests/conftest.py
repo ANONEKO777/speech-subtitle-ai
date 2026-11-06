@@ -1,11 +1,15 @@
 import os
 import shutil
 import sys
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from download_support import serve  # noqa: E402
+from manage_support import FakeServer, Rig  # noqa: E402
 
 REQUIRE_ENV = "VST_REQUIRE_ASSETS"
 MODEL_ENV = "VST_SILERO_MODEL"
@@ -35,3 +39,16 @@ def silero_model() -> Path:
 def ffmpeg_tools() -> None:
     present = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
     require(present, "ffmpeg and ffprobe are not on PATH")
+
+
+@pytest.fixture
+def rig(tmp_path: Path) -> Generator[Rig]:
+    with serve() as origin:
+        yield Rig(tmp_path, origin)
+
+
+@pytest.fixture
+def fake_server() -> Generator[FakeServer]:
+    server = FakeServer()
+    yield server
+    server.close()

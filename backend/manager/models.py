@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.manager.download import Item, Plan, part_of
+from backend.manager.download import Item, Plan, part_of, replacing_of
 from backend.manager.registry import Model, Registry
 from backend.manager.storage import Storage
 
@@ -22,6 +22,8 @@ def delete_model(model_id: str, registry: Registry, storage: Storage) -> None:
     path = storage.model_file(registry.models[model_id])
     path.unlink(missing_ok=True)
     part_of(path).unlink(missing_ok=True)
+    replacing_of(path).unlink(missing_ok=True)
+    part_of(replacing_of(path)).unlink(missing_ok=True)
     try:
         path.parent.rmdir()
     except OSError:

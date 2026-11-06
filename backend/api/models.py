@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from backend.api.deps import Context, job_json, unknown
+from backend.api.deps import Context, job_json, refusal, refuse_while_busy, unknown
 from backend.manager.context import ManagerContext
 from backend.manager.download import InstallState, JobState
-from backend.manager.models import delete_model, model_plan
+from backend.manager.maintain import Refused, delete_asset
+from backend.manager.models import model_plan
 from backend.manager.registry import Model
 
 router = APIRouter(prefix="/api/models", tags=["models"])
@@ -43,12 +44,18 @@ def download_model(model_id: str, ctx: Context) -> dict[str, Any]:
 
 
 @router.delete("/{model_id}", status_code=204)
-def remove_model(model_id: str, ctx: Context) -> None:
+def remove_model(
+    model_id: str, request: Request, ctx: Context, force: bool = False, reason: str = ""
+) -> None:
     if model_id not in ctx.registry.models:
         raise unknown("model", model_id)
+    refuse_while_busy(request, "delete a model")
     active = ctx.runner.active_job(model_id)
     if active and active.state is not JobState.QUEUED:
         raise HTTPException(409, f"{model_id} is being downloaded; cancel the download first")
+    try:
+        delete_asset(ctx, model_id, force, reason)
+    except Refused as exc:
+        raise refusal(exc) from exc
     if active:
         ctx.runner.cancel(active.id)
-    delete_model(model_id, ctx.registry, ctx.storage)

@@ -42,6 +42,7 @@ class Model:
     sha256: str
     size_bytes: int
     license: str
+    license_url: str
     vram_mib: int | None
     params_b: int | None
     needs: tuple[str, ...]
@@ -59,6 +60,7 @@ class Runtime:
     sha256: str
     size_bytes: int
     license: str
+    license_url: str
     executable: str | None
     min_driver: str | None
     ascii_paths_only: bool
@@ -124,6 +126,7 @@ def _model(raw: object) -> Model:
         sha256=_sha256(d, name),
         size_bytes=_positive_int(d, "size_bytes", name),
         license=_str(d, "license", name),
+        license_url=_url(d, name, "license_url"),
         vram_mib=_optional_positive_int(d, "vram_mib", name),
         params_b=_optional_positive_int(d, "params_b", name),
         needs=_needs(d, name),
@@ -158,6 +161,7 @@ def _runtime(raw: object) -> Runtime:
         sha256=_sha256(d, name),
         size_bytes=_positive_int(d, "size_bytes", name),
         license=_str(d, "license", name),
+        license_url=_url(d, name, "license_url"),
         executable=executable,
         min_driver=min_driver,
         ascii_paths_only=ascii_only,
@@ -215,10 +219,10 @@ def _str(d: dict[str, Any], key: str, name: str) -> str:
     return value
 
 
-def _url(d: dict[str, Any], name: str) -> str:
-    value = _str(d, "url", name)
+def _url(d: dict[str, Any], name: str, key: str = "url") -> str:
+    value = _str(d, key, name)
     if not value.startswith("https://") or any(c.isspace() for c in value):
-        raise RegistryError(f"{name}: url must be an https URL")
+        raise RegistryError(f"{name}: {key} must be an https URL")
     return value
 
 

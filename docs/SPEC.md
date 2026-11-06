@@ -255,6 +255,37 @@ GET    /api/queue/events                   # SSE，不會結束；item、removed
 
 後端只監聽 `127.0.0.1`，啟動時隨機連接埠並以一次性 token 驗證，避免被其他本機程序或網頁呼叫。啟動後 stdout 印出 `READY port=<n> token=<t>`；每個請求（含下載路由）都要 `Authorization: Bearer <token>`，並檢查 `Host` 與 `Origin`；SSE 可改用 `?token=`。事件為 `status`、`progress`，最後一則是 `done`、`failed` 或 `cancelled`。
 
+### 9.2 設定、模型管理、硬體設定檔與自檢
+
+使用者設定是一個有型別的檔案 `settings.json`（使用者資料夾，原子寫入，進入點驗證；壞檔不會被採用，`GET /api/settings` 的 `problem` 說明原因）。模型資料夾與鏡像仍在 `storage.json`。已安裝紀錄在 `installed.json`（版本、SHA256、檔案大小與修改時間），最近一次自檢在 `selftest.json`。以上全部在 token 之後。
+
+```
+GET    /api/inventory                      # 每個 registry 資產：installed、state、version、installed_version、size_on_disk、path、sha256_state、used_by_profiles、in_active_profile、dependents、blockers；另有 vad_model_path
+GET    /api/inventory/{id}
+POST   /api/inventory/{id}/verify          # 只限模型：現在雜湊檔案並對照 registry
+POST   /api/inventory/{id}/repair          # 檔案不見、未完成或 SHA256 不符就重新下載；正常則 {action:"none"}
+POST   /api/inventory/{id}/redownload      # 先下載到旁邊並驗 SHA256，成功才換掉舊檔；失敗舊檔原樣保留，仍是已安裝
+POST   /api/updates/check                  # 對照 registry；設了 registry_url 才讀遠端
+POST   /api/inventory/{id}/update          # 只在有可安裝的更新時重新下載
+DELETE /api/models/{id}?force=&reason=     # 同 /api/runtimes/{id}；被使用中的設定檔或已安裝的資產需要時 409
+GET    /api/licenses                       # 每個資產的授權名稱、授權網址與拆開的各條授權
+GET    /api/hardware                       # 偵測到的硬體（原欄位）+ recommended_profile
+GET    /api/profile   PUT /api/profile {profile: "gpu-24gb"|"gpu-8gb"|"cpu"|null}   # null 跟隨建議
+POST   /api/profile/download               # 下載使用中設定檔缺的資產
+GET    /api/runtimes/selftest   POST /api/runtimes/selftest
+GET    /api/settings   PUT /api/settings   # {llm:{source:builtin|ollama|cloud,…,cloud_consent,api_key?}, registry_url?}
+POST   /api/llm/test                       # 失敗是 200 {ok:false, url, detail}。存好的金鑰只送給存好且已同意的雲端網址；改了網址要在 body 帶 api_key，否則不送任何請求
+PUT    /api/storage {models_dir}           # 回 warnings：既有模型不會被搬走
+POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GET 同路徑看進度。崩潰後可重試：目標裡內容相同的檔沿用、殘留 .part 覆寫，只有內容不同的外來檔才拒絕且不動它
+```
+- 刪除規則：資產在使用中設定檔的需求（含 `needs`）內，或另一個已安裝的資產 `needs` 它（例如 `silero-vad-ggml-v6.2.0` 被 `qwen3-asr-1.7b-q8_0` 需要），回 409 與 `blockers`。`force=true` 必須附 8 個字元以上的 `reason`（記進日誌），否則 422。有 job 在跑時，刪除、修復、重新下載、搬移、自檢一律 409。
+- SHA256 狀態：模型檔下載時邊寫邊雜湊，成功時記錄。`verified` 表示記錄與目前檔案的大小與修改時間相符；檔案被改動後變 `unchecked`，`verify` 後可能是 `corrupt`。執行環境是 zip，只能說「下載時已驗證壓縮檔」（`sha256_scope: archive_at_install`）。
+- 更新檢查：已安裝版本是 `installed.json` 記錄的版本。沒設遠端時只對照隨 app 附的 registry，訊息為「registry version X installed, no remote configured」。設了 `registry_url`（https）才讀遠端；遠端比內建新的項目 `installable: false`，要更新 app 才能安裝。不會假設任何遠端網址。
+- 設定檔：`PUT /api/profile` 隨時可用，不下載也不刪除，回應列出缺的資產與警告（例如 VRAM 不足）；pipeline 的 ASR 後端與 LLM 依使用中設定檔。切換設定檔會清掉先前的自檢回退紀錄。
+- 自檢約 5 秒：ASR 用真模型轉 1 秒靜音並確認用到 CUDA；LLM 用 `llama-server --list-devices`（不載入 5 GB 模型）。GPU 失敗就改試 CPU 執行環境，`fallback.reason` 是人看得懂的原因，並存起來，之後的 job 用 CPU。CPU 執行環境沒裝時不存回退（它跑不起來），回報「GPU failed and the CPU runtime is not installed」與要下載的資產，`ok: false`。`VST_SIMULATE_CUDA_FAILURE=1` 讓每個 CUDA 檢查失敗，用來測試回退。缺少的資產回報 `installed: false`，不算 GPU 失敗。
+- LLM 來源：`cloud` 必須 `cloud_consent: true`（內容會離開本機，文字見 `cloud_consent_text`），缺少回 422。API 金鑰用 Windows DPAPI 加密存到使用者資料夾 `secrets/`，不進 `settings.json`、日誌或回應；`api_key` 省略表示保留，空字串表示刪除。job 沒指定 LLM 時才用設定頁的來源。
+- `registry.json` 每個資產有 `license` 與 `license_url`（授權全文或模型卡），授權頁由它產生。
+
 ## 10. 前端 / 播放器
 
 - 影片區 + **其下方**的字幕區（不疊在畫面上）；可切換：僅英文 / 僅中文 / 雙語（中上英下或相反，可設定）。

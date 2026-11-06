@@ -7,7 +7,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from backend.api import downloads, models, runtimes
+from backend.api import downloads, inventory, models, profile, runtimes, settings
 from backend.manager import registry
 from backend.manager.context import build_context
 from backend.manager.storage import default_user_data
@@ -16,7 +16,7 @@ from backend.manager.storage import default_user_data
 def build_app(user_data: Path, registry_path: Path) -> FastAPI:
     app = FastAPI(title="video-subtitle-translator downloads (dev)")
     app.state.manager = build_context(user_data, registry.load(registry_path))
-    for module in (downloads, models, runtimes):
+    for module in (downloads, models, runtimes, inventory, profile, settings):
         app.include_router(module.router)
     return app
 

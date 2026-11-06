@@ -13,16 +13,25 @@ import socket
 import sys
 from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
 
-from backend.api import downloads, jobs, languages, models, projects, queue, runtimes
+from backend.api import (
+    downloads,
+    inventory,
+    jobs,
+    languages,
+    models,
+    profile,
+    projects,
+    queue,
+    runtimes,
+    settings,
+)
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
-from backend.api.deps import Context
 from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
 from backend.core.pipeline import Ports, Settings
@@ -30,7 +39,11 @@ from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
 from backend.core.projects import ProjectStore
 from backend.core.queue_runner import Probe, QueueRunner
 from backend.core.queue_store import QueueStore
+from backend.manager.active import runs_on_cpu
 from backend.manager.context import ManagerContext, build_context
+from backend.manager.profiles import QWEN3_8B
+from backend.manager.secrets import LLM_KEY, DpapiSecretStore, SecretError
+from backend.manager.settings import LlmSource, load_settings
 from backend.manager.storage import default_user_data
 
 GRACEFUL_SHUTDOWN_S = 5
@@ -50,6 +63,20 @@ class AppConfig:
     probe: Probe = probe_duration_s
 
 
+def _configured_llm(user_data: Path) -> tuple[str, str | None, str]:
+    """The LLM source from the settings page, for a job that did not name one itself."""
+    source = load_settings(user_data).llm
+    if source.source is LlmSource.OLLAMA:
+        return f"{source.ollama_url}/v1", source.ollama_model, ""
+    if source.source is LlmSource.CLOUD:
+        try:
+            key = DpapiSecretStore(user_data).get(LLM_KEY) or ""
+        except SecretError as exc:
+            raise OptionsError(f"cannot read the saved API key: {exc}") from exc
+        return source.cloud_url, source.cloud_model, key
+    return QWEN3_8B, None, ""
+
+
 def default_resolver(user_data: Path) -> Resolver:
     """Turn options into settings and ports with the real engines. `backend.manager.resolve` is
     imported on first use because it loads onnxruntime, which takes seconds the service should not
@@ -58,11 +85,15 @@ def default_resolver(user_data: Path) -> Resolver:
     def resolve_options(options: JobOptions, folder: Path) -> tuple[Settings, Ports]:
         from backend.manager import resolve as r
 
+        llm, llm_model, llm_key = options.llm, options.llm_model, ""
+        if options.llm == QWEN3_8B and options.llm_model is None:
+            llm, llm_model, llm_key = _configured_llm(user_data)
         request = r.Request(
             engine=options.engine,
-            cpu=options.cpu,
-            llm=options.llm,
-            llm_model=options.llm_model,
+            cpu=options.cpu or runs_on_cpu(user_data),
+            llm=llm,
+            llm_model=llm_model,
+            llm_key=llm_key,
             user_data=user_data,
             glossary=options.glossary,
             summary_en=options.summary_en,
@@ -113,16 +144,23 @@ def create_app(config: AppConfig) -> FastAPI:
     app.state.jobs = jobs_book
     app.state.queue = runner
     app.state.resolver = config.resolver
-    for module in (downloads, models, runtimes, projects, jobs, queue, languages):
+    for module in (
+        downloads,
+        models,
+        runtimes,
+        inventory,
+        profile,
+        settings,
+        projects,
+        jobs,
+        queue,
+        languages,
+    ):
         app.include_router(module.router)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
         return {"status": "ok"}
-
-    @app.get("/api/hardware")
-    def hardware(ctx: Context) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
-        return asdict(ctx.detect_hardware())
 
     app.add_middleware(Guard, config=config.guard)
     return app

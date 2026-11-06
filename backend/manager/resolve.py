@@ -58,6 +58,8 @@ class Request:
     llm: str = QWEN3_8B
     llm_model: str | None = None
     llm_key_env: str = DEFAULT_KEY_ENV
+    llm_key: str = ""
+    """The key itself, when the caller holds it. The environment variable is the fallback."""
     llama_server: Path | None = None
     vad_model: Path | None = None
     ffmpeg_dir: Path | None = None
@@ -135,7 +137,7 @@ def _vad_model(request: Request, storage: Storage, registry: Registry) -> tuple[
 def _remote_config(request: Request) -> LlmConfig:
     if not request.llm_model:
         raise SettingsError("--llm-model is required when --llm is a URL")
-    key = os.environ.get(request.llm_key_env, "")
+    key = request.llm_key or os.environ.get(request.llm_key_env, "")
     try:
         return LlmConfig(
             request.llm.rstrip("/"), request.llm_model, key, extra_body={"seed": LLM_SEED}

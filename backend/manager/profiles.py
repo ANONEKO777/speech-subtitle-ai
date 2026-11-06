@@ -115,6 +115,7 @@ class Cause(StrEnum):
     NO_NVIDIA_GPU = "no-nvidia-gpu"
     VRAM_UNKNOWN = "vram-unknown"
     VRAM_TOO_SMALL = "vram-too-small"
+    USER_CHOICE = "user-choice"
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +182,25 @@ def select(hardware: Hardware, registry: Registry) -> Selection:
     return Selection(fit, Cause.VRAM_FITS, asr_fallback=fallback, fallback_blocked=blocked)
 
 
+def selection_for(profile_id: ProfileId, hardware: Hardware, registry: Registry) -> Selection:
+    """The selection a user gets by choosing `profile_id` on this machine. The detected profile
+    keeps its own selection, so its driver-gated fallback stays. Any other profile is a choice,
+    whether or not the hardware fits it."""
+    detected = select(hardware, registry)
+    if detected.profile.id is profile_id:
+        return detected
+    profile = PROFILES[profile_id]
+    fallback, blocked = _resolve_fallback(profile, hardware.driver_version, registry)
+    return Selection(profile, Cause.USER_CHOICE, asr_fallback=fallback, fallback_blocked=blocked)
+
+
+def fits(profile: Profile, hardware: Hardware) -> bool:
+    """Whether this machine can run the profile's GPU stages. The CPU profile fits anywhere."""
+    if profile.min_vram_mib is None:
+        return True
+    return hardware.vram_mib is not None and hardware.vram_mib >= profile.min_vram_mib
+
+
 def _cpu(hardware: Hardware, reason: Cause | DriverTooOld) -> Selection:
     cpu = PROFILES[ProfileId.CPU]
     low_ram = None
@@ -216,6 +236,7 @@ _REASON_TEXT: Mapping[Cause, str] = MappingProxyType(
         Cause.NO_NVIDIA_GPU: "No NVIDIA GPU was found, so GPU runtimes are not used.",
         Cause.VRAM_UNKNOWN: "An NVIDIA GPU was found but its VRAM could not be read.",
         Cause.VRAM_TOO_SMALL: "The GPU has less VRAM than the smallest GPU profile needs.",
+        Cause.USER_CHOICE: "You chose this profile.",
     }
 )
 

@@ -114,6 +114,8 @@ def with_field(section: str, key: str, value: object) -> dict[str, Any]:
         ("models", "needs", ["a", "a"], "distinct"),
         ("models", "extra", 1, "unexpected keys"),
         ("models", "license", REMOVE, "missing keys"),
+        ("models", "license_url", "http://x.test/l", "license_url"),
+        ("runtimes", "license_url", REMOVE, "missing keys"),
         ("runtimes", "min_driver", "551", "min_driver"),
         ("runtimes", "ascii_paths_only", "yes", "ascii_paths_only"),
         ("runtimes", "executable", r"Release\x.exe", "executable"),

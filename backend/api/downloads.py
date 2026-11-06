@@ -10,7 +10,9 @@ from backend.api.deps import Context, job_json
 from backend.api.models import model_entry
 from backend.api.runtimes import runtime_entry
 from backend.manager import profiles
+from backend.manager.context import ManagerContext
 from backend.manager.storage import StorageError, parse_config
+from backend.manager.storage_move import installed_models
 
 router = APIRouter(prefix="/api", tags=["downloads"])
 
@@ -77,8 +79,25 @@ def put_storage(body: StorageBody, ctx: Context) -> dict[str, Any]:
             config.models_dir.mkdir(parents=True, exist_ok=True)
     except (StorageError, OSError) as exc:
         raise HTTPException(422, str(exc)) from exc
+    old_root = ctx.storage.models_root
     ctx.storage.update(config)
-    return get_storage(ctx)
+    result = get_storage(ctx)
+    result["warnings"] = _unmoved_warning(ctx, old_root)
+    return result
+
+
+def _unmoved_warning(ctx: ManagerContext, old_root: Path) -> list[str]:
+    if old_root == ctx.storage.models_root:
+        return []
+    left = installed_models(ctx.registry, old_root)
+    if not left:
+        return []
+    size = sum(s for _m, _p, s in left)
+    return [
+        f"{len(left)} installed model(s), {size / (1 << 30):.1f} GiB, stay in {old_root} and are "
+        f"not moved. The app now looks for models in {ctx.storage.models_root}, so they show as "
+        "not installed there. Use POST /api/storage/move to move them, or set the folder back."
+    ]
 
 
 def _text(path: Path | None) -> str | None:
