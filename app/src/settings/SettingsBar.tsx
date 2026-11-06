@@ -3,9 +3,9 @@ import type { CSSProperties } from "react";
 import type { SubtitleMode } from "../player/cues";
 import type { Settings } from "./settings";
 
-const MODES: ReadonlyArray<readonly [SubtitleMode, string]> = [
+const modes = (langName: string): ReadonlyArray<readonly [SubtitleMode, string]> => [
   ["en", "英文"],
-  ["zh", "中文"],
+  ["zh", langName],
   ["both", "雙語"],
 ];
 
@@ -44,16 +44,18 @@ function Slider({ icon: Icon, label, testid, min, max, step, value, shown, onCha
 }
 
 interface Props {
+  /** The name of the language shown, such as 繁體中文. */
+  readonly langName: string;
   readonly settings: Settings;
   readonly onChange: (next: Settings) => void;
 }
 
-export function SettingsBar({ settings, onChange }: Props) {
+export function SettingsBar({ langName, settings, onChange }: Props) {
   const set = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
   return (
     <div className="settings">
       <div className="seg" role="group" aria-label="字幕語言">
-        {MODES.map(([mode, label]) => (
+        {modes(langName).map(([mode, label]) => (
           <button
             key={mode}
             type="button"
@@ -97,9 +99,9 @@ export function SettingsBar({ settings, onChange }: Props) {
           shown={settings.lineHeight.toFixed(1)}
           onChange={(lineHeight) => set({ lineHeight })}
         />
-        <label className="control toggle" title="雙語時中文放在英文上方">
+        <label className="control toggle" title={`雙語時${langName}放在英文上方`}>
           <ArrowUpDown className="icon" aria-hidden />
-          <span className="collapsible">中文在上</span>
+          <span className="collapsible">{langName}在上</span>
           <input
             type="checkbox"
             role="switch"

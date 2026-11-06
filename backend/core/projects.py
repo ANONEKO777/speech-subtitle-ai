@@ -16,6 +16,8 @@ from dataclasses import astuple, dataclass
 from pathlib import Path
 from typing import Literal
 
+from backend.core import cue_edits
+from backend.core.cue_edits import CueProblem
 from backend.core.languages import ENGLISH, LANGUAGES, get
 from backend.core.model import Cue, FormatError, Project, Step, StepStatus
 from backend.core.pipeline import PROJECT_JSON, File, save_edited_cues
@@ -62,7 +64,11 @@ class NotReady(Exception):
 
 
 class BadCues(ValueError):
-    """Corrected cues that do not fit the project's cues."""
+    """Corrected cues that do not fit the project's cues. `problems` names the cues at fault."""
+
+    def __init__(self, message: str, problems: Sequence[CueProblem] = ()) -> None:
+        super().__init__(message)
+        self.problems = tuple(problems)
 
 
 def project_id(video: Path) -> str:
@@ -164,8 +170,9 @@ class ProjectStore:
         return info.files[name].read_bytes()
 
     def save_cues(self, pid: str, cues: Sequence[Cue], target: str | None = None) -> None:
-        """Replace the translated cues with corrected ones that keep the same ids. The caller
-        makes sure no job is running on the project."""
+        """Replace the translated cues with corrected ones that keep the same ids and English
+        lines, and remember which ones changed. The caller makes sure no job is running on the
+        project."""
         info = self.info(pid)
         lang = get(target or info.project.active_lang)
         if not self._done(info, Step.TRANSLATE, lang.code):
@@ -173,5 +180,15 @@ class ProjectStore:
         current = [c.id for c in self.cues(pid, lang.code)]
         if sorted(c.id for c in cues) != sorted(current):
             raise BadCues("the cues must have exactly the ids the project has")
-        ordered = sorted(cues, key=lambda c: (c.start_ms, c.id))
-        save_edited_cues(info.folder, ordered, lang)
+        problems = cue_edits.check(self.cues(pid, lang.code), cues)
+        if problems:
+            raise BadCues(f"{len(problems)} cues cannot be saved", problems)
+        cue_edits.record(info.folder, lang, self.cues(pid, lang.code), cues)
+        save_edited_cues(info.folder, sorted(cues, key=lambda c: c.id), lang)
+
+    def edited_ids(self, pid: str, target: str | None = None) -> list[int]:
+        """The ids of the cues a person corrected in `target` that a rerun kept. An edit whose
+        English line changed stays in the edits file and is not listed."""
+        info = self.info(pid)
+        lang = get(target or info.project.active_lang)
+        return [c.id for c in cue_edits.applied(info.folder, lang)]

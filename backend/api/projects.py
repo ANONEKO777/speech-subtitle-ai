@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.cue_edits import CueProblem
 from backend.core.jobs import JobBook
 from backend.core.languages import UnknownLanguage
 from backend.core.media import accepted_extensions, is_media
@@ -90,6 +91,12 @@ def _known(store: ProjectStore, pid: str) -> ProjectInfo:
         raise HTTPException(404, f"unknown project {pid!r}") from exc
 
 
+def _bad_cues(message: str, problems: Sequence[CueProblem]) -> HTTPException:
+    """422 whose detail names each cue at fault, so the editor can show the error on it."""
+    found = [{"id": p.id, "code": p.code, "message": p.message, "other": p.other} for p in problems]
+    return HTTPException(422, {"message": message, "problems": found})
+
+
 @router.post("")
 def create_project(body: NewProject, request: Request, response: Response) -> dict[str, Any]:
     video = Path(body.video_path)
@@ -143,10 +150,16 @@ def put_subtitles(
 ) -> dict[str, Any]:
     store, jobs = store_of(request), jobs_of(request)
     _known(store, pid)
-    try:
-        cues = [Cue(c.id, c.start_ms, c.end_ms, c.en, c.zh) for c in body.cues]
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
+    cues: list[Cue] = []
+    problems: list[CueProblem] = []
+    for c in body.cues:
+        try:
+            cues.append(Cue(c.id, c.start_ms, c.end_ms, c.en, c.zh))
+        except ValueError as exc:
+            code = "end_before_start" if c.end_ms < c.start_ms else "bad_text"
+            problems.append(CueProblem(c.id, code, str(exc)))
+    if problems:
+        raise _bad_cues("some cues are not valid", problems)
     with jobs.exclusive(pid) as busy:
         if busy:
             raise HTTPException(409, f"job {busy} is using this project")
@@ -154,9 +167,24 @@ def put_subtitles(
             store.save_cues(pid, cues, target_lang)
         except NotReady as exc:
             raise HTTPException(409, str(exc)) from exc
-        except (BadCues, UnknownLanguage) as exc:
+        except BadCues as exc:
+            raise _bad_cues(str(exc), exc.problems) from exc
+        except UnknownLanguage as exc:
             raise HTTPException(422, str(exc)) from exc
     return project_json(store.info(pid), jobs)
+
+
+@router.get("/{pid}/edits")
+def get_edits(
+    pid: str, request: Request, target_lang: Annotated[str | None, Query()] = None
+) -> dict[str, Any]:
+    """The ids of the cues a person corrected. A rerun of translate keeps them."""
+    store = store_of(request)
+    _known(store, pid)
+    try:
+        return {"ids": store.edited_ids(pid, target_lang)}
+    except UnknownLanguage as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @router.get("/{pid}/summary")

@@ -21,7 +21,7 @@ from functools import cache
 from importlib.resources import files as package_files
 from pathlib import Path
 
-from backend.core import summarize, translate
+from backend.core import cue_edits, summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
 from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
 from backend.core.languages import get as get_language
@@ -146,6 +146,8 @@ class StepReport:
 class RunReport:
     steps: tuple[StepReport, ...]
     total_s: float
+    edits_kept: int = 0
+    edits_unmatched: int = 0
 
     @property
     def ran(self) -> tuple[Step, ...]:
@@ -163,6 +165,10 @@ class RunReport:
         ]
         rows.append(f"{'overhead':<10} {'':<7} {self.overhead_s:8.1f} s")
         rows.append(f"{'total':<10} {'':<7} {self.total_s:8.1f} s")
+        if self.edits_kept or self.edits_unmatched:
+            rows.append(
+                f"kept {self.edits_kept} edited cues, {self.edits_unmatched} edits did not fit"
+            )
         return "\n".join(rows)
 
 
@@ -178,6 +184,7 @@ class _Ctx:
     cancel: threading.Event
     report: Callable[[Step, float, str], None]
     llm: Callable[[], LlmSession]
+    notes: dict[str, int]
 
     def path(self, name: str) -> Path:
         return self.dir / name
@@ -239,6 +246,9 @@ def _translate(ctx: _Ctx) -> None:
         keep_english=True,
         lang=ctx.settings.lang,
     )
+    kept = cue_edits.reapply(ctx.dir, ctx.settings.lang)
+    ctx.notes["edits_kept"] = kept.kept
+    ctx.notes["edits_unmatched"] = kept.unmatched
 
 
 def write_exports(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
@@ -519,6 +529,7 @@ def run(
             progress(Progress(step, fraction, message))
 
     reports: list[StepReport] = []
+    notes: dict[str, int] = {}
     store.activate(settings.target_lang)
     keys, fresh = _plan(store, folder, settings, fingerprint)
     with ExitStack() as stack:
@@ -550,7 +561,7 @@ def run(
             report(spec.step, 0.0, "")
             step_started = time.perf_counter()
             try:
-                spec.body(_Ctx(spec.step, folder, video, settings, ports, stop, report, llm))
+                spec.body(_Ctx(spec.step, folder, video, settings, ports, stop, report, llm, notes))
             except BaseException as exc:
                 cancelled = stop.is_set() or isinstance(exc, KeyboardInterrupt | Cancelled)
                 store.mark(
@@ -568,4 +579,9 @@ def run(
             store.mark(spec.step, StepStatus.DONE, key)
             reports.append(StepReport(spec.step, True, seconds))
             report(spec.step, 1.0, "")
-    return RunReport(tuple(reports), time.perf_counter() - started)
+    return RunReport(
+        tuple(reports),
+        time.perf_counter() - started,
+        notes.get("edits_kept", 0),
+        notes.get("edits_unmatched", 0),
+    )

@@ -59,12 +59,49 @@ fn allow_video(app: AppHandle, picked: tauri::State<'_, Picked>, path: String) -
     allow(&app, &path)
 }
 
+/// A file name with no folders in it, so the dialog's suggestion and the test folder below stay in
+/// one directory.
+fn plain_name(name: &str) -> Result<String, String> {
+    Path::new(name)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| format!("{name:?} is not a file name"))
+}
+
+/// Opens the native save dialog and writes `content` to the file chosen, as UTF-8. The dialog runs
+/// here, not in the page, so a page script cannot choose a path. Returns the path written, or None
+/// when the person cancelled. When `VST_EXPORT_DIR` is set the file goes there under `name` with
+/// no dialog, which is how the automated drivers, which cannot click a native dialog, collect exports.
+#[tauri::command]
+async fn save_export(app: AppHandle, name: String, content: String) -> Result<Option<String>, String> {
+    let name = plain_name(&name)?;
+    let path = if let Some(dir) = std::env::var_os("VST_EXPORT_DIR") {
+        PathBuf::from(dir).join(&name)
+    } else {
+        let ext = Path::new(&name).extension().and_then(|e| e.to_str()).unwrap_or("txt").to_owned();
+        let Some(file) = app
+            .dialog()
+            .file()
+            .set_file_name(&name)
+            .add_filter(ext.to_uppercase(), &[ext.as_str()])
+            .blocking_save_file()
+        else {
+            return Ok(None);
+        };
+        file.into_path().map_err(|e| e.to_string())?
+    };
+    std::fs::write(&path, content).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(BackendState::default())
         .manage(Picked::default())
-        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video])
+        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export])
         .setup(|app| {
             sidecar::start(app.handle().clone());
             Ok(())

@@ -1,14 +1,25 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { type CSSProperties, useCallback, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import type { Backend, LanguageInfo } from "../api/client";
+import { type Loaded, useCueEditing } from "../editor/useCueEditing";
+import { exportItems, shortName } from "../export/exports";
 import type { Settings } from "../settings/settings";
-import { CueList } from "./CueList";
+import { useSummary } from "../summary/useSummary";
+import { SidePanel, type Tab } from "./SidePanel";
 import type { Cue } from "./cues";
 import { useActiveCue } from "./useActiveCue";
 
 interface Props {
+  readonly backend: Backend;
+  readonly projectId: string;
   readonly videoPath: string;
-  readonly cues: readonly Cue[];
   readonly settings: Settings;
+  readonly languages: readonly LanguageInfo[];
+  readonly lang: string;
+  readonly onLang: (code: string) => void;
+  readonly loaded: Loaded;
+  /** What the last run did with the person's edits, shown until something else happens. */
+  readonly notice: string | null;
 }
 
 function extension(path: string): string {
@@ -18,15 +29,47 @@ function extension(path: string): string {
 /** A seek lands on the frame at or before the target. Aiming a few frames into the cue makes that frame belong to the cue, so its subtitle shows. */
 const SEEK_NUDGE_MS = 50;
 
-export function Player({ videoPath, cues, settings }: Props) {
+const typing = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+
+export function Player({ backend, projectId, videoPath, settings, languages, lang, onLang, loaded, notice }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const [unplayable, setUnplayable] = useState(false);
+  const [tab, setTab] = useState<Tab>("cues");
+  const [status, setStatus] = useState<string | null>(notice);
+  const editing = useCueEditing(backend, projectId, lang, loaded);
+  const summary = useSummary(backend, projectId, lang);
+  const cues = editing.state.cues;
   const active = useActiveCue(video, cues);
   const cue = active >= 0 ? cues[active] : undefined;
-  const seek = useCallback((c: Cue) => {
-    if (video.current) video.current.currentTime = Math.min(c.startMs + SEEK_NUDGE_MS, c.endMs - 1) / 1000;
-  }, []);
 
+  useEffect(() => setStatus(notice), [notice]);
+
+  const undo = editing.undo;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "z" && !typing(e.target)) {
+        e.preventDefault();
+        void undo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo]);
+
+  const seekMs = useCallback((ms: number) => {
+    if (video.current) video.current.currentTime = ms / 1000;
+  }, []);
+  const seekCue = useCallback((c: Cue) => seekMs(Math.min(c.startMs + SEEK_NUDGE_MS, c.endMs - 1)), [seekMs]);
+  const seekChapter = useCallback(
+    (seconds: number) => {
+      seekMs(seconds * 1000);
+      setTab("cues");
+    },
+    [seekMs],
+  );
+
+  const label = shortName(languages.find((l) => l.code === lang)?.nativeName ?? lang);
   const lines: Array<{ lang: "en" | "zh"; text: string }> = [];
   if (cue && settings.mode !== "zh") lines.push({ lang: "en", text: cue.en });
   if (cue && settings.mode !== "en") lines.push({ lang: "zh", text: cue.zh });
@@ -62,11 +105,23 @@ export function Player({ videoPath, cues, settings }: Props) {
           ))}
         </div>
       </div>
-      <CueList
-        cues={cues}
+      <SidePanel
+        backend={backend}
+        projectId={projectId}
+        tab={tab}
+        onTab={setTab}
+        editing={editing}
         active={active}
         mode={settings.mode}
-        onSeek={seek}
+        languages={languages}
+        lang={lang}
+        onLang={onLang}
+        summary={summary}
+        exports={exportItems(videoPath, lang, label)}
+        status={status}
+        onStatus={setStatus}
+        onSeekCue={seekCue}
+        onSeekSeconds={seekChapter}
       />
     </div>
   );

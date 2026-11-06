@@ -26,3 +26,11 @@ export function allowVideo(path: string): Promise<void> {
 export function pickVideo(): Promise<string | null> {
   return invoke("pick_video");
 }
+
+/**
+ * Opens the native save dialog, which the app itself runs, and writes `content` to the chosen
+ * file. Returns the path written, or null when the person cancelled.
+ */
+export function saveExport(name: string, content: string): Promise<string | null> {
+  return invoke("save_export", { name, content });
+}

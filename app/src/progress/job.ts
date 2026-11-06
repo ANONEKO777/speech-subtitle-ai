@@ -16,9 +16,15 @@ export const STEP_LABEL: Record<Step, string> = {
 export type JobView =
   | { readonly kind: "waiting" }
   | { readonly kind: "running"; readonly step: Step | null; readonly stepFraction: number; readonly overall: number }
-  | { readonly kind: "done" }
+  | { readonly kind: "done"; readonly edits: EditsReport }
   | { readonly kind: "failed"; readonly error: string }
   | { readonly kind: "cancelled" };
+
+/** What the run did with the cues a person had corrected: put back over the new translation, or no longer fitting it. */
+export interface EditsReport {
+  readonly kept: number;
+  readonly unmatched: number;
+}
 
 export const WAITING: JobView = { kind: "waiting" };
 
@@ -34,8 +40,11 @@ export function reduceJob(view: JobView, event: string, data: unknown): JobView 
       const overall = typeof o?.["overall"] === "number" ? o["overall"] : 0;
       return { kind: "running", step, stepFraction: fraction, overall };
     }
-    case "done":
-      return { kind: "done" };
+    case "done": {
+      const report = asRecord(o?.["report"]);
+      const count = (key: string) => (typeof report?.[key] === "number" ? report[key] : 0);
+      return { kind: "done", edits: { kept: count("edits_kept"), unmatched: count("edits_unmatched") } };
+    }
     case "failed":
       return { kind: "failed", error: typeof o?.["error"] === "string" ? o["error"] : "unknown error" };
     case "cancelled":

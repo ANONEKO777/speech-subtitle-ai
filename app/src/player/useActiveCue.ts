@@ -20,6 +20,7 @@ export function useActiveCue(video: RefObject<HTMLVideoElement | null>, cues: re
       handle = el.requestVideoFrameCallback(onFrame);
     };
     const onSeeked = () => show(el.currentTime);
+    setIndex(cueAt(cues, Math.round(el.currentTime * 1000)));
     handle = el.requestVideoFrameCallback(onFrame);
     el.addEventListener("seeked", onSeeked);
     return () => {

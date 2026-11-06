@@ -1,11 +1,24 @@
 import { Captions, Film, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
-import { ApiError, type Backend, cancelJob, createProject, fetchCues, startJob } from "./api/client";
+import {
+  ApiError,
+  type Backend,
+  type LanguageInfo,
+  cancelJob,
+  createProject,
+  fetchCues,
+  fetchEditedIds,
+  fetchLanguages,
+  fetchProject,
+  startJob,
+} from "./api/client";
+import type { Loaded } from "./editor/useCueEditing";
+import { shortName } from "./export/exports";
 import { ImportPanel } from "./import/ImportPanel";
-import type { Cue } from "./player/cues";
 import { Player } from "./player/Player";
 import { ProgressBar } from "./progress/ProgressBar";
+import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
 import { SettingsBar } from "./settings/SettingsBar";
 import { KEY, parseSettings } from "./settings/settings";
@@ -13,7 +26,27 @@ import { KEY, parseSettings } from "./settings/settings";
 type Screen =
   | { readonly kind: "idle"; readonly error?: string }
   | { readonly kind: "importing"; readonly videoPath: string; readonly projectId: string; readonly jobId: string }
-  | { readonly kind: "playing"; readonly videoPath: string; readonly cues: readonly Cue[] };
+  | {
+      readonly kind: "playing";
+      readonly videoPath: string;
+      readonly projectId: string;
+      /** The languages the project has a finished translation for. */
+      readonly languages: readonly LanguageInfo[];
+      readonly lang: string;
+      readonly loaded: Loaded;
+      readonly notice: string | null;
+    };
+
+const editsNotice = ({ kept, unmatched }: EditsReport): string | null => {
+  const parts = [
+    kept > 0 ? `重新翻譯後已保留 ${kept} 條手動修改` : "",
+    unmatched > 0 ? `${unmatched} 條修改因英文原文已變而沒有套用，仍存在專案資料夾的 edits 檔` : "",
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join("；") : null;
+};
+
+const playingName = (screen: Extract<Screen, { kind: "playing" }>) =>
+  screen.languages.find((l) => l.code === screen.lang)?.nativeName ?? screen.lang;
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1);
@@ -26,12 +59,12 @@ function Importing({
 }: {
   backend: Backend;
   screen: Extract<Screen, { kind: "importing" }>;
-  onDone: () => void;
+  onDone: (edits: EditsReport) => void;
   onStop: (error?: string) => void;
 }) {
   const view = useJob(backend, screen.jobId);
   useEffect(() => {
-    if (view.kind === "done") onDone();
+    if (view.kind === "done") onDone(view.edits);
     if (view.kind === "failed") onStop(`處理失敗：${view.error}`);
     if (view.kind === "cancelled") onStop();
   }, [view, onDone, onStop]);
@@ -76,11 +109,32 @@ export function App() {
     if (backend) performance.mark("backend-ready");
   }, [backend]);
 
+  const load = useCallback(async (b: Backend, projectId: string, lang: string): Promise<Loaded> => {
+    const [cues, editedIds] = await Promise.all([fetchCues(b, projectId, lang), fetchEditedIds(b, projectId, lang)]);
+    return { cues, editedIds };
+  }, []);
+
   const show = useCallback(
-    async (b: Backend, videoPath: string, projectId: string) => {
-      setScreen({ kind: "playing", videoPath, cues: await fetchCues(b, projectId) });
+    async (b: Backend, videoPath: string, projectId: string, notice: string | null = null) => {
+      const [project, known] = await Promise.all([fetchProject(b, projectId), fetchLanguages(b)]);
+      const languages = project.translatedLangs.flatMap((code) => known.filter((l) => l.code === code));
+      const lang = languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
+      setScreen({ kind: "playing", videoPath, projectId, languages, lang, loaded: await load(b, projectId, lang), notice });
     },
-    [],
+    [load],
+  );
+
+  const showLang = useCallback(
+    async (code: string) => {
+      if (!backend || screen.kind !== "playing") return;
+      try {
+        const loaded = await load(backend, screen.projectId, code);
+        setScreen({ ...screen, lang: code, loaded, notice: null });
+      } catch (e) {
+        setScreen({ ...screen, notice: `無法切換語言：${message(e)}` });
+      }
+    },
+    [backend, screen, load],
   );
 
   const startImport = useCallback(
@@ -103,20 +157,25 @@ export function App() {
   );
 
   const importing = screen.kind === "importing" ? screen : null;
-  const finishImport = useCallback(() => {
-    if (backend && importing) {
-      show(backend, importing.videoPath, importing.projectId).catch((e: unknown) =>
-        setScreen({ kind: "idle", error: message(e) }),
-      );
-    }
-  }, [backend, importing, show]);
+  const finishImport = useCallback(
+    (edits: EditsReport) => {
+      if (backend && importing) {
+        show(backend, importing.videoPath, importing.projectId, editsNotice(edits)).catch((e: unknown) =>
+          setScreen({ kind: "idle", error: message(e) }),
+        );
+      }
+    },
+    [backend, importing, show],
+  );
   const stopImport = useCallback((error?: string) => setScreen({ kind: "idle", ...(error ? { error } : {}) }), []);
 
   return (
     <div className="app">
       <header>
         <ImportPanel busy={!backend || screen.kind === "importing"} onImport={(p) => void startImport(p)} />
-        {screen.kind === "playing" && <SettingsBar settings={settings} onChange={setSettings} />}
+        {screen.kind === "playing" && (
+          <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
+        )}
       </header>
       <main>
         {status.kind === "starting" && (
@@ -152,7 +211,19 @@ export function App() {
         {backend && importing && (
           <Importing backend={backend} screen={importing} onDone={finishImport} onStop={stopImport} />
         )}
-        {screen.kind === "playing" && <Player videoPath={screen.videoPath} cues={screen.cues} settings={settings} />}
+        {backend && screen.kind === "playing" && (
+          <Player
+            backend={backend}
+            projectId={screen.projectId}
+            videoPath={screen.videoPath}
+            settings={settings}
+            languages={screen.languages}
+            lang={screen.lang}
+            onLang={(code) => void showLang(code)}
+            loaded={screen.loaded}
+            notice={screen.notice}
+          />
+        )}
       </main>
     </div>
   );

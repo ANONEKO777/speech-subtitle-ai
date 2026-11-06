@@ -471,3 +471,32 @@ def test_the_book_refuses_a_second_unfinished_job_for_one_project(
     rig.hold = False
     book.shutdown()
     assert first.status is JobStatus.CANCELLED
+
+
+def test_put_subtitles_names_each_bad_cue_and_refuses_an_english_edit(
+    client: Client, video: Path
+) -> None:
+    pid = make_project(client, video)
+    events(client, start_job(client, pid)["id"])
+    url = f"/api/projects/{pid}/subtitles"
+    cues = client.get(f"{url}?format=json").json()["cues"]
+    assert client.get(f"/api/projects/{pid}/edits").json() == {"ids": []}
+
+    def problems(body: list[dict[str, Any]]) -> list[tuple[int, str]]:
+        response = client.put(url, json={"cues": body})
+        assert response.status_code == 422, response.text
+        return [(p["id"], p["code"]) for p in response.json()["detail"]["problems"]]
+
+    overlap = [{**cues[0], "end_ms": cues[1]["start_ms"] + 5}, *cues[1:]]
+    assert problems(overlap) == [(cues[0]["id"], "overlap")]
+    assert problems([{**cues[0], "end_ms": 1, "start_ms": 5}, *cues[1:]]) == [
+        (cues[0]["id"], "end_before_start")
+    ]
+    assert problems([{**cues[0], "en": "changed"}, *cues[1:]]) == [
+        (cues[0]["id"], "english_changed")
+    ]
+    assert problems([{**cues[0], "zh": ""}, *cues[1:]]) == [(cues[0]["id"], "empty")]
+    assert client.get(f"/api/projects/{pid}/edits").json() == {"ids": []}
+    cues[-1]["zh"] = EDIT
+    assert client.put(url, json={"cues": cues}).status_code == 200
+    assert client.get(f"/api/projects/{pid}/edits").json() == {"ids": [cues[-1]["id"]]}
