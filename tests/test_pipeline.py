@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 from test_summarize import good_map, good_reduce
 
+from backend.core import summarize
 from backend.core.model import Step, StepStatus, Word
 from backend.core.pipeline import (
     STEPS,
@@ -395,6 +396,15 @@ def test_keys_change_with_exactly_what_a_step_reads() -> None:
     assert all(video[s] != base[s] for s in Step)
     vad = keys(replace(SETTINGS, vad_identity="x"))
     assert {s for s in Step if vad[s] == base[s]} == {Step.AUDIO}
+
+
+def test_the_summary_key_follows_the_map_prompt_text_kept_in_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = next(spec for spec in STEPS if spec.step is Step.SUMMARIZE)
+    before = derive_key(spec, SETTINGS, "1:1", {Step.SEGMENT: "k"})
+    monkeypatch.setattr(summarize, "MAP_FRAMING", (*summarize.MAP_FRAMING, "one more rule"))
+    assert derive_key(spec, SETTINGS, "1:1", {Step.SEGMENT: "k"}) != before
 
 
 def test_every_step_is_in_the_table_in_order() -> None:

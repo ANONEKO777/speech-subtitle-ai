@@ -28,6 +28,8 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly problems: readonly CueProblem[] = [],
+    /** The `detail` of the error body, for callers that read more than the message. */
+    readonly detail: unknown = null,
   ) {
     super(message);
   }
@@ -56,7 +58,7 @@ export async function call(b: Backend, path: string, init: RequestInit = {}): Pr
 
 function apiError(status: number, statusText: string, body: unknown): ApiError {
   const detail = asRecord(body)?.["detail"];
-  if (typeof detail === "string") return new ApiError(status, detail);
+  if (typeof detail === "string") return new ApiError(status, detail, [], detail);
   const o = asRecord(detail);
   const list = Array.isArray(o?.["problems"]) ? (o["problems"] as unknown[]) : [];
   const problems = list.flatMap((item): CueProblem[] => {
@@ -65,7 +67,7 @@ function apiError(status: number, statusText: string, body: unknown): ApiError {
     const other = p["other"];
     return [{ id: p["id"], code: p["code"], message: String(p["message"] ?? ""), other: typeof other === "number" ? other : null }];
   });
-  return new ApiError(status, typeof o?.["message"] === "string" ? o["message"] : statusText, problems);
+  return new ApiError(status, typeof o?.["message"] === "string" ? o["message"] : statusText, problems, detail);
 }
 
 async function callText(b: Backend, path: string): Promise<string> {

@@ -1,4 +1,4 @@
-import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, TriangleAlert, X } from "lucide-react";
+import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
@@ -35,11 +35,16 @@ import { QUEUE_KEY, dequeue, enqueue, neighbour, parseQueue, playing, pruned } f
 import { ProgressBar } from "./progress/ProgressBar";
 import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
+import { fetchModelStates } from "./manage/api";
+import { SettingsPage } from "./settings/SettingsPage";
 import { SettingsBar } from "./settings/SettingsBar";
+import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
+import { Wizard } from "./wizard/Wizard";
 import { KEY, parseSettings } from "./settings/settings";
 
 type Screen =
   | { readonly kind: "idle"; readonly error?: string }
+  | { readonly kind: "settings" }
   | { readonly kind: "importing"; readonly videoPath: string; readonly projectId: string; readonly jobId: string }
   | {
       readonly kind: "playing";
@@ -119,6 +124,7 @@ export function App() {
   const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
   const [batchRequest, setBatchRequest] = useState(0);
   const { toast, show: showToast, hide: hideToast } = useToast(9000);
+  const [firstRun, setFirstRun] = useState<"checking" | "wizard" | "done">("checking");
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -130,6 +136,21 @@ export function App() {
   useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
+  useEffect(() => {
+    if (!backend) return;
+    let alive = true;
+    fetchModelStates(backend).then(
+      (models) => alive && setFirstRun(needsWizard(models, localStorage.getItem(SKIPPED_KEY) === "1") ? "wizard" : "done"),
+      () => alive && setFirstRun("done"),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [backend]);
+  const leaveWizard = useCallback((how: "finished" | "skipped") => {
+    if (how === "skipped") localStorage.setItem(SKIPPED_KEY, "1");
+    setFirstRun("done");
+  }, []);
   const batch = useBatch(backend);
   useEffect(() => {
     if (backend) performance.mark("backend-ready");
@@ -289,6 +310,16 @@ export function App() {
   );
   const stopImport = useCallback((error?: string) => setScreen({ kind: "idle", ...(error ? { error } : {}) }), []);
 
+  if (backend && firstRun === "wizard") {
+    return (
+      <div className="app wizard-app">
+        <main>
+          <Wizard backend={backend} onExit={leaveWizard} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header>
@@ -334,6 +365,18 @@ export function App() {
                 )}
               </button>
             )}
+            <button
+              type="button"
+              className="ghost icon-only"
+              data-testid="settings-open"
+              title="設定：模型、硬體、LLM 來源、授權"
+              aria-label="設定"
+              aria-pressed={screen.kind === "settings"}
+              disabled={screen.kind === "importing"}
+              onClick={() => setScreen(screen.kind === "settings" ? { kind: "idle" } : { kind: "settings" })}
+            >
+              <Settings className="icon" aria-hidden />
+            </button>
           </div>
         )}
         <ImportPanel busy={!backend || screen.kind === "importing"} onImport={(p) => void startImport(p)} />
@@ -353,7 +396,14 @@ export function App() {
             {status.message}
           </pre>
         )}
-        {screen.kind === "idle" && !screen.error && backend && (
+        {backend && firstRun === "checking" && (
+          <div className="empty" data-testid="checking">
+            <LoaderCircle className="spin" aria-hidden />
+            <p>正在檢查模型…</p>
+          </div>
+        )}
+        {backend && screen.kind === "settings" && <SettingsPage backend={backend} />}
+        {screen.kind === "idle" && !screen.error && backend && firstRun === "done" && (
           <div className="home">
             <div className="empty" data-testid="ready">
               <span className="empty-mark">

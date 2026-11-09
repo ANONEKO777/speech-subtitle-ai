@@ -53,8 +53,8 @@ ENGLISH_CUE = "So last month I did something that nobody in the room expected at
 KEY_PINS_ON_MAIN = {
     "translate": "470695698a2e4c50f063b829d5847133",
     "export": "99051ccc9882909f6e4798adf47ffc2b",
-    "summarize": "fab93fa74870961f8f8905b2107e017a",
-    "summarize_en": "61ff4b5784cf3ecae87294db910ba9b5",
+    "summarize": "097bc4a1f0bb9b8dd04c0f2f6e269c0f",
+    "summarize_en": "024d31a4fa42ffb129452f9ddbff0764",
 }
 ORIGINAL_PROMPT_DIGEST = "cd6c00ea812beda5"
 

@@ -1,0 +1,181 @@
+import { FolderOpen, TriangleAlert } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { pickFolder } from "../api/backend";
+import type { Backend } from "../api/client";
+import { fetchInventory, fetchMove, fetchSettings, setModelsDir, startMove } from "../manage/api";
+import { bytes } from "../manage/format";
+import type { MoveStatus, StorageView } from "../manage/types";
+
+type Step =
+  | { readonly step: "view" }
+  | { readonly step: "confirm"; readonly target: string; readonly models: number; readonly size: number };
+
+/** The models folder: where it is, what changing it does to files already there, and the explicit move. */
+export function StorageCard({ backend, onChanged }: { backend: Backend; onChanged: () => void }) {
+  const [storage, setStorage] = useState<StorageView | null>(null);
+  const [draft, setDraft] = useState("");
+  const [step, setStep] = useState<Step>({ step: "view" });
+  const [warnings, setWarnings] = useState<readonly string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [move, setMove] = useState<MoveStatus | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setStorage((await fetchSettings(backend)).storage);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [backend]);
+
+  useEffect(() => {
+    void load();
+    void fetchMove(backend).then((m) => m.state === "running" && setMove(m), () => undefined);
+  }, [backend, load]);
+
+  const running = move?.state === "running";
+  useEffect(() => {
+    if (!running) return;
+    let alive = true;
+    const timer = window.setInterval(() => {
+      void fetchMove(backend).then((m) => {
+        if (!alive) return;
+        setMove(m);
+        if (m.state !== "running") {
+          void load();
+          onChanged();
+        }
+      }, () => undefined);
+    }, 700);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [running, backend, load, onChanged]);
+
+  const ask = async () => {
+    const target = draft.trim();
+    if (target === "") return;
+    setError(null);
+    setWarnings([]);
+    try {
+      const installed = (await fetchInventory(backend)).assets.filter((a) => a.type === "model" && a.state === "installed");
+      setStep({ step: "confirm", target, models: installed.length, size: installed.reduce((n, a) => n + (a.sizeOnDisk ?? 0), 0) });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const changeOnly = async (target: string) => {
+    try {
+      const result = await setModelsDir(backend, target);
+      setWarnings(result.warnings);
+      setStep({ step: "view" });
+      setDraft("");
+      await load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setStep({ step: "view" });
+    }
+  };
+
+  const moveAll = async (target: string) => {
+    if (!storage) return;
+    try {
+      setMove(await startMove(backend, target, storage.modelsDir));
+      setStep({ step: "view" });
+      setDraft("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setStep({ step: "view" });
+    }
+  };
+
+  const percent = move && move.bytesTotal > 0 ? Math.round((move.bytesDone / move.bytesTotal) * 100) : 0;
+  return (
+    <div className="card manage-card" data-testid="storage-card">
+      <h3>模型資料夾</h3>
+      <p className="path-big" data-testid="models-dir" title={storage?.modelsDir}>
+        {storage?.modelsDir ?? "…"}
+      </p>
+      <p className="sub">{storage?.customModelsDir ? "自訂的資料夾" : "預設位置（使用者資料夾內）"}</p>
+
+      <div className="inline-form">
+        <input
+          className="text-input"
+          data-testid="models-dir-input"
+          placeholder="新的模型資料夾，例如 E:\vst-models"
+          value={draft}
+          disabled={running}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        <button
+          type="button"
+          className="ghost"
+          data-testid="models-dir-pick"
+          disabled={running}
+          onClick={() => void pickFolder().then((p) => p && setDraft(p), () => undefined)}
+        >
+          <FolderOpen className="icon" aria-hidden />
+          選擇…
+        </button>
+        <button type="button" data-testid="models-dir-change" disabled={running || draft.trim() === ""} onClick={() => void ask()}>
+          變更…
+        </button>
+      </div>
+
+      {step.step === "confirm" && (
+        <div className="callout warn" role="alertdialog" data-testid="models-dir-confirm">
+          <TriangleAlert className="icon" aria-hidden />
+          <div>
+            <p>
+              <strong>現有的模型不會自動搬到新資料夾。</strong>
+              目前有 {step.models} 個已安裝的模型（{bytes(step.size)}）在原資料夾。只變更資料夾的話，它們會留在原處，App 在新資料夾裡會顯示為「未安裝」。
+            </p>
+            <p className="sub">新資料夾：{step.target}</p>
+            <div className="dialog-buttons start">
+              <button type="button" className="primary" data-testid="models-dir-move" onClick={() => void moveAll(step.target)}>
+                搬移現有模型並切換
+              </button>
+              <button type="button" data-testid="models-dir-only" onClick={() => void changeOnly(step.target)}>
+                只變更資料夾，不搬移
+              </button>
+              <button type="button" className="ghost" data-testid="models-dir-cancel" onClick={() => setStep({ step: "view" })}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {warnings.map((w) => (
+        <p key={w} className="note warn" role="status" data-testid="models-dir-warning">
+          {w}
+        </p>
+      ))}
+      {error && (
+        <p className="note bad" role="alert" data-testid="models-dir-error">
+          {error}
+        </p>
+      )}
+
+      {move && move.state !== "idle" && (
+        <div className="move" data-testid="move-status" data-state={move.state}>
+          <div className="mbar">
+            <span style={{ width: `${move.state === "done" ? 100 : percent}%` }} />
+          </div>
+          <p className="sub">
+            {move.state === "running" && `搬移中 ${percent}%：${move.filesDone} / ${move.filesTotal} 個檔案，${bytes(move.bytesDone)} / ${bytes(move.bytesTotal)}`}
+            {move.state === "done" && `搬移完成：${move.filesTotal} 個檔案（${bytes(move.bytesTotal)}）已移到 ${move.target ?? ""}`}
+            {move.state === "failed" && `搬移失敗：${move.error ?? ""}。原資料夾沒有變動。`}
+          </p>
+          {move.warnings.map((w) => (
+            <p key={w} className="note warn">
+              {w}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

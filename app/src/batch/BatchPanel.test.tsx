@@ -75,3 +75,16 @@ describe("dragging a queue row", () => {
     expect(reorder).not.toHaveBeenCalled();
   });
 });
+
+describe("a running queue row", () => {
+  it("does not start a drag from its disabled handle", () => {
+    cleanup();
+    const running: Batch = { ...batch, items: [{ ...item("a"), state: "running" } as BatchItem, item("b"), item("c")] };
+    render(<BatchPanel backend={backend} batch={running} languages={[]} onOpen={() => undefined} onAdd={() => undefined} onError={() => undefined} />);
+    grab("a");
+    fireEvent.pointerMove(window, { clientY: 250 });
+    fireEvent.pointerUp(window, { clientY: 250 });
+    expect(reorder).not.toHaveBeenCalled();
+    expect(order()).toEqual(["a", "b", "c"]);
+  });
+});

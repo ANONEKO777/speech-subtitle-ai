@@ -251,6 +251,17 @@ def max_points(window: Window) -> int:
     return min(MAX_POINTS, max(1, round(_words(window) / WORDS_PER_POINT)))
 
 
+_MAP_HEAD = (
+    "Part {part} of {total}, from {start} to {end}. Write at most {count} points, one from "
+    "about each of these times: {times}."
+)
+_MAP_CONTEXT = "Earlier lines, only for context. Do not take notes on them:"
+_MAP_LINES = "Lines to summarise:"
+MAP_FRAMING = (_MAP_HEAD, _MAP_CONTEXT, _MAP_LINES)
+"""The map prompt's text that lives in code rather than in `summarize_map.md`. The summarize
+step's cache key digests it, so editing it re-runs the summaries."""
+
+
 def map_messages(window: Window, total: int) -> tuple[Message, ...]:
     """Naming the times to take notes at is what spreads them: asked only to spread them, the
     model spent all its points on the first minutes of a part, however long."""
@@ -258,14 +269,19 @@ def map_messages(window: Window, total: int) -> tuple[Message, ...]:
     span = window.end_ms - window.start_ms
     times = ", ".join(clock(window.start_ms + i * span // count) for i in range(count))
     body = [
-        f"Part {window.index + 1} of {total}, from {clock(window.start_ms)} to "
-        f"{clock(window.end_ms)}. Write at most {count} points, one from about each of these "
-        f"times: {times}."
+        _MAP_HEAD.format(
+            part=window.index + 1,
+            total=total,
+            start=clock(window.start_ms),
+            end=clock(window.end_ms),
+            count=count,
+            times=times,
+        )
     ]
     if window.context:
-        body += ["", "Earlier lines, only for context. Do not take notes on them:"]
+        body += ["", _MAP_CONTEXT]
         body += [render_line(line) for line in window.context]
-    body += ["", "Lines to summarise:", *(render_line(line) for line in window.lines)]
+    body += ["", _MAP_LINES, *(render_line(line) for line in window.lines)]
     return (
         Message(role="system", content=_template("summarize_map.md")),
         Message(role="user", content="\n".join(body)),

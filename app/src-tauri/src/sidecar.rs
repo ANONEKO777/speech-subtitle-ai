@@ -177,7 +177,7 @@ pub fn start(app: AppHandle) {
         if app.state::<BackendState>().ready().is_none() {
             std::thread::sleep(std::time::Duration::from_millis(200));
             let text = String::from_utf8_lossy(&tail.lock().unwrap()).into_owned();
-            let _ = app.emit("backend-failed", format!("the backend exited before it was ready\n{text}"));
+            let _ = app.emit("backend-failed", format!("後端在就緒前就結束了。\n{text}"));
             return;
         }
         let again = {

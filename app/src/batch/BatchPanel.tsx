@@ -262,7 +262,7 @@ function Row({ item, languages, dragging, canDrag, onOpen, onAct, onDragStart, o
         data-testid={`qdrag-${item.id}`}
         aria-label="拖曳以重新排序（或按上下鍵）"
         disabled={!canDrag}
-        onPointerDown={onDragStart}
+        onPointerDown={canDrag ? onDragStart : undefined}
         onKeyDown={(e) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") {
             e.preventDefault();

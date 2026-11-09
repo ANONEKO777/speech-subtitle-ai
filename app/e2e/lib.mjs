@@ -54,12 +54,17 @@ export function descendants(rootPid) {
   return found;
 }
 
-export async function launch({ projects, port = Number(process.env.VST_CDP_PORT ?? 9222), shots = "shots" }) {
+/**
+ * Starts the app. `env` adds variables for the app and its backend (VST_USER_DATA, VST_SIMULATE_CUDA_FAILURE),
+ * and `ready` is the selector that means the start screen is up (the wizard has its own).
+ */
+export async function launch({ projects, port = Number(process.env.VST_CDP_PORT ?? 9222), shots = "shots", env = {}, ready = '[data-testid="ready"]' }) {
   mkdirSync(shots, { recursive: true });
   const started = Date.now();
   const child = spawn(EXE, [], {
     env: {
       ...process.env,
+      ...env,
       VST_PROJECTS: projects,
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
     },
@@ -76,7 +81,7 @@ export async function launch({ projects, port = Number(process.env.VST_CDP_PORT 
   if (!browser) throw new Error("cannot reach the window's DevTools port");
   const context = browser.contexts()[0];
   const page = context?.pages()[0] ?? (await context.waitForEvent("page"));
-  await page.waitForSelector('[data-testid="ready"]', { timeout: 30000 });
+  await page.waitForSelector(ready, { timeout: 30000 });
   const coldStartMs = Date.now() - started;
   const marks = await page.evaluate(() => ({
     origin: performance.timeOrigin,

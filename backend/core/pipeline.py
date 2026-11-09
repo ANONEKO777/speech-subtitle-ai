@@ -383,6 +383,9 @@ STEPS: tuple[_StepSpec, ...] = (
             "langs": list(s.summary_langs),
             "glossary": _glossary(s),
             "prompt": _prompt_digest("summarize_map.md", "summarize_reduce.md"),
+            "map_text": hashlib.blake2b(
+                "|".join(summarize.MAP_FRAMING).encode("utf-8"), digest_size=8
+            ).hexdigest(),
         },
         _summarize,
         partials=_summary_partials,
