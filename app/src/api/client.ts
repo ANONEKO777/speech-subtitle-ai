@@ -105,16 +105,30 @@ export interface LanguageInfo {
   readonly code: string;
   readonly name: string;
   readonly nativeName: string;
+  /** Translation quality the backend vouches for; `experimental` is shown with a label. */
+  readonly quality: "stable" | "experimental";
+}
+
+export interface LanguageSet {
+  readonly defaultCode: string;
+  readonly languages: LanguageInfo[];
+}
+
+export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
+  const body = asRecord(await call(b, "/api/languages"));
+  const list = body?.["languages"];
+  if (!Array.isArray(list)) throw new ApiError(500, "unexpected languages reply");
+  const languages = list.flatMap((item): LanguageInfo[] => {
+    const l = asRecord(item);
+    if (typeof l?.["code"] !== "string" || typeof l["name"] !== "string" || typeof l["native_name"] !== "string") return [];
+    const quality = l["quality"] === "experimental" ? "experimental" : "stable";
+    return [{ code: l["code"], name: l["name"], nativeName: l["native_name"], quality }];
+  });
+  return { defaultCode: typeof body?.["default"] === "string" ? body["default"] : "zh-TW", languages };
 }
 
 export async function fetchLanguages(b: Backend): Promise<LanguageInfo[]> {
-  const list = asRecord(await call(b, "/api/languages"))?.["languages"];
-  if (!Array.isArray(list)) throw new ApiError(500, "unexpected languages reply");
-  return list.flatMap((item): LanguageInfo[] => {
-    const l = asRecord(item);
-    if (typeof l?.["code"] !== "string" || typeof l["name"] !== "string" || typeof l["native_name"] !== "string") return [];
-    return [{ code: l["code"], name: l["name"], nativeName: l["native_name"] }];
-  });
+  return (await fetchLanguageSet(b)).languages;
 }
 
 export async function createProject(b: Backend, videoPath: string): Promise<ProjectView> {
@@ -178,6 +192,12 @@ export async function fetchSummary(b: Backend, projectId: string, lang: string):
     if (e instanceof ApiError && e.status === 409) return null;
     throw e;
   }
+}
+
+/** Whether the summary of `lang` was written from a fallback (a degraded summarize step), which the reader should not trust as normal. */
+export async function fetchSummaryDegraded(b: Backend, projectId: string, lang: string): Promise<boolean> {
+  const steps = asRecord(asRecord(asRecord(await call(b, `/api/projects/${projectId}`))?.["languages"])?.[lang]);
+  return asRecord(steps?.["summarize"])?.["degraded"] === true;
 }
 
 export interface SubtitleRequest {

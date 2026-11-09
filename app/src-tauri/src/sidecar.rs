@@ -20,6 +20,10 @@ pub struct Backend {
 #[derive(Default)]
 struct Inner {
     ready: Option<Backend>,
+    /// Set once the window closes, so a backend that ends then is not started again.
+    stopped: bool,
+    /// How many times a backend that died after it was ready has been started again.
+    restarts: u32,
     child: Option<Child>,
     #[cfg(windows)]
     job: Option<job::Job>,
@@ -36,6 +40,7 @@ impl BackendState {
     /// Ends the backend and all of its children. Safe to call more than once.
     pub fn stop(&self) {
         let mut inner = self.0.lock().unwrap();
+        inner.stopped = true;
         #[cfg(windows)]
         let job = inner.job.take();
         if let Some(mut child) = inner.child.take() {
@@ -95,7 +100,18 @@ fn kill_tree(pid: u32) {
 /// How much of the backend's stderr is kept to explain a failed start.
 const STDERR_KEEP: usize = 64 * 1024;
 
+/// A backend that dies after it was ready is started again this many times. The queue is on disk,
+/// so a restart resumes the running item, and the page follows the new port and token.
+const MAX_RESTARTS: u32 = 5;
+
+/// A backend that ran this long since it was ready counts as healthy: its death starts the restart
+/// count again, so five crashes over days of uptime do not leave it dead for good.
+const HEALTHY_FOR: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+
 pub fn start(app: AppHandle) {
+    if app.state::<BackendState>().0.lock().unwrap().stopped {
+        return;
+    }
     let mut cmd = command();
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     #[cfg(windows)]
@@ -106,7 +122,7 @@ pub fn start(app: AppHandle) {
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
-            let _ = app.emit("backend-failed", format!("cannot start the backend: {e}"));
+            let _ = app.emit("backend-failed", format!("無法啟動後端：{e}"));
             return;
         }
     };
@@ -115,6 +131,11 @@ pub fn start(app: AppHandle) {
     {
         let state = app.state::<BackendState>();
         let mut inner = state.0.lock().unwrap();
+        if inner.stopped {
+            let _ = child.kill();
+            let _ = child.wait();
+            return;
+        }
         #[cfg(windows)]
         {
             inner.job = job::Job::adopt(&child);
@@ -141,12 +162,14 @@ pub fn start(app: AppHandle) {
     std::thread::spawn(move || {
         let mut out = BufReader::new(stdout);
         let mut raw = Vec::new();
+        let mut ready_at = None;
         loop {
             raw.clear();
             if !matches!(out.read_until(b'\n', &mut raw), Ok(1..)) {
                 break;
             }
             if let Some(backend) = parse_ready(String::from_utf8_lossy(&raw).trim_end()) {
+                ready_at.get_or_insert_with(std::time::Instant::now);
                 app.state::<BackendState>().0.lock().unwrap().ready = Some(backend.clone());
                 let _ = app.emit("backend-ready", backend);
             }
@@ -155,6 +178,27 @@ pub fn start(app: AppHandle) {
             std::thread::sleep(std::time::Duration::from_millis(200));
             let text = String::from_utf8_lossy(&tail.lock().unwrap()).into_owned();
             let _ = app.emit("backend-failed", format!("the backend exited before it was ready\n{text}"));
+            return;
+        }
+        let again = {
+            let state = app.state::<BackendState>();
+            let mut inner = state.0.lock().unwrap();
+            if ready_at.is_some_and(|t| t.elapsed() >= HEALTHY_FOR) {
+                inner.restarts = 0;
+            }
+            if inner.stopped || inner.restarts >= MAX_RESTARTS {
+                false
+            } else {
+                inner.restarts += 1;
+                inner.ready = None;
+                true
+            }
+        };
+        if again {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            start(app);
+        } else if !app.state::<BackendState>().0.lock().unwrap().stopped {
+            let _ = app.emit("backend-failed", "後端已停止，重新啟動多次仍失敗。請關閉並重新開啟應用程式。".to_string());
         }
     });
 }

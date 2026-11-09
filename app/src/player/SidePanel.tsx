@@ -9,7 +9,7 @@ import type { Backend } from "../api/client";
 import { CueList } from "./CueList";
 import type { Cue, SubtitleMode } from "./cues";
 
-export type Tab = "cues" | "summary" | "library";
+export type Tab = "cues" | "summary" | "library" | "queue";
 
 interface Props {
   readonly backend: Backend;
@@ -23,16 +23,19 @@ interface Props {
   readonly lang: string;
   readonly onLang: (code: string) => void;
   readonly summary: string | null | undefined;
+  readonly summaryDegraded: boolean;
   readonly exports: readonly ExportItem[];
   readonly actions: readonly ExportAction[];
   readonly library: ReactNode;
+  readonly batch: ReactNode;
+  readonly batchBadge: string | null;
   readonly status: string | null;
   readonly onStatus: (message: string) => void;
   readonly onSeekCue: (cue: Cue) => void;
   readonly onSeekSeconds: (seconds: number) => void;
 }
 
-const TAB_LABEL: Record<Tab, string> = { cues: "字幕", summary: "摘要", library: "媒體庫" };
+const TAB_LABEL: Record<Tab, string> = { cues: "字幕", summary: "摘要", library: "媒體庫", queue: "佇列" };
 
 export function SidePanel(p: Props) {
   const { editing } = p;
@@ -42,7 +45,7 @@ export function SidePanel(p: Props) {
     <aside className="side" data-testid="side-panel">
       <div className="side-head">
         <div className="tabs" role="tablist">
-          {(["cues", "summary", "library"] as const).map((tab) => (
+          {(["cues", "summary", "library", "queue"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -52,6 +55,11 @@ export function SidePanel(p: Props) {
               onClick={() => p.onTab(tab)}
             >
               {TAB_LABEL[tab]}
+              {tab === "queue" && p.batchBadge && (
+                <span className="tab-badge" data-testid="queue-badge">
+                  {p.batchBadge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -106,8 +114,17 @@ export function SidePanel(p: Props) {
         <div className="side-body">
           {p.tab === "library" ? (
             p.library
+          ) : p.tab === "queue" ? (
+            p.batch
           ) : p.summary === undefined ? null : (
-            <SummaryView markdown={p.summary} onSeek={p.onSeekSeconds} />
+            <>
+              {p.summaryDegraded && (
+                <p className="summary-notice" role="status" data-testid="summary-degraded">
+                  這份摘要沒有通過語言檢查，可能夾雜錯字或其他語言的字，建議重新產生。
+                </p>
+              )}
+              <SummaryView markdown={p.summary} onSeek={p.onSeekSeconds} />
+            </>
           )}
         </div>
       )}

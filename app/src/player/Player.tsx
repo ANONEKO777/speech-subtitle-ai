@@ -39,6 +39,11 @@ interface Props {
   readonly onStep: (dir: 1 | -1) => void;
   /** The library tab of the side column. */
   readonly library: ReactNode;
+  /** The queue tab of the side column, and the text on its tab. */
+  readonly batch: ReactNode;
+  readonly batchBadge: string | null;
+  /** Counts up each time something outside asks to show the queue tab. */
+  readonly batchRequest: number;
 }
 
 function extension(path: string): string {
@@ -64,6 +69,13 @@ export function Player(props: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const [unplayable, setUnplayable] = useState(false);
   const [tab, setTab] = useState<Tab>("cues");
+  const seenBatchRequest = useRef(props.batchRequest);
+  useEffect(() => {
+    if (props.batchRequest !== seenBatchRequest.current) {
+      seenBatchRequest.current = props.batchRequest;
+      setTab("queue");
+    }
+  }, [props.batchRequest]);
   const [status, setStatus] = useState<string | null>(notice);
   const [helpOpen, setHelpOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -386,7 +398,8 @@ export function Player(props: Props) {
         languages={languages}
         lang={lang}
         onLang={onLang}
-        summary={summary}
+        summary={summary?.text}
+        summaryDegraded={summary?.degraded ?? false}
         exports={exportItems(videoPath, lang, label)}
         actions={[
           { id: "burn-full", label: "MP4 燒入字幕（整部）", run: () => startBurn(false), disabled: burn.view?.state === "running" },
@@ -397,6 +410,8 @@ export function Player(props: Props) {
         onSeekCue={seekCue}
         onSeekSeconds={seekChapter}
         library={props.library}
+        batch={props.batch}
+        batchBadge={props.batchBadge}
       />
     </div>
   );

@@ -151,7 +151,10 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
   const showFrameAt = (e: HTMLVideoElement, to: number) =>
     new Promise<number>((resolve) => {
       const before = shown.current >= 0 ? shown.current : e.currentTime;
-      const onScreen = () => (shown.current >= 0 ? shown.current : before);
+      const onScreen = () => {
+        if (shown.current < 0) shown.current = before;
+        return shown.current;
+      };
       let timer = 0;
       const finish = (mediaTime: number) => {
         window.clearTimeout(timer);

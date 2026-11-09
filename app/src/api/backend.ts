@@ -56,3 +56,8 @@ export async function watchDrops(onDrop: (paths: string[]) => void, onOver: (ove
     } else onOver(p.type !== "leave");
   });
 }
+
+/** Opens the native file dialog for several files and returns the paths picked. */
+export function pickVideos(): Promise<string[]> {
+  return invoke("pick_videos");
+}

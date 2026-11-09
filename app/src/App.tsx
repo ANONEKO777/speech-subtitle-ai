@@ -1,24 +1,36 @@
-import { Captions, Film, Home, LoaderCircle, TriangleAlert, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, TriangleAlert, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
   ApiError,
   type Backend,
   type LanguageInfo,
+  type LanguageSet,
   cancelJob,
   createProject,
   fetchCues,
   fetchEditedIds,
+  fetchLanguageSet,
   fetchLanguages,
   fetchProject,
   startJob,
 } from "./api/client";
+import { AddDialog, rowsFor } from "./batch/AddDialog";
+import { type AddEntry, cancelPower } from "./batch/api";
+import { BatchPanel } from "./batch/BatchPanel";
+import { CountdownModal } from "./batch/CountdownModal";
+import { type BatchItem, formatEta, overall } from "./batch/model";
+import { notifyWindows } from "./batch/notify";
+import { classifyPath } from "./batch/paths";
+import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
 import { ImportPanel } from "./import/ImportPanel";
 import { Library } from "./player/Library";
+import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
+import { useToast } from "./player/useToast";
 import { QUEUE_KEY, dequeue, enqueue, neighbour, parseQueue, playing, pruned } from "./player/queue";
 import { ProgressBar } from "./progress/ProgressBar";
 import type { EditsReport } from "./progress/job";
@@ -103,6 +115,10 @@ export function App() {
   const [library, setLibrary] = useState<readonly LibraryItem[]>([]);
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
+  const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [] });
+  const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
+  const [batchRequest, setBatchRequest] = useState(0);
+  const { toast, show: showToast, hide: hideToast } = useToast(9000);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -114,6 +130,7 @@ export function App() {
   useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
+  const batch = useBatch(backend);
   useEffect(() => {
     if (backend) performance.mark("backend-ready");
   }, [backend]);
@@ -124,14 +141,14 @@ export function App() {
   }, []);
 
   const show = useCallback(
-    async (b: Backend, videoPath: string, projectId: string, notice: string | null = null) => {
+    async (b: Backend, videoPath: string, projectId: string, notice: string | null = null, prefer: string | null = null) => {
       const [project, known, playback] = await Promise.all([
         fetchProject(b, projectId),
         fetchLanguages(b),
         fetchPlayback(b, projectId).catch(() => NO_PLAYBACK),
       ]);
       const languages = project.translatedLangs.flatMap((code) => known.filter((l) => l.code === code));
-      const lang = languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
+      const lang = prefer !== null && languages.some((l) => l.code === prefer) ? prefer : languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
       setScreen({ kind: "playing", videoPath, projectId, languages, lang, loaded: await load(b, projectId, lang), playback, notice });
       setQueue((q) => playing(q, projectId));
     },
@@ -152,13 +169,13 @@ export function App() {
   );
 
   const startImport = useCallback(
-    async (videoPath: string) => {
+    async (videoPath: string, prefer: string | null = null) => {
       if (!backend) return;
       try {
         await allowVideo(videoPath);
         const project = await createProject(backend, videoPath);
         if (project.translated && project.activeJob === null) {
-          await show(backend, videoPath, project.id);
+          await show(backend, videoPath, project.id, null, prefer);
           return;
         }
         const jobId = project.activeJob ?? (await startJob(backend, project.id));
@@ -175,11 +192,12 @@ export function App() {
   useEffect(() => {
     if (!backend || screenKind === "importing") return;
     let alive = true;
-    void Promise.all([fetchLibrary(backend), fetchLanguages(backend)]).then(
-      ([items, known]) => {
+    void Promise.all([fetchLibrary(backend), fetchLanguageSet(backend)]).then(
+      ([items, set]) => {
         if (!alive) return;
         setLibrary(items);
-        setLanguageNames(new Map(known.map((l) => [l.code, shortName(l.nativeName)])));
+        setLanguageSet(set);
+        setLanguageNames(new Map(set.languages.map((l) => [l.code, shortName(l.nativeName)])));
         setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
       },
       () => undefined,
@@ -194,13 +212,14 @@ export function App() {
     let stop: (() => void) | undefined;
     void watchDrops(
       (paths) => {
-        const path = paths[0];
-        if (path) void startImport(path);
+        const [first] = paths;
+        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first);
+        else if (paths.length > 0) setAdding(rowsFor(paths, languageSet.defaultCode));
       },
       setDropping,
     ).then((s) => (stop = s));
     return () => stop?.();
-  }, [backend, startImport]);
+  }, [backend, startImport, languageSet.defaultCode]);
 
   const playItem = useCallback((item: LibraryItem) => void startImport(item.videoPath), [startImport]);
   const stepVideo = useCallback(
@@ -226,6 +245,37 @@ export function App() {
     />
   );
 
+  const total = overall(batch.items);
+  const badge = batch.items.length > 0 ? `${total.finished}/${total.total}` : null;
+  const openItem = useCallback((item: BatchItem) => void startImport(item.videoPath, item.lang), [startImport]);
+  const showQueue = useCallback(() => {
+    if (screen.kind === "playing") setBatchRequest((n) => n + 1);
+    else setScreen({ kind: "idle" });
+    window.setTimeout(() => document.querySelector('[data-testid="batch-panel"]')?.scrollIntoView({ block: "nearest" }), 50);
+  }, [screen.kind]);
+  const batchView = backend && (
+    <BatchPanel
+      backend={backend}
+      batch={batch}
+      languages={languageSet.languages}
+      onOpen={openItem}
+      onAdd={() => setAdding([])}
+      onError={(text) => showToast({ text, error: true })}
+    />
+  );
+
+  const finishedN = batch.finished?.n ?? 0;
+  const seenFinished = useRef(finishedN);
+  useEffect(() => {
+    if (finishedN === seenFinished.current) return;
+    seenFinished.current = finishedN;
+    const c = batch.finished?.counts;
+    if (!c) return;
+    const text = `佇列已全部處理完：${c.done} 項完成${c.failed > 0 ? `，${c.failed} 項失敗` : ""}${c.cancelled > 0 ? `，${c.cancelled} 項取消` : ""}`;
+    showToast({ text, action: { label: "查看佇列", run: showQueue } });
+    void notifyWindows("字幕翻譯：佇列完成", text);
+  }, [finishedN, batch.finished, showToast, showQueue]);
+
   const importing = screen.kind === "importing" ? screen : null;
   const finishImport = useCallback(
     (edits: EditsReport) => {
@@ -242,19 +292,48 @@ export function App() {
   return (
     <div className="app">
       <header>
-        {screen.kind !== "idle" && (
+        {backend && (
           <div className="tool-icons">
+            {screen.kind !== "idle" && (
+              <button
+                type="button"
+                className="ghost icon-only"
+                data-testid="home"
+                title="回到媒體庫"
+                aria-label="媒體庫"
+                onClick={() => setScreen({ kind: "idle" })}
+                disabled={screen.kind === "importing"}
+              >
+                <Home className="icon" aria-hidden />
+              </button>
+            )}
             <button
               type="button"
-              className="ghost icon-only"
-              data-testid="home"
-              title="回到媒體庫"
-              aria-label="媒體庫"
-              onClick={() => setScreen({ kind: "idle" })}
-              disabled={screen.kind === "importing"}
+              className="icon-only"
+              title="批次加入：一次加入多個影片或資料夾"
+              aria-label="批次加入"
+              data-testid="batch-open-add"
+              onClick={() => setAdding([])}
             >
-              <Home className="icon" aria-hidden />
+              <ListPlus className="icon" aria-hidden />
             </button>
+            {badge && (
+              <button
+                type="button"
+                className="icon-only queue-chip"
+                data-testid="queue-chip"
+                data-active={total.active}
+                title={total.etaS !== null ? `佇列 ${badge}：剩餘${formatEta(total.etaS)}` : `佇列 ${badge}`}
+                aria-label={`佇列 ${badge}`}
+                onClick={showQueue}
+              >
+                <Layers className="icon" aria-hidden />
+                <span className="chip-badge">{badge}</span>
+                {total.active && (
+                  <span className="chip-percent" style={{ width: `${Math.round(total.fraction * 100)}%` }} />
+                )}
+              </button>
+            )}
           </div>
         )}
         <ImportPanel busy={!backend || screen.kind === "importing"} onImport={(p) => void startImport(p)} />
@@ -287,6 +366,7 @@ export function App() {
                 後端已就緒
               </span>
             </div>
+            <div className="home-batch">{batchView}</div>
             {library.length > 0 && <div className="home-library">{libraryView}</div>}
           </div>
         )}
@@ -316,9 +396,25 @@ export function App() {
             onStep={stepVideo}
             onSettings={patchSettings}
             library={libraryView}
+            batch={batchView}
+            batchBadge={badge}
+            batchRequest={batchRequest}
           />
         )}
       </main>
+      {adding && backend && (
+        <AddDialog
+          backend={backend}
+          languages={languageSet}
+          initial={adding}
+          onClose={() => setAdding(null)}
+          onAdded={(n) => n > 0 && showToast({ text: `已加入 ${n} 項到佇列`, action: { label: "查看佇列", run: showQueue } })}
+        />
+      )}
+      {batch.countdown && backend && <CountdownModal countdown={batch.countdown} onCancel={() => void cancelPower(backend)} />}
+      <div className="app-toast">
+        <Toast toast={toast} onClose={hideToast} />
+      </div>
       {dropping && (
         <div className="drop-hint" data-testid="drop-hint">
           放開滑鼠，匯入這個檔案

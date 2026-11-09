@@ -43,6 +43,22 @@ async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>) -> Result<
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+/// Opens the native file dialog for several files and returns their paths. The backend reads
+/// them itself when they are queued, so nothing is added to the asset scope here.
+#[tauri::command]
+async fn pick_videos(app: AppHandle) -> Result<Vec<String>, String> {
+    let files = app
+        .dialog()
+        .file()
+        .add_filter("影片與音訊", &MEDIA)
+        .blocking_pick_files()
+        .unwrap_or_default();
+    files
+        .into_iter()
+        .map(|f| f.into_path().map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string()))
+        .collect()
+}
+
 /// Lets the asset protocol serve a path typed into the import box. The path must be a file the
 /// user picked, or an existing regular file whose real path (symlinks followed) has a media
 /// extension, so a page script cannot widen the scope to documents, keys or other data.
@@ -143,10 +159,11 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(BackendState::default())
         .manage(Picked::default())
         .manage(Folders::new(folders::user_data()))
-        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder])
+        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder, pick_videos])
         .setup(|app| {
             sidecar::start(app.handle().clone());
             Ok(())

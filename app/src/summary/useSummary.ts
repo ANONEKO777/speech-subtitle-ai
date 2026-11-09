@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
-import { type Backend, fetchSummary } from "../api/client";
+import { type Backend, fetchSummary, fetchSummaryDegraded } from "../api/client";
 
-/** The summary text of `lang`: undefined while loading, null when that language has none. */
-export function useSummary(backend: Backend, projectId: string, lang: string): string | null | undefined {
-  const [loaded, setLoaded] = useState<{ key: string; text: string | null } | null>(null);
+export interface Summary {
+  /** Null when that language has none. */
+  readonly text: string | null;
+  readonly degraded: boolean;
+}
+
+/** The summary of `lang`: undefined while loading. */
+export function useSummary(backend: Backend, projectId: string, lang: string): Summary | undefined {
+  const [loaded, setLoaded] = useState<{ key: string; summary: Summary } | null>(null);
   const key = `${projectId}:${lang}`;
   useEffect(() => {
     let current = true;
-    fetchSummary(backend, projectId, lang)
-      .then((text) => current && setLoaded({ key, text }))
-      .catch(() => current && setLoaded({ key, text: null }));
+    Promise.all([fetchSummary(backend, projectId, lang), fetchSummaryDegraded(backend, projectId, lang).catch(() => false)])
+      .then(([text, degraded]) => current && setLoaded({ key, summary: { text, degraded: text !== null && degraded } }))
+      .catch(() => current && setLoaded({ key, summary: { text: null, degraded: false } }));
     return () => {
       current = false;
     };
   }, [backend, projectId, lang, key]);
-  return loaded?.key === key ? loaded.text : undefined;
+  return loaded?.key === key ? loaded.summary : undefined;
 }
