@@ -25,6 +25,7 @@ from backend.api import (
     jobs,
     languages,
     models,
+    player,
     profile,
     projects,
     queue,
@@ -40,6 +41,7 @@ from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
 from backend.core.projects import ProjectStore
 from backend.core.queue_runner import Probe, QueueRunner
 from backend.core.queue_store import QueueStore
+from backend.core.render import BurnBook
 from backend.manager.active import runs_on_cpu
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.profiles import QWEN3_8B
@@ -113,6 +115,7 @@ def create_app(config: AppConfig) -> FastAPI:
     jobs_book = JobBook()
     projects_store = ProjectStore(config.projects_dir or config.user_data / "projects")
     queue_store = QueueStore(config.user_data / "queue.db")
+    burns = BurnBook()
     runner = QueueRunner(
         queue_store,
         projects_store,
@@ -130,6 +133,7 @@ def create_app(config: AppConfig) -> FastAPI:
             config.on_ready()
         yield
         await asyncio.to_thread(runner.stop)
+        await asyncio.to_thread(burns.shutdown)
         await asyncio.to_thread(jobs_book.shutdown)
         queue_store.close()
 
@@ -143,6 +147,8 @@ def create_app(config: AppConfig) -> FastAPI:
     app.add_exception_handler(OSError, locked_path_response)
     app.state.manager = config.manager or build_context(config.user_data)
     app.state.projects = projects_store
+    app.state.burns = burns
+    app.state.user_data = config.user_data
     app.state.jobs = jobs_book
     app.state.queue = runner
     app.state.resolver = config.resolver
@@ -154,6 +160,7 @@ def create_app(config: AppConfig) -> FastAPI:
         profile,
         settings,
         projects,
+        player,
         jobs,
         queue,
         languages,

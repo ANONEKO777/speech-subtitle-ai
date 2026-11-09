@@ -395,6 +395,56 @@ def render_ass(cues: Iterable[Cue], wrap: Wrap = Wrap.CJK) -> str:
     return _ASS_HEADER + "".join(events)
 
 
+BurnMode = Literal["en", "zh", "both"]
+_BURN_RES = (1280, 720)
+
+
+def render_burn_ass(
+    cues: Iterable[Cue],
+    wrap: Wrap,
+    *,
+    mode: BurnMode,
+    zh_first: bool,
+    size_ratio: float,
+    color: str,
+) -> str:
+    """ASS for burning into a video: `mode` picks the lines, `size_ratio` is the font height as a
+    share of the picture height and `color` is `#rrggbb`. A bilingual cue is one block."""
+    height = _BURN_RES[1]
+    rgb = color.removeprefix("#")
+    primary = f"&H00{rgb[4:6]}{rgb[2:4]}{rgb[0:2]}".upper()
+    size = round(size_ratio * height, 1)
+    margin = round(height * 0.05)
+    tail = (
+        f"{primary},&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2.5,0,2,40,40,{margin},1"
+    )
+    events: list[str] = []
+    for cue in _check_unique_ids(list(cues)):
+        zh = "\\N".join(_ass_zh(line, wrap) for line in cue.zh.split("\n")) if cue.zh else ""
+        en = _ass_escape(cue.en)
+        order = [("Zh", zh), ("En", en)] if zh_first else [("En", en), ("Zh", zh)]
+        parts = [(style, text) for style, text in order if text and _shows(mode, style)]
+        if not parts:
+            continue
+        text = "\\N".join(f"{{\\r{style}}}{text}" for style, text in parts)
+        start, end = _ass_time(cue.start_ms), _ass_time(cue.end_ms)
+        events.append(f"Dialogue: 0,{start},{end},{parts[0][0]},{cue.id},0,0,0,,{text}\n")
+    header = (
+        f"[Script Info]\nScriptType: v4.00+\nPlayResX: {_BURN_RES[0]}\nPlayResY: {height}\n"
+        "WrapStyle: 0\nScaledBorderAndShadow: yes\n\n"
+        f"[V4+ Styles]\nFormat: {_ASS_STYLE_FIELDS}\n"
+        f"Style: Zh,Microsoft JhengHei,{size},{tail}\n"
+        f"Style: En,Arial,{size},{tail}\n\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    return header + "".join(events)
+
+
+def _shows(mode: BurnMode, style: str) -> bool:
+    return mode == "both" or (mode == "en") == (style == "En")
+
+
 def _ass_unescape(text: str) -> str:
     def decode(match: re.Match[str]) -> str:
         token = match.group()

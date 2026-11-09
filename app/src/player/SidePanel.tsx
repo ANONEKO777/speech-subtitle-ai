@@ -1,14 +1,15 @@
 import { Undo2 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LanguageInfo } from "../api/client";
 import type { CueEditing } from "../editor/useCueEditing";
-import { ExportMenu } from "../export/ExportMenu";
+import { ExportMenu, type ExportAction } from "../export/ExportMenu";
 import { type ExportItem, shortName } from "../export/exports";
 import { SummaryView } from "../summary/SummaryView";
 import type { Backend } from "../api/client";
 import { CueList } from "./CueList";
 import type { Cue, SubtitleMode } from "./cues";
 
-export type Tab = "cues" | "summary";
+export type Tab = "cues" | "summary" | "library";
 
 interface Props {
   readonly backend: Backend;
@@ -23,11 +24,15 @@ interface Props {
   readonly onLang: (code: string) => void;
   readonly summary: string | null | undefined;
   readonly exports: readonly ExportItem[];
+  readonly actions: readonly ExportAction[];
+  readonly library: ReactNode;
   readonly status: string | null;
   readonly onStatus: (message: string) => void;
   readonly onSeekCue: (cue: Cue) => void;
   readonly onSeekSeconds: (seconds: number) => void;
 }
+
+const TAB_LABEL: Record<Tab, string> = { cues: "字幕", summary: "摘要", library: "媒體庫" };
 
 export function SidePanel(p: Props) {
   const { editing } = p;
@@ -37,7 +42,7 @@ export function SidePanel(p: Props) {
     <aside className="side" data-testid="side-panel">
       <div className="side-head">
         <div className="tabs" role="tablist">
-          {(["cues", "summary"] as const).map((tab) => (
+          {(["cues", "summary", "library"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -46,7 +51,7 @@ export function SidePanel(p: Props) {
               aria-selected={p.tab === tab}
               onClick={() => p.onTab(tab)}
             >
-              {tab === "cues" ? "字幕" : "摘要"}
+              {TAB_LABEL[tab]}
             </button>
           ))}
         </div>
@@ -78,7 +83,7 @@ export function SidePanel(p: Props) {
           >
             <Undo2 className="icon" aria-hidden />
           </button>
-          <ExportMenu backend={p.backend} projectId={p.projectId} items={p.exports} onResult={p.onStatus} />
+          <ExportMenu backend={p.backend} projectId={p.projectId} items={p.exports} actions={p.actions} onResult={p.onStatus} />
         </div>
       </div>
       {p.tab === "cues" ? (
@@ -99,7 +104,11 @@ export function SidePanel(p: Props) {
         />
       ) : (
         <div className="side-body">
-          {p.summary === undefined ? null : <SummaryView markdown={p.summary} onSeek={p.onSeekSeconds} />}
+          {p.tab === "library" ? (
+            p.library
+          ) : p.summary === undefined ? null : (
+            <SummaryView markdown={p.summary} onSeek={p.onSeekSeconds} />
+          )}
         </div>
       )}
       <div className="side-foot" role="status" data-testid="side-status" data-has-note={note !== null}>

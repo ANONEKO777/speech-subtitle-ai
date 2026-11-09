@@ -16,6 +16,11 @@ export function powershell(script) {
 
 const ROOT = resolve(here, "../..");
 
+/** The app's data folder: VST_USER_DATA when set, else the same default the shell uses. */
+export function userDataDir() {
+  return process.env.VST_USER_DATA || join(process.env.LOCALAPPDATA ?? "", "video-subtitle-translator");
+}
+
 /**
  * "pid name" lines for this repo's backend (found by its venv path) and for every whisper-cli,
  * crispasr and llama-server on the machine, other agents' included. Pass the list taken before
@@ -49,7 +54,7 @@ export function descendants(rootPid) {
   return found;
 }
 
-export async function launch({ projects, port = 9222, shots = "shots" }) {
+export async function launch({ projects, port = Number(process.env.VST_CDP_PORT ?? 9222), shots = "shots" }) {
   mkdirSync(shots, { recursive: true });
   const started = Date.now();
   const child = spawn(EXE, [], {

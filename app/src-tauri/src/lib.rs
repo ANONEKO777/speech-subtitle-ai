@@ -1,4 +1,7 @@
+mod folders;
 mod sidecar;
+
+use folders::Folders;
 
 use sidecar::{Backend, BackendState};
 use std::collections::HashSet;
@@ -75,7 +78,7 @@ fn plain_name(name: &str) -> Result<String, String> {
 /// when the person cancelled. When `VST_EXPORT_DIR` is set the file goes there under `name` with
 /// no dialog, which is how the automated drivers, which cannot click a native dialog, collect exports.
 #[tauri::command]
-async fn save_export(app: AppHandle, name: String, content: String) -> Result<Option<String>, String> {
+async fn save_export(app: AppHandle, folders: tauri::State<'_, Folders>, name: String, content: String) -> Result<Option<String>, String> {
     let name = plain_name(&name)?;
     let path = if let Some(dir) = std::env::var_os("VST_EXPORT_DIR") {
         PathBuf::from(dir).join(&name)
@@ -93,7 +96,48 @@ async fn save_export(app: AppHandle, name: String, content: String) -> Result<Op
         file.into_path().map_err(|e| e.to_string())?
     };
     std::fs::write(&path, content).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    folders.wrote(&path);
     Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Opens the native folder dialog and returns the folder picked, or None when the person cancelled.
+/// The dialog runs here, not in the page, so a page script cannot forge a pick.
+#[tauri::command]
+async fn pick_folder(app: AppHandle, folders: tauri::State<'_, Folders>) -> Result<Option<String>, String> {
+    let Some(folder) = app.dialog().file().blocking_pick_folder() else {
+        return Ok(None);
+    };
+    let path = folder.into_path().map_err(|e| e.to_string())?;
+    folders.picked(&path)?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Shows a file in Explorer (selected), or opens a folder. The path must be a file this process
+/// wrote, or lie in the app's screenshot and export folders or a folder the person picked, so a
+/// page script cannot open or reveal anything else.
+/// With `VST_OPEN_FOLDER_LOG` set (the e2e drivers do), the resolved path is appended to that file
+/// and no Explorer window opens.
+#[tauri::command]
+fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    let Some(path) = folders.allowed(&path) else {
+        return Err(format!("{} is not in a folder this app writes to", path.display()));
+    };
+    let shown = PathBuf::from(path.to_string_lossy().trim_start_matches(r"\\?\"));
+    if let Some(log) = std::env::var_os("VST_OPEN_FOLDER_LOG") {
+        use std::io::Write;
+        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(|e| e.to_string())?;
+        return writeln!(file, "{}", shown.display()).map_err(|e| e.to_string());
+    }
+    let mut explorer = std::process::Command::new("explorer");
+    if path.is_file() {
+        explorer.arg(format!("/select,{}", shown.display()));
+    } else if path.is_dir() {
+        explorer.arg(&shown);
+    } else {
+        return Err(format!("{} does not exist", path.display()));
+    }
+    explorer.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 pub fn run() {
@@ -101,7 +145,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(BackendState::default())
         .manage(Picked::default())
-        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export])
+        .manage(Folders::new(folders::user_data()))
+        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder])
         .setup(|app| {
             sidecar::start(app.handle().clone());
             Ok(())

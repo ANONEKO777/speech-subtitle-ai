@@ -33,7 +33,7 @@ export class ApiError extends Error {
   }
 }
 
-const base = (b: Backend) => `http://127.0.0.1:${b.port}`;
+export const base = (b: Backend) => `http://127.0.0.1:${b.port}`;
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -41,7 +41,7 @@ export function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-async function call(b: Backend, path: string, init: RequestInit = {}): Promise<unknown> {
+export async function call(b: Backend, path: string, init: RequestInit = {}): Promise<unknown> {
   const res = await fetch(base(b) + path, {
     ...init,
     headers: {

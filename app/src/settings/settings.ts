@@ -6,9 +6,24 @@ export interface Settings {
   readonly color: string;
   readonly lineHeight: number;
   readonly zhFirst: boolean;
+  /** Folder for screenshots and burned-in videos. Empty means the app's own folder. */
+  readonly outputDir: string;
+  /** Whether S puts the subtitle into the picture. Shift+S does the opposite. */
+  readonly burnShots: boolean;
+  /** Whether a fullscreen video shows the subtitle over the picture instead of below it. */
+  readonly fsOverlay: boolean;
 }
 
-export const DEFAULTS: Settings = { mode: "both", fontSize: 24, color: "#ffffff", lineHeight: 1.4, zhFirst: true };
+export const DEFAULTS: Settings = {
+  mode: "both",
+  fontSize: 24,
+  color: "#ffffff",
+  lineHeight: 1.4,
+  zhFirst: true,
+  outputDir: "",
+  burnShots: false,
+  fsOverlay: false,
+};
 export const KEY = "vst.settings.v1";
 
 const clamp = (v: unknown, lo: number, hi: number, fallback: number) =>
@@ -29,5 +44,8 @@ export function parseSettings(raw: string | null): Settings {
     color: typeof o["color"] === "string" && /^#[0-9a-f]{6}$/i.test(o["color"]) ? o["color"] : DEFAULTS.color,
     lineHeight: clamp(o["lineHeight"], 1, 2.2, DEFAULTS.lineHeight),
     zhFirst: typeof o["zhFirst"] === "boolean" ? o["zhFirst"] : DEFAULTS.zhFirst,
+    outputDir: typeof o["outputDir"] === "string" ? o["outputDir"] : DEFAULTS.outputDir,
+    burnShots: typeof o["burnShots"] === "boolean" ? o["burnShots"] : DEFAULTS.burnShots,
+    fsOverlay: typeof o["fsOverlay"] === "boolean" ? o["fsOverlay"] : DEFAULTS.fsOverlay,
   };
 }

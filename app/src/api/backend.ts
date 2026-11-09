@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { type UnlistenFn, listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { Backend } from "./client";
 
 export type BackendStatus =
@@ -33,4 +34,25 @@ export function pickVideo(): Promise<string | null> {
  */
 export function saveExport(name: string, content: string): Promise<string | null> {
   return invoke("save_export", { name, content });
+}
+
+/** Opens the native folder dialog and returns the folder picked or null. */
+export function pickFolder(): Promise<string | null> {
+  return invoke("pick_folder");
+}
+
+/** Shows a file in Explorer, or opens a folder. */
+export function openFolder(path: string): Promise<void> {
+  return invoke("open_folder", { path });
+}
+
+/** Calls `onDrop` with the paths of files dropped on the window, and `onOver` while a drag is over it. */
+export async function watchDrops(onDrop: (paths: string[]) => void, onOver: (over: boolean) => void): Promise<UnlistenFn> {
+  return getCurrentWebview().onDragDropEvent((e) => {
+    const p = e.payload;
+    if (p.type === "drop") {
+      onOver(false);
+      onDrop(p.paths);
+    } else onOver(p.type !== "leave");
+  });
 }

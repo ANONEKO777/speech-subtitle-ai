@@ -4,15 +4,24 @@ import { saveExport } from "../api/backend";
 import type { Backend } from "../api/client";
 import { type ExportItem } from "./exports";
 
+/** A menu entry that starts something instead of saving a file. */
+export interface ExportAction {
+  readonly id: string;
+  readonly label: string;
+  readonly run: () => void;
+  readonly disabled?: boolean;
+}
+
 interface Props {
   readonly backend: Backend;
   readonly projectId: string;
   readonly items: readonly ExportItem[];
+  readonly actions?: readonly ExportAction[];
   /** Reports the outcome in the panel's status line. */
   readonly onResult: (message: string) => void;
 }
 
-export function ExportMenu({ backend, projectId, items, onResult }: Props) {
+export function ExportMenu({ backend, projectId, items, actions = [], onResult }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -75,6 +84,21 @@ export function ExportMenu({ backend, projectId, items, onResult }: Props) {
               onClick={() => void run(item)}
             >
               {item.label}
+            </button>
+          ))}
+          {actions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              role="menuitem"
+              data-testid={`export-${action.id}`}
+              disabled={action.disabled}
+              onClick={() => {
+                setOpen(false);
+                action.run();
+              }}
+            >
+              {action.label}
             </button>
           ))}
         </div>

@@ -21,6 +21,7 @@ from backend.core.cue_edits import CueProblem
 from backend.core.languages import ENGLISH, LANGUAGES, get
 from backend.core.model import Cue, FormatError, Project, Step, StepStatus
 from backend.core.pipeline import PROJECT_JSON, File, save_edited_cues
+from backend.core.playback import Playback, read_playback, shift_cues, write_playback
 from backend.core.subtitle_io import (
     RenderLang,
     parse_project,
@@ -144,6 +145,8 @@ class ProjectStore:
         if fmt == "ass" and lang != "bilingual":
             raise ValueError("ass is only available as bilingual")
         cues = self.cues(pid, code)
+        if fmt != "json":
+            cues = shift_cues(cues, read_playback(info.folder).offset_ms)
         match fmt:
             case "srt":
                 return render_srt(cues, lang)
@@ -192,3 +195,34 @@ class ProjectStore:
         info = self.info(pid)
         lang = get(target or info.project.active_lang)
         return [c.id for c in cue_edits.applied(info.folder, lang)]
+
+    def ids(self) -> list[str]:
+        """The id of every project on disk."""
+        if not self.root.is_dir():
+            return []
+        return [d.name for d in self.root.iterdir() if _ID.fullmatch(d.name)]
+
+    def playback(self, pid: str) -> Playback:
+        return read_playback(self.folder(pid))
+
+    def save_playback(self, pid: str, state: Playback) -> None:
+        write_playback(self.folder(pid), state)
+
+    def translated_langs(self, pid: str) -> list[str]:
+        info = self.info(pid)
+        return [
+            lang
+            for lang, states in info.project.languages().items()
+            if states[Step.TRANSLATE].status is StepStatus.DONE
+        ]
+
+    def length_s(self, pid: str) -> float:
+        """The video's length as the player last reported it, else where its last cue ends."""
+        seen = self.playback(pid).duration_s
+        if seen > 0:
+            return seen
+        try:
+            cues = parse_subs(read_text_file(self.folder(pid) / File.SUBS_EN))
+        except (OSError, FormatError):
+            return 0.0
+        return cues[-1].end_ms / 1000 if cues else 0.0

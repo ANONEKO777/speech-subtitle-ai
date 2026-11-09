@@ -1,6 +1,6 @@
-import { Captions, Film, LoaderCircle, TriangleAlert, X } from "lucide-react";
+import { Captions, Film, Home, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
+import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
   ApiError,
   type Backend,
@@ -13,10 +13,13 @@ import {
   fetchProject,
   startJob,
 } from "./api/client";
+import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
 import { ImportPanel } from "./import/ImportPanel";
+import { Library } from "./player/Library";
 import { Player } from "./player/Player";
+import { QUEUE_KEY, dequeue, enqueue, neighbour, parseQueue, playing, pruned } from "./player/queue";
 import { ProgressBar } from "./progress/ProgressBar";
 import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
@@ -34,6 +37,7 @@ type Screen =
       readonly languages: readonly LanguageInfo[];
       readonly lang: string;
       readonly loaded: Loaded;
+      readonly playback: Playback;
       readonly notice: string | null;
     };
 
@@ -95,6 +99,10 @@ export function App() {
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
+  const [queue, setQueue] = useState(() => parseQueue(localStorage.getItem(QUEUE_KEY)));
+  const [library, setLibrary] = useState<readonly LibraryItem[]>([]);
+  const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const [dropping, setDropping] = useState(false);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -103,6 +111,7 @@ export function App() {
   }, []);
 
   useEffect(() => localStorage.setItem(KEY, JSON.stringify(settings)), [settings]);
+  useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
   useEffect(() => {
@@ -116,10 +125,15 @@ export function App() {
 
   const show = useCallback(
     async (b: Backend, videoPath: string, projectId: string, notice: string | null = null) => {
-      const [project, known] = await Promise.all([fetchProject(b, projectId), fetchLanguages(b)]);
+      const [project, known, playback] = await Promise.all([
+        fetchProject(b, projectId),
+        fetchLanguages(b),
+        fetchPlayback(b, projectId).catch(() => NO_PLAYBACK),
+      ]);
       const languages = project.translatedLangs.flatMap((code) => known.filter((l) => l.code === code));
       const lang = languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
-      setScreen({ kind: "playing", videoPath, projectId, languages, lang, loaded: await load(b, projectId, lang), notice });
+      setScreen({ kind: "playing", videoPath, projectId, languages, lang, loaded: await load(b, projectId, lang), playback, notice });
+      setQueue((q) => playing(q, projectId));
     },
     [load],
   );
@@ -156,6 +170,62 @@ export function App() {
     [backend, show],
   );
 
+  const screenKind = screen.kind;
+  const playingId = screen.kind === "playing" ? screen.projectId : null;
+  useEffect(() => {
+    if (!backend || screenKind === "importing") return;
+    let alive = true;
+    void Promise.all([fetchLibrary(backend), fetchLanguages(backend)]).then(
+      ([items, known]) => {
+        if (!alive) return;
+        setLibrary(items);
+        setLanguageNames(new Map(known.map((l) => [l.code, shortName(l.nativeName)])));
+        setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [backend, screenKind, playingId]);
+
+  useEffect(() => {
+    if (!backend) return;
+    let stop: (() => void) | undefined;
+    void watchDrops(
+      (paths) => {
+        const path = paths[0];
+        if (path) void startImport(path);
+      },
+      setDropping,
+    ).then((s) => (stop = s));
+    return () => stop?.();
+  }, [backend, startImport]);
+
+  const playItem = useCallback((item: LibraryItem) => void startImport(item.videoPath), [startImport]);
+  const stepVideo = useCallback(
+    (dir: 1 | -1) => {
+      const id = neighbour(queue, dir);
+      const item = library.find((i) => i.id === id);
+      if (item) playItem(item);
+    },
+    [queue, library, playItem],
+  );
+  const patchSettings = useCallback((patch: Partial<typeof settings>) => setSettings((s) => ({ ...s, ...patch })), []);
+  const libraryView = backend && (
+    <Library
+      backend={backend}
+      items={library}
+      queue={queue}
+      currentId={playingId}
+      names={languageNames}
+      onPlay={playItem}
+      onEnqueue={(id) => setQueue((q) => enqueue(q, id))}
+      onDequeue={(id) => setQueue((q) => dequeue(q, id))}
+      onQueueAll={() => setQueue((q) => library.reduce((acc, i) => enqueue(acc, i.id), q))}
+    />
+  );
+
   const importing = screen.kind === "importing" ? screen : null;
   const finishImport = useCallback(
     (edits: EditsReport) => {
@@ -172,6 +242,21 @@ export function App() {
   return (
     <div className="app">
       <header>
+        {screen.kind !== "idle" && (
+          <div className="tool-icons">
+            <button
+              type="button"
+              className="ghost icon-only"
+              data-testid="home"
+              title="回到媒體庫"
+              aria-label="媒體庫"
+              onClick={() => setScreen({ kind: "idle" })}
+              disabled={screen.kind === "importing"}
+            >
+              <Home className="icon" aria-hidden />
+            </button>
+          </div>
+        )}
         <ImportPanel busy={!backend || screen.kind === "importing"} onImport={(p) => void startImport(p)} />
         {screen.kind === "playing" && (
           <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
@@ -190,16 +275,19 @@ export function App() {
           </pre>
         )}
         {screen.kind === "idle" && !screen.error && backend && (
-          <div className="empty" data-testid="ready">
-            <span className="empty-mark">
-              <Captions aria-hidden />
-            </span>
-            <h1>匯入一部演講影片</h1>
-            <p>貼上影片路徑或按「選擇檔案」，再按「匯入」。</p>
-            <span className="status-pill">
-              <span className="dot" />
-              後端已就緒
-            </span>
+          <div className="home">
+            <div className="empty" data-testid="ready">
+              <span className="empty-mark">
+                <Captions aria-hidden />
+              </span>
+              <h1>匯入一部演講影片</h1>
+              <p>貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。</p>
+              <span className="status-pill">
+                <span className="dot" />
+                後端已就緒
+              </span>
+            </div>
+            {library.length > 0 && <div className="home-library">{libraryView}</div>}
           </div>
         )}
         {screen.kind === "idle" && screen.error && (
@@ -222,9 +310,20 @@ export function App() {
             onLang={(code) => void showLang(code)}
             loaded={screen.loaded}
             notice={screen.notice}
+            playback={screen.playback}
+            hasPrevVideo={neighbour(queue, -1) !== null}
+            hasNextVideo={neighbour(queue, 1) !== null}
+            onStep={stepVideo}
+            onSettings={patchSettings}
+            library={libraryView}
           />
         )}
       </main>
+      {dropping && (
+        <div className="drop-hint" data-testid="drop-hint">
+          放開滑鼠，匯入這個檔案
+        </div>
+      )}
     </div>
   );
 }
