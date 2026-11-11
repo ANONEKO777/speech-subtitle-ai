@@ -16,3 +16,9 @@ The rules above are the ones the 60-sentence probe ran with. The rules below are
 - A product name the ASR wrote in katakana is the product, not a phrase to translate. ビジュアルスタジオコード is Visual Studio Code, written in Latin letters.
 
 `backend/core/zh_tw.py` `_TERMS` already replaces 代碼 and 插件. It has no entry for 倉庫, 流水線, 運營 or 元數據, and its 數據 rule would turn 元數據 into 元資料, which is also wrong in Taiwan. Add entries for the four.
+
+The 36 rows that a second independent reader read afterwards (rows 3 and 5 to 9, 12 to 14, 17 to 20, 22, 24 to 26, 28, 31 to 34, 37 to 41, 43, 44, 46 to 48, 53, 57, 58, 60) added these errors. Rows 52 and 55 are the only two that no second reader has seen. This is still one model's reading. No human read them.
+
+- Say 原始碼 for source code, not 源碼. Both prompts wrote 源碼 in row 17, and the candidate wrote it in row 12. Add 源碼 to `_TERMS` beside the four entries above (it has 源代碼 only).
+- 間口が広い means a low barrier to entry, not a wide area. Row 48 became 廣闊的主題公園模式 (current) and 廣闊主題公園模式 (candidate), which loses the meaning. Rows 56 and 57 (the same sentence sampled twice) turned いつでもイン into 隨時可以內建 (current, meaningless) and 在線上 (candidate, a guess).
+- Keep a name the ASR garbled as the name the context gives, not as a literal copy. Row 11 current wrote "Power Hoast" for パワーホスト (the candidate wrote "PowerHost" in a garbled sentence). Row 22 current kept the ASR token アプロジ as "APPROJ". Both need the glossary.
