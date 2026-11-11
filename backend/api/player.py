@@ -167,6 +167,7 @@ def list_projects(request: Request) -> dict[str, Any]:
                     "title": video.stem,
                     "exists": video.is_file(),
                     "langs": langs,
+                    "source_lang": store.info(pid).project.source_lang,
                     "duration_s": store.length_s(pid),
                     "position_s": state.position_s,
                     "opened_at_ms": state.opened_at_ms,

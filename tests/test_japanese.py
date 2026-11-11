@@ -695,6 +695,26 @@ class TestCueJsonForTheUi:
         sent = [{k: c[k] for k in ("id", "start_ms", "end_ms", "en", "zh")} for c in cues]
         assert client.put(f"/api/projects/{pid}/subtitles", json={"cues": sent}).status_code == 200
 
+    def test_editing_the_japanese_line_is_refused_with_the_code_the_ui_maps(
+        self, tmp_path: Path
+    ) -> None:
+        client, pid = self.japanese_client(tmp_path, "ja")
+        cues = client.get(f"/api/projects/{pid}/subtitles?lang=bilingual&format=json").json()[
+            "cues"
+        ]
+        sent = [{k: c[k] for k in ("id", "start_ms", "end_ms", "en", "zh")} for c in cues]
+        sent[0]["en"] = sent[0]["en"] + "あ"
+        res = client.put(f"/api/projects/{pid}/subtitles", json={"cues": sent})
+        assert res.status_code == 422
+        (problem,) = res.json()["detail"]["problems"]
+        assert problem["code"] == "english_changed" and "Japanese" in problem["message"]
+
+    def test_the_library_says_which_language_each_video_is_in(self, tmp_path: Path) -> None:
+        for source in ("ja", "en"):
+            client, pid = self.japanese_client(tmp_path / source, source)
+            (item,) = client.get("/api/projects").json()["projects"]
+            assert item["id"] == pid and item["source_lang"] == source
+
     def test_the_files_on_disk_do_not_carry_the_alias(self, tmp_path: Path) -> None:
         client, pid = self.japanese_client(tmp_path, "ja")
         folder = Path(client.get(f"/api/projects/{pid}").json()["folder"])
