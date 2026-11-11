@@ -312,10 +312,11 @@ async function editChecks(prefix, folder, { japanese }) {
 
   const next = await startOf(n + 1);
   const cur = await startOf(n);
+  const overlapEnd = Math.min(next + 400, cur + 6900);
   const diskBefore = readFileSync(join(folder, "subs.zh-TW.json"), "utf8");
   await beginEdit(n);
   const cases = [
-    ["overlap", clock(next + 400), "重疊"],
+    ["overlap", clock(overlapEnd), "重疊"],
     ["too long", clock(cur + 7600), "7 秒"],
     ["end before start", clock(cur - 500), "早於"],
   ];
