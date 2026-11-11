@@ -84,8 +84,9 @@ class SourceLanguage:
     mends_glossary: bool
     """The glossary terms are written in the source's own script, so a translation that copies one
     is mended with the term's fixed translation."""
-    repair: Callable[[str], str]
-    """What is done to a translation that failed every attempt, before it is checked once more."""
+    repair: Callable[[str], str] | None
+    """What is done to a translation that failed every attempt, before it is checked once more
+    without its length. None keeps the source text in its place."""
     fonts: tuple[str, ...]
     """The families a burned-in subtitle may write the source text in, best first."""
 
@@ -204,7 +205,7 @@ ENGLISH_SOURCE = SourceLanguage(
     _no_problem,
     _identity,
     False,
-    _identity,
+    None,
     ("Arial",),
 )
 JAPANESE_SOURCE = SourceLanguage(

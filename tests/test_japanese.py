@@ -725,3 +725,28 @@ class TestGlossaryMending:
         request = build_request(cues, Batch((Unit(0, 1),)), glossary, 5, ZH_TW)
         text = reply([1], "這是給建造者的 tool。")
         assert parse_reply(text, request, cues, glossary, ZH_TW) == {1: "這是給建造者的 tool。"}
+
+
+class TestLastResort:
+    LONG = "這是一個很長的回覆，說明了很多原文沒有的內容，而且遠遠超過這一句話本來的長度，所以通常會被拒絕。"
+
+    @staticmethod
+    def ask(text: str, cues: list[Cue], source: translate.SourceLanguage) -> list[Cue]:
+        stubborn = json.dumps({"translations": [{"id": 1, "zh": text}]}, ensure_ascii=False)
+        return translate.run(
+            cues,
+            lambda messages, temperature: stubborn,
+            batch_size=1,
+            max_retries=1,
+            sleep=lambda _: None,
+            keep_english=True,
+            source=source,
+        )
+
+    def test_a_long_japanese_translation_is_kept_over_the_japanese(self) -> None:
+        done = self.ask(self.LONG, [Cue(1, 0, 1000, "はい。", lang="ja")], JAPANESE_SOURCE)
+        assert done[0].zh == self.LONG
+
+    def test_an_english_cue_that_fails_keeps_its_english(self) -> None:
+        done = self.ask(self.LONG, [Cue(1, 0, 1000, "Yes.")], ENGLISH_SOURCE)
+        assert done[0].zh == "Yes."

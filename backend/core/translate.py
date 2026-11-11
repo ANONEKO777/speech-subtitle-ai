@@ -10,7 +10,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import cast
 
-from backend.core.languages import DEFAULT, Language
+from backend.core.languages import DEFAULT, Density, Language
 from backend.core.model import Cue, FormatError
 from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
@@ -528,14 +528,18 @@ class _Run:
 
     def repaired(self, batch: Batch, reply: str) -> dict[int, str] | None:
         """The last reply of a cue that failed every attempt, after the source language's repair
-        (a name left in kana is written in Latin letters), when that makes it pass. English has no
-        repair, so it keeps its English."""
+        (a name left in kana is written in Latin letters), when it then passes the checks of the
+        script. Its length is not checked: a translation that runs long serves a reader better
+        than the Japanese does. English has no repair, so it keeps its English."""
         source = self.source
+        if source.repair is None:
+            return None
+        repair = source.repair
 
         def clean(text: str) -> str:
-            return source.repair(source.clean(text))
+            return repair(source.clean(text))
 
-        mended = replace(source, clean=clean)
+        mended = replace(source, clean=clean, density=Density(1000.0, 10_000, 0.0))
         request = build_request(self.cues, batch, self.glossary, self.context, self.lang, mended)
         try:
             return parse_reply(reply, request, self.cues, self.glossary, self.lang, mended)
