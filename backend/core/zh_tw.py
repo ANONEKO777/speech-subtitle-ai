@@ -156,3 +156,29 @@ JAPANESE_ONLY = (
 
 def japanese_only_chars(text: str) -> list[str]:
     return sorted(set(text) & JAPANESE_ONLY)
+
+
+_SHINJITAI_PAIRS = (
+    "気氣続續売賣録錄変變圧壓戦戰営營拡擴担擔検檢験驗険險剣劍県縣済濟参參児兒処處単單実實属屬帰歸"
+    "弾彈恵惠悩惱応應荘莊称稱徴徵総總緑綠経經絵繪継繼絶絕覚覺観觀触觸証證訳譯読讀説說軽輕転轉辺邊"
+    "遅遲郷鄉酔醉釈釋鉄鐵鋭銳関關闘鬥随隨隠隱雑雜頼賴顕顯駅驛騒騷髄髓麺麵黒黑齢齡歯齒竜龍糸絲縄繩"
+    "圏圈塁壘壊壞壌壤増增壱壹奨獎嬢孃寛寬寝寢旧舊図圖価價倹儉偽僞剤劑勧勸励勵効效勲勳区區医醫卒卒"
+    "厳嚴呉吳変變嘆嘆団團囲圍堕墮塩鹽増增声聲壮壯寿壽対對尽盡届屆岳嶽峡峽崎崎帯帶幣幣庁廳広廣庵庵"
+    "従從徳德懐懷戸戶挙舉拠據拝拜揺搖摂攝撃擊数數斉齊条條栄榮桜櫻楽樂様樣権權欠缺歓歡歩步残殘殴毆"
+    "毎每浄淨渋澀渓溪済濟湾灣潜潛瀬瀨炉爐焼燒犠犧猟獵獣獸獲獲琢琢画畫異異疎疏療療砕碎碑碑礼禮禅禪"
+    "秘祕穏穩窃竊窓窗粋粹糧糧紀紀紹紹繊纖罰罰聴聽肉肉脳腦臓臟艶艷荘莊薬藥蔵藏虫蟲蛍螢衛衛装裝褒褒"
+    "会會点點国國学學発發当當万萬与與両兩亜亞悪惡覧覽訪訪設設説說謡謠豊豐賛贊践踐軟軟輸輸辞辭迫迫逓遞進進遊遊運運違違遺遺選選郵郵都都鉱礦録錄"
+    "鍵鍵鎮鎮閉閉開開間間関關陥陷陰陰隣鄰雇僱霊靈静靜頭頭顔顏類類験驗鶏雞麦麥"
+)
+SHINJITAI: dict[str, str] = {
+    new: old
+    for new, old in zip(_SHINJITAI_PAIRS[0::2], _SHINJITAI_PAIRS[1::2], strict=True)
+    if new != old and (new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY)
+}
+"""Kanji Japanese writes in its own way, and the Simplified characters that are the same
+character, with the Traditional character Taiwan writes. A model copies them from the Japanese,
+and retrying seldom makes it stop."""
+
+
+def traditional_from_japanese(text: str) -> str:
+    return text.translate(str.maketrans(SHINJITAI))

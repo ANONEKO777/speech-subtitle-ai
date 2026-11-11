@@ -18,6 +18,7 @@ from test_summarize import good_map, good_reduce
 
 from backend.core import summarize, translate, unspaced
 from backend.core.fonts import FontMissing, Lookup, burn_font, file_covers, windows_coverage
+from backend.core.kana import romanize_katakana
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, FormatError, Project, Segment, Step, Word
 from backend.core.pipeline import STEPS, Settings, derive_key, run
@@ -46,9 +47,14 @@ from backend.core.translate import (
 )
 from backend.core.vad import Chunk
 from backend.core.zh_tw import (
+    JAPANESE_ONLY,
+    SHINJITAI,
+    SIMPLIFIED_ONLY,
+    in_big5,
     japanese_only_chars,
     taiwan_terms,
     taiwan_terms_from_japanese,
+    traditional_from_japanese,
 )
 from backend.engines.chunks import transcribe_chunks
 from backend.engines.whispercpp import WhisperCppEngine
@@ -359,8 +365,8 @@ class TestJapaneseOutputChecks:
 
     def test_japanese_kanji_forms_are_refused(self) -> None:
         with pytest.raises(ReplyError, match="Japanese kanji"):
-            check("ゲームを続けます。", "繼續遊戲，続下去。")
-        assert japanese_only_chars("気売続") == ["売", "気", "続"]
+            check("ゲームを働かせます。", "讓遊戲運作，働下去。")
+        assert japanese_only_chars("気売働") == ["働", "売", "気"]
         assert japanese_only_chars("氣賣續") == []
 
     def test_simplified_characters_are_still_refused(self) -> None:
@@ -635,3 +641,68 @@ class TestProjectStore:
         problems = cue_edits.check(before, [replace(before[0], src="別の")])
         assert [p.code for p in problems] == ["english_changed"]
         assert "Japanese" in problems[0].message
+
+
+class TestRepairs:
+    @pytest.mark.parametrize(
+        ("kana", "latin"),
+        [
+            ("コントモキ", "Kontomoki"),
+            ("セレック", "Serekku"),
+            ("パフォース", "Pafosu"),
+            ("ジュニア", "Junia"),
+            ("ビジュアル", "Bijuaru"),
+            ("ファイル", "Fairu"),
+            ("コンピューター", "Konpyuta"),
+            ("ニッポン", "Nippon"),
+        ],
+    )
+    def test_katakana_in_latin_letters(self, kana: str, latin: str) -> None:
+        assert romanize_katakana(kana) == latin
+
+    def test_only_katakana_is_romanised(self) -> None:
+        assert romanize_katakana("我是コン智樹。") == "我是Kon智樹。"
+
+    def test_japanese_kanji_forms_are_written_the_traditional_way_without_a_retry(self) -> None:
+        assert check("登録ができます。", "可以登録了。") == {1: "可以登錄了。"}
+        assert traditional_from_japanese("気続売録会点国") == "氣續賣錄會點國"
+
+    def test_every_table_entry_is_a_japanese_form_with_a_big5_traditional_character(self) -> None:
+        assert len(SHINJITAI) > 100
+        for new, old in SHINJITAI.items():
+            assert new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY, new
+            assert in_big5(old) and old not in JAPANESE_ONLY and old not in SIMPLIFIED_ONLY, old
+
+    def test_a_name_the_model_keeps_in_kana_is_written_in_letters_after_the_last_attempt(
+        self,
+    ) -> None:
+        cues = [Cue(1, 0, 1000, "コントモキと申します", lang="ja")]
+        stubborn = json.dumps(
+            {"translations": [{"id": 1, "zh": "我是コントモキ。"}]}, ensure_ascii=False
+        )
+        done = translate.run(
+            cues,
+            lambda messages, temperature: stubborn,
+            batch_size=1,
+            max_retries=1,
+            sleep=lambda _: None,
+            keep_english=True,
+            source=JAPANESE_SOURCE,
+        )
+        assert done[0].zh == "我是Kontomoki。"
+
+    def test_a_cue_that_cannot_be_repaired_keeps_its_japanese(self) -> None:
+        cues = [Cue(1, 0, 1000, "と題しまして", lang="ja")]
+        stubborn = json.dumps(
+            {"translations": [{"id": 1, "zh": "と題しまして"}]}, ensure_ascii=False
+        )
+        done = translate.run(
+            cues,
+            lambda messages, temperature: stubborn,
+            batch_size=1,
+            max_retries=1,
+            sleep=lambda _: None,
+            keep_english=True,
+            source=JAPANESE_SOURCE,
+        )
+        assert done[0].zh == "と題しまして"

@@ -496,6 +496,10 @@ class _Run:
         """A cue that failed every attempt keeps its English. The glossary check is never relaxed:
         a language that spells a term differently says so in `Language.spellings`."""
         cue = self.cues[batch.start]
+        if (repaired := self.repaired(batch, exc.reply)) is not None:
+            log.warning("cue %d: kept the last reply after %s", cue.id, exc.reason)
+            self.store(batch, repaired, started, exc.attempts)
+            return
         log.warning(
             "cue %d could not be translated after %d attempts (%s); keeping its English",
             cue.id,
@@ -503,6 +507,22 @@ class _Run:
             exc.reason,
         )
         self.store(batch, {cue.id: cue.src}, started, 0)
+
+    def repaired(self, batch: Batch, reply: str) -> dict[int, str] | None:
+        """The last reply of a cue that failed every attempt, after the source language's repair
+        (a name left in kana is written in Latin letters), when that makes it pass. English has no
+        repair, so it keeps its English."""
+        source = self.source
+
+        def clean(text: str) -> str:
+            return source.repair(source.clean(text))
+
+        mended = replace(source, clean=clean)
+        request = build_request(self.cues, batch, self.glossary, self.context, self.lang, mended)
+        try:
+            return parse_reply(reply, request, self.cues, self.glossary, self.lang, mended)
+        except ReplyError:
+            return None
 
     def store(
         self, batch: Batch, translations: dict[int, str], started: float, attempts: int

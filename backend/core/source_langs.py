@@ -15,10 +15,15 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from backend.core import unspaced
+from backend.core.kana import romanize_katakana
 from backend.core.languages import Density, Language
 from backend.core.model import DEFAULT_SOURCE
 from backend.core.segmenter import CueRules
-from backend.core.zh_tw import japanese_only_chars, taiwan_terms_from_japanese
+from backend.core.zh_tw import (
+    japanese_only_chars,
+    taiwan_terms_from_japanese,
+    traditional_from_japanese,
+)
 
 ENGLISH = DEFAULT_SOURCE
 JAPANESE = "ja"
@@ -76,6 +81,8 @@ class SourceLanguage:
     """The target languages with a worked example and a tested prompt, or None for all."""
     problem: Callable[[str], str | None]
     clean: Callable[[str], str]
+    repair: Callable[[str], str]
+    """What is done to a translation that failed every attempt, before it is checked once more."""
     fonts: tuple[str, ...]
     """The families a burned-in subtitle may write the source text in, best first."""
 
@@ -171,7 +178,8 @@ def _japanese_problem(text: str) -> str | None:
 
 
 def _japanese_clean(text: str) -> str:
-    return taiwan_terms_from_japanese(text.replace(_KATAKANA_MIDDLE_DOT, _MIDDLE_DOT))
+    text = traditional_from_japanese(text.replace(_KATAKANA_MIDDLE_DOT, _MIDDLE_DOT))
+    return taiwan_terms_from_japanese(text)
 
 
 _ENGLISH_SENTENCE_END = re.compile(r"[.?!…][\"')\]”]*\Z")
@@ -192,6 +200,7 @@ ENGLISH_SOURCE = SourceLanguage(
     None,
     _no_problem,
     _identity,
+    _identity,
     ("Arial",),
 )
 JAPANESE_SOURCE = SourceLanguage(
@@ -211,6 +220,7 @@ JAPANESE_SOURCE = SourceLanguage(
     frozenset({"zh-TW"}),
     _japanese_problem,
     _japanese_clean,
+    romanize_katakana,
     ("Yu Gothic", "Meiryo", "MS Gothic"),
 )
 
