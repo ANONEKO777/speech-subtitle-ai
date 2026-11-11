@@ -1,0 +1,20 @@
+{
+ "_note": "Reference text written by one model (Claude) reading the three engines' transcripts of each window and choosing the most plausible wording. No audio was heard. Where all engines agree the reference agrees, so errors shared by all engines are invisible to this reference. It is not ground truth. Kirby windows only; Japanese characters only.",
+ "kirby": [
+  {
+   "start_s": 900,
+   "end_s": 950,
+   "text": "その後はあえて性能を下げて大きく曲がらないようにします。3D空間では距離感がつかみづらいです。この問題に対してディスカバリーでは独自のシステムを入れて解決しました。その説明をする前に、皆さんに質問です。"
+  },
+  {
+   "start_s": 1500,
+   "end_s": 1550,
+   "text": "そして4作目にしてようやく世にお届けできた、実に11年ぶりの据え置きで遊べる本編カービィとなります。その11年の間、絶え間なく実験開発は続きました。"
+  },
+  {
+   "start_s": 2300,
+   "end_s": 2350,
+   "text": "ただ、独立したおまけのサブゲームモードにはしたくありませんでした。いつでもアクションステージと行き来ができ、ステージ攻略の合間にも遊びたくなるモードを目指します。そこでそのモードをマホロアランドというテーマパークとしてまとめました。"
+  }
+ ]
+}
