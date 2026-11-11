@@ -26,6 +26,7 @@ import json
 import random
 import sys
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -183,7 +184,7 @@ def select(all_segments: list[Segment], seed: int) -> list[tuple[str, Segment]]:
         for s in picks:
             taken[s.id] = (stratum, s)
 
-    def free(pred: Any) -> list[Segment]:
+    def free(pred: Callable[[Segment], bool]) -> list[Segment]:
         return [s for s in all_segments if s.id not in taken and pred(s)]
 
     claim("disagree", draw(free(is_disagree), QUOTAS["disagree"], rng))
@@ -232,7 +233,7 @@ def build_manifest(picks: list[tuple[str, Segment]], seed: int) -> dict[str, Any
         }
         for i, (stratum, s) in enumerate(picks)
     ]
-    entries.sort(key=lambda e: e["position"])
+    entries.sort(key=lambda e: int(e["position"]))  # type: ignore[arg-type]
     return {
         "version": 1,
         "seed": seed,
