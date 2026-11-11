@@ -584,3 +584,54 @@ class TestBurnFont:
         path, missing = next(f for f in found if f)
         assert path.is_file() and missing == set()
         assert file_covers(path, "􏿾") == {"􏿾"}
+
+
+class TestJobBody:
+    def test_the_job_body_takes_a_source_language(self) -> None:
+        from backend.api.jobs import JobBody
+
+        options = JobBody(source_lang="ja").options()
+        assert options.source_lang == "ja" and options.target_lang == "zh-TW"
+        assert JobBody().options().source_lang == "en"
+
+    def test_an_unknown_source_or_a_target_it_has_no_prompt_for_is_refused(self) -> None:
+        from pydantic import ValidationError
+
+        from backend.api.jobs import JobBody
+
+        with pytest.raises(ValidationError, match="source language"):
+            JobBody(source_lang="xx")
+        with pytest.raises(ValidationError, match="zh-TW"):
+            JobBody(source_lang="ja", target_lang="ko")
+        assert JobBody(source_lang="en", target_lang="ko").options().target_lang == "ko"
+
+
+class TestProjectStore:
+    def test_a_japanese_project_reads_back_with_its_language_and_keeps_it_when_corrected(
+        self, tmp_path: Path
+    ) -> None:
+        from backend.core.projects import ProjectStore
+
+        video = tmp_path / "talk.mp4"
+        video.write_bytes(b"x")
+        store = ProjectStore(tmp_path / "projects")
+        info, _ = store.create(video)
+        run(video, info.folder, ja_settings(), TestPipeline.ja_fakes().ports())
+        cues = store.cues(info.id)
+        assert cues and all(c.lang == "ja" for c in cues)
+        assert store.info(info.id).project.source_lang == "ja"
+        source = store.subtitles(info.id, "en", "srt")
+        assert source == (info.folder / "ja.srt").read_text(encoding="utf-8")
+        english_lang_cue = replace(cues[0], zh="新的譯文。", lang="en")
+        store.save_cues(info.id, [english_lang_cue, *cues[1:]])
+        saved = store.cues(info.id)
+        assert saved[0].zh == "新的譯文。" and saved[0].lang == "ja"
+        assert (info.folder / "ja.srt").read_text(encoding="utf-8") == source
+
+    def test_an_edit_of_the_japanese_line_is_refused_by_name(self) -> None:
+        from backend.core import cue_edits
+
+        before = [Cue(1, 0, 1000, "日本語", "文字", "ja")]
+        problems = cue_edits.check(before, [replace(before[0], src="別の")])
+        assert [p.code for p in problems] == ["english_changed"]
+        assert "Japanese" in problems[0].message

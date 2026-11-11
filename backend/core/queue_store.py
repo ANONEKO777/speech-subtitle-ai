@@ -203,14 +203,13 @@ class QueueStore:
         audio_s: float | None,
         now_ms: int,
     ) -> QueueItem:
-        """Append an item. The same video from the same language into the same language twice
-        while the first is not finished is a `QueueError`."""
+        """Append an item. The same video into the same language twice while the first is not
+        finished is a `QueueError`, whatever language it is spoken in: a project holds one."""
         with self._lock:
             for item in self.items():
                 if (
                     item.project_id == project_id
                     and item.target_lang == options.target_lang
-                    and item.source_lang == options.source_lang
                     and not item.state.finished
                 ):
                     raise QueueError(f"already in the queue as {item.id} ({item.state.value})")
