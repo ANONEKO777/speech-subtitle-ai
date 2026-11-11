@@ -50,8 +50,7 @@
 
 - kotoba 檔案：`ggml-kotoba-whisper-v2.0.bin`，來源 `huggingface.co/kotoba-tech/kotoba-whisper-v2.0-ggml`，授權 Apache-2.0（模型卡標示），SHA-256 `eff70a8a236e731abba774ba71e1f6d0fce53302137208c32207e694e0bf4546`，放在 `.work/p22/models/`，沒有提交。它的輸出字數比 whisper 少 21%，視窗文字顯示整句漏掉與重複（`E\tables\windows_cedec_texts.txt` 的 1300 s 與 1900 s 視窗）。速度快不能補這個，所以不採用。
 - CER 對 whisper 有利。參考稿是我從三者的共識寫的，而 whisper 的輸出最接近多數寫法。Qwen3 的差距有一部分是它的寫法：「P four」、漢數字、保留「まあ」（CER 已正規化這三項，但標點與其他寫法差異沒有）。所以 4.0% 對 7.5% 只能說「兩者都在 10% 以內，whisper 較低」，不能說差一倍。
-- Qwen3-ASR 每千字有 15.2 個「。」與 20.6 個「、」，whisper 只有 3.9 與 8.8（CEDEC，VAD 切段，`E
-uns\*-cedec-chunks-ja.json` 計數）。whisper 日文的標點很少，句界多半只能靠段落邊界。這影響翻譯單位的切法，見 §5。
+- Qwen3-ASR 每千字有 15.2 個「。」與 20.6 個「、」，whisper 只有 3.9 與 8.8（CEDEC，VAD 切段，`Euns\*-cedec-chunks-ja.json` 計數）。whisper 日文的標點很少，句界多半只能靠段落邊界。這影響翻譯單位的切法，見 §5。
 - 專有名詞兩者都錯：Perforce 被寫成パフォース、パフォッシャ、ビフォ、パフォーシャ，各引擎 15 到 30 次（`E\tables\terms_cedec.md`）。「CEDEC」被寫成「SELECT2」或「セレック」。翻譯需要詞彙表，見 §5。
 - 英文術語（CEDEC，整支 59 分鐘，`E\tables\terms_cedec.md`）：whisper 與 Qwen3 都保留拉丁字母（P4、MCP、AI），不轉片假名。Qwen3 另有 14 處寫成「P four」。kotoba 把 MCP 寫成 MC 或エムシー 9 次。`ChatGPT` 與 `Claude`：Qwen3 寫 ChatGPT 拉丁、クロード片假名，whisper 寫成「チャットGPT」與「クロード」。對翻譯最好的呈現是拉丁字母，所以 Qwen3 後處理要把「P four」改回「P4」。
 
