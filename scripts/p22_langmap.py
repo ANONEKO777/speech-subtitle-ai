@@ -1,10 +1,11 @@
 """P22 lever: the per-segment language map of a two-language talk, and how each approach does on it.
 
-Needs the runs of the `-fine` family: Whisper `-l auto`, `-l ja` and `-l en` on the pause-cut
-segments of `p22_finesegs.py`, plus the whole-file Whisper runs. A segment's label is the majority
-of three votes that do not share a decoder choice: the script of the `-l ja` text, Whisper's own
-language pick on the audio, and the language whose forced decode had the higher mean token
-probability. The labels are one model's reading, and `sample` prints segments to check by eye.
+Needs the runs of the `-fine` family: Whisper `-l auto`, `-l ja` and `-l en` and Qwen3-ASR `-l auto`
+on the pause-cut segments of `p22_finesegs.py`, plus the whole-file Whisper runs. Forcing the wrong
+language makes Whisper translate rather than fail, so the script of a forced decode says nothing
+about what was spoken. The label of a segment is the script of the Qwen3-ASR `-l auto` text, which
+stayed in the spoken language in every segment read by eye. It is one model's reading and it is also
+the reference for the Whisper approaches, so Qwen3-ASR is not scored against itself.
 
     uv run python scripts/p22_langmap.py RUNS_DIR OUT.json
 """
@@ -59,47 +60,65 @@ def label_segments(runs: Path) -> list[Rec]:
     auto = load_chunks(runs / "whisper-kirby-chunks-auto-fine.json")
     ja = load_chunks(runs / "whisper-kirby-chunks-ja-fine.json")
     en = load_chunks(runs / "whisper-kirby-chunks-en-fine.json")
+    qwen = load_chunks(runs / "qwen3-kirby-chunks-auto-lenient-fine.json")
     out: list[Rec] = []
-    for a, j, e in zip(auto, ja, en, strict=True):
-        text_ja, text_en = text_of(j), text_of(e)
+    for a, j, e, q in zip(auto, ja, en, qwen, strict=True):
         lp_ja, lp_en = mean_logp(j), mean_logp(e)
-        votes = {
-            "script_ja_decode": vote(script_of(text_ja)),
-            "whisper_pick": vote(a.get("detected") or ""),
-            "restricted_logp": "ja" if lp_ja > lp_en else "en",
-        }
-        counts = Counter(v for v in votes.values() if v)
-        top, n = counts.most_common(1)[0] if counts else ("none", 0)
-        if not text_ja and not text_en:
-            label, agreement = "none", "empty"
-        elif n >= 2:
-            label, agreement = top, "unanimous" if n == 3 else "majority"
-        else:
-            label, agreement = "unclear", "split"
         out.append(
             {
                 "i": a["index"],
                 "start_ms": a["start_ms"],
                 "end_ms": a["end_ms"],
-                "label": label,
-                "agreement": agreement,
-                "votes": votes,
+                "label": script_of(text_of(q)),
                 "auto_detected": a.get("detected"),
-                "lp_ja": round(lp_ja, 3),
-                "lp_en": round(lp_en, 3),
-                "text_auto": text_of(a),
-                "text_ja": text_ja,
-                "text_en": text_en,
+                "restricted_logp": "ja" if lp_ja > lp_en else "en",
+                "text_qwen3": text_of(q),
+                "text_whisper_ja": text_of(j),
+                "text_whisper_en": text_of(e),
             }
         )
     return out
+
+
+WORD = re.compile(r"[a-z]{4,}")
+
+
+def overlap(a: str, b: str) -> float:
+    x, y = set(WORD.findall(a.lower())), set(WORD.findall(b.lower()))
+    return len(x & y) / max(1, len(x | y))
+
+
+def interpretation_test(rows: list[Rec]) -> dict[str, Any]:
+    """Does a Japanese passage have an English passage just after it that says the same thing?
+
+    The Whisper `-l en` decode of Japanese speech is an English translation of it. It is compared
+    with the Qwen3 English text of the next four segments, and with four segments taken from
+    elsewhere as a baseline."""
+    english = [r["text_qwen3"] if r["label"] == "en" else "" for r in rows]
+    hits: list[float] = []
+    base: list[float] = []
+    for k, r in enumerate(rows):
+        if r["label"] != "ja" or len(r["text_whisper_en"]) < 40:
+            continue
+        near = " ".join(english[k + 1 : k + 5])
+        far = " ".join(english[(k + len(rows) // 2) % len(rows) :][:4])
+        hits.append(overlap(r["text_whisper_en"], near))
+        base.append(overlap(r["text_whisper_en"], far))
+    return {
+        "japanese_segments_tested": len(hits),
+        "median_word_overlap_next_english": round(statistics.median(hits), 3),
+        "median_word_overlap_unrelated_english": round(statistics.median(base), 3),
+        "share_with_overlap_at_least_0.2": round(sum(h >= 0.2 for h in hits) / len(hits), 3),
+        "share_of_baseline_at_least_0.2": round(sum(h >= 0.2 for h in base) / len(base), 3),
+    }
 
 
 def whole_text_in(run: Path, start_ms: int, end_ms: int) -> str:
     out: list[str] = []
     for chunk in load_chunks(run):
         for seg in chunk["segments"]:
-            if start_ms <= (seg["start_ms"] + seg["end_ms"]) // 2 < end_ms:
+            mid = chunk["start_ms"] + (seg["start_ms"] + seg["end_ms"]) // 2
+            if start_ms <= mid < end_ms:
                 out.append(seg["text"])
     return " ".join(out).strip()
 
@@ -136,8 +155,7 @@ def main() -> None:
     rows = label_segments(runs)
     summary: dict[str, Any] = {"segments_total": len(rows)}
     summary["labels"] = Counter(r["label"] for r in rows)
-    summary["agreement"] = Counter(r["agreement"] for r in rows)
-    speech = [r for r in rows if r["label"] in ("ja", "en")]
+    speech = [r for r in rows if r["label"] in ("ja", "en", "mixed")]
     for lang in ("ja", "en"):
         secs = sum(r["end_ms"] - r["start_ms"] for r in speech if r["label"] == lang) / 1000
         summary[f"{lang}_seconds"] = round(secs)
@@ -148,20 +166,23 @@ def main() -> None:
             r["i"]: r["auto_detected"] or "none" for r in rows
         },
         "per-segment restricted to en/ja (forced decodes, higher mean token probability)": {
-            r["i"]: r["votes"]["restricted_logp"] for r in rows
+            r["i"]: r["restricted_logp"] for r in rows
         },
     }
     for name, path in (
         ("whole file -l ja", "whisper-kirby-whole-ja.json"),
         ("whole file -l en", "whisper-kirby-whole-en.json"),
         ("whole file -l auto", "whisper-kirby-whole-auto.json"),
-        ("Qwen3-ASR -l ja (script of text)", "qwen3-kirby-chunks-ja-lenient.json"),
     ):
         file = runs / path
         if file.is_file():
             methods[name] = {
                 r["i"]: script_of(whole_text_in(file, r["start_ms"], r["end_ms"])) for r in rows
             }
+    summary["whisper_pick_not_en_or_ja"] = sum(
+        1 for r in rows if r["label"] in ("ja", "en") and r["auto_detected"] not in ("ja", "en")
+    )
+    summary["interpretation_test"] = interpretation_test(rows)
     summary["methods"] = {name: accuracy(rows, got) for name, got in methods.items()}
     out_path.write_text(
         json.dumps({"summary": summary, "segments": rows}, ensure_ascii=False, indent=1),

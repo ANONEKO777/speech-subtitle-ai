@@ -98,7 +98,7 @@ def _kanji_number(match: re.Match[str]) -> str:
     return str(total + current)
 
 
-def normalise(text: str, *, for_cer: bool = False) -> str:
+def normalise(text: str, *, for_cer: bool = False, ja_only: bool = False) -> str:
     """NFKC, lower case, letters and digits only. With `for_cer`, kanji numbers become digits,
     "four" becomes 4 and the fillers まあ and ええと are dropped, so the score does not punish
     style choices the subtitle step makes anyway."""
@@ -108,6 +108,8 @@ def normalise(text: str, *, for_cer: bool = False) -> str:
             text = text.replace(filler, "")
         text = re.sub("[〇一二三四五六七八九十百千]+", _kanji_number, text)
         text = re.sub(r"four", "4", text)
+    if ja_only:
+        return "".join(c for c in text if "぀" <= c <= "ヿ" or "㐀" <= c <= "鿿")
     return "".join(c for c in text if unicodedata.category(c)[0] in "LN")
 
 
@@ -124,7 +126,11 @@ def edit_distance(ref: str, hyp: str, *, free_hyp_edges: bool = False) -> int:
 
 
 def hyp_text(run: Run, start_ms: int, end_ms: int) -> str:
-    return "".join(u.text for u in run.units if start_ms <= u.start < end_ms)
+    """Text of the units that start in the window, or of the segments centred in it when the
+    aligner gave no units there (CrispASR without --strict-pipeline)."""
+    from_units = "".join(u.text for u in run.units if start_ms <= u.start < end_ms)
+    from_segs = "".join(s.text for s in run.segs if start_ms <= (s.start + s.end) // 2 < end_ms)
+    return from_units if len(from_units) >= 0.5 * len(from_segs) else from_segs
 
 
 LOOP = re.compile(r"(.{2,40}?)\1{3,}")
@@ -205,7 +211,7 @@ def window(run_json: Path, start_s: float, dur_s: float) -> None:
             print(f"[{s.start / 1000:.1f}-{s.end / 1000:.1f}] {s.text}")
 
 
-def cer(ref_json: Path, run_jsons: list[Path]) -> None:
+def cer(ref_json: Path, run_jsons: list[Path], *, ja_only: bool = False) -> None:
     ref = cast("dict[str, list[dict[str, Any]]]", json.loads(ref_json.read_text(encoding="utf-8")))
     for path in run_jsons:
         run = load(path)
@@ -214,11 +220,12 @@ def cer(ref_json: Path, run_jsons: list[Path]) -> None:
         errors = total = 0
         per: list[str] = []
         for w in windows:
-            r = normalise(w["text"], for_cer=True)
+            r = normalise(w["text"], for_cer=True, ja_only=ja_only)
             pad = 3000
             h = normalise(
                 hyp_text(run, int(w["start_s"] * 1000) - pad, int(w["end_s"] * 1000) + pad),
                 for_cer=True,
+                ja_only=ja_only,
             )
             e = edit_distance(r, h, free_hyp_edges=True)
             errors += e
@@ -239,6 +246,11 @@ if __name__ == "__main__":
     elif cmd == "window":
         window(Path(rest[0]), float(rest[1]), float(rest[2]))
     elif cmd == "cer":
-        cer(Path(rest[0]), [Path(p) for p in rest[1:]])
+        flags = [a for a in rest if a.startswith("--")]
+        cer(
+            Path(rest[0]),
+            [Path(p) for p in rest[1:] if not p.startswith("--")],
+            ja_only="--ja-only" in flags,
+        )
     else:
         raise SystemExit(__doc__)

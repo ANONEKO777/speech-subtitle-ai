@@ -14,7 +14,7 @@ from typing import Any
 
 import p22_analyze as analyze
 
-SPLIT = re.compile(r"(?<=[。！？])|(?<=[.!?])\s+(?=[A-Z])")
+SPLIT = re.compile(r"(?<=[。！？])|(?<=[.!?])\s*(?=[A-Z぀-ヿ㐀-鿿])")
 KANA = re.compile("[぀-ヿ]")
 LATIN = re.compile("[A-Za-z]{2,}")
 

@@ -218,13 +218,24 @@ def main() -> int:
         chunks = [vad.Chunk(0, int(wav_seconds(wav) * 1000))]
         paths = [wav]
     bases = [out / f"{tag}.raw{i:04d}" for i in range(len(paths))]
-    command = command_for(
-        args.engine, args.lang, paths, bases, vad_in_engine=args.engine_vad, strict=not args.lenient
-    )
+    batch = 60
+    command: list[str] = []
     sampler = VramSampler()
     started = time.perf_counter()
+    code = 0
     with (out / f"{tag}.log").open("w", encoding="utf-8") as log:
-        code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
+        for first in range(0, len(paths), batch):
+            command = command_for(
+                args.engine,
+                args.lang,
+                paths[first : first + batch],
+                bases[first : first + batch],
+                vad_in_engine=args.engine_vad,
+                strict=not args.lenient,
+            )
+            code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
+            if code != 0:
+                break
     wall = time.perf_counter() - started
     peak = sampler.stop()
     seconds = wav_seconds(wav)
