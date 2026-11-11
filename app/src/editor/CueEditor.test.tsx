@@ -81,8 +81,12 @@ describe("a failed save shows its reason on the cue after the person has typed",
     const source = await screen.findByTestId("edit-source");
     expect(source.textContent).toBe("こんにちは。");
     expect(source.getAttribute("lang")).toBe("ja");
-    fireEvent.keyDown(source, { key: "a" });
+    const reachedPlayer = vi.fn();
+    window.addEventListener("keydown", reachedPlayer);
+    fireEvent.keyDown(source, { key: "x" });
+    window.removeEventListener("keydown", reachedPlayer);
     expect((await screen.findByTestId("edit-error")).textContent).toBe("原文不能修改，只能改譯文和時間");
     expect(fetchImpl).not.toHaveBeenCalled();
+    expect(reachedPlayer).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import type { Cue } from "../player/cues";
 import { BACKEND_PROBLEM, type Draft, formatClock, normalizeText, parseClock } from "./validate";
 
@@ -22,11 +22,14 @@ export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: E
   const root = useRef<HTMLDivElement>(null);
   const over = useRef(false);
   const [typedOnSource, setTypedOnSource] = useState(false);
+  const errorLine = useRef<HTMLParagraphElement>(null);
 
   const startMs = parseClock(start);
   const endMs = parseClock(end);
   const draft = startMs === null || endMs === null ? null : { zh: normalizeText(zh), startMs, endMs };
   const problem = draft === null ? BAD_TIME : (hooks.validate(draft) ?? hooks.refusal ?? (typedOnSource ? SOURCE_LOCKED : null));
+
+  useEffect(() => errorLine.current?.scrollIntoView?.({ block: "nearest" }), [problem]);
 
   const commit = async () => {
     if (over.current || draft === null) return;
@@ -101,14 +104,17 @@ export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: E
         tabIndex={0}
         title="原文是翻譯與摘要的來源，不能在這裡修改"
         onKeyDown={(e) => {
-          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) setTypedOnSource(true);
+          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.stopPropagation();
+            setTypedOnSource(true);
+          }
         }}
         onPaste={() => setTypedOnSource(true)}
       >
         {cue.src}
       </p>
       {problem && (
-        <p className="editor-error" role="alert" data-testid="edit-error">
+        <p className="editor-error" role="alert" data-testid="edit-error" ref={errorLine}>
           {problem}
         </p>
       )}

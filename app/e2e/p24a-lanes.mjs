@@ -355,10 +355,10 @@ async function exportChecks(prefix, folder, stem, source, EDIT) {
   const files = {};
   for (const id of ["srt-en", "srt-zh", "srt-bilingual", "ass", "vtt", "summary"]) {
     await p.click(tid("export-menu"));
-    const before = new Set(readdirSync(exportDir));
+    const since = Date.now() - 500;
     await p.click(tid(`export-${id}`));
     await sleep(1200);
-    files[id] = readdirSync(exportDir).find((f) => !before.has(f)) ?? null;
+    files[id] = readdirSync(exportDir).find((f) => statSync(join(exportDir, f)).mtimeMs >= since) ?? null;
   }
   const text = (id) => (files[id] ? readFileSync(join(exportDir, files[id]), "utf8") : "");
   const ja = source === "ja";
