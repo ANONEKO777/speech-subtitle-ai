@@ -164,6 +164,15 @@ const srcOf = (n) => p.textContent(`${row(n)} .src`);
 const startOf = async (n) => Number(await p.getAttribute(row(n), "data-start"));
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
 const noOverlap = (cues) => cues.every((c, i) => c.end_ms > c.start_ms && (i === 0 || c.start_ms >= cues[i - 1].end_ms));
+const errorVisible = (n) =>
+  p.evaluate((sel) => {
+    const e = document.querySelector(sel);
+    const list = document.querySelector('[data-testid="cue-list"]');
+    if (!e) return false;
+    const a = e.getBoundingClientRect();
+    const b = list.getBoundingClientRect();
+    return a.top >= b.top - 1 && a.bottom <= b.bottom + 1;
+  }, `${row(n)} [data-testid="edit-error"]`);
 const beginEdit = async (n) => {
   await p.dblclick(`${row(n)} button`);
   await p.waitForSelector(`${row(n)} ${tid("cue-editor")}`);
@@ -311,7 +320,9 @@ async function editChecks(prefix, folder, { japanese }) {
   await p.keyboard.type("x");
   await sleep(250);
   const typed = await p.textContent(`${row(n + 2)} ${tid("edit-error")}`).catch(() => null);
-  note(`${prefix} typing on the source line`, typed === "原文不能修改，只能改譯文和時間", `message "${typed}"`);
+  const typedVisible = await errorVisible(n + 2);
+  const offsetAfter = await p.textContent(tid("offset-value"));
+  note(`${prefix} typing on the source line`, typed === "原文不能修改，只能改譯文和時間" && typedVisible && offsetAfter.includes("+0.0"), `message "${typed}", fully inside the cue list ${typedVisible}, the key did not reach the player shortcuts (offset ${offsetAfter})`);
   await review(`${prefix}-edit-source-locked`, `${prefix}: 原文不能在這裡修改`);
   await p.press(`${row(n + 2)} ${tid("edit-text")}`, "Escape").catch(() => undefined);
   await sleep(300);
@@ -333,8 +344,9 @@ async function editChecks(prefix, folder, { japanese }) {
   await p.press(`${row(m)} ${tid("edit-text")}`, "Enter");
   await sleep(700);
   const refused = await p.textContent(`${row(m)} ${tid("edit-error")}`).catch(() => null);
+  const refusedVisible = await errorVisible(m);
   await p.unroute("**/subtitles?*");
-  note(`${prefix} 422 for a changed source line`, intercepted === 1 && refused === "原文不能修改，只能改譯文和時間" && readFileSync(join(folder, "subs.zh-TW.json"), "utf8") === diskPre, `PUT intercepted ${intercepted} time(s), the backend answered 422 english_changed, the window shows "${refused}", disk unchanged`);
+  note(`${prefix} 422 for a changed source line`, intercepted === 1 && refused === "原文不能修改，只能改譯文和時間" && refusedVisible && readFileSync(join(folder, "subs.zh-TW.json"), "utf8") === diskPre, `PUT intercepted ${intercepted} time(s), the backend answered 422 english_changed, the window shows "${refused}", disk unchanged`);
   await review(`${prefix}-edit-422`, `${prefix}: 後端回 422，畫面顯示原因`);
   await p.press(`${row(m)} ${tid("edit-text")}`, "Escape");
   await sleep(300);

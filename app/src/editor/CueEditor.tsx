@@ -29,7 +29,13 @@ export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: E
   const draft = startMs === null || endMs === null ? null : { zh: normalizeText(zh), startMs, endMs };
   const problem = draft === null ? BAD_TIME : (hooks.validate(draft) ?? hooks.refusal ?? (typedOnSource ? SOURCE_LOCKED : null));
 
-  useEffect(() => errorLine.current?.scrollIntoView?.({ block: "nearest" }), [problem]);
+  useEffect(() => {
+    const line = errorLine.current;
+    const list = line?.closest("ol");
+    if (!line || !list) return;
+    const hidden = line.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom;
+    if (hidden > 0) list.scrollTop += hidden;
+  }, [problem]);
 
   const commit = async () => {
     if (over.current || draft === null) return;
