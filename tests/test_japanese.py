@@ -109,6 +109,13 @@ class TestEnglishIsUnchanged:
             == "8f7fb7ae131e06c38d119ce8c02f2763fc592263c312de66298af1787c9f66b2"
         )
 
+    def test_an_english_translation_keeps_the_words_main_leaves_alone(self) -> None:
+        said = "我們看了元數據、源碼與運營的報告。"
+        cues = [Cue(1, 0, 1000, "We read the metadata, source and operations report.")]
+        request = build_request(cues, Batch((Unit(0, 1),)), (), 5, ZH_TW)
+        got = parse_reply(reply([1], said), request, cues, (), ZH_TW)
+        assert got == {1: "我們看了元資料、源碼與運營的報告。"}
+
     def test_english_cue_files_keep_their_layout(self) -> None:
         text = render_subs([Cue(1, 0, 1000, "Hello there.", "你好。")])
         assert json.loads(text)["cues"][0] == {
@@ -399,10 +406,7 @@ class TestTaiwanTerms:
     @pytest.mark.parametrize(
         ("mainland", "taiwan"),
         [
-            ("源碼審查", "原始碼審查"),
             ("源代碼審查", "原始碼審查"),
-            ("運營相關意見", "營運相關意見"),
-            ("五筆元數據", "五筆中繼資料"),
             ("大數據改變了世界", "大數據改變了世界"),
             ("使用者數據", "使用者資料"),
         ],
@@ -416,12 +420,40 @@ class TestTaiwanTerms:
             ("針對P4的倉庫進行審查", "針對P4的儲存庫進行審查"),
             ("大規模倉庫", "大規模儲存庫"),
             ("與資產流水線整合", "與資產管線整合"),
+            ("源碼審查", "原始碼審查"),
+            ("運營相關意見", "營運相關意見"),
+            ("運營商的網路", "運營商的網路"),
+            ("資源碼", "資源碼"),
+            ("元資料與原始碼", "中繼資料與原始碼"),
+            ("單元資料", "單元資料"),
             ("物流倉庫的貨物", "物流倉庫的貨物"),
             ("汽車生產流水線", "汽車生產流水線"),
         ],
     )
     def test_terms_only_a_japanese_talk_needs(self, mainland: str, taiwan: str) -> None:
         assert taiwan_terms_from_japanese(mainland) == taiwan
+
+    @pytest.mark.parametrize(
+        ("said", "main_wrote"),
+        [
+            ("源碼審查", "源碼審查"),
+            ("運營相關意見", "運營相關意見"),
+            ("運營商的網路", "運營商的網路"),
+            ("元數據與資料", "元資料與資料"),
+            ("我們看了元數據、源碼與運營的報告。", "我們看了元資料、源碼與運營的報告。"),
+        ],
+    )
+    def test_an_english_translation_gets_what_main_gave_it(
+        self, said: str, main_wrote: str
+    ) -> None:
+        assert taiwan_terms(said) == main_wrote
+        assert ZH_TW.terms(said) == main_wrote
+        assert ZH_TW.clean(said, "We reviewed the source and the metadata.") == main_wrote
+
+    def test_a_japanese_translation_gets_these_terms(self) -> None:
+        said = "元數據、源碼與運營"
+        cleaned = JAPANESE_SOURCE.clean(ZH_TW.clean(said, "メタデータ"))
+        assert cleaned == "中繼資料、原始碼與營運"
 
     def test_english_translations_keep_their_warehouse(self) -> None:
         said = "我們把資料放進倉庫，再走流水線。"
