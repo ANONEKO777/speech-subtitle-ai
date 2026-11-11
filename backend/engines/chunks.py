@@ -11,6 +11,7 @@ from pathlib import Path
 from backend.core.audio import SAMPLE_RATE, wav_duration_ms
 from backend.core.model import Segment, Word
 from backend.core.segmenter import merge_words
+from backend.core.source_langs import is_spaced
 from backend.core.vad import Chunk
 from backend.engines.base import (
     ASREngine,
@@ -56,7 +57,9 @@ def transcribe_chunks(
         results = engine.transcribe_many(paths, language, progress_cb, cancel)
     per_chunk = [_place(chunk, segments) for chunk, segments in zip(chunks, results, strict=True)]
     trimmed = trim_overlaps(chunks, per_chunk)
-    repaired = [capitalize_pronoun_i(words) for words in repair_boundaries(chunks, trimmed)]
+    repaired = trimmed
+    if is_spaced(language):
+        repaired = [capitalize_pronoun_i(words) for words in repair_boundaries(chunks, trimmed)]
     return merge_words([segment_of(words, words[0].start_ms, 0) for words in repaired if words])
 
 

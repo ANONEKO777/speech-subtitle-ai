@@ -25,8 +25,18 @@ from backend.core import cue_edits, summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
 from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
 from backend.core.languages import get as get_language
-from backend.core.model import Cue, Project, Segment, Step, StepState, StepStatus, Word
+from backend.core.model import (
+    DEFAULT_SOURCE,
+    Cue,
+    Project,
+    Segment,
+    Step,
+    StepState,
+    StepStatus,
+    Word,
+)
 from backend.core.segmenter import CueRules, to_cues
+from backend.core.source_langs import SourceLanguage, get_source
 from backend.core.subtitle_io import (
     parse_project,
     parse_subs,
@@ -49,14 +59,12 @@ PROJECT_JSON = "project.json"
 
 
 class File(StrEnum):
-    """The file names in a project folder that do not depend on the target language. The others
-    are `Language.files`."""
+    """The file names in a project folder that depend on neither language. The others are
+    `Language.files` and `SourceLanguage.files`."""
 
     AUDIO = "audio.wav"
     CHUNKS = "chunks.json"
     WORDS = "segments.json"
-    SUBS_EN = "subs.en.json"
-    EN_SRT = "en.srt"
     SUMMARY_EN = summarize.ENGLISH_SUMMARY_FILE
     AUDIO_STAMP = "audio.wav.src.json"
 
@@ -86,20 +94,35 @@ class Settings:
     asr_identity: str
     vad_identity: str
     llm_identity: str
-    language: str = "en"
+    source_lang: str = DEFAULT_SOURCE
     vad: VadParams = field(default_factory=VadParams)
-    cues: CueRules = field(default_factory=CueRules)
+    cues: CueRules | None = None
+    """The cue rules. None takes the source language's own."""
     glossary: tuple[GlossaryEntry, ...] = DEFAULT_GLOSSARY
     target_lang: str = DEFAULT_CODE
     summary_en: bool = False
     batch_size: int = BATCH_SIZE
 
     def __post_init__(self) -> None:
-        get_language(self.target_lang)
+        source = get_source(self.source_lang)
+        if not source.supports(self.lang):
+            allowed = ", ".join(sorted(source.targets or ()))
+            raise ValueError(
+                f"{source.name} speech can be translated into {allowed} for now, "
+                f"not {self.target_lang}"
+            )
 
     @property
     def lang(self) -> Language:
         return get_language(self.target_lang)
+
+    @property
+    def source(self) -> SourceLanguage:
+        return get_source(self.source_lang)
+
+    @property
+    def cue_rules(self) -> CueRules:
+        return self.cues or self.source.cues
 
     @property
     def summary_langs(self) -> tuple[str, ...]:
@@ -234,13 +257,13 @@ def _segment(ctx: _Ctx) -> None:
     words = parse_words(_read(ctx, File.WORDS))
     text = " ".join(w.text for w in words)
     segment = Segment(text, words[0].start_ms, words[-1].end_ms, tuple(words))
-    cues = to_cues([segment], ctx.settings.cues)
-    write_text_file(ctx.path(File.SUBS_EN), render_subs(cues))
+    cues = to_cues([segment], ctx.settings.cue_rules, ctx.settings.source_lang)
+    write_text_file(ctx.path(ctx.settings.source.files.subs), render_subs(cues))
 
 
 def _translate(ctx: _Ctx) -> None:
     translate.translate_file(
-        ctx.path(File.SUBS_EN),
+        ctx.path(ctx.settings.source.files.subs),
         ctx.path(ctx.settings.lang.files.subs),
         ctx.llm().translate,
         ctx.settings.glossary,
@@ -248,15 +271,18 @@ def _translate(ctx: _Ctx) -> None:
         on_progress=lambda p: ctx.progress(p.done / max(p.total, 1)),
         keep_english=True,
         lang=ctx.settings.lang,
+        source_lang=ctx.settings.source,
     )
     kept = cue_edits.reapply(ctx.dir, ctx.settings.lang)
     ctx.notes["edits_kept"] = kept.kept
     ctx.notes["edits_unmatched"] = kept.unmatched
 
 
-def write_exports(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
+def write_exports(
+    folder: Path, cues: Sequence[Cue], lang: Language, source: SourceLanguage
+) -> None:
     files = lang.files
-    write_text_file(folder / File.EN_SRT, render_srt(cues, "en"))
+    write_text_file(folder / source.files.srt, render_srt(cues, "en"))
     write_text_file(folder / files.srt, render_srt(cues, "zh"))
     write_text_file(folder / files.ass, render_ass(cues, lang.wrap))
     write_text_file(folder / files.vtt, render_vtt(cues, "bilingual"))
@@ -264,16 +290,17 @@ def write_exports(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
 
 def _export(ctx: _Ctx) -> None:
     lang = ctx.settings.lang
-    write_exports(ctx.dir, parse_subs(_read(ctx, lang.files.subs)), lang)
+    write_exports(ctx.dir, parse_subs(_read(ctx, lang.files.subs)), lang, ctx.settings.source)
 
 
 def _summarize(ctx: _Ctx) -> None:
     summarize.summarize_file(
-        ctx.path(File.SUBS_EN),
+        ctx.path(ctx.settings.source.files.subs),
         ctx.path(ctx.settings.lang.files.summary),
         ctx.llm().summarize,
         ctx.settings.summary_langs,
         ctx.settings.glossary,
+        source_lang=ctx.settings.source,
         on_progress=lambda p: ctx.progress(p.done / max(p.total, 1), p.stage),
         on_degraded=lambda lang: ctx.notes.update(summary_degraded=1),
     )
@@ -288,10 +315,10 @@ def _prompt_digest(*names: str) -> str:
 
 
 @cache
-def _translate_prompt_digest(code: str) -> str:
-    """The digest of the translation prompt as `code` sees it, glossary left unfilled. For the
-    default language it is the digest of the file the prompt was before languages existed."""
-    text = translate.system_prompt_template(get_language(code))
+def _translate_prompt_digest(code: str, source: str) -> str:
+    """The digest of the translation prompt for talks in `source` as `code` sees it, glossary left
+    unfilled."""
+    text = translate.system_prompt_template(get_language(code), get_source(source))
     return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
 
 
@@ -299,6 +326,23 @@ def _lang_key(settings: Settings) -> dict[str, str]:
     """The target language, for the cache keys that depend on it. The default language adds
     nothing, so a project made before languages existed stays cached."""
     return {} if settings.lang.is_default else {"lang": settings.target_lang}
+
+
+def _source_key(settings: Settings) -> dict[str, str]:
+    """The source language, for the cache keys that depend on it. English adds nothing, so a
+    project made before there were other languages stays cached."""
+    return {} if settings.source_lang == DEFAULT_SOURCE else {"source": settings.source_lang}
+
+
+def _rules_key(rules: CueRules) -> dict[str, object]:
+    """The cue rules for a cache key. The two fields that only unspaced text uses are left out
+    while they are at their defaults, so the key of an English project is what it was."""
+    key = asdict(rules)
+    if not rules.unspaced:
+        del key["unspaced"]
+    if rules.max_cps == CueRules().max_cps:
+        del key["max_cps"]
+    return key
 
 
 def _glossary(settings: Settings) -> list[dict[str, str]]:
@@ -340,15 +384,15 @@ STEPS: tuple[_StepSpec, ...] = (
         1,
         (Step.VAD,),
         lambda s: (File.WORDS.value,),
-        lambda s, video: {"engine": s.asr_engine, "model": s.asr_identity, "lang": s.language},
+        lambda s, video: {"engine": s.asr_engine, "model": s.asr_identity, "lang": s.source_lang},
         _asr,
     ),
     _StepSpec(
         Step.SEGMENT,
         1,
         (Step.ASR,),
-        lambda s: (File.SUBS_EN.value,),
-        lambda s, video: {"rules": asdict(s.cues)},
+        lambda s: (s.source.files.subs,),
+        lambda s, video: {"rules": _rules_key(s.cue_rules)},
         _segment,
     ),
     _StepSpec(
@@ -360,7 +404,8 @@ STEPS: tuple[_StepSpec, ...] = (
             "llm": s.llm_identity,
             "glossary": _glossary(s),
             "batch": s.batch_size,
-            "prompt": _translate_prompt_digest(s.target_lang),
+            "prompt": _translate_prompt_digest(s.target_lang, s.source_lang),
+            **_source_key(s),
             **_lang_key(s),
         },
         _translate,
@@ -369,7 +414,7 @@ STEPS: tuple[_StepSpec, ...] = (
         Step.EXPORT,
         1,
         (Step.TRANSLATE,),
-        lambda s: (File.EN_SRT.value, s.lang.files.srt, s.lang.files.ass, s.lang.files.vtt),
+        lambda s: (s.source.files.srt, s.lang.files.srt, s.lang.files.ass, s.lang.files.vtt),
         lambda s, video: _lang_key(s),
         _export,
     ),
@@ -382,7 +427,8 @@ STEPS: tuple[_StepSpec, ...] = (
             "llm": s.llm_identity,
             "langs": list(s.summary_langs),
             "glossary": _glossary(s),
-            "prompt": _prompt_digest("summarize_map.md", "summarize_reduce.md"),
+            "prompt": _prompt_digest(s.source.summary_map, "summarize_reduce.md"),
+            **_source_key(s),
             "map_text": hashlib.blake2b(
                 "|".join(summarize.MAP_FRAMING).encode("utf-8"), digest_size=8
             ).hexdigest(),
@@ -441,6 +487,12 @@ class _Store:
             self.project = self.project.activate(lang)
             write_text_file(self.path, render_project(self.project))
 
+    def use_source(self, code: str) -> None:
+        """Make `code` the language of the talk this run works on."""
+        if code != self.project.source_lang:
+            self.project = replace(self.project, source_lang=code)
+            write_text_file(self.path, render_project(self.project))
+
     def reset(self, step: Step) -> None:
         self.project = self.project.with_step(step, StepState())
         write_text_file(self.path, render_project(self.project))
@@ -464,12 +516,12 @@ class _Store:
         write_text_file(self.path, render_project(self.project))
 
 
-def _kept_for_other_languages(name: str, state: StepState) -> bool:
-    """The English files do not depend on the target language, and a project holds one language
-    after another. `en.srt` is rewritten by every export, so it is never deleted. The English
-    summary is kept when this language has not run the step yet, because another language made
-    it."""
-    return name == File.EN_SRT or (name == File.SUMMARY_EN and state.key is None)
+def _kept_for_other_languages(name: str, state: StepState, source: SourceLanguage) -> bool:
+    """The source files do not depend on the target language, and a project holds one language
+    after another. The source srt is rewritten by every export, so it is never deleted. The
+    English summary is kept when this language has not run the step yet, because another language
+    made it."""
+    return name == source.files.srt or (name == File.SUMMARY_EN and state.key is None)
 
 
 def _plan(
@@ -490,7 +542,7 @@ def _plan(
         outputs = spec.outputs(settings)
         if state.key != key:
             for stale in (*outputs, *spec.partials(settings)):
-                if not _kept_for_other_languages(stale, state):
+                if not _kept_for_other_languages(stale, state, settings.source):
                     (folder / stale).unlink(missing_ok=True)
             if state.status is not StepStatus.PENDING or state.key is not None:
                 store.reset(spec.step)
@@ -513,7 +565,7 @@ def save_edited_cues(folder: Path, cues: Sequence[Cue], lang: Language) -> None:
     store = _Store(folder, Path(parse_project(read_text_file(folder / PROJECT_JSON)).video_path))
     store.activate(lang.code)
     write_text_file(folder / lang.files.subs, render_subs(cues))
-    write_exports(folder, cues, lang)
+    write_exports(folder, cues, lang, get_source(store.project.source_lang))
     store.touch(Step.EXPORT)
 
 
@@ -546,6 +598,7 @@ def run(
     reports: list[StepReport] = []
     summary_degraded = False
     notes: dict[str, int] = {}
+    store.use_source(settings.source_lang)
     store.activate(settings.target_lang)
     keys, fresh = _plan(store, folder, settings, fingerprint)
     with ExitStack() as stack:

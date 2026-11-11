@@ -647,7 +647,7 @@ def test_merged_words_are_in_time_order_and_feed_the_segmenter() -> None:
     assert texts(words) == ["so", "we", "shipped.", "Two", "thousand", "PRs."]
     assert [x.start_ms for x in words] == sorted(x.start_ms for x in words)
     cues = to_cues([segment_of(words, words[0].start_ms, words[-1].end_ms)])
-    assert [c.en for c in cues] == ["so we shipped.", "Two thousand PRs."]
+    assert [c.src for c in cues] == ["so we shipped.", "Two thousand PRs."]
 
 
 def test_an_engine_without_word_timestamps_is_refused() -> None:

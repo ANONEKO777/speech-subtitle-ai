@@ -20,7 +20,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from backend.core.languages import DEFAULT_CODE
-from backend.core.model import Step
+from backend.core.model import DEFAULT_SOURCE, Step
 from backend.core.pipeline import (
     Cancelled,
     PipelineError,
@@ -139,6 +139,7 @@ class JobOptions:
     summary_en: bool
     batch_size: int
     target_lang: str = DEFAULT_CODE
+    source_lang: str = DEFAULT_SOURCE
 
 
 class OptionsError(ValueError):

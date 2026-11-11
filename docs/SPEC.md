@@ -98,17 +98,25 @@ video-subtitle-translator/
   → [3] ASR 辨識 → 原文文字 + 時間戳
   → [4] 斷句 / 字幕行切分（見 §5.1）
   → [5] 翻譯成目標語言（見 §8）
-  → [6] 輸出：en.srt、<語言>.srt（繁中為 zh-TW.srt）、bilingual.ass/vtt、project.json
+  → [6] 輸出：en.srt（日文影片是 ja.srt）、<語言>.srt（繁中為 zh-TW.srt）、bilingual.ass/vtt、project.json
   → [7] 摘要（獨立步驟，可延後或重跑）→ summary.md
 ```
 
 每一步結果要**快取到專案資料夾**，失敗或換模型時只重跑受影響的步驟。進度以 job 事件（SSE/WebSocket）推送給前端。
+
+### 5.0 來源語言（P23a）
+- 影片的語言是專案的一個設定：`en`（預設）或 `ja`（`backend/core/source_langs.py` 的型別化表，每筆有檔名、斷句規則、翻譯與摘要提示詞、輸出檢查、燒錄字型）。CLI `--source-lang`、工作 body 的 `source_lang`、佇列項目的 `source_lang`（項目或資料夾可各自指定）都對照這張表，未知代碼回 422。日文目前只能翻成繁體中文（`zh-TW`），其他目標語言回 422，等 P25。表的設計讓之後加別的來源語言不必改流程。
+- 來源語言屬於辨識（已有）、斷句、翻譯、摘要的設定與快取鍵。英文不加任何新欄位，所以舊專案的快取鍵、提示詞與輸出逐位元組不變，不必重跑。
+- 檔名：英文是 `subs.en.json` 與 `en.srt`（不變），日文是 `subs.ja.json` 與 `ja.srt`。`project.json` 只在不是英文時才多一個 `source_lang`。一個專案資料夾只有一種來源語言，換語言會重跑辨識以後的步驟，舊語言的來源檔留在原處不刪（`en.srt` 與 `ja.srt` 一律不刪）。
+- 字幕的來源文字欄位在程式裡叫 `src`，每則字幕有自己的 `lang`（給之後的日英混合用，P23a 的專案每則都是專案的語言）。`subs.*.json` 的英文字幕仍寫 `en`，其他語言寫 `src` 加 `lang`，兩種都讀得進來。HTTP API 與介面還是用 `en` 這個名字（`lang=en` 取來源文字，PUT 內文也是 `en`），P24 才改成「原文」。為了讓現有介面讀得懂，`GET /subtitles?format=json` 對日文專案的每則字幕除了 `src` 與 `lang` 之外，另外附一個 `en` 欄位放同樣的來源文字。這是暫時的別名，只出現在 API 回覆，不寫進檔案，P24 把介面改讀 `src` 時一併刪除；英文專案的回覆不變。
 
 ### 5.1 字幕規則
 - 取得時間戳的方式：
   - 引擎本身有字詞時間戳（whisper.cpp、Parakeet）→ 直接使用。
   - 引擎無時間戳（Qwen3-ASR）→ 用 Qwen3-ForcedAligner 對齊文字與音訊。
 - 英文每行 ≤ 42 字元，最多 2 行；中文每行 ≤ 20 字，最多 2 行。
+- 日文（原文）每行 ≤ 20 個全形字（40 欄，半形算 1 欄、全形算 2 欄），最多 2 行，每秒超過 7 個全形字會被扣分。日文沒有空格，也沒有詞的邊界：whisper 給的是 1 到 2 個字的子詞 token，所以每個 token 是一個單位，斷在哪裡由 `backend/core/unspaced.py` 依兩側字元的文字種類猜：「。！？」之後最好，「、」其次，ます、です、ので 這類句尾之後，助詞之後；漢字、片假名、平假名的連續字之間很貴，只有別處都放不下才會斷；行頭不放「、。！？」與小假名（ゃゅょっ）與長音「ー」，行尾不放開括號。沒有加形態素分析套件（安裝包不變）。這是推測：實測 CEDEC 沒有斷在「連續同種文字之間」的切點，但沒有人驗證每一個切點都是詞界。
+- 日文的拉丁字詞之間才有空格（`Visual Studio Code`），其他地方連續書寫。
 - 單條字幕長度 1–7 秒；優先在標點、停頓處斷開。
 - 相鄰字幕不重疊；最小間隔 ≥ 80 ms。
 - 翻譯後的中文沿用原英文條目的時間軸（一對一），不要自行重切時間。
@@ -133,7 +141,7 @@ class Segment: text: str; start: float; end: float; words: list[Word] | None
 
 | 引擎 | 角色 | 狀態 |
 |---|---|---|
-| `whispercpp` (large-v3-turbo) | **預設** | M0 選定：速度、顯存、段落形狀最好，錯字數與 Qwen3 相當 |
+| `whispercpp` (large-v3-turbo) | **預設**（日文也是，`-l ja`，沿用 VAD 切段，P22 決定。日文 token 不併成詞） | M0 選定：速度、顯存、段落形狀最好，錯字數與 Qwen3 相當 |
 | `crispasr` (Qwen3-ASR-1.7B + ForcedAligner) | **備援** | M0 實測可用：57 分鐘不中斷，切塊內的字詞起點誤差中位數較小（尾端互有勝負，切塊第一個字約晚 0.36 s），但較慢、較耗顯存，會在 VAD 切塊處斷句，且路徑必須是 ASCII |
 | `nemo_parakeet` (TDT 0.6B v2/v3) | 英文高速選項（需 PyTorch/NeMo 或 ONNX 版） | 選配 |
 | Nemotron 3.5 Transcribe | 高階顯卡選項 | 未來 |
@@ -192,6 +200,12 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - 口頭禪：英文那一條是被逗號隔開、不是問句的 "you know" 時，譯文中單獨成句的「你知道」「你知」「你知不知道」會被刪除，真正的 "do you know" 保留。
 - 可選：先用 LLM 從全文抽取專有名詞再翻譯，以保持前後一致。
 
+### 8.2.1 日文來源的翻譯
+- 同一份 `prompts/translate.md`，來源語言填進去（`<<SRC>>`、每筆的欄位名 `ja`、範例、來源專屬規則）。日文規則：主語省略時從前後文補、不憑空捏造；丟掉「ええと、まあ、ですね」；不照字翻お、ご敬語；片假名外來語照意思譯，產品與公司名寫拉丁字母（パフォース、パーフォース 是 Perforce）；新字體改繁體；台灣用語（通關不是清關、儲存庫、管線、營運、中繼資料、原始碼、外掛、整理或準備不是整備）。前後各 5 則字幕的上下文照常帶。
+- 預設詞彙表另加 Perforce、P4、P4 MCP、P4 DAM、Helix Swarm、東陽テクニカ（Toyo Corporation）。
+- 輸出檢查（不過就當作回覆被拒絕，走重試與降批次）：沒有殘留假名（中點「・」改成「·」）、沒有日文才用的漢字字形（`zh_tw.japanese_only_chars`：JIS 有、Big5 沒有、也不是簡體字）、沒有簡體字、繁中用語通過 `zh_tw.py`，長度不超過日文字數的 1.1 倍加 8，翻譯不能只有標點（只剩「。」的字幕會被重試）。一則字幕重試與拆批後仍只有標點時，取前一則字幕譯文最後一個子句接在它前面（時間戳與編號不變）。英文來源不做這項檢查。重試訊息裡的來源語言名稱（English 或 Japanese）取自來源語言表。日文來源另外套用 `zh_tw.taiwan_terms_from_japanese`：源碼（原始碼）、運營（營運）、元數據（中繼資料）、倉庫（儲存庫）、流水線（管線）；倉庫與流水線在內容講貨物或工廠時保留。這些規則不在 `_TERMS`，所以英文來源專案的輸出和 main 逐位元組相同（`zh_tw.py` 的 `_TERMS` 沒有任何改動）。給英文影片也套用台灣用語（訪問、創建、可視化、存儲、搜索、接口，以及上面這幾個）是另一個會刻意改變英文輸出的 PR。
+- 單句重試用盡仍不過就保留日文原文當譯文（與英文同一條規則），所以輸出檢查要看有沒有這種字幕。
+
 ### 8.3 摘要（map-reduce）
 1. 依時間將逐字稿切成章節片段（約 2,000–4,000 tokens，片段間少量重疊）。
 2. Map：每段產出要點與時間範圍。
@@ -201,6 +215,7 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
    - Map 回傳的要點多於上限時不重試，均勻挑出上限數量（保留頭尾）。
    - Reduce 重試用完仍失敗時依序退讓：先把最後一次回覆的最後一章移到第一個夠晚的筆記（只在僅差位置時成立，語言檢查照做）；再失敗改要求 1 章；再失敗則採用最後一次回覆並略過語言檢查，同樣套用語言後處理（台灣用語等），並標為 degraded：寫入 `summary.parts.json`、`project.json` 的 summarize 步驟（`degraded: true`，只在為真時寫入，`GET /api/projects/{id}` 的各步驟也帶 `degraded`），以及工作報告（`summary_degraded`），讓 UI 可以提示，絕不當成一般摘要。1 章這一步仍做語言檢查。只有回覆不是可解析的 JSON 或結構不合時才不產生 `summary.md`。
 4. 輸出語言為目標語言（預設繁體中文）；可選同時輸出英文版。
+5. 日文逐字稿：Map 用 `prompts/summarize_map_ja.md`，筆記直接寫成繁體中文（台灣用語），要點數與視窗大小依字數算（日文約 1.2 字一個 token、2 字一個詞），所以 59 分鐘的演講切成約 7 個視窗，Reduce 的章節長度、章數與最後一章位置規則不變，輸出的語言檢查另外擋假名與日文漢字。
 - 長影片不可整份塞入單次請求（小模型會遺漏前段）。
 
 ### 8.4 目標語言（多國語系）
@@ -213,6 +228,7 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - 詞彙表檢查不放寬。保留英文的專有名詞必須以原文出現在譯文中；日文與韓文另可用該語言文字的寫法（`Language.spellings`，例如 Cursor 的カーソル、커서，Slack 的スラック、슬랙）。單句重試用盡仍不過就保留英文。繁中與簡中沒有別名，所以永遠不會把產品名譯掉。
 - 目標語言屬於翻譯、輸出、摘要三步的設定與快取鍵；換語言只重跑這三步，音訊、VAD、ASR、斷句與英文檔都不動。預設語言不改變快取鍵，所以舊專案不必重翻。
 - 一個專案可同時保有多個語言：每個語言各自的步驟狀態停放在 `project.json` 的 `parked`，目前使用中的語言是 `active_lang`；兩者只在離開預設語言後才寫入。
+- 日文來源的專案同樣用這些檔名（來源檔是 `subs.ja.json`、`ja.srt`，所以目標語言和來源語言不能同為 `ja`）。
 - 檔名：`subs.<代碼>.json`、`<代碼>.srt`、`bilingual.en-<代碼>.ass/.vtt`、`summary.<代碼>.md`。繁中保留 `subs.zh-TW.json`、`zh-TW.srt`、`bilingual.ass/.vtt`、`summary.md`。英文摘要一律是 `summary.en.md`。
 
 ## 9. 後端 API（草案）
@@ -227,7 +243,7 @@ DELETE /api/models/{id}
 POST /api/projects                       # body: {video_path}
 GET  /api/projects/{id}                  # 狀態、檔案路徑、設定；steps 是 active_lang 的各步驟，languages 是每個語言的 translate/export/summarize 狀態
 GET  /api/languages                      # 可用的目標語言、品質標籤（stable|experimental）與各自的輸出檔名
-POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size, target_lang}；target_lang 對照登錄表，未知代碼回 422，預設 zh-TW；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
+POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size, target_lang, source_lang}（source_lang 預設 en，見 §5.0）；target_lang 對照登錄表，未知代碼回 422，預設 zh-TW；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
 GET  /api/jobs/{id}/events               # SSE 進度
 GET  /api/jobs/{id}                       # job 狀態與總進度
 POST /api/jobs/{id}/cancel
@@ -241,7 +257,7 @@ GET  /api/projects/{id}/summary?lang=<代碼>|en          # 預設為最近處�
 
 ```
 GET    /api/queue                          # paused、settings、running、eta_s、counts、items（state、step、progress、eta_s、job_id、last_error…）
-POST   /api/queue/items                    # body: {items:[{path,target_lang?}], folders:[{path,target_lang?,recursive?}], options:{…同 job body}}；回 {added, skipped:[{path,reason}]}。只收影片副檔名；遞迴掃描不跟隨符號連結或 junction；資料夾 10 秒內沒回應就略過；影片長度超過 5 秒探測預算的部分改在背景補上
+POST   /api/queue/items                    # body: {items:[{path,target_lang?,source_lang?}], folders:[{path,target_lang?,source_lang?,recursive?}], options:{…同 job body}}；回 {added, skipped:[{path,reason}]}。只收影片副檔名；遞迴掃描不跟隨符號連結或 junction；資料夾 10 秒內沒回應就略過；影片長度超過 5 秒探測預算的部分改在背景補上
 PUT    /api/queue/order                    # body: {ids:[…]}，列出的項目排到最前面
 POST   /api/queue/pause                    # body 可選 {interrupt:true}：中斷執行中的項目並放回原位
 POST   /api/queue/resume
@@ -298,6 +314,7 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 - 字幕清單面板：點擊條目跳轉；播放時自動捲動；可雙擊編輯文字與時間（編輯後寫回 `project.json`）。
 - 摘要頁：章節時間戳可跳轉到影片位置。
 - 格式相容：HTML5 video 播不動（如 MKV、HEVC）時，背景用 ffmpeg 產生 H.264/AAC 的 proxy mp4；或改用 libmpv。
+- 燒錄字幕：英文來源的專案一律用 Arial，不查字型（彎引號、破折號、刪節號等一般標點 Arial 畫得出來）。日文來源的字幕，若含假名、漢字、全形字元或日文標點，要先在系統已安裝的字型裡找一個有全部字形的日文字型（Yu Gothic、Meiryo、MS Gothic，讀 Windows 字型登錄與字型檔的 cmap），找不到或缺字時燒錄回 422，訊息說明缺哪個字型或哪些字，不會燒出空白方塊。匯出的 bilingual.ass 仍寫 Arial，交給播放器補字型。
 - 匯出：SRT（英、中、雙語）、ASS（雙語）、VTT、`summary.md`；可選「燒錄成新影片」（非預設）。
 
 ## 11. 專案資料格式
@@ -307,7 +324,7 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 project.json        # 影片路徑、引擎/模型版本、設定、各步驟狀態與時間
 audio.wav           # 快取
 segments.json       # ASR 原始結果（含字詞時間戳）
-subs.en.json / subs.zh-TW.json   # 內部字幕表示（其他語言 subs.<代碼>.json）
+subs.en.json / subs.zh-TW.json   # 內部字幕表示（其他語言 subs.<代碼>.json）；日文影片的原文是 subs.ja.json
 en.srt / zh-TW.srt / bilingual.ass / bilingual.vtt   # 其他語言 <代碼>.srt、bilingual.en-<代碼>.ass/.vtt
 summary.md                       # 其他語言 summary.<代碼>.md；英文版 summary.en.md
 ```

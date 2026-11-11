@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import unicodedata
+from collections.abc import Callable
 
 _MARK = r"(?:\[\[\d+\]\])?"
 _SOFTWARE_NOUN = (
@@ -64,6 +66,34 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 )
 
 
+_WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
+_NOT_FACTORY_LINE = "".join(
+    f"(?<!{head})" for head in "生產|裝配|組裝|製造|工廠|工業|汽車".split("|")
+)
+_JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
+    (
+        re.compile("倉庫"),
+        lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存庫",
+    ),
+    (re.compile(f"{_NOT_FACTORY_LINE}流水線"), "管線"),
+    (re.compile("(?<![單一二三四五六七八九十百千萬億紀公美日])元(?:數據|資料)"), "中繼資料"),
+    (re.compile("(?<!資)源碼"), "原始碼"),
+    (re.compile("運營(?!商)"), "營運"),
+)
+
+
+def taiwan_terms_from_japanese(text: str) -> str:
+    """Taiwan wording for words a Japanese talk gives that an English one does not: a code
+    repository (リポジトリ) comes out as 倉庫, a build pipeline (パイプライン) as 流水線, source
+    code (ソースコード) as 源碼, operations (運営) as 運營 and metadata (メタデータ) as 元數據,
+    which `taiwan_terms` has already made 元資料. A text that talks about goods keeps its
+    warehouse, and one about a factory its assembly line. None of it is in `taiwan_terms`, so the
+    output of an English talk stays as it was."""
+    for pattern, taiwan in _JAPANESE_TERMS:
+        text = pattern.sub(taiwan, text)
+    return text
+
+
 def taiwan_terms(text: str) -> str:
     """Replace Mainland computing terms with their Taiwan equivalents."""
     for pattern, taiwan in _TERMS:
@@ -102,3 +132,56 @@ def simplified_chars(text: str) -> list[str]:
 
 
 CJK_TEXT = re.compile("[㐀-鿿　-〿＀-￯]")
+
+
+def _jis_kanji() -> frozenset[str]:
+    """The kanji of JIS X 0208 (levels 1 and 2), read from Shift JIS."""
+    chars: set[str] = set()
+    for lead in (*range(0x88, 0xA0), *range(0xE0, 0xEB)):
+        for trail in (*range(0x40, 0x7F), *range(0x80, 0xFD)):
+            try:
+                char = bytes((lead, trail)).decode("cp932")
+            except UnicodeDecodeError:
+                continue
+            if len(char) == 1 and unicodedata.name(char, "").startswith("CJK UNIFIED"):
+                chars.add(char)
+    return frozenset(chars)
+
+
+JAPANESE_ONLY = (
+    frozenset(char for char in _jis_kanji() if not in_big5(char))
+    - SIMPLIFIED_ONLY
+    - TRADITIONAL_BEYOND_BIG5
+)
+"""Kanji Japanese writes in its own way: in JIS, and neither in Big5 nor a Simplified character.
+気, 売, 続 and 圧 are such, where Taiwan writes 氣, 賣, 續 and 壓."""
+
+
+def japanese_only_chars(text: str) -> list[str]:
+    return sorted(set(text) & JAPANESE_ONLY)
+
+
+_SHINJITAI_PAIRS = (
+    "気氣続續売賣録錄変變圧壓戦戰営營拡擴担擔検檢験驗険險剣劍県縣済濟参參児兒処處単單実實属屬帰歸"
+    "弾彈恵惠悩惱応應荘莊称稱徴徵総總緑綠経經絵繪継繼絶絕覚覺観觀触觸証證訳譯読讀説說軽輕転轉辺邊"
+    "遅遲郷鄉酔醉釈釋鉄鐵鋭銳関關闘鬥随隨隠隱雑雜頼賴顕顯駅驛騒騷髄髓麺麵黒黑齢齡歯齒竜龍糸絲縄繩"
+    "圏圈塁壘壊壞壌壤増增壱壹奨獎嬢孃寛寬寝寢旧舊図圖価價倹儉偽僞剤劑勧勸励勵効效勲勳区區医醫卒卒"
+    "厳嚴呉吳変變嘆嘆団團囲圍堕墮塩鹽増增声聲壮壯寿壽対對尽盡届屆岳嶽峡峽崎崎帯帶幣幣庁廳広廣庵庵"
+    "従從徳德懐懷戸戶挙舉拠據拝拜揺搖摂攝撃擊数數斉齊条條栄榮桜櫻楽樂様樣権權欠缺歓歡歩步残殘殴毆"
+    "毎每浄淨渋澀渓溪済濟湾灣潜潛瀬瀨炉爐焼燒犠犧猟獵獣獸獲獲琢琢画畫異異疎疏療療砕碎碑碑礼禮禅禪"
+    "秘祕穏穩窃竊窓窗粋粹糧糧紀紀紹紹繊纖罰罰聴聽肉肉脳腦臓臟艶艷荘莊薬藥蔵藏虫蟲蛍螢衛衛装裝褒褒"
+    "携攜会會点點国國学學発發当當万萬与與両兩亜亞悪惡覧覽訪訪設設説說謡謠豊豐賛贊践踐軟軟輸輸辞辭迫迫逓遞進進遊遊運運違違遺遺選選郵郵都都鉱礦録錄"
+    "鍵鍵鎮鎮閉閉開開間間関關陥陷陰陰隣鄰雇僱霊靈静靜頭頭顔顏類類験驗鶏雞麦麥"
+)
+SHINJITAI: dict[str, str] = {
+    new: old
+    for new, old in zip(_SHINJITAI_PAIRS[0::2], _SHINJITAI_PAIRS[1::2], strict=True)
+    if new != old and (new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY)
+}
+"""Kanji Japanese writes in its own way, and the Simplified characters that are the same
+character, with the Traditional character Taiwan writes. A model copies them from the Japanese,
+and retrying seldom makes it stop."""
+
+
+def traditional_from_japanese(text: str) -> str:
+    return text.translate(str.maketrans(SHINJITAI))

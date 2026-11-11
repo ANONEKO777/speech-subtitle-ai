@@ -24,3 +24,7 @@ The silero-vad v6.2.3 speech probability for each 32 ms frame of `en_15s.wav`, r
 ## engines/
 
 Recorded engine output for `tests/test_engines.py`. `whisper_15s.json` and `crispasr_15s.json` are the `-ojf` files that whisper.cpp b5454 (large-v3-turbo, `-ng`) and CrispASR v0.8.49 (Qwen3-ASR-1.7B q8_0 with the Qwen3 aligner, `-ng`) wrote for `en_15s.wav`, with the local model and system strings blanked. `whisper_stderr.txt` and `crispasr_stderr.txt` are the lines the same runs printed to stderr that the progress parser reads, for two input files, with the local paths cut to file names. `fake_cli.py` replays them in place of the engine binary.
+
+## engines/whisper_ja_15s.json
+
+The first three segments of whisper.cpp `large-v3-turbo` `-l ja` raw output (`-ojf`) for the CEDEC 2026 Perforce P4 talk, taken from the P22 run `whisper-cedec-chunks-ja`. Only the three segments are kept, with their tokens and offsets, plus the `[_BEG_]` and `[_TT_]` marker tokens whisper writes. `tests/test_japanese.py` reads it to check that Japanese tokens are not merged into one word.

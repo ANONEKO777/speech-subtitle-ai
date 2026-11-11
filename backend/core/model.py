@@ -8,6 +8,9 @@ from types import MappingProxyType
 from backend.core.languages import DEFAULT_CODE
 
 SCHEMA_VERSION = 1
+DEFAULT_SOURCE = "en"
+"""The language a talk is spoken in unless the project says otherwise. A code from
+`backend.core.source_langs`."""
 
 
 class FormatError(ValueError):
@@ -64,20 +67,25 @@ class Segment:
 
 @dataclass(frozen=True, slots=True)
 class Cue:
-    """One subtitle entry. `zh` is empty until the cue is translated."""
+    """One subtitle entry. `src` is what was said, in the language `lang`, and `zh` is the
+    translation, empty until the cue is translated. `lang` is the spoken language of this cue, so
+    a talk that changes language can say so cue by cue."""
 
     id: int
     start_ms: int
     end_ms: int
-    en: str
+    src: str
     zh: str = ""
+    lang: str = DEFAULT_SOURCE
 
     def __post_init__(self) -> None:
         if type(self.id) is not int or self.id < 0:
             raise ValueError(f"id must be a non-negative int, got {self.id!r}")
         _check_span(self.start_ms, self.end_ms)
-        _check_text("en", self.en)
+        _check_text("src", self.src)
         _check_text("zh", self.zh)
+        if not self.lang:
+            raise ValueError("lang is empty")
 
 
 class Step(StrEnum):
@@ -140,6 +148,9 @@ class Project:
     parked: Mapping[str, Mapping[Step, StepState]] = field(
         default_factory=dict[str, Mapping[Step, StepState]]
     )
+    source_lang: str = DEFAULT_SOURCE
+    """The language the talk is spoken in. The cue files, the ASR and every step after it are
+    built for it."""
 
     def __post_init__(self) -> None:
         if self.schema_version != SCHEMA_VERSION:

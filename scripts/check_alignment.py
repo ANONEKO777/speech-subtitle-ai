@@ -97,7 +97,7 @@ def back_translate(config: LlmConfig, cue: Cue) -> str:
 
 
 def judge(config: LlmConfig, previous: str, cue: Cue, following: str) -> str:
-    shown = f"A: {previous}\nB: {cue.en}\nC: {following}\n\nChinese: {cue.zh}"
+    shown = f"A: {previous}\nB: {cue.src}\nC: {following}\n\nChinese: {cue.zh}"
     messages: list[Message] = [
         {"role": "system", "content": _JUDGE_PROMPT},
         {"role": "user", "content": shown},
@@ -112,9 +112,9 @@ def check(config: LlmConfig, cues: Sequence[Cue], ids: Sequence[int]) -> list[Cu
     for cue_id in ids:
         i = index[cue_id]
         cue = cues[i]
-        previous = cues[i - 1].en if i else ""
-        following = cues[i + 1].en if i + 1 < len(cues) else ""
-        own, leak_prev, leak_next = score(back_translate(config, cue), previous, cue.en, following)
+        previous = cues[i - 1].src if i else ""
+        following = cues[i + 1].src if i + 1 < len(cues) else ""
+        own, leak_prev, leak_next = score(back_translate(config, cue), previous, cue.src, following)
         verdict = judge(config, previous, cue, following)
         scores.append(CueScore(cue.id, own, leak_prev, leak_next, verdict))
     return scores

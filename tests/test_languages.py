@@ -405,10 +405,10 @@ def test_changing_the_language_reruns_translate_export_and_summarize_and_keeps_t
     assert {n: (folder / n).read_bytes() for n in zh_files} == zh_files
     ja_cues = parse_subs(read_text_file(folder / "subs.ja.json"))
     en_cues = parse_subs(read_text_file(folder / "subs.en.json"))
-    assert [(c.id, c.start_ms, c.end_ms, c.en) for c in ja_cues] == [
-        (c.id, c.start_ms, c.end_ms, c.en) for c in en_cues
+    assert [(c.id, c.start_ms, c.end_ms, c.src) for c in ja_cues] == [
+        (c.id, c.start_ms, c.end_ms, c.src) for c in en_cues
     ]
-    assert all(get("ja").problem(c.zh, c.en) is None for c in ja_cues)
+    assert all(get("ja").problem(c.zh, c.src) is None for c in ja_cues)
     assert set(fakes.langs[-len(ja_cues) :]) <= {"zh-TW", "ja"}
 
     asked = len(fakes.langs)
@@ -682,7 +682,7 @@ def test_a_renamed_term_is_never_accepted_where_no_spelling_is_listed(code: str)
         lang=get(code),
         sleep=lambda s: None,
     )
-    assert out[0].zh == cue.en
+    assert out[0].zh == cue.src
     assert asked == 4
 
 

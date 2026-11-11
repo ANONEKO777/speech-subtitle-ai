@@ -76,6 +76,7 @@ def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
         "video_path": info.project.video_path,
         "folder": str(info.folder),
         "active_lang": info.project.active_lang,
+        "source_lang": info.project.source_lang,
         "steps": _steps_json(info.project.steps),
         "languages": {
             lang: _steps_json(states) for lang, states in info.project.languages().items()

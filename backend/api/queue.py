@@ -20,6 +20,7 @@ from backend.core.jobs import JobOptions
 from backend.core.languages import get as get_language
 from backend.core.queue_runner import QueueRunner, scan_folder
 from backend.core.queue_store import OnDone, QueueError, QueueSettings
+from backend.core.source_langs import get_source
 
 router = APIRouter(prefix="/api/queue", tags=["queue"])
 
@@ -28,11 +29,17 @@ class QueuePath(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str = Field(min_length=1)
     target_lang: str | None = None
+    source_lang: str | None = None
 
     @field_validator("target_lang")
     @classmethod
     def _known_language(cls, code: str | None) -> str | None:
         return None if code is None else get_language(code).code
+
+    @field_validator("source_lang")
+    @classmethod
+    def _known_source(cls, code: str | None) -> str | None:
+        return None if code is None else get_source(code).code
 
 
 class QueueFolder(QueuePath):
@@ -40,8 +47,8 @@ class QueueFolder(QueuePath):
 
 
 class AddBody(BaseModel):
-    """Videos to queue. `options` is shared by all of them, and a `target_lang` on an item or a
-    folder overrides the one in `options`."""
+    """Videos to queue. `options` is shared by all of them, and a `target_lang` or `source_lang` on
+    an item or a folder overrides the one in `options`."""
 
     model_config = ConfigDict(extra="forbid")
     items: list[QueuePath] = []
@@ -88,7 +95,7 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
     entries: list[tuple[Path, JobOptions]] = []
     skipped: list[dict[str, str]] = []
     for entry in body.items:
-        entries.append((Path(entry.path), _with_lang(base, entry.target_lang)))
+        entries.append((Path(entry.path), _with_langs(base, entry)))
     for folder in body.folders:
         try:
             found = scan_folder(Path(folder.path), folder.recursive)
@@ -98,7 +105,7 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
         except (OSError, QueueError) as exc:
             skipped.append({"path": folder.path, "reason": str(exc)})
             continue
-        options = _with_lang(base, folder.target_lang)
+        options = _with_langs(base, folder)
         entries.extend((video, options) for video in found)
     queue = queue_of(request)
     added = queue.add(entries)
@@ -109,8 +116,18 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
     }
 
 
-def _with_lang(options: JobOptions, code: str | None) -> JobOptions:
-    return options if code is None else replace(options, target_lang=code)
+def _with_langs(options: JobOptions, entry: QueuePath) -> JobOptions:
+    if entry.target_lang is not None:
+        options = replace(options, target_lang=entry.target_lang)
+    if entry.source_lang is not None:
+        options = replace(options, source_lang=entry.source_lang)
+    source = get_source(options.source_lang)
+    if not source.supports(get_language(options.target_lang)):
+        allowed = ", ".join(sorted(source.targets or ()))
+        raise HTTPException(
+            422, f"{source.name} speech can be translated into {allowed} for now: {entry.path}"
+        )
+    return options
 
 
 @router.put("/order")

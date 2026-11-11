@@ -82,6 +82,10 @@ class QueueItem:
     def target_lang(self) -> str:
         return self.options.target_lang
 
+    @property
+    def source_lang(self) -> str:
+        return self.options.source_lang
+
 
 @dataclass(frozen=True, slots=True)
 class StepTiming:
@@ -200,7 +204,7 @@ class QueueStore:
         now_ms: int,
     ) -> QueueItem:
         """Append an item. The same video into the same language twice while the first is not
-        finished is a `QueueError`."""
+        finished is a `QueueError`, whatever language it is spoken in: a project holds one."""
         with self._lock:
             for item in self.items():
                 if (

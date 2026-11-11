@@ -194,6 +194,45 @@ def test_each_item_has_its_own_target_language_and_a_folder_is_scanned(
     assert [p.name for p in scan_folder(folder, False)] == ["one.MP4", "two.mkv"]
 
 
+def test_each_item_carries_its_own_source_language(client: Client, tmp_path: Path) -> None:
+    body = add(
+        client,
+        video(tmp_path, "english"),
+        options={"source_lang": "en"},
+    )
+    clip = video(tmp_path, "japanese")
+    response = client.post(
+        "/api/queue/items",
+        json={"items": [{"path": str(clip), "source_lang": "ja"}]},
+    )
+    assert response.status_code == 201, response.text
+    langs = {
+        Path(i["video_path"]).stem: i["source_lang"]
+        for i in client.get("/api/queue").json()["items"]
+    }
+    assert langs == {"english": "en", "japanese": "ja"}
+    assert body["added"][0]["options"]["source_lang"] == "en"
+    refused = client.post(
+        "/api/queue/items",
+        json={"items": [{"path": str(clip), "source_lang": "ja", "target_lang": "ko"}]},
+    )
+    assert refused.status_code == 422 and "zh-TW" in refused.text
+    unknown = client.post(
+        "/api/queue/items", json={"items": [{"path": str(clip), "source_lang": "xx"}]}
+    )
+    assert unknown.status_code == 422
+
+
+def test_a_queue_saved_before_source_languages_still_loads() -> None:
+    from backend.core.queue_store import options_from_json
+
+    old = (
+        '{"engine": "whispercpp", "llm": "q", "llm_model": null, "cpu": false, "glossary": [], '
+        '"summary_en": false, "batch_size": 8, "target_lang": "zh-TW"}'
+    )
+    assert options_from_json(old).source_lang == "en"
+
+
 def test_a_missing_file_a_duplicate_and_an_unknown_language_are_reported(
     client: Client, tmp_path: Path, rig: QueueRig
 ) -> None:

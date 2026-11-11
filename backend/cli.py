@@ -1,8 +1,10 @@
-"""Turn an English talk video into English and translated subtitles and a summary.
+"""Turn a talk video into subtitles in its own language, translated subtitles and a summary.
 
     python -m backend.cli talk.mp4 --engine whispercpp --llm qwen3-8b-q4_k_m --lang ja
+    python -m backend.cli talk.mp4 --source-lang ja
 
-Writes en.srt, the translation (zh-TW.srt for the default Traditional Chinese, ja.srt for
+The talk is in English unless `--source-lang` says otherwise. Writes en.srt (ja.srt for a
+Japanese talk), the translation (zh-TW.srt for the default Traditional Chinese, ja.srt for
 `--lang ja`), the bilingual .ass and .vtt, the summary and project.json into a project folder.
 Another `--lang` on the same folder adds that language and keeps the others.
 Running the same command again does no work. If a run stops, the same command resumes it.
@@ -19,7 +21,7 @@ from pathlib import Path
 from backend.core.languages import DEFAULT_CODE, LANGUAGES
 from backend.core.languages import get as get_language
 from backend.core.media import accepted_extensions, is_media
-from backend.core.model import FormatError
+from backend.core.model import DEFAULT_SOURCE, FormatError
 from backend.core.pipeline import (
     PROJECT_JSON,
     Cancelled,
@@ -27,6 +29,7 @@ from backend.core.pipeline import (
     Progress,
     run,
 )
+from backend.core.source_langs import SOURCES
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
 from backend.llm.local_server import ServerError
 from backend.manager.profiles import QWEN3_8B
@@ -42,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m backend.cli",
         description=(
-            "Turn an English talk video into English and translated subtitles "
+            "Turn a talk video into subtitles in its own language, translated subtitles "
             "and a key-points summary. Steps whose inputs did not change are skipped, so running "
             "the same command again does nothing, and a stopped run resumes where it stopped."
         ),
@@ -95,6 +98,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="the language to translate into: "
         + ", ".join(f"{lang.code} ({lang.name})" for lang in LANGUAGES.values())
         + f" (default: {DEFAULT_CODE}). A project keeps one translation per language",
+    )
+    parser.add_argument(
+        "--source-lang",
+        default=DEFAULT_SOURCE,
+        choices=list(SOURCES),
+        metavar="CODE",
+        help="the language the talk is spoken in: "
+        + ", ".join(f"{source.code} ({source.name})" for source in SOURCES.values())
+        + f" (default: {DEFAULT_SOURCE}). Japanese can be translated into Traditional Chinese "
+        "(zh-TW) for now",
     )
     parser.add_argument(
         "--summary-en", action="store_true", help="also write summary.en.md in English"
@@ -192,6 +205,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             summary_en=args.summary_en,
             batch_size=args.batch_size,
             target_lang=args.lang,
+            source_lang=args.source_lang,
         )
         settings, ports = resolve(request, folder)
     except (SettingsError, ValueError) as exc:
@@ -210,7 +224,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_FAILED
     print(report.describe())
     files = get_language(args.lang).files
-    print(f"project: {folder}  ({PROJECT_JSON}, en.srt, {files.srt}, {files.ass}, {files.summary})")
+    source_srt = SOURCES[args.source_lang].files.srt
+    print(
+        f"project: {folder}  ({PROJECT_JSON}, {source_srt}, {files.srt}, {files.ass}, "
+        f"{files.summary})"
+    )
     return 0
 
 

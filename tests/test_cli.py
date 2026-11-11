@@ -73,6 +73,36 @@ def test_a_run_writes_the_project_folder_and_prints_the_timing(
     assert "overhead" in out and "total" in out
 
 
+def test_source_lang_reaches_the_request_and_the_summary_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    video = tmp_path / "talk.mp4"
+    video.write_bytes(b"video")
+    seen: list[Request] = []
+
+    def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
+        seen.append(request)
+        return SETTINGS, Fakes().ports()
+
+    monkeypatch.setattr(cli, "resolve", resolve)
+    assert cli.main([str(video), "--source-lang", "ja"]) == 0
+    assert seen[0].source_lang == "ja"
+    assert "ja.srt" in capsys.readouterr().out
+    assert cli.main([str(video)]) == 0
+    assert seen[1].source_lang == "en"
+
+
+def test_an_unknown_source_language_is_a_usage_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    video = tmp_path / "talk.mp4"
+    video.write_bytes(b"video")
+    with pytest.raises(SystemExit) as stop:
+        cli.main([str(video), "--source-lang", "xx"])
+    assert stop.value.code == 2
+    assert "invalid choice" in capsys.readouterr().err
+
+
 def test_a_second_command_skips_everything(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

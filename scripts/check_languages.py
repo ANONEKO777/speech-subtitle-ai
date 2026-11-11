@@ -65,7 +65,7 @@ def structure(folder: Path, lang: Language) -> Structure:
     errors = [
         f"cue {c.id}: {problem}"
         for c in cues
-        if c.zh != c.en and (problem := lang.problem(c.zh, c.en))
+        if c.zh != c.src and (problem := lang.problem(c.zh, c.src))
     ]
     srt = parse_srt(read_text_file(folder / lang.files.srt), "zh")
     return Structure(
@@ -74,14 +74,14 @@ def structure(folder: Path, lang: Language) -> Structure:
         [c.id for c in cues] == [c.id for c in english],
         overlaps,
         errors,
-        sum(c.zh == c.en for c in cues),
+        sum(c.zh == c.src for c in cues),
         sum(not c.zh for c in cues),
         [(c.start_ms, c.end_ms, c.zh) for c in srt] == [(c.start_ms, c.end_ms, c.zh) for c in cues],
     )
 
 
 def sample(cues: list[Cue], count: int) -> list[Cue]:
-    pool = [c for c in cues if c.zh != c.en and len(c.en.split()) >= 3]
+    pool = [c for c in cues if c.zh != c.src and len(c.src.split()) >= 3]
     return sorted(random.Random(SEED).sample(pool, min(count, len(pool))), key=lambda c: c.id)
 
 
@@ -125,12 +125,12 @@ def back_translate(chat: ChatFn, lang: Language, cues: list[Cue]) -> list[dict[s
     rows: list[dict[str, object]] = []
     for cue in cues:
         back = _ask(chat, BACK_SYSTEM.format(language=lang.name), cue.zh, _text)
-        judged = json.dumps({"original": cue.en, "back_translation": back}, ensure_ascii=False)
+        judged = json.dumps({"original": cue.src, "back_translation": back}, ensure_ascii=False)
         score, reason = _ask(chat, JUDGE_SYSTEM, judged, _verdict)
         rows.append(
             {
                 "id": cue.id,
-                "en": cue.en,
+                "en": cue.src,
                 "target": cue.zh,
                 "back": back,
                 "score": score,

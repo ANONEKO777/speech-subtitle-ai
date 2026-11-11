@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import base64
 import time
+from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -14,7 +16,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.api.projects import store_of
 from backend.core import render
 from backend.core.audio import AudioError, probe_duration_s
+from backend.core.fonts import FontMissing, burn_font
 from backend.core.languages import UnknownLanguage, get
+from backend.core.model import Cue
 from backend.core.playback import MAX_OFFSET_MS, Playback, with_changes
 from backend.core.projects import NotReady, ProjectStore, UnknownProject
 from backend.core.render import BurnBook, BurnBusy, SubtitleLook
@@ -223,7 +227,7 @@ def take_still(pid: str, body: StillBody, request: Request) -> dict[str, Any]:
     burn = None
     if body.burn:
         code, cues = _cues(store, pid, body.lang)
-        burn = (cues, get(code).wrap, body.look(), store.playback(pid).offset_ms)
+        burn = (cues, get(code).wrap, _look(body, cues), store.playback(pid).offset_ms)
     folder = _out_dir(request, body.dir, "screenshots")
     t = body.time_s
     stamp = f"{int(t // 3600):02d}-{int(t // 60 % 60):02d}-{t % 60:06.3f}"
@@ -233,6 +237,15 @@ def take_still(pid: str, body: StillBody, request: Request) -> dict[str, Any]:
     except AudioError as exc:
         raise HTTPException(500, str(exc)) from exc
     return {"path": str(out), "png_base64": base64.b64encode(out.read_bytes()).decode("ascii")}
+
+
+def _look(body: StillBody | BurnBody, cues: Sequence[Cue]) -> SubtitleLook:
+    """The look of the burned subtitle, with a font that draws the spoken language's text. A PC
+    with no such font is a 422 that says so, before any video is encoded."""
+    try:
+        return replace(body.look(), source_font=burn_font(cues))
+    except FontMissing as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 def _burn_json(job: render.BurnJob) -> dict[str, Any]:
@@ -263,7 +276,7 @@ def start_burn(pid: str, body: BurnBody, request: Request) -> dict[str, Any]:
             out,
             cues=cues,
             wrap=get(code).wrap,
-            look=body.look(),
+            look=_look(body, cues),
             offset_ms=store.playback(pid).offset_ms,
             start_s=body.start_s,
             duration_s=duration,

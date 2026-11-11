@@ -10,8 +10,9 @@ from importlib.resources import files
 from pathlib import Path
 from typing import cast
 
-from backend.core.languages import DEFAULT, Language
+from backend.core.languages import DEFAULT, Density, Language
 from backend.core.model import Cue, FormatError
+from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage, is_bare_punctuation
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
 from backend.llm.ask import (
     MAX_RETRIES,
@@ -32,7 +33,6 @@ MAX_UNIT_CUES = 6
 _LONG_EN_CHARS = 25
 GLOSSARY_MARK = "<<GLOSSARY>>"
 _MARKER = re.compile(r"\[\[(\d+)\]\]")
-_SENTENCE_END = re.compile(r"[.?!…][\"')\]”]*\Z")
 
 
 class TranslationError(RuntimeError):
@@ -63,6 +63,27 @@ DEFAULT_GLOSSARY: tuple[GlossaryEntry, ...] = tuple(
     GlossaryEntry(name) for name in _PRODUCT_NAMES.split(", ")
 )
 """Product names that stay in English in every run. A user's own entries come after them."""
+
+_SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
+    "ja": (
+        GlossaryEntry("Perforce"),
+        GlossaryEntry("P4"),
+        GlossaryEntry("P4 MCP"),
+        GlossaryEntry("P4 DAM"),
+        GlossaryEntry("Helix Swarm"),
+        GlossaryEntry("東陽テクニカ", "Toyo Corporation"),
+        GlossaryEntry("パフォース", "Perforce"),
+        GlossaryEntry("パーフォース", "Perforce"),
+        GlossaryEntry("パフォッシャ", "Perforce"),
+        GlossaryEntry("パフォーシャ", "Perforce"),
+    )
+}
+
+
+def default_glossary(source: str) -> tuple[GlossaryEntry, ...]:
+    """The glossary every run of a talk in `source` starts with. The names of the products the
+    Japanese test talks are about are in it because speech recognition garbles them."""
+    return (*DEFAULT_GLOSSARY, *_SOURCE_GLOSSARY.get(source, ()))
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,13 +157,15 @@ class Progress:
     attempts: int
 
 
-def sentence_units(cues: Sequence[Cue], start: int, stop: int, limit: int) -> list[Unit]:
+def sentence_units(
+    cues: Sequence[Cue], start: int, stop: int, limit: int, source: SourceLanguage = ENGLISH_SOURCE
+) -> list[Unit]:
     """Group `cues[start:stop]` into sentences: a unit ends at a cue that ends a sentence, or after
     `limit` cues when speech runs on without one."""
     units: list[Unit] = []
     first = start
     for index in range(start, stop):
-        ends = _SENTENCE_END.search(cues[index].en.rstrip()) is not None
+        ends = source.sentence_end.search(cues[index].src.rstrip()) is not None
         if ends or index + 1 == stop or index + 1 - first == limit:
             units.append(Unit(first, index + 1))
             first = index + 1
@@ -150,7 +173,10 @@ def sentence_units(cues: Sequence[Cue], start: int, stop: int, limit: int) -> li
 
 
 def plan_batches(
-    cues: Sequence[Cue], size: int = BATCH_SIZE, unit_limit: int = MAX_UNIT_CUES
+    cues: Sequence[Cue],
+    size: int = BATCH_SIZE,
+    unit_limit: int = MAX_UNIT_CUES,
+    source: SourceLanguage = ENGLISH_SOURCE,
 ) -> list[Batch]:
     """Pack the sentences of each run of untranslated cues into batches of about `size` cues. A
     translated cue ends a run, so a resume asks only for what is missing."""
@@ -163,7 +189,7 @@ def plan_batches(
         if open_run and start is None:
             start = index
         elif not open_run and start is not None:
-            batches.extend(_pack(sentence_units(cues, start, index, unit_limit), size))
+            batches.extend(_pack(sentence_units(cues, start, index, unit_limit, source), size))
             start = None
     return batches
 
@@ -198,15 +224,22 @@ def glossary_block(glossary: Sequence[GlossaryEntry]) -> str:
     return "\n".join(lines)
 
 
-def system_prompt_template(lang: Language) -> str:
-    """The system prompt of `lang`, with the glossary still marked by `GLOSSARY_MARK`."""
+def system_prompt_template(lang: Language, source: SourceLanguage = ENGLISH_SOURCE) -> str:
+    """The system prompt for translating `source` into `lang`, with the glossary still marked by
+    `GLOSSARY_MARK`."""
     prompt = lang.prompt
+    said = source.prompt
     text = (files("backend.core") / "prompts" / "translate.md").read_text(encoding="utf-8")
     for mark, value in (
+        ("<<SRC_ENTRIES>>", said.entries),
+        ("<<SRC_RULES>>", said.rules),
+        ("<<SRC_LEFTOVER>>", said.leftover),
+        ("<<SRC_KEY>>", said.key),
+        ("<<SRC>>", said.name),
         ("<<STYLE_RULES>>\n", prompt.style),
         ("<<TARGET>>", prompt.target),
         ("<<REPLY_NAME>>", prompt.reply_name),
-        ("<<EXAMPLE>>", prompt.example),
+        ("<<EXAMPLE>>", source.example(lang)),
         ("<<FILLER_NOT>>", prompt.filler_not),
         ("<<YOU_KNOW>>", prompt.you_know),
         ("<<FILLER_CUE>>", prompt.filler_cue),
@@ -217,27 +250,22 @@ def system_prompt_template(lang: Language) -> str:
     return text
 
 
-def _system_prompt(glossary: Sequence[GlossaryEntry], lang: Language) -> str:
-    template = system_prompt_template(lang)
+def _system_prompt(
+    glossary: Sequence[GlossaryEntry], lang: Language, source: SourceLanguage
+) -> str:
+    template = system_prompt_template(lang, source)
     return template.replace(GLOSSARY_MARK, glossary_block(glossary)).rstrip() + "\n"
-
-
-def _flat(cue: Cue) -> str:
-    return " ".join(cue.en.split("\n"))
 
 
 def _mark(cue_id: int) -> str:
     return f"[[{cue_id}]]"
 
 
-def _marked(cues: Sequence[Cue]) -> str:
+def _marked(cues: Sequence[Cue], source: SourceLanguage) -> str:
     if len(cues) == 1:
-        return _flat(cues[0])
-    return " ".join(f"{_mark(cue.id)}{_flat(cue)}" for cue in cues)
-
-
-def _prose(cues: Sequence[Cue]) -> str:
-    return " ".join(" ".join(cue.en.split()) for cue in cues)
+        return source.flat(cues[0].src)
+    separator = " " if source.spaced else ""
+    return separator.join(f"{_mark(cue.id)}{source.flat(cue.src)}" for cue in cues)
 
 
 def build_request(
@@ -246,17 +274,22 @@ def build_request(
     glossary: Sequence[GlossaryEntry] = (),
     context: int = CONTEXT_CUES,
     lang: Language = DEFAULT,
+    source: SourceLanguage = ENGLISH_SOURCE,
 ) -> BatchRequest:
     groups = [cues[unit.start : unit.stop] for unit in batch.units]
     body = {
-        "context_before": _prose(cues[max(0, batch.start - context) : batch.start]),
-        "context_after": _prose(cues[batch.stop : batch.stop + context]),
-        "translate": [{"id": group[0].id, "en": _marked(group)} for group in groups],
+        "context_before": source.prose(
+            [cue.src for cue in cues[max(0, batch.start - context) : batch.start]]
+        ),
+        "context_after": source.prose([cue.src for cue in cues[batch.stop : batch.stop + context]]),
+        "translate": [
+            {"id": group[0].id, source.prompt.key: _marked(group, source)} for group in groups
+        ],
     }
     return BatchRequest(
         tuple(tuple(cue.id for cue in group) for group in groups),
         (
-            {"role": "system", "content": _system_prompt(glossary, lang)},
+            {"role": "system", "content": _system_prompt(glossary, lang, source)},
             {"role": "user", "content": json.dumps(body, ensure_ascii=False)},
         ),
     )
@@ -271,22 +304,38 @@ def _reply_entries(text: str, key: str) -> list[object]:
     return cast("list[object]", doc)
 
 
-def _clean(lang: Language, zh: str, en: str = "") -> str:
-    zh = lang.clean(zh, en)
+def _clean(
+    lang: Language,
+    zh: str,
+    en: str,
+    source: SourceLanguage,
+    glossary: Sequence[GlossaryEntry] = (),
+) -> str:
+    zh = source.clean(lang.clean(zh, en))
+    if source.mends_glossary:
+        for entry in glossary:
+            if entry.zh:
+                zh = zh.replace(entry.term, entry.zh)
     lines = (line.strip() for line in zh.replace("\r", "\n").split("\n"))
     return "\n".join(line for line in lines if line)
 
 
-def _check_text(lang: Language, cue_id: int, zh: str, en: str) -> None:
+def _check_text(lang: Language, cue_id: int, zh: str, en: str, source: SourceLanguage) -> None:
     if not zh:
         raise ReplyError(f"cue {cue_id} has an empty translation of {_quoted(en)}")
-    if problem := lang.problem(zh, en):
+    if source.rejects_bare_punctuation and is_bare_punctuation(zh) and not is_bare_punctuation(en):
+        raise ReplyError(
+            f"cue {cue_id} has only punctuation; translate its own words {_quoted(en)}"
+        )
+    if problem := lang.problem(zh, en) or source.problem(zh):
         raise ReplyError(f"cue {cue_id} {problem}")
-    density = lang.density
+    density = source.density or lang.density
     if len(zh) > density.max_per_en_char * len(en) + density.slack:
-        raise ReplyError(f"cue {cue_id} is far longer than its English; translate only that cue")
+        raise ReplyError(
+            f"cue {cue_id} is far longer than its {source.name}; translate only that cue"
+        )
     if len(en) > _LONG_EN_CHARS and len(zh) < density.min_per_en_char * len(en):
-        raise ReplyError(f"cue {cue_id} is far shorter than its English; translate all of it")
+        raise ReplyError(f"cue {cue_id} is far shorter than its {source.name}; translate all of it")
 
 
 def _check_glossary(
@@ -306,17 +355,24 @@ def _check_glossary(
 
 
 def _split_at_markers(
-    unit_id: int, zh: str, cue_ids: tuple[int, ...], english: Mapping[int, str], lang: Language
+    unit_id: int,
+    zh: str,
+    cue_ids: tuple[int, ...],
+    english: Mapping[int, str],
+    lang: Language,
+    source: SourceLanguage,
+    glossary: Sequence[GlossaryEntry],
 ) -> dict[int, str]:
     if len(cue_ids) == 1:
-        return {cue_ids[0]: _clean(lang, _MARKER.sub("", zh), english[cue_ids[0]])}
+        text = _MARKER.sub("", zh)
+        return {cue_ids[0]: _clean(lang, text, english[cue_ids[0]], source, glossary)}
     zh = lang.terms(zh)
     marks = list(_MARKER.finditer(zh))
     found = [int(m.group(1)) for m in marks]
     if found != list(cue_ids):
         wanted = " ".join(map(_mark, cue_ids))
         lost = "".join(
-            f" {_mark(i)} is missing, and the English after it is {_quoted(english[i])}."
+            f" {_mark(i)} is missing, and the {source.name} after it is {_quoted(english[i])}."
             for i in cue_ids
             if i not in found
         )
@@ -328,7 +384,7 @@ def _split_at_markers(
         raise ReplyError(f"entry {unit_id} has text before {_mark(cue_ids[0])}")
     ends = [m.start() for m in marks[1:]] + [len(zh)]
     return {
-        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id])
+        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id], source, glossary)
         for cue_id, mark, end in zip(cue_ids, marks, ends, strict=True)
     }
 
@@ -339,13 +395,14 @@ def parse_reply(
     cues: Sequence[Cue],
     glossary: Sequence[GlossaryEntry] = (),
     lang: Language = DEFAULT,
+    source: SourceLanguage = ENGLISH_SOURCE,
 ) -> dict[int, str]:
     """Return one cleaned translation for each cue of the request, or raise `ReplyError`.
 
     A glossary term kept in English must appear in the `zh` of each cue whose English has it."""
     wanted = set(request.ids)
     wanted_cues = {cue_id for unit in request.units for cue_id in unit}
-    english = {cue.id: cue.en for cue in cues if cue.id in wanted_cues}
+    english = {cue.id: cue.src for cue in cues if cue.id in wanted_cues}
     found: dict[int, str] = {}
     extra: list[int] = []
     duplicate: list[int] = []
@@ -373,11 +430,43 @@ def parse_reply(
         raise ReplyError(f"expected {len(request.ids)} entries; " + ", ".join(problems))
     cleaned: dict[int, str] = {}
     for unit in request.units:
-        cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english, lang))
+        cleaned.update(
+            _split_at_markers(unit[0], found[unit[0]], unit, english, lang, source, glossary)
+        )
     for cue_id, zh in cleaned.items():
-        _check_text(lang, cue_id, zh, english[cue_id])
+        _check_text(lang, cue_id, zh, english[cue_id], source)
         _check_glossary(cue_id, zh, english[cue_id], glossary, lang)
     return cleaned
+
+
+_CLAUSE_BREAK = re.compile(r"[，、；：,;]")
+_SENTENCE_MARKS = "。！？…!?."
+
+
+def settle_bare_punctuation(cues: Sequence[Cue], source: SourceLanguage) -> list[Cue]:
+    """Give a cue whose translation is only punctuation the last clause of the cue before it.
+
+    The model puts the whole sentence in the first cue of a split sentence and leaves a bare 「。」
+    for the next. The text of the cue before is cut at its last clause break, and the part after
+    the break goes in front of the punctuation. Timestamps and ids never change. A cue that has no
+    cue before it, or one whose neighbour has no break to cut at, keeps what it has."""
+    settled = list(cues)
+    if not source.rejects_bare_punctuation:
+        return settled
+    for index in range(1, len(settled)):
+        cue, before = settled[index], settled[index - 1]
+        if not cue.zh or not is_bare_punctuation(cue.zh) or is_bare_punctuation(cue.src):
+            continue
+        breaks = [m.end() for m in _CLAUSE_BREAK.finditer(before.zh)]
+        cut = next((at for at in reversed(breaks) if not is_bare_punctuation(before.zh[at:])), None)
+        if cut is None or not before.zh[:cut].strip():
+            continue
+        log.warning("cue %d is only punctuation; took the end of cue %d", cue.id, before.id)
+        settled[index - 1] = replace(before, zh=before.zh[:cut].rstrip())
+        tail = before.zh[cut:].lstrip()
+        ended = tail[-1] in _SENTENCE_MARKS and set(cue.zh) <= set(_SENTENCE_MARKS)
+        settled[index] = replace(cue, zh=tail if ended else tail + cue.zh)
+    return settled
 
 
 def resume_from(cues: Sequence[Cue], previous: Sequence[Cue]) -> list[Cue]:
@@ -405,9 +494,11 @@ class _Run:
         sleep: Callable[[float], None],
         keep_english: bool,
         lang: Language,
+        source: SourceLanguage,
     ) -> None:
         self.keep_english = keep_english
         self.lang = lang
+        self.source = source
         self.cues = list(cues)
         self.chat = chat
         self.glossary = glossary
@@ -418,14 +509,18 @@ class _Run:
         self.sleep = sleep
 
     def translate(self, batch: Batch) -> None:
-        request = build_request(self.cues, batch, self.glossary, self.context, self.lang)
+        request = build_request(
+            self.cues, batch, self.glossary, self.context, self.lang, self.source
+        )
         started = time.monotonic()
         first, last = self.cues[batch.start].id, self.cues[batch.stop - 1].id
         try:
             translations, attempts = ask(
                 self.chat,
                 request.messages,
-                lambda text: parse_reply(text, request, self.cues, self.glossary, self.lang),
+                lambda text: parse_reply(
+                    text, request, self.cues, self.glossary, self.lang, self.source
+                ),
                 reprompt=lambda reason: (
                     f"That reply was rejected: {reason}. Reply again with the "
                     f'complete JSON for all {len(request.ids)} entries in "translate".'
@@ -455,13 +550,45 @@ class _Run:
         """A cue that failed every attempt keeps its English. The glossary check is never relaxed:
         a language that spells a term differently says so in `Language.spellings`."""
         cue = self.cues[batch.start]
+        if (repaired := self.repaired(batch, exc.reply)) is not None:
+            log.warning("cue %d: kept the last reply after %s", cue.id, exc.reason)
+            self.store(batch, repaired, started, exc.attempts)
+            return
         log.warning(
-            "cue %d could not be translated after %d attempts (%s); keeping its English",
+            "cue %d could not be translated after %d attempts (%s); keeping its %s",
             cue.id,
             exc.attempts,
             exc.reason,
+            self.source.name,
         )
-        self.store(batch, {cue.id: cue.en}, started, 0)
+        self.store(batch, {cue.id: cue.src}, started, 0)
+
+    def repaired(self, batch: Batch, reply: str) -> dict[int, str] | None:
+        """The last reply of a cue that failed every attempt, after the source language's repair
+        (a name left in kana is written in Latin letters), when it then passes the checks of the
+        script. Its length is not checked: a translation that runs long serves a reader better
+        than the Japanese does. A reply that is only punctuation passes here and is settled with its
+        neighbour once every cue is translated (`settle_bare_punctuation`). English has no repair,
+        so it keeps its English."""
+        source = self.source
+        if source.repair is None:
+            return None
+        repair = source.repair
+
+        def clean(text: str) -> str:
+            return repair(source.clean(text))
+
+        mended = replace(
+            source,
+            clean=clean,
+            density=Density(1000.0, 10_000, 0.0),
+            rejects_bare_punctuation=False,
+        )
+        request = build_request(self.cues, batch, self.glossary, self.context, self.lang, mended)
+        try:
+            return parse_reply(reply, request, self.cues, self.glossary, self.lang, mended)
+        except ReplyError:
+            return None
 
     def store(
         self, batch: Batch, translations: dict[int, str], started: float, attempts: int
@@ -496,6 +623,7 @@ def run(
     sleep: Callable[[float], None] = time.sleep,
     keep_english: bool = False,
     lang: Language = DEFAULT,
+    source: SourceLanguage = ENGLISH_SOURCE,
 ) -> list[Cue]:
     """Translate every cue whose `zh` is empty into `lang` and return all cues, timing and `en`
     unchanged. The `zh` field holds the translation whatever the language is.
@@ -519,10 +647,11 @@ def run(
         sleep=sleep,
         keep_english=keep_english,
         lang=lang,
+        source=source,
     )
-    for batch in plan_batches(job.cues, batch_size):
+    for batch in plan_batches(job.cues, batch_size, source=source):
         job.translate(batch)
-    return job.cues
+    return settle_bare_punctuation(job.cues, source)
 
 
 def translate_file(
@@ -535,6 +664,7 @@ def translate_file(
     on_progress: Callable[[Progress], None] | None = None,
     keep_english: bool = False,
     lang: Language = DEFAULT,
+    source_lang: SourceLanguage = ENGLISH_SOURCE,
 ) -> list[Cue]:
     """Translate `source` (a subs json) into `dest`, saving `dest` after every batch.
 
@@ -559,6 +689,7 @@ def translate_file(
         on_progress=on_progress,
         keep_english=keep_english,
         lang=lang,
+        source=source_lang,
     )
     save(result)
     return result
