@@ -10,6 +10,7 @@ files, prompts and cue rules are exactly what the first release made.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -89,6 +90,9 @@ class SourceLanguage:
     without its length. None keeps the source text in its place."""
     fonts: tuple[str, ...]
     """The families a burned-in subtitle may write the source text in, best first."""
+    rejects_bare_punctuation: bool = False
+    """A translation with no letter or digit in it, such as 「。」, is a bad reply: the sentence it
+    belongs to was put in the cue before it."""
 
     @property
     def spaced(self) -> bool:
@@ -169,6 +173,11 @@ def _identity(text: str) -> str:
     return text
 
 
+def is_bare_punctuation(text: str) -> bool:
+    """Whether `text` has no letter, digit or ideograph in it, only marks and spaces."""
+    return not any(unicodedata.category(char)[0] in "LN" for char in text)
+
+
 def _japanese_problem(text: str) -> str | None:
     """What a Chinese translation of Japanese speech still has of Japanese in it. Kana and the
     kanji Japanese writes in its own way are the two ways a model leaves the source behind."""
@@ -228,6 +237,7 @@ JAPANESE_SOURCE = SourceLanguage(
     True,
     romanize_katakana,
     ("Yu Gothic", "Meiryo", "MS Gothic"),
+    rejects_bare_punctuation=True,
 )
 
 SOURCES: Mapping[str, SourceLanguage] = MappingProxyType(

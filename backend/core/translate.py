@@ -12,7 +12,7 @@ from typing import cast
 
 from backend.core.languages import DEFAULT, Density, Language
 from backend.core.model import Cue, FormatError
-from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage
+from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage, is_bare_punctuation
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
 from backend.llm.ask import (
     MAX_RETRIES,
@@ -323,13 +323,19 @@ def _clean(
 def _check_text(lang: Language, cue_id: int, zh: str, en: str, source: SourceLanguage) -> None:
     if not zh:
         raise ReplyError(f"cue {cue_id} has an empty translation of {_quoted(en)}")
+    if source.rejects_bare_punctuation and is_bare_punctuation(zh) and not is_bare_punctuation(en):
+        raise ReplyError(
+            f"cue {cue_id} has only punctuation; translate its own words {_quoted(en)}"
+        )
     if problem := lang.problem(zh, en) or source.problem(zh):
         raise ReplyError(f"cue {cue_id} {problem}")
     density = source.density or lang.density
     if len(zh) > density.max_per_en_char * len(en) + density.slack:
-        raise ReplyError(f"cue {cue_id} is far longer than its English; translate only that cue")
+        raise ReplyError(
+            f"cue {cue_id} is far longer than its {source.name}; translate only that cue"
+        )
     if len(en) > _LONG_EN_CHARS and len(zh) < density.min_per_en_char * len(en):
-        raise ReplyError(f"cue {cue_id} is far shorter than its English; translate all of it")
+        raise ReplyError(f"cue {cue_id} is far shorter than its {source.name}; translate all of it")
 
 
 def _check_glossary(
@@ -366,7 +372,7 @@ def _split_at_markers(
     if found != list(cue_ids):
         wanted = " ".join(map(_mark, cue_ids))
         lost = "".join(
-            f" {_mark(i)} is missing, and the English after it is {_quoted(english[i])}."
+            f" {_mark(i)} is missing, and the {source.name} after it is {_quoted(english[i])}."
             for i in cue_ids
             if i not in found
         )
@@ -431,6 +437,36 @@ def parse_reply(
         _check_text(lang, cue_id, zh, english[cue_id], source)
         _check_glossary(cue_id, zh, english[cue_id], glossary, lang)
     return cleaned
+
+
+_CLAUSE_BREAK = re.compile(r"[，、；：,;]")
+_SENTENCE_MARKS = "。！？…!?."
+
+
+def settle_bare_punctuation(cues: Sequence[Cue], source: SourceLanguage) -> list[Cue]:
+    """Give a cue whose translation is only punctuation the last clause of the cue before it.
+
+    The model puts the whole sentence in the first cue of a split sentence and leaves a bare 「。」
+    for the next. The text of the cue before is cut at its last clause break, and the part after
+    the break goes in front of the punctuation. Timestamps and ids never change. A cue that has no
+    cue before it, or one whose neighbour has no break to cut at, keeps what it has."""
+    settled = list(cues)
+    if not source.rejects_bare_punctuation:
+        return settled
+    for index in range(1, len(settled)):
+        cue, before = settled[index], settled[index - 1]
+        if not cue.zh or not is_bare_punctuation(cue.zh) or is_bare_punctuation(cue.src):
+            continue
+        breaks = [m.end() for m in _CLAUSE_BREAK.finditer(before.zh)]
+        cut = next((at for at in reversed(breaks) if not is_bare_punctuation(before.zh[at:])), None)
+        if cut is None or not before.zh[:cut].strip():
+            continue
+        log.warning("cue %d is only punctuation; took the end of cue %d", cue.id, before.id)
+        settled[index - 1] = replace(before, zh=before.zh[:cut].rstrip())
+        tail = before.zh[cut:].lstrip()
+        ended = tail[-1] in _SENTENCE_MARKS and set(cue.zh) <= set(_SENTENCE_MARKS)
+        settled[index] = replace(cue, zh=tail if ended else tail + cue.zh)
+    return settled
 
 
 def resume_from(cues: Sequence[Cue], previous: Sequence[Cue]) -> list[Cue]:
@@ -519,10 +555,11 @@ class _Run:
             self.store(batch, repaired, started, exc.attempts)
             return
         log.warning(
-            "cue %d could not be translated after %d attempts (%s); keeping its English",
+            "cue %d could not be translated after %d attempts (%s); keeping its %s",
             cue.id,
             exc.attempts,
             exc.reason,
+            self.source.name,
         )
         self.store(batch, {cue.id: cue.src}, started, 0)
 
@@ -530,7 +567,9 @@ class _Run:
         """The last reply of a cue that failed every attempt, after the source language's repair
         (a name left in kana is written in Latin letters), when it then passes the checks of the
         script. Its length is not checked: a translation that runs long serves a reader better
-        than the Japanese does. English has no repair, so it keeps its English."""
+        than the Japanese does. A reply that is only punctuation passes here and is settled with its
+        neighbour once every cue is translated (`settle_bare_punctuation`). English has no repair,
+        so it keeps its English."""
         source = self.source
         if source.repair is None:
             return None
@@ -539,7 +578,12 @@ class _Run:
         def clean(text: str) -> str:
             return repair(source.clean(text))
 
-        mended = replace(source, clean=clean, density=Density(1000.0, 10_000, 0.0))
+        mended = replace(
+            source,
+            clean=clean,
+            density=Density(1000.0, 10_000, 0.0),
+            rejects_bare_punctuation=False,
+        )
         request = build_request(self.cues, batch, self.glossary, self.context, self.lang, mended)
         try:
             return parse_reply(reply, request, self.cues, self.glossary, self.lang, mended)
@@ -607,7 +651,7 @@ def run(
     )
     for batch in plan_batches(job.cues, batch_size, source=source):
         job.translate(batch)
-    return job.cues
+    return settle_bare_punctuation(job.cues, source)
 
 
 def translate_file(

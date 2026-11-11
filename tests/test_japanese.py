@@ -821,6 +821,105 @@ class TestRepairs:
         assert done[0].zh == "と題しまして"
 
 
+class TestRetryMessagesNameTheSource:
+    @staticmethod
+    def rejection(cues: list[Cue], zh: str, source: translate.SourceLanguage) -> str:
+        batch = Batch((Unit(0, len(cues)),))
+        request = build_request(cues, batch, (), 5, ZH_TW, source)
+        with pytest.raises(ReplyError) as raised:
+            parse_reply(reply([cues[0].id], zh), request, cues, (), ZH_TW, source)
+        return str(raised.value)
+
+    def test_a_lost_marker_names_the_japanese_after_it(self) -> None:
+        cues = [
+            Cue(1, 0, 1000, "お願いします", lang="ja"),
+            Cue(2, 1000, 2000, "と思います。", lang="ja"),
+        ]
+        message = self.rejection(cues, "[[1]]請多指教。", JAPANESE_SOURCE)
+        assert "the Japanese after it is" in message and "English" not in message
+
+    def test_a_lost_marker_in_an_english_talk_still_says_english(self) -> None:
+        cues = [Cue(1, 0, 1000, "So I think"), Cue(2, 1000, 2000, "it works.")]
+        message = self.rejection(cues, "[[1]]我想。", ENGLISH_SOURCE)
+        assert 'the English after it is "it works."' in message
+
+    def test_a_translation_far_too_long_names_the_japanese(self) -> None:
+        cues = [Cue(1, 0, 1000, "はい。", lang="ja")]
+        message = self.rejection(cues, TestLastResort.LONG, JAPANESE_SOURCE)
+        assert "far longer than its Japanese" in message
+
+
+class TestBarePunctuation:
+    JA = [
+        Cue(1, 0, 1000, "お申し付けいただければ", lang="ja"),
+        Cue(2, 1000, 2000, "と思います。", lang="ja"),
+    ]
+
+    def test_a_translation_of_only_punctuation_is_refused_for_japanese(self) -> None:
+        with pytest.raises(ReplyError, match="only punctuation"):
+            check("と思います。", "。")
+        with pytest.raises(ReplyError, match="only punctuation"):
+            check("と思います。", "……")
+
+    def test_an_english_translation_of_only_punctuation_is_not_refused(self) -> None:
+        cues = [Cue(1, 0, 1000, "Mm-hm.")]
+        request = build_request(cues, Batch((Unit(0, 1),)), (), 5, ZH_TW)
+        assert parse_reply(reply([1], "。"), request, cues, (), ZH_TW) == {1: "。"}
+
+    def test_a_source_that_is_only_punctuation_may_keep_it(self) -> None:
+        assert check("……", "……") == {1: "……"}
+
+    @staticmethod
+    def model(whole_unit: str, alone: dict[int, str]) -> Callable[..., str]:
+        def chat(messages: Sequence[translate.Message], temperature: float) -> str:
+            entries = json.loads(messages[1]["content"])["translate"]
+            out = [
+                {"id": e["id"], "zh": whole_unit if "[[" in e["ja"] else alone[e["id"]]}
+                for e in entries
+            ]
+            return json.dumps({"translations": out}, ensure_ascii=False)
+
+        return chat
+
+    def test_a_bare_full_stop_is_retranslated_on_its_own(self) -> None:
+        chat = self.model(
+            "[[1]]請隨時告訴我們，我們會處理[[2]]。", {1: "請隨時告訴我們，", 2: "我們會處理。"}
+        )
+        done = translate.run(
+            self.JA, chat, max_retries=1, sleep=lambda _: None, source=JAPANESE_SOURCE
+        )
+        assert [c.zh for c in done] == ["請隨時告訴我們，", "我們會處理。"]
+
+    def test_a_cue_that_stays_bare_takes_the_end_of_the_cue_before_it(self) -> None:
+        chat = self.model(
+            "[[1]]請隨時告訴我們，我們會處理[[2]]。", {1: "請隨時告訴我們，我們會處理。", 2: "。"}
+        )
+        done = translate.run(
+            self.JA,
+            chat,
+            max_retries=1,
+            sleep=lambda _: None,
+            keep_english=True,
+            source=JAPANESE_SOURCE,
+        )
+        assert [c.zh for c in done] == ["請隨時告訴我們，", "我們會處理。"]
+        assert [(c.id, c.start_ms, c.end_ms) for c in done] == [(1, 0, 1000), (2, 1000, 2000)]
+
+    def test_a_cue_with_nothing_to_take_keeps_its_punctuation(self) -> None:
+        cues = [
+            Cue(1, 0, 1000, "はい", lang="ja", zh="好的"),
+            Cue(2, 1000, 2000, "です。", lang="ja", zh="。"),
+        ]
+        assert [c.zh for c in translate.settle_bare_punctuation(cues, JAPANESE_SOURCE)] == [
+            "好的",
+            "。",
+        ]
+
+    def test_an_english_talk_is_never_settled(self) -> None:
+        cues = [Cue(1, 0, 1000, "So, yes", zh="所以，是的"), Cue(2, 1000, 2000, "it is.", zh="。")]
+        assert translate.settle_bare_punctuation(cues, ENGLISH_SOURCE) == cues
+
+
 class TestGlossaryMending:
     GLOSSARY = [translate.GlossaryEntry("東陽テクニカ", "Toyo Corporation")]
 
