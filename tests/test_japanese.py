@@ -11,7 +11,7 @@ import threading
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from test_pipeline import SETTINGS, Fakes, steps_of
@@ -646,17 +646,20 @@ class TestBurnFont:
 
 def client_shape_ok(cue: object) -> bool:
     """The check `parseCues` in app/src/api/client.ts makes on every cue of the JSON reply."""
+    if not isinstance(cue, dict):
+        return False
+    fields = cast("dict[str, object]", cue)
 
-    def number(v: object) -> bool:
-        return isinstance(v, int | float) and not isinstance(v, bool)
+    def number(key: str) -> bool:
+        value = fields.get(key)
+        return isinstance(value, int | float) and not isinstance(value, bool)
 
     return (
-        isinstance(cue, dict)
-        and number(cue.get("id"))
-        and number(cue.get("start_ms"))
-        and number(cue.get("end_ms"))
-        and isinstance(cue.get("en"), str)
-        and isinstance(cue.get("zh"), str)
+        number("id")
+        and number("start_ms")
+        and number("end_ms")
+        and isinstance(fields.get("en"), str)
+        and isinstance(fields.get("zh"), str)
     )
 
 
