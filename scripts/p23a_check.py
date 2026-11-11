@@ -5,7 +5,7 @@
 Reports the cue counts, the line lengths in full-width characters, the cue timing, how many cue
 and line breaks fall inside a word by the script rule of `backend.core.unspaced`, and the
 output checks on every translated cue and on the summary: kana left over, Japanese kanji
-forms, Simplified characters, Mainland wording, and cues that kept their Japanese because the
+forms, Simplified characters, Mainland wording, cues with only punctuation, and cues that kept their Japanese because the
 model failed every attempt. Exit code 1 when any check finds an error.
 """
 
@@ -21,7 +21,7 @@ from backend.core import unspaced
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, Word
 from backend.core.segmenter import violations
-from backend.core.source_langs import JAPANESE_SOURCE
+from backend.core.source_langs import JAPANESE_SOURCE, is_bare_punctuation
 from backend.core.subtitle_io import parse_project, parse_subs, read_text_file
 from backend.core.zh_tw import taiwan_terms, taiwan_terms_from_japanese
 
@@ -62,6 +62,8 @@ def cue_problems(cue: Cue) -> list[str]:
         found.append(f"cue {cue.id} has Mainland wording: {cue.zh}")
     if cue.zh == cue.src:
         found.append(f"cue {cue.id} kept its Japanese")
+    if is_bare_punctuation(cue.zh) and not is_bare_punctuation(cue.src):
+        found.append(f"cue {cue.id} is only punctuation: {cue.zh}")
     return found
 
 
@@ -123,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
         "breaks": breaks,
         "rule_violations": violations(source, rules),
         "zh_cues_empty": sum(1 for cue in cues if not cue.zh),
+        "zh_cues_only_punctuation": sum(1 for cue in cues if is_bare_punctuation(cue.zh)),
+        "zh_cues_4_chars_or_fewer": sorted(cue.id for cue in cues if len(cue.zh) <= 4),
         "output_check_errors": problems,
         "summary_chars": len(summary),
     }
