@@ -706,3 +706,22 @@ class TestRepairs:
             source=JAPANESE_SOURCE,
         )
         assert done[0].zh == "と題しまして"
+
+
+class TestGlossaryMending:
+    GLOSSARY = [translate.GlossaryEntry("東陽テクニカ", "Toyo Corporation")]
+
+    def test_a_japanese_term_the_model_copies_is_replaced_by_its_translation(self) -> None:
+        got = check("東陽テクニカの方です。", "是東陽テクニカ的人。", self.GLOSSARY)
+        assert got == {1: "是Toyo Corporation的人。"}
+
+    def test_the_japanese_default_glossary_maps_the_garbled_product_name(self) -> None:
+        got = check("パフォースを使います。", "使用パフォース。", default_glossary("ja"))
+        assert got == {1: "使用Perforce。"}
+
+    def test_an_english_translation_is_left_alone(self) -> None:
+        glossary = [translate.GlossaryEntry("tool", "工具")]
+        cues = [Cue(1, 0, 1000, "This is a tool for builders.")]
+        request = build_request(cues, Batch((Unit(0, 1),)), glossary, 5, ZH_TW)
+        text = reply([1], "這是給建造者的 tool。")
+        assert parse_reply(text, request, cues, glossary, ZH_TW) == {1: "這是給建造者的 tool。"}

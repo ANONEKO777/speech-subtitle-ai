@@ -72,6 +72,10 @@ _SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
         GlossaryEntry("P4 DAM"),
         GlossaryEntry("Helix Swarm"),
         GlossaryEntry("東陽テクニカ", "Toyo Corporation"),
+        GlossaryEntry("パフォース", "Perforce"),
+        GlossaryEntry("パーフォース", "Perforce"),
+        GlossaryEntry("パフォッシャ", "Perforce"),
+        GlossaryEntry("パフォーシャ", "Perforce"),
     )
 }
 
@@ -300,8 +304,18 @@ def _reply_entries(text: str, key: str) -> list[object]:
     return cast("list[object]", doc)
 
 
-def _clean(lang: Language, zh: str, en: str, source: SourceLanguage) -> str:
+def _clean(
+    lang: Language,
+    zh: str,
+    en: str,
+    source: SourceLanguage,
+    glossary: Sequence[GlossaryEntry] = (),
+) -> str:
     zh = source.clean(lang.clean(zh, en))
+    if source.mends_glossary:
+        for entry in glossary:
+            if entry.zh:
+                zh = zh.replace(entry.term, entry.zh)
     lines = (line.strip() for line in zh.replace("\r", "\n").split("\n"))
     return "\n".join(line for line in lines if line)
 
@@ -341,9 +355,11 @@ def _split_at_markers(
     english: Mapping[int, str],
     lang: Language,
     source: SourceLanguage,
+    glossary: Sequence[GlossaryEntry],
 ) -> dict[int, str]:
     if len(cue_ids) == 1:
-        return {cue_ids[0]: _clean(lang, _MARKER.sub("", zh), english[cue_ids[0]], source)}
+        text = _MARKER.sub("", zh)
+        return {cue_ids[0]: _clean(lang, text, english[cue_ids[0]], source, glossary)}
     zh = lang.terms(zh)
     marks = list(_MARKER.finditer(zh))
     found = [int(m.group(1)) for m in marks]
@@ -362,7 +378,7 @@ def _split_at_markers(
         raise ReplyError(f"entry {unit_id} has text before {_mark(cue_ids[0])}")
     ends = [m.start() for m in marks[1:]] + [len(zh)]
     return {
-        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id], source)
+        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id], source, glossary)
         for cue_id, mark, end in zip(cue_ids, marks, ends, strict=True)
     }
 
@@ -408,7 +424,9 @@ def parse_reply(
         raise ReplyError(f"expected {len(request.ids)} entries; " + ", ".join(problems))
     cleaned: dict[int, str] = {}
     for unit in request.units:
-        cleaned.update(_split_at_markers(unit[0], found[unit[0]], unit, english, lang, source))
+        cleaned.update(
+            _split_at_markers(unit[0], found[unit[0]], unit, english, lang, source, glossary)
+        )
     for cue_id, zh in cleaned.items():
         _check_text(lang, cue_id, zh, english[cue_id], source)
         _check_glossary(cue_id, zh, english[cue_id], glossary, lang)

@@ -81,6 +81,9 @@ class SourceLanguage:
     """The target languages with a worked example and a tested prompt, or None for all."""
     problem: Callable[[str], str | None]
     clean: Callable[[str], str]
+    mends_glossary: bool
+    """The glossary terms are written in the source's own script, so a translation that copies one
+    is mended with the term's fixed translation."""
     repair: Callable[[str], str]
     """What is done to a translation that failed every attempt, before it is checked once more."""
     fonts: tuple[str, ...]
@@ -200,6 +203,7 @@ ENGLISH_SOURCE = SourceLanguage(
     None,
     _no_problem,
     _identity,
+    False,
     _identity,
     ("Arial",),
 )
@@ -220,6 +224,7 @@ JAPANESE_SOURCE = SourceLanguage(
     frozenset({"zh-TW"}),
     _japanese_problem,
     _japanese_clean,
+    True,
     romanize_katakana,
     ("Yu Gothic", "Meiryo", "MS Gothic"),
 )
