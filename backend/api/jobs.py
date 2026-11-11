@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.api.projects import jobs_of, store_of
 from backend.core.jobs import (
@@ -21,7 +21,9 @@ from backend.core.jobs import (
 )
 from backend.core.languages import DEFAULT_CODE
 from backend.core.languages import get as get_language
+from backend.core.model import DEFAULT_SOURCE
 from backend.core.projects import UnknownProject
+from backend.core.source_langs import get_source
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
 from backend.manager.profiles import QWEN3_8B
 
@@ -47,11 +49,25 @@ class JobBody(BaseModel):
     summary_en: bool = False
     batch_size: int = Field(default=BATCH_SIZE, ge=1, le=4 * BATCH_SIZE)
     target_lang: str = DEFAULT_CODE
+    source_lang: str = DEFAULT_SOURCE
 
     @field_validator("target_lang")
     @classmethod
     def _known_language(cls, code: str) -> str:
         return get_language(code).code
+
+    @field_validator("source_lang")
+    @classmethod
+    def _known_source(cls, code: str) -> str:
+        return get_source(code).code
+
+    @model_validator(mode="after")
+    def _source_has_target(self) -> JobBody:
+        source = get_source(self.source_lang)
+        if not source.supports(get_language(self.target_lang)):
+            allowed = ", ".join(sorted(source.targets or ()))
+            raise ValueError(f"{source.name} speech can be translated into {allowed} for now")
+        return self
 
     def options(self) -> JobOptions:
         return JobOptions(
@@ -63,6 +79,7 @@ class JobBody(BaseModel):
             self.summary_en,
             self.batch_size,
             self.target_lang,
+            self.source_lang,
         )
 
 

@@ -70,13 +70,15 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 
 
 _WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
-_FACTORY_LINE = "生產|裝配|組裝|製造|工廠|工業|汽車"
+_NOT_FACTORY_LINE = "".join(
+    f"(?<!{head})" for head in "生產|裝配|組裝|製造|工廠|工業|汽車".split("|")
+)
 _JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
     (
         re.compile("倉庫"),
         lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存庫",
     ),
-    (re.compile(f"(?<![{_FACTORY_LINE}])流水線"), "管線"),
+    (re.compile(f"{_NOT_FACTORY_LINE}流水線"), "管線"),
 )
 
 

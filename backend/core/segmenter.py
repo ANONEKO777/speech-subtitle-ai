@@ -193,6 +193,20 @@ class _Run:
         cost = self.breaks[j]
         return cost if follow is None else _pause_cost(cost, follow.start_ms - self.words[j].end_ms)
 
+    def wrap_cost(self, i: int, j: int) -> float:
+        """What the second line of a two-line unspaced cue costs: the cheapest cut that keeps both
+        lines within the limit, which a cue that fits one line does not pay."""
+        limit = self.rules.max_line_chars
+        if self.breaks is None or self.widths.span(i, j) <= limit:
+            return 0.0
+        scores = [
+            self.breaks[cut]
+            + abs(self.widths.span(i, cut) - self.widths.span(cut + 1, j)) / unspaced.LINE_BALANCE
+            for cut in range(i, j)
+            if self.widths.span(i, cut) <= limit and self.widths.span(cut + 1, j) <= limit
+        ]
+        return min(scores, default=0.0)
+
     def sentence_ends(self, i: int, j: int) -> int:
         end = unspaced.is_sentence_end if self.rules.unspaced else _ends_a_sentence
         return sum(1 for k in range(i, j) if end(self.words[k].text))
@@ -217,7 +231,7 @@ def _cue_cost(run: _Run, i: int, j: int, follow: Word | None) -> float:
     if spoken < 1500:
         cost += 2.0
     cost += 6.0 * run.sentence_ends(i, j)
-    return cost + run.break_cost(j, follow)
+    return cost + run.break_cost(j, follow) + run.wrap_cost(i, j)
 
 
 def _split_run(words: Sequence[Word], follow: Word | None, r: CueRules) -> list[tuple[int, int]]:
@@ -288,11 +302,15 @@ def to_cues(
             continue
         run = words[begin:index]
         follow = words[index] if index < len(words) else None
+        breaks = unspaced.break_costs(run) if r.unspaced else None
         for i, j in _split_run(run, follow, r):
             start = run[i].start_ms
             nxt = run[j + 1] if j + 1 < len(run) else follow
             end = max(start, _display_end(run, i, j, nxt.start_ms if nxt else None, r))
-            text = (unspaced.wrap if r.unspaced else _wrap)(run[i : j + 1], r.max_line_chars)
+            if breaks is None:
+                text = _wrap(run[i : j + 1], r.max_line_chars)
+            else:
+                text = unspaced.wrap(run[i : j + 1], r.max_line_chars, breaks[i:j])
             cues.append(Cue(len(cues) + 1, start, end, text, lang=lang))
         begin = index
     return cues

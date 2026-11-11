@@ -403,6 +403,7 @@ class QueueRunner:
             "video_path": item.video_path,
             "project_id": item.project_id,
             "target_lang": item.target_lang,
+            "source_lang": item.source_lang,
             "options": asdict(item.options),
             "state": item.state.value,
             "position": item.position,

@@ -56,7 +56,7 @@ class CrispAsrEngine(SubprocessEngine):
     def output_path(self, base: Path) -> Path:
         return base.parent / f"{base.name}.json"
 
-    def parse(self, output: Path) -> list[Segment]:
+    def parse(self, output: Path, language: str = "en") -> list[Segment]:
         raw = read_json(output)
         try:
             segments = (_segment(item) for item in raw["transcription"])

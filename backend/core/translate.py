@@ -64,6 +64,23 @@ DEFAULT_GLOSSARY: tuple[GlossaryEntry, ...] = tuple(
 )
 """Product names that stay in English in every run. A user's own entries come after them."""
 
+_SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
+    "ja": (
+        GlossaryEntry("Perforce"),
+        GlossaryEntry("P4"),
+        GlossaryEntry("P4 MCP"),
+        GlossaryEntry("P4 DAM"),
+        GlossaryEntry("Helix Swarm"),
+        GlossaryEntry("東陽テクニカ", "Toyo Corporation"),
+    )
+}
+
+
+def default_glossary(source: str) -> tuple[GlossaryEntry, ...]:
+    """The glossary every run of a talk in `source` starts with. The names of the products the
+    Japanese test talks are about are in it because speech recognition garbles them."""
+    return (*DEFAULT_GLOSSARY, *_SOURCE_GLOSSARY.get(source, ()))
+
 
 @dataclass(frozen=True, slots=True)
 class Unit:

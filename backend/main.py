@@ -102,6 +102,7 @@ def default_resolver(user_data: Path) -> Resolver:
             summary_en=options.summary_en,
             batch_size=options.batch_size,
             target_lang=options.target_lang,
+            source_lang=options.source_lang,
         )
         try:
             return r.resolve(request, folder)

@@ -205,7 +205,7 @@ class SubprocessEngine(ABC):
     def output_path(self, base: Path) -> Path: ...
 
     @abstractmethod
-    def parse(self, output: Path) -> list[Segment]: ...
+    def parse(self, output: Path, language: str = "en") -> list[Segment]: ...
 
     @abstractmethod
     def on_stderr_line(self, line: str, progress: MonotonicProgress) -> None: ...
@@ -254,7 +254,7 @@ class SubprocessEngine(ABC):
                         durations[start:stop]
                     )
                 self._run(command, progress, cancel, timeout)
-                results += [self.parse(self.output_path(base)) for base in outputs]
+                results += [self.parse(self.output_path(base), language) for base in outputs]
         progress.finish()
         return results
 

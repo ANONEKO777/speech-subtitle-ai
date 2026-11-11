@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import re
 import sys
+import unicodedata
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 from backend.core.model import Segment, Word
+from backend.core.source_langs import is_spaced
 from backend.engines.base import (
     EngineOutputError,
     MonotonicProgress,
@@ -40,10 +42,11 @@ class WhisperCppEngine(SubprocessEngine):
     def output_path(self, base: Path) -> Path:
         return base.parent / f"{base.name}.json"
 
-    def parse(self, output: Path) -> list[Segment]:
+    def parse(self, output: Path, language: str = "en") -> list[Segment]:
         raw = read_json(output)
+        spaced = is_spaced(language)
         try:
-            segments = (_segment(item) for item in raw["transcription"])
+            segments = (_segment(item, spaced) for item in raw["transcription"])
             return [segment for segment in segments if segment is not None]
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise EngineOutputError(
@@ -57,14 +60,27 @@ class WhisperCppEngine(SubprocessEngine):
             progress.within_file(fraction)
 
 
-def _segment(item: dict[str, Any]) -> Segment | None:
-    words = strip_annotations(_words(item["tokens"]))
+def _segment(item: dict[str, Any], spaced: bool) -> Segment | None:
+    words = strip_annotations(_words(item["tokens"], spaced))
     if not words:
         return None
     return segment_of(words, item["offsets"]["from"], item["offsets"]["to"])
 
 
-def _words(tokens: list[dict[str, Any]]) -> list[Word]:
+def _continues(word: str, text: str) -> bool:
+    """Whether a token with no leading space goes on a word of a language written without spaces:
+    the letters or digits of a Latin word, or punctuation that belongs to what came before. Every
+    other token is its own word, because there is no space to say where a word ends."""
+    latin = (
+        word[-1:].isascii() and word[-1:].isalnum() and text[:1].isascii() and text[:1].isalnum()
+    )
+    return latin or all(unicodedata.category(char)[0] in "PS" for char in text)
+
+
+def _words(tokens: list[dict[str, Any]], spaced: bool = True) -> list[Word]:
+    """Whisper gives subword tokens. In a spaced language a token with no leading space goes on
+    the word before it. A Japanese token is one or two characters and has none, so it stays a word
+    of its own and the cue rules decide where a line may break."""
     spans: list[list[Any]] = []
     for token in tokens:
         text: str = token["text"]
@@ -72,7 +88,7 @@ def _words(tokens: list[dict[str, Any]]) -> list[Word]:
             continue
         start: int = token["offsets"]["from"]
         end = max(start, token["offsets"]["to"])
-        if spans and not text.startswith(" "):
+        if spans and not text.startswith(" ") and (spaced or _continues(spans[-1][0], text)):
             spans[-1][0] += text
             spans[-1][2] = max(end, spans[-1][1])
         else:

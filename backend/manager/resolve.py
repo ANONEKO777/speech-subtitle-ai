@@ -15,10 +15,11 @@ from pathlib import Path
 from backend.core import audio, vad
 from backend.core.languages import DEFAULT_CODE, UnknownLanguage
 from backend.core.languages import get as get_language
-from backend.core.model import Word
+from backend.core.model import DEFAULT_SOURCE, Word
 from backend.core.pipeline import LlmSession, Ports, ProgressCb, Settings
+from backend.core.source_langs import UnknownSource, get_source
 from backend.core.summarize import summary_chat
-from backend.core.translate import BATCH_SIZE, DEFAULT_GLOSSARY, GlossaryEntry
+from backend.core.translate import BATCH_SIZE, GlossaryEntry, default_glossary
 from backend.core.vad import Chunk
 from backend.engines.chunks import transcribe_chunks
 from backend.engines.crispasr import ENGINE_ID as CRISPASR_ID
@@ -69,6 +70,7 @@ class Request:
     summary_en: bool = False
     batch_size: int = BATCH_SIZE
     target_lang: str = DEFAULT_CODE
+    source_lang: str = DEFAULT_SOURCE
 
 
 def _file_id(path: Path) -> str:
@@ -122,7 +124,7 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
         wav: Path, chunks: Sequence[Chunk], progress: ProgressCb, cancel: threading.Event
     ) -> list[Word]:
         engine = create_engine(engine_id, binary, model, aligner=aligner, device=device)
-        return transcribe_chunks(engine, wav, chunks, "en", progress, cancel)
+        return transcribe_chunks(engine, wav, chunks, request.source_lang, progress, cancel)
 
     return engine_id, "|".join(parts), transcribe
 
@@ -209,16 +211,18 @@ def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
         opener = open_local
     try:
         target = get_language(request.target_lang)
-    except UnknownLanguage as exc:
+        source = get_source(request.source_lang)
+        settings = Settings(
+            asr_engine=engine_id,
+            asr_identity=asr_identity,
+            vad_identity=vad_identity,
+            llm_identity=llm_identity,
+            source_lang=source.code,
+            glossary=(*default_glossary(source.code), *request.glossary),
+            target_lang=target.code,
+            summary_en=request.summary_en,
+            batch_size=request.batch_size,
+        )
+    except (UnknownLanguage, UnknownSource, ValueError) as exc:
         raise SettingsError(str(exc)) from exc
-    settings = Settings(
-        asr_engine=engine_id,
-        asr_identity=asr_identity,
-        vad_identity=vad_identity,
-        llm_identity=llm_identity,
-        glossary=(*DEFAULT_GLOSSARY, *request.glossary),
-        target_lang=target.code,
-        summary_en=request.summary_en,
-        batch_size=request.batch_size,
-    )
     return settings, Ports(extract_audio, split_vad, transcribe, opener)

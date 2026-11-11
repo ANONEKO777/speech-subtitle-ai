@@ -100,8 +100,10 @@ def joint(before: str, after: str) -> int:
 
 def join(texts: Sequence[str]) -> str:
     out = ""
+    previous = ""
     for text in texts:
-        out += (" " if out and joint(out, text) else "") + text
+        out += (" " if previous and joint(previous, text) else "") + text
+        previous = text
     return out
 
 
@@ -146,7 +148,7 @@ def break_costs(words: Sequence[Word]) -> list[float]:
     costs: list[float] = []
     head = ""
     for index, word in enumerate(words):
-        head = join([head, word.text]) if head else word.text
+        head += (" " if head and joint(words[index - 1].text, word.text) else "") + word.text
         if index + 1 == len(words):
             costs.append(0.0)
         else:
@@ -154,20 +156,25 @@ def break_costs(words: Sequence[Word]) -> list[float]:
     return costs
 
 
-def wrap(words: Sequence[Word], limit: int) -> str:
+LINE_BALANCE = 8
+"""Columns of difference between two lines that cost as much as one point of break cost."""
+
+
+def wrap(words: Sequence[Word], limit: int, costs: Sequence[float] | None = None) -> str:
     """The text of `words` on one line when it fits `limit` columns, else on two lines cut where
-    `break_costs` is lowest and the lines are about the same length."""
+    the break costs `costs` (default `break_costs`) are lowest and the lines are about the same
+    length."""
     texts = [w.text for w in words]
     whole = join(texts)
     if columns(whole) <= limit:
         return whole
-    costs = break_costs(words)
+    costs = break_costs(words) if costs is None else costs
     best: tuple[float, int] | None = None
     for cut in range(1, len(texts)):
         left, right = join(texts[:cut]), join(texts[cut:])
         if columns(left) > limit or columns(right) > limit:
             continue
-        score = costs[cut - 1] + abs(columns(left) - columns(right)) / 8
+        score = costs[cut - 1] + abs(columns(left) - columns(right)) / LINE_BALANCE
         if best is None or score < best[0]:
             best = (score, cut)
     if best is None:

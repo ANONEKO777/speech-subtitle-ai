@@ -76,6 +76,8 @@ class SourceLanguage:
     """The target languages with a worked example and a tested prompt, or None for all."""
     problem: Callable[[str], str | None]
     clean: Callable[[str], str]
+    fonts: tuple[str, ...]
+    """The families a burned-in subtitle may write the source text in, best first."""
 
     @property
     def spaced(self) -> bool:
@@ -190,6 +192,7 @@ ENGLISH_SOURCE = SourceLanguage(
     None,
     _no_problem,
     _identity,
+    ("Arial",),
 )
 JAPANESE_SOURCE = SourceLanguage(
     JAPANESE,
@@ -208,11 +211,19 @@ JAPANESE_SOURCE = SourceLanguage(
     frozenset({"zh-TW"}),
     _japanese_problem,
     _japanese_clean,
+    ("Yu Gothic", "Meiryo", "MS Gothic"),
 )
 
 SOURCES: Mapping[str, SourceLanguage] = MappingProxyType(
     {source.code: source for source in (ENGLISH_SOURCE, JAPANESE_SOURCE)}
 )
+
+
+def is_spaced(code: str) -> bool:
+    """Whether speech in `code` has spaces between its words. A code that is not a source language
+    (an engine can be given any it knows, such as `auto`) is taken to have them."""
+    source = SOURCES.get(code)
+    return source is None or source.spaced
 
 
 def get_source(code: str) -> SourceLanguage:
