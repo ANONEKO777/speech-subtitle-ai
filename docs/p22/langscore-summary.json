@@ -117,6 +117,8 @@
   "coarse_ja_then_en_segments": 60,
   "split_into_two_or_more_pieces": 54,
   "pieces_median": 3.0,
-  "pieces_include_both_a_japanese_and_an_english_text": 51
+  "pieces_include_both_a_japanese_and_an_english_text": 51,
+  "latin_words_in_qwen_auto_coarse": 2,
+  "latin_words_in_qwen_auto_fine": 926
  }
 }

@@ -145,11 +145,14 @@ def recovery_on_finer_cut(coarse: list[Rec], fine: list[Rec]) -> dict[str, Any]:
     mixed = [r for r in coarse if group_of(r) == "ja_then_en"]
     recovered = split = 0
     pieces: list[int] = []
+    words_coarse = words_fine = 0
     for seg in mixed:
         inside = [
             f for f in fine if seg["start_ms"] <= (f["start_ms"] + f["end_ms"]) // 2 < seg["end_ms"]
         ]
         pieces.append(len(inside))
+        words_coarse += len(LATIN_WORD.findall(seg["qwen_auto"]))
+        words_fine += sum(len(LATIN_WORD.findall(f["qwen_auto"])) for f in inside)
         split += len(inside) >= 2
         kinds = {script_of(f["qwen_auto"]) for f in inside}
         recovered += {"ja", "en"} <= kinds
@@ -158,6 +161,8 @@ def recovery_on_finer_cut(coarse: list[Rec], fine: list[Rec]) -> dict[str, Any]:
         "split_into_two_or_more_pieces": split,
         "pieces_median": statistics.median(pieces) if pieces else None,
         "pieces_include_both_a_japanese_and_an_english_text": recovered,
+        "latin_words_in_qwen_auto_coarse": words_coarse,
+        "latin_words_in_qwen_auto_fine": words_fine,
     }
 
 
