@@ -1,10 +1,10 @@
 # Subtitle modes and list
 
-While a video plays, the subtitle area under it shows the current cue in English, Chinese, or both. The list beside it shows every cue, jumps the video when clicked, and keeps the current cue in view. Size and color settings survive a restart.
+While a video plays, the subtitle area under it shows the current cue in the original language (English or Japanese), in Traditional Chinese, or both. The list beside it shows every cue, jumps the video when clicked, and keeps the current cue in view. Size and color settings survive a restart.
 
 ## Sub-features
 
-- `mode-toggle` switches 英文 / 中文 / 雙語. Each mode shows only its languages.
+- `mode-toggle` switches 原文 / 繁體中文 / 雙語. Each mode shows only its languages.
 - `cue-jump` clicking cue N sets the video time to that cue's start.
 - `autoscroll` the active list item stays inside the list's visible area during playback.
 - `style-persist` font size, color, line height, language order and mode persist across restarts.
@@ -12,7 +12,7 @@ While a video plays, the subtitle area under it shows the current cue in English
 
 ## How to get to it (user POV)
 
-- Import a video, then use the 英文 / 中文 / 雙語 buttons and the sliders in the top bar.
+- Import a video, then use the 原文 / 繁體中文 / 雙語 buttons and the sliders in the top bar.
 - Click any row in the right-hand list.
 
 ## Driving it with app/e2e
