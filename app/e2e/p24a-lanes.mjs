@@ -1,6 +1,6 @@
 // P24a live check of the video language (英文, 日文) in the real window, driven over CDP only.
 // node e2e/p24a-lanes.mjs <phase> <projects-dir> <clips-dir> <shots-dir> [port]
-// phase: ja | en | queue | nofont
+// phase: ja | en | queue | nofont | layout (the toolbar and the file box, on a finished English project plus one short Japanese and one short English import)
 // Env: VST_USER_DATA (a disposable copy), WEBVIEW2_USER_DATA_FOLDER (a profile folder of its own),
 // P24A_MEDIA (where review PNGs and the recording go), P24A_EXPORTS (where exports land).
 // Every action goes through the DevTools protocol. The clipboard, the Windows notification, the
@@ -119,7 +119,7 @@ const caption = (text) =>
 const review = async (name, text) => {
   await caption("");
   await sleep(150);
-  const file = join(media, `P24a-review-${name}.png`);
+  const file = join(media, `${process.env.P24A_REVIEW_PREFIX ?? "P24a-review"}-${name}.png`);
   await p.screenshot({ path: file });
   await caption(text ?? "");
   return file;
@@ -149,6 +149,22 @@ const oneRow = async (label) => {
   await resize(1280, 720);
   return out;
 };
+
+// the import box in the toolbar must stay readable. Widths are what main measured before the picker existed.
+const fileBox = () => p.evaluate(() => document.querySelector('[data-testid="video-path"]').getBoundingClientRect().width);
+const fileBoxChecks = async (label, min) => {
+  const out = {};
+  for (const [w, h] of [[1280, 720], [960, 600]]) {
+    await resize(w, h);
+    const width = await fileBox();
+    out[w] = width;
+    note(`file box wide enough at ${w} (${label})`, width >= min[w], `video-path ${width.toFixed(1)} px wide, needs ${min[w]}`);
+  }
+  await resize(1280, 720);
+  return out;
+};
+const PLAYER_BOX = { 1280: 130, 960: 66 };
+const HOME_BOX = { 1280: 780, 960: 590 };
 
 const folderOf = (needle) => {
   for (const d of readdirSync(projects)) {
@@ -242,6 +258,7 @@ async function playerChecks(prefix, { japanese }) {
   const labels = await p.evaluate(() => ["en", "zh", "both"].map((m) => document.querySelector(`[data-testid="mode-${m}"]`).textContent));
   note(`${prefix} mode toggle says 原文`, labels[0] === "原文" && labels[2] === "雙語", `labels ${labels.join(" | ")}`);
   const m = await oneRow(prefix);
+  await fileBoxChecks(`player, ${prefix}`, PLAYER_BOX);
   await review(`${prefix}-player-both-1280`, `${prefix}: 雙語（原文加繁體中文）`);
   await resize(960, 600);
   await review(`${prefix}-player-both-960`, `${prefix}: 雙語，960 px 寬，工具列一排`);
@@ -469,6 +486,7 @@ async function homeChecks() {
   note("video language picker", first === "en" && opts.join() === "英文,日文", `default ${first}, options ${opts.join()}`);
   note("no note for English", (await p.locator(tid("source-note")).count()) === 0, "no note under the toolbar");
   await oneRow("home, English");
+  await fileBoxChecks("home, English", HOME_BOX);
   await review("home-english-1280", "首頁：影片語言 英文（預設）");
   await p.selectOption(tid("source-lang"), "ja");
   await sleep(300);
@@ -630,6 +648,76 @@ try {
     const burnText = await p.textContent(tid("burn-progress"));
     await review("ja-nofont-burn-error", "沒有日文字型：燒入字幕的錯誤訊息");
     note("missing font message in the burn card", burnText.includes("這台電腦沒有可以顯示日文字幕的字型"), `burn card "${burnText.replace(/\s+/g, " ")}"`);
+  } else if (phase === "layout") {
+    const demo = join(process.env.P24A_ROOT ?? "D:/WebProject/speech-subtitle-ai", "一個人指揮50多個Agent-lauren @poteto X.mp4");
+    const waitPlayer = async () => {
+      await until("player", async () => (await p.locator(`${tid("cue-list")} li`).count()) > 0 && (await p.locator(tid("importing")).count()) === 0, 10 * 60 * 1000, 500);
+      await p.evaluate(() => document.querySelector("video")?.pause());
+    };
+    const heightIs = async (label, lo, hi) => {
+      const out = [];
+      for (const [w, h] of [[1280, 720], [960, 600]]) {
+        await resize(w, h);
+        const m = await header();
+        out.push(m.height);
+        note(`header ${lo}-${hi} px and one row at ${w} (${label})`, m.height >= lo && m.height <= hi && m.spread <= 3, `header ${m.height.toFixed(1)} px, centers spread ${m.spread} px`);
+      }
+      await resize(1280, 720);
+    };
+    const inHeader = (sel) => p.locator(`header ${sel}`).count();
+
+    await step("首頁：工具列一排，輸入框寬度", 600);
+    await heightIs("home, English", 48, 50);
+    await fileBoxChecks("home, English", HOME_BOX);
+    await p.selectOption(tid("source-lang"), "ja");
+    await heightIs("home, Japanese note", 48, 50);
+    await fileBoxChecks("home, Japanese note", HOME_BOX);
+    await p.selectOption(tid("source-lang"), "en");
+
+    await importVideo(demo, "en");
+    await waitPlayer();
+    await heightIs("player, English", 50, 52);
+    note("English player: no picker and no note", (await inHeader(tid("source-lang"))) === 0 && (await p.locator(tid("source-lang")).count()) === 0 && (await p.locator(tid("source-note")).count()) === 0, "the toolbar of the English player is as before");
+    await fileBoxChecks("player, English", PLAYER_BOX);
+    await review("player-en-1280", "英文播放器：工具列一排，輸入框可讀");
+    await resize(960, 600);
+    await review("player-en-960", "英文播放器 960 px：輸入框可讀");
+    await p.fill(tid("video-path"), demo);
+    const shown = await p.evaluate(() => {
+      const i = document.querySelector('[data-testid="video-path"]');
+      return { client: i.clientWidth, value: i.value.length };
+    });
+    note("pasted path is visible in the player at 960", shown.client >= 60 && shown.value > 40, `input client width ${shown.client} px for a ${shown.value} character path`);
+    await p.click(tid("import"));
+    await waitPlayer();
+    note("pasted path in the player opens the project at 960", (await p.locator(tid("error")).count()) === 0, "player shown, no error");
+    await resize(1280, 720);
+
+    await p.click(tid("home"));
+    await p.waitForSelector(tid("library-list"));
+    await p.selectOption(tid("source-lang"), "ja");
+    await p.fill(tid("video-path"), join(clips, "queue-ja-60s.mp4"));
+    await p.click(tid("import"));
+    await waitPlayer();
+    const jaBody = jobBodies.at(-1);
+    note("Japanese import starts with source_lang ja", jaBody !== undefined && JSON.parse(jaBody).source_lang === "ja", `POST /jobs body ${jaBody}`);
+    await heightIs("player, Japanese", 50, 52);
+    const bar = await p.evaluate(() => ({ value: document.querySelector('.source-bar [data-testid="source-lang"]')?.value ?? null, note: document.querySelector('[data-testid="source-note"]')?.textContent ?? null }));
+    note("Japanese player: picker and note sit under the toolbar", bar.value === "ja" && (bar.note ?? "").includes("繁體中文") && (await inHeader(tid("source-lang"))) === 0, `picker ${bar.value}, note "${bar.note}"`);
+    await fileBoxChecks("player, Japanese", PLAYER_BOX);
+    await review("player-ja-1280", "日文播放器：工具列一排，影片語言與說明在工具列下面");
+    await resize(960, 600);
+    await review("player-ja-960", "日文播放器 960 px：輸入框可讀");
+    await p.selectOption(tid("source-lang"), "en");
+    await sleep(300);
+    note("the picker in the player switches back to English", (await p.locator(tid("source-note")).count()) === 0 && (await p.locator(tid("source-lang")).count()) === 0, "note and picker gone");
+    await p.fill(tid("video-path"), join(clips, "queue-en-45s.mp4"));
+    await p.click(tid("import"));
+    await waitPlayer();
+    const enBody = jobBodies.at(-1);
+    note("English import from the player starts with source_lang en", enBody !== undefined && JSON.parse(enBody).source_lang === "en", `POST /jobs body ${enBody}`);
+    await heightIs("player, English after import", 50, 52);
+    await resize(1280, 720);
   } else {
     throw new Error(`unknown phase ${phase}`);
   }
