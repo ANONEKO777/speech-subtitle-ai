@@ -27,7 +27,7 @@ import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
-import { ImportPanel } from "./import/ImportPanel";
+import { ImportPanel, SourcePick } from "./import/ImportPanel";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
@@ -390,6 +390,7 @@ export function App() {
             busy={!backend || screen.kind === "importing"}
             sourceLang={sourceLang}
             onSourceLang={setSourceLang}
+            withPicker={screen.kind !== "playing"}
             onImport={(p) => void startImport(p, null, sourceLang)}
           />
           {screen.kind === "playing" && (
@@ -397,9 +398,12 @@ export function App() {
           )}
         </header>
         {SOURCE_NOTES[sourceLang] && (
-          <p className="source-note" data-testid="source-note">
-            {SOURCE_NOTES[sourceLang]}
-          </p>
+          <div className="source-bar">
+            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} onSourceLang={setSourceLang} />}
+            <p className="source-note" data-testid="source-note">
+              {SOURCE_NOTES[sourceLang]}
+            </p>
+          </div>
         )}
       </div>
       <main>

@@ -2410,11 +2410,23 @@ kbd {
   font-size: var(--text-sm);
 }
 
-.source-note {
-  margin: 0;
+/* the picker sits in the toolbar except in the player, where the toolbar has no spare width: there it moves into this bar, which only shows for 日文 */
+.source-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   padding: var(--space-1) var(--space-3);
   border-bottom: 1px solid var(--hairline);
   background: var(--accent-soft);
+}
+
+.source-bar .source-pick select {
+  height: 24px;
+  font-size: var(--text-xs);
+}
+
+.source-note {
+  margin: 0;
   color: var(--on-accent-light);
   font-size: var(--text-xs);
 }
