@@ -11,6 +11,7 @@ import threading
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 from test_pipeline import SETTINGS, Fakes, steps_of
@@ -609,6 +610,67 @@ class TestBurnFont:
         path, missing = next(f for f in found if f)
         assert path.is_file() and missing == set()
         assert file_covers(path, "􏿾") == {"􏿾"}
+
+
+def client_shape_ok(cue: object) -> bool:
+    """The check `parseCues` in app/src/api/client.ts makes on every cue of the JSON reply."""
+
+    def number(v: object) -> bool:
+        return isinstance(v, int | float) and not isinstance(v, bool)
+
+    return (
+        isinstance(cue, dict)
+        and number(cue.get("id"))
+        and number(cue.get("start_ms"))
+        and number(cue.get("end_ms"))
+        and isinstance(cue.get("en"), str)
+        and isinstance(cue.get("zh"), str)
+    )
+
+
+class TestCueJsonForTheUi:
+    @staticmethod
+    def japanese_client(tmp_path: Path, source_lang: str) -> tuple[Any, str]:
+        from fastapi.testclient import TestClient
+        from test_api import AUTH, GUARD, events, make_project, start_job
+
+        from backend.main import AppConfig, create_app
+
+        fakes = TestPipeline.ja_fakes() if source_lang == "ja" else Fakes()
+        settings = ja_settings() if source_lang == "ja" else SETTINGS
+        app = create_app(
+            AppConfig(tmp_path / "data", GUARD, lambda options, folder: (settings, fakes.ports()))
+        )
+        client = TestClient(app, headers=AUTH)
+        video = tmp_path / "talk.mp4"
+        video.write_bytes(b"x")
+        pid = make_project(client, video)
+        events(client, start_job(client, pid)["id"])
+        return client, pid
+
+    def test_a_japanese_project_cue_json_passes_the_check_the_ui_makes(
+        self, tmp_path: Path
+    ) -> None:
+        client, pid = self.japanese_client(tmp_path, "ja")
+        cues = client.get(f"/api/projects/{pid}/subtitles?lang=bilingual&format=json").json()[
+            "cues"
+        ]
+        assert cues and all(client_shape_ok(c) for c in cues)
+        assert all(c["en"] == c["src"] and c["lang"] == "ja" for c in cues)
+        sent = [{k: c[k] for k in ("id", "start_ms", "end_ms", "en", "zh")} for c in cues]
+        assert client.put(f"/api/projects/{pid}/subtitles", json={"cues": sent}).status_code == 200
+
+    def test_the_files_on_disk_do_not_carry_the_alias(self, tmp_path: Path) -> None:
+        client, pid = self.japanese_client(tmp_path, "ja")
+        folder = Path(client.get(f"/api/projects/{pid}").json()["folder"])
+        on_disk = json.loads((folder / "subs.zh-TW.json").read_text(encoding="utf-8"))
+        assert all("en" not in c and "src" in c for c in on_disk["cues"])
+
+    def test_an_english_project_cue_json_is_what_it_was(self, tmp_path: Path) -> None:
+        client, pid = self.japanese_client(tmp_path, "en")
+        cues = client.get(f"/api/projects/{pid}/subtitles?format=json").json()["cues"]
+        assert cues and all(client_shape_ok(c) for c in cues)
+        assert all(set(c) == {"id", "start_ms", "end_ms", "en", "zh"} for c in cues)
 
 
 class TestJobBody:

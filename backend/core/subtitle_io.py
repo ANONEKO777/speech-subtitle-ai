@@ -578,6 +578,18 @@ def render_subs(cues: Iterable[Cue]) -> str:
     )
 
 
+def render_api_subs(cues: Iterable[Cue]) -> str:
+    """The cue JSON the HTTP API answers with. A cue of another language than English also carries
+    its source text under `en`, because the UI reads that key. Temporary alias: P24 moves the UI to
+    `src` and deletes it. The files on disk never have it."""
+    return _dump_json(
+        {
+            "schema_version": SUBS_SCHEMA_VERSION,
+            "cues": [{**_cue_json(cue), "en": cue.src} for cue in _check_unique_ids(list(cues))],
+        }
+    )
+
+
 def parse_subs(text: str) -> list[Cue]:
     doc = _load_json(text, "subs file")
     version = doc.get("schema_version")

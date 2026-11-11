@@ -28,10 +28,10 @@ from backend.core.subtitle_io import (
     parse_project,
     parse_subs,
     read_text_file,
+    render_api_subs,
     render_ass,
     render_project,
     render_srt,
-    render_subs,
     render_vtt,
     write_text_file,
 )
@@ -161,7 +161,7 @@ class ProjectStore:
             case "ass":
                 return render_ass(cues, get(code).wrap)
             case "json":
-                return render_subs(cues)
+                return render_api_subs(cues)
 
     def summary(self, pid: str, lang: Lang | None = None) -> bytes:
         info = self.info(pid)
