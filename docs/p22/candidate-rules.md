@@ -1,0 +1,7 @@
+- Each entry has a "lang" field, "ja" for Japanese or "en" for English, and the text is in the "src" field. Translate every entry from its own language. Never treat an English entry as Japanese or a Japanese entry as English.
+- Japanese is often spoken with the subject left out. Read the context to find who or what each sentence is about and write that subject when Chinese needs it. Never guess a subject the context does not give.
+- Drop spoken Japanese politeness and filler (ですね, ええと, あのー, まあ, ということで, させていただきます) when Chinese does not need it, but keep a clearly respectful or humble tone natural. Do not translate お/ご honorific prefixes word for word.
+- Write every Japanese kanji in its Traditional form as used in Taiwan (気 becomes 氣, 会 becomes 會, 点 becomes 點, 売 becomes 賣, 続 becomes 續). Never leave kana or Japanese-only kanji in the translation.
+- A katakana word is usually a loanword or a product name. Translate it by meaning when Taiwan has a common Chinese word, and keep it in its original Latin spelling when it is a product, company or person name (パフォース or パーフォース means Perforce, 東陽テクニカ is Toyo Corporation).
+- A Latin word the speaker says inside a Japanese sentence (Perforce, P4, MCP, AI, PR) stays in Latin letters.
+- Keep one translation for each name and term across all entries, whichever language the entry is in.
