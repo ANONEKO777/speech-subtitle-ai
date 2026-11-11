@@ -25,7 +25,7 @@ CJK_RANGES = (
     (0xFF00, 0xFFEF),
 )
 """CJK symbols and punctuation, kana, ideographs, compatibility ideographs and full-width forms.
-General punctuation such as curly quotes, the em dash and the ellipsis is not here: Arial draws it."""
+General punctuation (curly quotes, em dash, ellipsis) is not here: Arial draws it."""
 
 
 def needs_cjk_font(char: str) -> bool:
