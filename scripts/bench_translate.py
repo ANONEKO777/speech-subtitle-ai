@@ -185,8 +185,8 @@ def run_once(args: argparse.Namespace, index: int, cues: list[Cue]) -> dict[str,
         "cues_in": len(cues),
         "cues_out": len(result),
         "all_translated": all(c.zh for c in result),
-        "timing_and_english_unchanged": [(c.id, c.start_ms, c.end_ms, c.en) for c in result]
-        == [(c.id, c.start_ms, c.end_ms, c.en) for c in cues],
+        "timing_and_english_unchanged": [(c.id, c.start_ms, c.end_ms, c.src) for c in result]
+        == [(c.id, c.start_ms, c.end_ms, c.src) for c in cues],
         "contended_by_other_gpu_job": sampler.contended,
         "gpu_util_mean_pct": round(statistics.mean(sampler.util), 1) if sampler.util else None,
         "gpu_mem_max_mib": max(sampler.mem_mib) if sampler.mem_mib else None,

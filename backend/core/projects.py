@@ -12,7 +12,7 @@ import hashlib
 import os
 import re
 from collections.abc import Sequence
-from dataclasses import astuple, dataclass
+from dataclasses import astuple, dataclass, replace
 from pathlib import Path
 from typing import Literal
 
@@ -22,6 +22,7 @@ from backend.core.languages import ENGLISH, LANGUAGES, get
 from backend.core.model import Cue, FormatError, Project, Step, StepStatus
 from backend.core.pipeline import PROJECT_JSON, File, save_edited_cues
 from backend.core.playback import Playback, read_playback, shift_cues, write_playback
+from backend.core.source_langs import SOURCES, get_source
 from backend.core.subtitle_io import (
     RenderLang,
     parse_project,
@@ -51,6 +52,7 @@ _KNOWN_FILES = tuple(
         [
             *(f.value for f in File),
             *(name for lang in LANGUAGES.values() for name in astuple(lang.files)),
+            *(name for source in SOURCES.values() for name in astuple(source.files)),
         ]
     )
 )
@@ -115,6 +117,10 @@ class ProjectStore:
         files = {name: folder / name for name in _KNOWN_FILES if (folder / name).is_file()}
         return ProjectInfo(pid, folder, project, files)
 
+    @staticmethod
+    def _source_subs(info: ProjectInfo) -> str:
+        return get_source(info.project.source_lang).files.subs
+
     def _done(self, info: ProjectInfo, step: Step, lang: str) -> bool:
         return info.project.state(step, lang).status is StepStatus.DONE
 
@@ -130,7 +136,7 @@ class ProjectStore:
         if self._done(info, Step.TRANSLATE, lang.code):
             return parse_subs(read_text_file(info.folder / lang.files.subs))
         if self._done(info, Step.SEGMENT, lang.code):
-            return parse_subs(read_text_file(info.folder / File.SUBS_EN))
+            return parse_subs(read_text_file(info.folder / self._source_subs(info)))
         raise NotReady("no subtitles yet: the segment step has not finished")
 
     def subtitles(
@@ -183,6 +189,8 @@ class ProjectStore:
         current = [c.id for c in self.cues(pid, lang.code)]
         if sorted(c.id for c in cues) != sorted(current):
             raise BadCues("the cues must have exactly the ids the project has")
+        langs = {c.id: c.lang for c in self.cues(pid, lang.code)}
+        cues = [replace(c, lang=langs[c.id]) for c in cues]
         problems = cue_edits.check(self.cues(pid, lang.code), cues)
         if problems:
             raise BadCues(f"{len(problems)} cues cannot be saved", problems)
@@ -222,7 +230,8 @@ class ProjectStore:
         if seen > 0:
             return seen
         try:
-            cues = parse_subs(read_text_file(self.folder(pid) / File.SUBS_EN))
+            info = self.info(pid)
+            cues = parse_subs(read_text_file(info.folder / self._source_subs(info)))
         except (OSError, FormatError):
             return 0.0
         return cues[-1].end_ms / 1000 if cues else 0.0

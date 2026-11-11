@@ -106,8 +106,8 @@ def test_translates_every_cue_and_leaves_timing_and_english_alone() -> None:
     cues = make_cues(70)
     result = run_all(cues, FakeLlm())
     assert len(result) == 70
-    assert [(c.id, c.start_ms, c.end_ms, c.en) for c in result] == [
-        (c.id, c.start_ms, c.end_ms, c.en) for c in cues
+    assert [(c.id, c.start_ms, c.end_ms, c.src) for c in result] == [
+        (c.id, c.start_ms, c.end_ms, c.src) for c in cues
     ]
     assert all(c.zh == f"第{c.id}句在這裡。" for c in result)
 
@@ -306,7 +306,7 @@ def test_resume_from_drops_translations_whose_cue_changed() -> None:
     cues = make_cues(3)
     previous = [
         replace(cues[0], zh="一"),
-        replace(cues[1], zh="二", en="Something else entirely."),
+        replace(cues[1], zh="二", src="Something else entirely."),
         replace(cues[2], zh="三", end_ms=cues[2].end_ms + 1),
     ]
     assert [c.zh for c in resume_from(cues, previous)] == ["一", "", ""]
@@ -934,7 +934,7 @@ def test_keep_english_lets_one_stubborn_cue_through_and_translates_the_rest() ->
         sleep=no_sleep,
         keep_english=True,
     )
-    assert result[2].zh == cues[2].en
+    assert result[2].zh == cues[2].src
     assert [c.zh for c in result if c.id != 3] == [f"第{i}句在這裡。" for i in (1, 2, 4, 5)]
 
 

@@ -15,6 +15,7 @@ from typing import Literal, NamedTuple, cast
 from backend.core.languages import DEFAULT_CODE, UnknownLanguage, Wrap
 from backend.core.languages import get as get_language
 from backend.core.model import (
+    DEFAULT_SOURCE,
     Cue,
     FormatError,
     Project,
@@ -22,6 +23,7 @@ from backend.core.model import (
     StepState,
     StepStatus,
 )
+from backend.core.source_langs import UnknownSource, get_source
 
 MonoLang = Literal["en", "zh"]
 RenderLang = Literal["en", "zh", "bilingual"]
@@ -133,10 +135,10 @@ def _lines(text: str) -> list[str]:
 
 def _cue_text(cue: Cue, lang: RenderLang) -> str:
     if lang == "en":
-        return cue.en
+        return cue.src
     if lang == "zh":
         return cue.zh
-    return "\n".join(part for part in (cue.zh, cue.en) if part)
+    return "\n".join(part for part in (cue.zh, cue.src) if part)
 
 
 def _timestamp(ms: int, sep: str) -> str:
@@ -167,7 +169,7 @@ class _RawCue(NamedTuple):
     ident: str
     start_ms: int
     end_ms: int
-    en: str
+    src: str
     zh: str
 
 
@@ -185,7 +187,7 @@ def _build_cues(rows: list[_RawCue]) -> list[Cue]:
                     next(free) if cue_id is None else cue_id,
                     row.start_ms,
                     row.end_ms,
-                    row.en,
+                    row.src,
                     row.zh,
                 )
             )
@@ -389,7 +391,7 @@ def render_ass(cues: Iterable[Cue], wrap: Wrap = Wrap.CJK) -> str:
         zh = (
             "\\N".join(_ass_zh(line, wrap) for line in cue.zh.split("\n")) + "\\N" if cue.zh else ""
         )
-        text = f"{zh}{_ASS_EN_MARK}{_ass_escape(cue.en)}"
+        text = f"{zh}{_ASS_EN_MARK}{_ass_escape(cue.src)}"
         start, end = _ass_time(cue.start_ms), _ass_time(cue.end_ms)
         events.append(f"Dialogue: 0,{start},{end},Zh,{cue.id},0,0,0,,{text}\n")
     return _ASS_HEADER + "".join(events)
@@ -421,7 +423,7 @@ def render_burn_ass(
     events: list[str] = []
     for cue in _check_unique_ids(list(cues)):
         zh = "\\N".join(_ass_zh(line, wrap) for line in cue.zh.split("\n")) if cue.zh else ""
-        en = _ass_escape(cue.en)
+        en = _ass_escape(cue.src)
         order = [("Zh", zh), ("En", en)] if zh_first else [("En", en), ("Zh", zh)]
         parts = [(style, text) for style, text in order if text and _shows(mode, style)]
         if not parts:
@@ -556,20 +558,20 @@ def _dump_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2) + "\n"
 
 
+def _cue_json(cue: Cue) -> dict[str, object]:
+    """English cues keep the layout the first release gave them, with the text under `en`. A cue
+    of any other language has it under `src` and names its language."""
+    head: dict[str, object] = {"id": cue.id, "start_ms": cue.start_ms, "end_ms": cue.end_ms}
+    if cue.lang == DEFAULT_SOURCE:
+        return {**head, "en": cue.src, "zh": cue.zh}
+    return {**head, "src": cue.src, "zh": cue.zh, "lang": cue.lang}
+
+
 def render_subs(cues: Iterable[Cue]) -> str:
     return _dump_json(
         {
             "schema_version": SUBS_SCHEMA_VERSION,
-            "cues": [
-                {
-                    "id": cue.id,
-                    "start_ms": cue.start_ms,
-                    "end_ms": cue.end_ms,
-                    "en": cue.en,
-                    "zh": cue.zh,
-                }
-                for cue in _check_unique_ids(list(cues))
-            ],
+            "cues": [_cue_json(cue) for cue in _check_unique_ids(list(cues))],
         }
     )
 
@@ -586,15 +588,25 @@ def parse_subs(text: str) -> list[Cue]:
     for index, item in enumerate(_json_list(doc["cues"], "cues")):
         where = f"cues[{index}]"
         obj = _json_object(item, where)
-        _json_keys(obj, {"id", "start_ms", "end_ms", "en", "zh"}, where)
+        english = "en" in obj
+        key = "en" if english else "src"
+        _json_keys(
+            obj,
+            {"id", "start_ms", "end_ms", "zh", key},
+            where,
+            optional=set() if english else {"lang"},
+        )
+        if not english and "lang" not in obj:
+            raise FormatError(f"{where} must have exactly the keys ['en'] or ['src', 'lang']")
         try:
             cues.append(
                 Cue(
                     _json_int(obj["id"], f"{where}.id"),
                     _json_int(obj["start_ms"], f"{where}.start_ms"),
                     _json_int(obj["end_ms"], f"{where}.end_ms"),
-                    _json_str(obj["en"], f"{where}.en"),
+                    _json_str(obj[key], f"{where}.{key}"),
                     _json_str(obj["zh"], f"{where}.zh"),
+                    DEFAULT_SOURCE if english else _json_str(obj["lang"], f"{where}.lang"),
                 )
             )
         except ValueError as exc:
@@ -616,8 +628,8 @@ def _render_steps(steps: Mapping[Step, StepState]) -> dict[str, object]:
 
 
 def render_project(project: Project) -> str:
-    """`active_lang` and `parked` are written only when the project has left the default
-    language, so a project that never did reads the same as before they existed."""
+    """`active_lang`, `parked` and `source_lang` are written only when the project has left the
+    default language, so a project that never did reads the same as before they existed."""
     doc: dict[str, object] = {
         "schema_version": project.schema_version,
         "video_path": project.video_path,
@@ -625,6 +637,8 @@ def render_project(project: Project) -> str:
     }
     if project.active_lang != DEFAULT_CODE:
         doc["active_lang"] = project.active_lang
+    if project.source_lang != DEFAULT_SOURCE:
+        doc["source_lang"] = project.source_lang
     if project.parked:
         doc["parked"] = {lang: _render_steps(states) for lang, states in project.parked.items()}
     return _dump_json(doc)
@@ -662,13 +676,21 @@ def _language(code: object, where: str) -> str:
         raise FormatError(f"{where}: {exc}") from exc
 
 
+def _source(code: object) -> str:
+    text = _json_str(code, "source_lang")
+    try:
+        return get_source(text).code
+    except UnknownSource as exc:
+        raise FormatError(f"source_lang: {exc}") from exc
+
+
 def parse_project(text: str) -> Project:
     doc = Project.migrate(_load_json(text, "project.json"))
     _json_keys(
         doc,
         {"schema_version", "video_path", "steps"},
         "project.json",
-        optional={"active_lang", "parked"},
+        optional={"active_lang", "parked", "source_lang"},
     )
     steps = _parse_steps(doc["steps"], "steps")
     active = _language(doc.get("active_lang", DEFAULT_CODE), "active_lang")
@@ -683,6 +705,7 @@ def parse_project(text: str) -> Project:
             _json_int(doc["schema_version"], "schema_version"),
             active,
             parked,
+            _source(doc.get("source_lang", DEFAULT_SOURCE)),
         )
     except ValueError as exc:
         raise FormatError(f"project.json: {exc}") from exc

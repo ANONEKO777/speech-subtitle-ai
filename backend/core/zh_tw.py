@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import unicodedata
+from collections.abc import Callable
 
 _MARK = r"(?:\[\[\d+\]\])?"
 _SOFTWARE_NOUN = (
@@ -53,6 +55,9 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         (f"{_after(_CONFIGURE_HEAD)}設置", "設定"),
         ("(?<=在)設置(?=中|裡)", "設定"),
         (f"{_NOT_PHYSICAL_RUN}運行", "執行"),
+        ("元數據", "中繼資料"),
+        ("(?<!資)源碼", "原始碼"),
+        ("運營(?!商)", "營運"),
         ("(?<!大)數據(?!機)", "資料"),
         (f"{_after(_CHAT_APP)} ?線程", "討論串"),
         ("(?<![針縫])線程", "執行緒"),
@@ -62,6 +67,26 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         (f"{_NOT_PROCEDURE}程序(?!正義|員|性|法|違法|規則|規定|公正|問題)", "程式"),
     )
 )
+
+
+_WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
+_FACTORY_LINE = "生產|裝配|組裝|製造|工廠|工業|汽車"
+_JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
+    (
+        re.compile("倉庫"),
+        lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存庫",
+    ),
+    (re.compile(f"(?<![{_FACTORY_LINE}])流水線"), "管線"),
+)
+
+
+def taiwan_terms_from_japanese(text: str) -> str:
+    """Taiwan wording for words a Japanese talk gives that an English one does not: a code
+    repository (リポジトリ) comes out as 倉庫 and a build pipeline (パイプライン) as 流水線.
+    A text that talks about goods keeps its warehouse, and one about a factory its assembly line."""
+    for pattern, taiwan in _JAPANESE_TERMS:
+        text = pattern.sub(taiwan, text)
+    return text
 
 
 def taiwan_terms(text: str) -> str:
@@ -102,3 +127,30 @@ def simplified_chars(text: str) -> list[str]:
 
 
 CJK_TEXT = re.compile("[㐀-鿿　-〿＀-￯]")
+
+
+def _jis_kanji() -> frozenset[str]:
+    """The kanji of JIS X 0208 (levels 1 and 2), read from Shift JIS."""
+    chars: set[str] = set()
+    for lead in (*range(0x88, 0xA0), *range(0xE0, 0xEB)):
+        for trail in (*range(0x40, 0x7F), *range(0x80, 0xFD)):
+            try:
+                char = bytes((lead, trail)).decode("cp932")
+            except UnicodeDecodeError:
+                continue
+            if len(char) == 1 and unicodedata.name(char, "").startswith("CJK UNIFIED"):
+                chars.add(char)
+    return frozenset(chars)
+
+
+JAPANESE_ONLY = (
+    frozenset(char for char in _jis_kanji() if not in_big5(char))
+    - SIMPLIFIED_ONLY
+    - TRADITIONAL_BEYOND_BIG5
+)
+"""Kanji Japanese writes in its own way: in JIS, and neither in Big5 nor a Simplified character.
+気, 売, 続 and 圧 are such, where Taiwan writes 氣, 賣, 續 and 壓."""
+
+
+def japanese_only_chars(text: str) -> list[str]:
+    return sorted(set(text) & JAPANESE_ONLY)

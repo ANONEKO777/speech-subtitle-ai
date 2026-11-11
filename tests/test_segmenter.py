@@ -27,7 +27,7 @@ def timed(text: str, start: int, per_word: int = 300, gap: int = 0) -> Segment:
 
 
 def texts(cues: list[Cue]) -> list[str]:
-    return [c.en.replace("\n", " / ") for c in cues]
+    return [c.src.replace("\n", " / ") for c in cues]
 
 
 def test_fixture_words_make_compliant_cues() -> None:
@@ -38,7 +38,7 @@ def test_fixture_words_make_compliant_cues() -> None:
     ]
     cues = to_cues(segments)
     assert violations(cues) == []
-    assert " ".join(c.en.replace("\n", " ") for c in cues).startswith("Recordings are in the")
+    assert " ".join(c.src.replace("\n", " ") for c in cues).startswith("Recordings are in the")
     assert len(cues) >= 2
 
 
@@ -48,14 +48,14 @@ def test_empty_input_gives_no_cues() -> None:
 
 def test_a_short_sentence_is_one_one_line_cue() -> None:
     cues = to_cues([timed("Good morning, everyone.", 1000)])
-    assert [(c.id, c.start_ms, c.en) for c in cues] == [(1, 1000, "Good morning, everyone.")]
+    assert [(c.id, c.start_ms, c.src) for c in cues] == [(1, 1000, "Good morning, everyone.")]
     assert cues[0].end_ms - cues[0].start_ms >= RULES.min_cue_ms
 
 
 def test_a_long_sentence_wraps_to_two_lines_of_at_most_42_characters() -> None:
     text = "Today I want to talk about three ideas that changed my work."
     (cue,) = to_cues([timed(text, 0, per_word=250)])
-    lines = cue.en.split("\n")
+    lines = cue.src.split("\n")
     assert len(lines) == 2 and all(len(line) <= 42 for line in lines)
     assert " ".join(lines) == text
 
@@ -63,7 +63,7 @@ def test_a_long_sentence_wraps_to_two_lines_of_at_most_42_characters() -> None:
 def test_wrap_prefers_a_comma_over_a_perfectly_even_split() -> None:
     text = "When we started this project, nobody thought it would ever work at all"
     (cue,) = to_cues([timed(text, 0, per_word=300)])
-    assert cue.en.split("\n")[0].endswith("project,")
+    assert cue.src.split("\n")[0].endswith("project,")
 
 
 def test_wrap_prefers_a_pause_between_words() -> None:
@@ -74,7 +74,7 @@ def test_wrap_prefers_a_pause_between_words() -> None:
         spec.append((word, t, t + 250))
         t += 250 + (400 if index == 3 else 0)
     (cue,) = to_cues([seg(*spec)])
-    assert cue.en.split("\n")[0].endswith("thousand")
+    assert cue.src.split("\n")[0].endswith("thousand")
 
 
 def test_text_too_long_for_two_lines_becomes_several_cues() -> None:
@@ -83,7 +83,7 @@ def test_text_too_long_for_two_lines_becomes_several_cues() -> None:
     cues = to_cues([timed(words, 0, per_word=200)])
     assert len(cues) >= 2
     assert violations(cues) == []
-    assert " ".join(c.en.replace("\n", " ") for c in cues) == words
+    assert " ".join(c.src.replace("\n", " ") for c in cues) == words
 
 
 def test_a_cue_never_runs_past_seven_seconds() -> None:
@@ -102,7 +102,7 @@ def test_a_short_cue_is_held_on_screen_for_one_second_when_there_is_room() -> No
 def test_a_short_cue_with_no_room_merges_into_its_neighbour() -> None:
     cues = to_cues([seg(("Yes.", 1000, 1300)), timed("Now the next idea begins here.", 1300)])
     assert len(cues) == 1
-    assert cues[0].en.startswith("Yes. Now")
+    assert cues[0].src.startswith("Yes. Now")
     assert violations(cues) == []
 
 
@@ -128,7 +128,7 @@ def test_breaks_land_on_sentence_ends_when_the_limits_allow() -> None:
     text = "We tried a new approach. It worked well. Then everything changed completely."
     cues = to_cues([timed(text, 0, per_word=500)])
     for cue in cues[:-1]:
-        assert cue.en.rstrip()[-1] in ".?!"
+        assert cue.src.rstrip()[-1] in ".?!"
 
 
 def test_a_comma_is_a_better_place_to_break_than_a_random_word() -> None:
@@ -138,12 +138,12 @@ def test_a_comma_is_a_better_place_to_break_than_a_random_word() -> None:
     )
     cues = to_cues([timed(text, 0, per_word=330)])
     assert len(cues) == 2
-    assert cues[0].en.endswith("last year,")
+    assert cues[0].src.endswith("last year,")
 
 
 def test_cues_end_at_sentence_ends_when_the_limits_allow_it() -> None:
     text = "We shipped it. Then we tested it. Nobody complained about the result."
-    assert [c.en for c in to_cues([timed(text, 0, per_word=500)])] == [
+    assert [c.src for c in to_cues([timed(text, 0, per_word=500)])] == [
         "We shipped it.",
         "Then we tested it.",
         "Nobody complained about the result.",
@@ -152,7 +152,7 @@ def test_cues_end_at_sentence_ends_when_the_limits_allow_it() -> None:
 
 def test_a_long_pause_always_starts_a_new_cue() -> None:
     cues = to_cues([timed("one two three", 0), timed("four five six", 5000)])
-    assert [c.en for c in cues] == ["one two three", "four five six"]
+    assert [c.src for c in cues] == ["one two three", "four five six"]
 
 
 def test_punctuation_and_contraction_tokens_glue_to_the_word_before() -> None:
@@ -274,7 +274,7 @@ def test_duplicates_collapse_in_the_final_cues() -> None:
     chunk_a = timed("and that is why the result matters so much", 0, per_word=300)
     chunk_b = timed("the result matters so much to everyone here", 1500, per_word=300)
     cues = to_cues([chunk_a, chunk_b])
-    joined = " ".join(c.en.replace("\n", " ") for c in cues)
+    joined = " ".join(c.src.replace("\n", " ") for c in cues)
     assert joined == "and that is why the result matters so much to everyone here"
     assert violations(cues) == []
 
@@ -289,7 +289,7 @@ def test_a_word_that_goes_back_in_time_is_moved_forward_not_reordered() -> None:
 def test_a_word_stretched_across_silence_keeps_its_last_1500_ms() -> None:
     cues = to_cues([seg(("this.", 0, 500), ("Let's", 500, 8000), ("make", 8100, 8300))])
     assert violations(cues) == []
-    assert [(c.start_ms, c.en) for c in cues] == [(0, "this."), (6500, "Let's make")]
+    assert [(c.start_ms, c.src) for c in cues] == [(0, "this."), (6500, "Let's make")]
     assert merge_words([seg(("Let's", 500, 8000))]) == [Word("Let's", 6500, 8000)]
 
 
@@ -305,7 +305,7 @@ def test_a_punctuation_token_long_after_the_word_does_not_stretch_it() -> None:
 @pytest.mark.parametrize("ending", ['"Stop."', "(Stop.)", "Stop."])
 def test_a_closing_quote_or_bracket_after_a_period_ends_the_sentence(ending: str) -> None:
     text = f"one two three four five six seven eight nine ten {ending} We kept going on fell"
-    first, second = (c.en for c in to_cues([timed(text, 0, per_word=600)]))
+    first, second = (c.src for c in to_cues([timed(text, 0, per_word=600)]))
     assert first.endswith(ending)
     assert second == "We kept going on fell"
 
@@ -386,5 +386,5 @@ def test_random_talks_always_satisfy_every_rule(seed: int) -> None:
     assert cues
     assert violations(cues) == []
     spoken = [w.text for w in merge_words(segments)]
-    assert " ".join(c.en.replace("\n", " ") for c in cues).split() == spoken
+    assert " ".join(c.src.replace("\n", " ") for c in cues).split() == spoken
     assert [c.id for c in cues] == list(range(1, len(cues) + 1))

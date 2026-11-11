@@ -17,6 +17,7 @@ from typing import Literal
 from backend.core.languages import Language
 from backend.core.model import Cue
 from backend.core.segmenter import CueRules
+from backend.core.source_langs import SOURCES
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
 
 MAX_CUE_MS = CueRules().max_cue_ms
@@ -88,9 +89,13 @@ def check(current: Sequence[Cue], proposed: Sequence[Cue]) -> list[CueProblem]:
     changed: set[int] = set()
     for cue in proposed:
         before = was.get(cue.id)
-        if before and cue.en != before.en:
+        if before and cue.src != before.src:
             problems.append(
-                CueProblem(cue.id, "english_changed", "the English line cannot be edited")
+                CueProblem(
+                    cue.id,
+                    "english_changed",
+                    f"the {SOURCES[cue.lang].name} line cannot be edited",
+                )
             )
         if _changed(cue, before):
             changed.add(cue.id)
@@ -119,7 +124,7 @@ def applied(folder: Path, lang: Language) -> list[Cue]:
     if not path.is_file():
         return []
     present = {c.id: c for c in parse_subs(read_text_file(path))}
-    return [e for e in edited(folder, lang) if (c := present.get(e.id)) and c.en == e.en]
+    return [e for e in edited(folder, lang) if (c := present.get(e.id)) and c.src == e.src]
 
 
 def record(folder: Path, lang: Language, current: Sequence[Cue], proposed: Sequence[Cue]) -> None:
@@ -169,7 +174,7 @@ def reapply(folder: Path, lang: Language) -> Reapplied:
         with_times = {
             **by_id,
             **{
-                e.id: Cue(e.id, by_id[e.id].start_ms, by_id[e.id].end_ms, e.en, e.zh)
+                e.id: Cue(e.id, by_id[e.id].start_ms, by_id[e.id].end_ms, e.src, e.zh)
                 for e in matched
             },
         }

@@ -23,8 +23,8 @@ _YOU_KNOW = re.compile(r"你知(?:不知)?道?")
 def count(path: Path) -> dict[str, int]:
     cues = parse_subs(read_text_file(path))
     written = [c for c in cues if _YOU_KNOW.search(c.zh)]
-    on_filler = [c for c in written if english_you_know_filler(c.en)]
-    after = [c for c in cues if _YOU_KNOW.search(drop_fillers(c.zh, c.en))]
+    on_filler = [c for c in written if english_you_know_filler(c.src)]
+    after = [c for c in cues if _YOU_KNOW.search(drop_fillers(c.zh, c.src))]
     return {
         "cues": len(cues),
         "cues_with_ni_zhi": len(written),
@@ -32,7 +32,7 @@ def count(path: Path) -> dict[str, int]:
         "on_you_know_filler_cue": len(on_filler),
         "cues_with_ni_zhi_after_clean": len(after),
         "occurrences_after_clean": sum(
-            len(_YOU_KNOW.findall(drop_fillers(c.zh, c.en))) for c in cues
+            len(_YOU_KNOW.findall(drop_fillers(c.zh, c.src))) for c in cues
         ),
     }
 

@@ -15,6 +15,7 @@ from typing import Literal, cast
 from backend.core.language_prompts import EN_SUMMARY, SummaryText
 from backend.core.languages import DEFAULT_CODE, ENGLISH, get
 from backend.core.model import Cue, FormatError
+from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage
 from backend.core.subtitle_io import parse_subs, read_text_file, write_text_file
 from backend.core.translate import GlossaryEntry, glossary_block
 from backend.llm.ask import (
@@ -191,8 +192,8 @@ def parse_clock(text: str) -> int:
     return ((hours * 60 + minutes) * 60 + seconds) * 1000
 
 
-def estimate_tokens(text: str) -> int:
-    return math.ceil(len(text) / CHARS_PER_TOKEN)
+def estimate_tokens(text: str, chars_per_token: float = CHARS_PER_TOKEN) -> int:
+    return math.ceil(len(text) / chars_per_token)
 
 
 def render_line(line: Line) -> str:
@@ -200,11 +201,14 @@ def render_line(line: Line) -> str:
 
 
 def lines_from_cues(cues: Sequence[Cue]) -> list[Line]:
-    return [Line(cue.start_ms, cue.end_ms, cue.en) for cue in cues if cue.en.strip()]
+    return [Line(cue.start_ms, cue.end_ms, cue.src) for cue in cues if cue.src.strip()]
 
 
 def make_windows(
-    lines: Sequence[Line], window_tokens: int = WINDOW_TOKENS, overlap_tokens: int = OVERLAP_TOKENS
+    lines: Sequence[Line],
+    window_tokens: int = WINDOW_TOKENS,
+    overlap_tokens: int = OVERLAP_TOKENS,
+    chars_per_token: float = CHARS_PER_TOKEN,
 ) -> list[Window]:
     """Cut `lines` into windows of about `window_tokens` that each start with up to
     `overlap_tokens` of the lines before them."""
@@ -212,7 +216,7 @@ def make_windows(
         raise ValueError(
             f"overlap {overlap_tokens} must be smaller than the window {window_tokens}"
         )
-    sizes = [estimate_tokens(render_line(line)) for line in lines]
+    sizes = [estimate_tokens(render_line(line), chars_per_token) for line in lines]
     windows: list[Window] = []
     start = 0
     while start < len(lines):
@@ -243,12 +247,9 @@ def _template(name: str) -> str:
     return (files("backend.core") / "prompts" / name).read_text(encoding="utf-8")
 
 
-def _words(window: Window) -> int:
-    return sum(len(line.text.split()) for line in window.lines)
-
-
-def max_points(window: Window) -> int:
-    return min(MAX_POINTS, max(1, round(_words(window) / WORDS_PER_POINT)))
+def max_points(window: Window, source: SourceLanguage = ENGLISH_SOURCE) -> int:
+    words = sum(source.words(line.text) for line in window.lines)
+    return min(MAX_POINTS, max(1, round(words / WORDS_PER_POINT)))
 
 
 _MAP_HEAD = (
@@ -262,10 +263,12 @@ MAP_FRAMING = (_MAP_HEAD, _MAP_CONTEXT, _MAP_LINES)
 step's cache key digests it, so editing it re-runs the summaries."""
 
 
-def map_messages(window: Window, total: int) -> tuple[Message, ...]:
+def map_messages(
+    window: Window, total: int, source: SourceLanguage = ENGLISH_SOURCE
+) -> tuple[Message, ...]:
     """Naming the times to take notes at is what spreads them: asked only to spread them, the
     model spent all its points on the first minutes of a part, however long."""
-    count = max_points(window)
+    count = max_points(window, source)
     span = window.end_ms - window.start_ms
     times = ", ".join(clock(window.start_ms + i * span // count) for i in range(count))
     body = [
@@ -283,7 +286,7 @@ def map_messages(window: Window, total: int) -> tuple[Message, ...]:
         body += [render_line(line) for line in window.context]
     body += ["", _MAP_LINES, *(render_line(line) for line in window.lines)]
     return (
-        Message(role="system", content=_template("summarize_map.md")),
+        Message(role="system", content=_template(source.summary_map)),
         Message(role="user", content="\n".join(body)),
     )
 
@@ -351,6 +354,7 @@ class ReduceInput:
     maps: tuple[MapResult, ...]
     gaps: tuple[Gap, ...]
     glossary: tuple[GlossaryEntry, ...]
+    source: SourceLanguage = ENGLISH_SOURCE
 
     @property
     def span_ms(self) -> int:
@@ -426,10 +430,12 @@ def _localised(
     if job.lang == ENGLISH:
         return text
     language = get(job.lang)
-    text = language.terms(text)
+    text = job.source.clean(language.terms(text))
     if not job.check_language:
         return text
     if problem := language.prose_problem(text) if prose else language.title_problem(text):
+        raise ReplyError(f'"{name}" {problem}')
+    if problem := job.source.problem(text):
         raise ReplyError(f'"{name}" {problem}')
     return text
 
@@ -617,7 +623,9 @@ class _Run:
         checkpoint: Callable[[Parts], None] | None,
         on_progress: Callable[[Progress], None] | None,
         sleep: Callable[[float], None],
+        source: SourceLanguage,
     ) -> None:
+        self.source = source
         self.chat = chat
         self.parts = parts
         self.context_tokens = context_tokens
@@ -627,7 +635,8 @@ class _Run:
         self.sleep = sleep
 
     def check_size(self, messages: Sequence[Message], label: str) -> None:
-        tokens = sum(estimate_tokens(message["content"]) for message in messages)
+        per_token = self.source.chars_per_token
+        tokens = sum(estimate_tokens(message["content"], per_token) for message in messages)
         share = tokens / self.context_tokens
         log.info("%s request about %d tokens, %.0f%% of the context", label, tokens, share * 100)
         if share > MAX_REQUEST_FRACTION:
@@ -751,6 +760,7 @@ def run(
     checkpoint: Callable[[Parts], None] | None = None,
     on_progress: Callable[[Progress], None] | None = None,
     sleep: Callable[[float], None] = time.sleep,
+    source: SourceLanguage = ENGLISH_SOURCE,
 ) -> SummaryDoc:
     """Summarise `lines` in `lang`: a map call per window, then one reduce call over the notes.
 
@@ -760,7 +770,7 @@ def run(
     """
     if not lines:
         raise SummaryError("the transcript has no text to summarise")
-    windows = make_windows(lines, window_tokens, overlap_tokens)
+    windows = make_windows(lines, window_tokens, overlap_tokens, source.chars_per_token)
     job = _Run(
         chat,
         parts if parts is not None else Parts(),
@@ -769,8 +779,9 @@ def run(
         checkpoint=checkpoint,
         on_progress=on_progress,
         sleep=sleep,
+        source=source,
     )
-    requests = [map_messages(window, len(windows)) for window in windows]
+    requests = [map_messages(window, len(windows), source) for window in windows]
     live = {_digest(messages) for messages in requests}
     job.parts.maps = {key: part for key, part in job.parts.maps.items() if key in live}
     results = [
@@ -785,7 +796,9 @@ def run(
     )
     if not maps:
         raise SummaryError("no part of the talk could be summarised")
-    reduce_job = ReduceInput(lang, lines[0].start_ms, lines[-1].end_ms, maps, gaps, tuple(glossary))
+    reduce_job = ReduceInput(
+        lang, lines[0].start_ms, lines[-1].end_ms, maps, gaps, tuple(glossary), source
+    )
     return SummaryDoc(lang, job.reduce(reduce_job), gaps)
 
 
@@ -799,6 +812,7 @@ def summarize_file(
     context_tokens: int = CONTEXT_TOKENS,
     on_progress: Callable[[Progress], None] | None = None,
     on_degraded: Callable[[Lang], None] | None = None,
+    source_lang: SourceLanguage = ENGLISH_SOURCE,
 ) -> list[Path]:
     """Summarise the English of `source` (a subs json) into `dest`, in the language `langs` names,
     and, for `en`, into `summary.en.md` beside it. Finished model calls are kept in the
@@ -828,6 +842,7 @@ def summarize_file(
             context_tokens=context_tokens,
             checkpoint=save,
             on_progress=on_progress,
+            source=source_lang,
         )
         path = summary_path(dest, lang)
         write_text_file(path, render_summary(doc))

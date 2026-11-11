@@ -52,13 +52,13 @@ SAMPLE = [
     ),
     Cue(4, 36_000_000, 36_002_500, "Q&A time 😀 {applause}"),
 ]
-SAMPLE_EN_ONLY = [Cue(c.id, c.start_ms, c.end_ms, c.en) for c in SAMPLE]
+SAMPLE_EN_ONLY = [Cue(c.id, c.start_ms, c.end_ms, c.src) for c in SAMPLE]
 SAMPLE_ZH_ONLY = [Cue(c.id, c.start_ms, c.end_ms, "", c.zh) for c in SAMPLE]
 SAMPLE_AT_CENTISECONDS = [
-    Cue(1, 0, 2400, SAMPLE[0].en, SAMPLE[0].zh),
-    Cue(2, 2600, 6130, SAMPLE[1].en, SAMPLE[1].zh),
-    Cue(3, 3_723_460, 3_726_790, SAMPLE[2].en, SAMPLE[2].zh),
-    Cue(4, 36_000_000, 36_002_500, SAMPLE[3].en),
+    Cue(1, 0, 2400, SAMPLE[0].src, SAMPLE[0].zh),
+    Cue(2, 2600, 6130, SAMPLE[1].src, SAMPLE[1].zh),
+    Cue(3, 3_723_460, 3_726_790, SAMPLE[2].src, SAMPLE[2].zh),
+    Cue(4, 36_000_000, 36_002_500, SAMPLE[3].src),
 ]
 
 
@@ -160,7 +160,7 @@ def test_bom_and_crlf_input_parses_like_the_plain_file(
 ) -> None:
     from_file = parse(golden_text(bom_crlf))
     assert from_file == parse(golden_text(plain))
-    assert from_file[0].en == "Good morning, everyone."
+    assert from_file[0].src == "Good morning, everyone."
     raw = golden_bytes(bom_crlf).decode("utf-8")
     assert raw.startswith("\ufeff")
     assert parse(raw) == from_file
@@ -288,7 +288,7 @@ def test_ass_keeps_a_backslash_from_becoming_a_line_break_in_libass() -> None:
 
 def test_a_bad_cue_does_not_block_the_rest_of_an_ass_export() -> None:
     cues = [Cue(1, 0, 1000, "fine"), Cue(2, 1000, 2000, "C:\\new\\Name"), Cue(3, 2000, 3000, "ok")]
-    assert [c.en for c in parse_ass(render_ass(cues))] == ["fine", "C:\\new\\Name", "ok"]
+    assert [c.src for c in parse_ass(render_ass(cues))] == ["fine", "C:\\new\\Name", "ok"]
 
 
 def test_ass_keeps_cue_ids_and_reads_foreign_name_columns() -> None:
@@ -372,7 +372,7 @@ def test_write_text_file_replaces_atomically_and_keeps_utf8_exact(tmp_path: Path
     write_text_file(target, text)
     assert target.read_bytes() == golden_bytes("bilingual.ass")
     assert [p.name for p in tmp_path.iterdir()] == ["out.ass"]
-    assert parse_ass(read_text_file(target))[3].en == "Q&A time 😀 {applause}"
+    assert parse_ass(read_text_file(target))[3].src == "Q&A time 😀 {applause}"
 
 
 def _replace_always_denied(src: Any, dst: Any) -> None:
@@ -666,7 +666,7 @@ def _random_cues(seed: int, *, centiseconds: bool) -> list[Cue]:
 @pytest.mark.parametrize("seed", range(5))
 def test_random_cues_survive_every_format(seed: int) -> None:
     cues = _random_cues(seed, centiseconds=False)
-    en_only = [Cue(c.id, c.start_ms, c.end_ms, c.en) for c in cues]
+    en_only = [Cue(c.id, c.start_ms, c.end_ms, c.src) for c in cues]
     assert parse_subs(render_subs(cues)) == cues
     assert parse_srt(render_srt(cues, "en"), "en") == en_only
     assert parse_vtt(render_vtt(cues, "en"), "en") == en_only
@@ -784,8 +784,8 @@ def _vtt_body(*lines: str) -> str:
 def test_vtt_keeps_a_bare_less_than_instead_of_swallowing_text_up_to_the_next_greater_than() -> (
     None
 ):
-    assert parse_vtt(_vtt_body("if a<b and c>d then"), "en")[0].en == "if a<b and c>d then"
-    assert parse_vtt(_vtt_body("Use <foo> and <3 you>"), "en")[0].en == "Use <foo> and <3 you>"
+    assert parse_vtt(_vtt_body("if a<b and c>d then"), "en")[0].src == "if a<b and c>d then"
+    assert parse_vtt(_vtt_body("Use <foo> and <3 you>"), "en")[0].src == "Use <foo> and <3 you>"
 
 
 def test_vtt_strips_only_the_real_webvtt_tags() -> None:
@@ -794,18 +794,18 @@ def test_vtt_strips_only_the_real_webvtt_tags() -> None:
         "<00:00.200> <lang en>five</lang> <ruby>six<rt>ok</rt></ruby></v>"
         "<01:02:03.456>!"
     )
-    assert parse_vtt(_vtt_body(line), "en")[0].en == "One two three four five sixok!"
+    assert parse_vtt(_vtt_body(line), "en")[0].src == "One two three four five sixok!"
 
 
 def test_vtt_decodes_html_character_references_once() -> None:
     cue = parse_vtt(_vtt_body("it&#39;s&nbsp;fine &lrm;ok &#x4F60;&#22909; &copy;"), "en")[0]
-    assert cue.en == "it's\u00a0fine \u200eok 你好 ©"
-    assert parse_vtt(_vtt_body("&amp;lt;b&amp;gt; &amp;amp;"), "en")[0].en == "&lt;b&gt; &amp;"
+    assert cue.src == "it's\u00a0fine \u200eok 你好 ©"
+    assert parse_vtt(_vtt_body("&amp;lt;b&amp;gt; &amp;amp;"), "en")[0].src == "&lt;b&gt; &amp;"
 
 
 def test_vtt_leaves_an_ampersand_that_is_not_a_complete_reference_alone() -> None:
     cue = parse_vtt(_vtt_body("AT&T R&D a&param=1 &copy &nope; &#; &#x;"), "en")[0]
-    assert cue.en == "AT&T R&D a&param=1 &copy &nope; &#; &#x;"
+    assert cue.src == "AT&T R&D a&param=1 &copy &nope; &#; &#x;"
 
 
 def test_vtt_round_trips_text_that_looks_like_markup_or_references() -> None:
@@ -865,16 +865,16 @@ def test_ass_times_must_be_exactly_h_mm_ss_cc() -> None:
 
 def test_vtt_turns_encoded_line_breaks_into_line_breaks_instead_of_rejecting_the_file() -> None:
     cue = parse_vtt(_vtt_body("first&#13;&#10;second&#x0D;&#xA;third&#10;&#10;fourth"), "en")[0]
-    assert cue.en == "first\nsecond\nthird\nfourth"
+    assert cue.src == "first\nsecond\nthird\nfourth"
 
 
 def test_vtt_drops_an_encoded_line_break_at_the_edge_of_a_line() -> None:
     cue = parse_vtt(_vtt_body("&#13;hello&#10;", "&#10;&#13;world&#13;"), "en")[0]
-    assert cue.en == "hello\nworld"
+    assert cue.src == "hello\nworld"
 
 
 def test_vtt_cue_made_only_of_encoded_line_breaks_parses_as_empty() -> None:
-    assert parse_vtt(_vtt_body("&#13;&#10;"), "en")[0].en == ""
+    assert parse_vtt(_vtt_body("&#13;&#10;"), "en")[0].src == ""
 
 
 def test_write_text_file_fails_fast_on_a_read_only_target(

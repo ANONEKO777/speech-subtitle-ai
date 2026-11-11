@@ -55,7 +55,7 @@ def test_a_cue_over_seven_seconds_is_too_long_but_an_old_long_cue_is_left_alone(
 
 def test_empty_text_and_a_changed_english_line_are_refused() -> None:
     assert codes(edit(0, zh="")) == [(0, "empty")]
-    assert codes(edit(0, en="uno")) == [(0, "english_changed")]
+    assert codes(edit(0, src="uno")) == [(0, "english_changed")]
 
 
 def put_state(tmp_path: Path, mark: str = "譯") -> tuple[Path, Path, Fakes]:
@@ -130,7 +130,7 @@ def test_an_edit_whose_english_line_changed_is_kept_but_not_listed_as_applied(
     _, folder, _ = put_state(tmp_path)
     save(folder, {2: "人工", 3: "人工三"})
     cues = parse_subs(read_text_file(folder / LANG.files.subs))
-    moved = [replace(c, en="Another line.") if c.id == 2 else c for c in cues]
+    moved = [replace(c, src="Another line.") if c.id == 2 else c for c in cues]
     write_text_file(folder / LANG.files.subs, render_subs(moved))
     assert [c.id for c in cue_edits.edited(folder, LANG)] == [2, 3]
     assert [c.id for c in cue_edits.applied(folder, LANG)] == [3]

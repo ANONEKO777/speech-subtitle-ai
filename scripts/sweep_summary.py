@@ -101,7 +101,7 @@ def cut(cues: Sequence[Cue], minutes: float | None) -> list[Cue]:
         return list(cues)
     limit = round(minutes * 60_000)
     kept = [cue for cue in cues if cue.end_ms <= limit]
-    return [Cue(i, c.start_ms, c.end_ms, c.en) for i, c in enumerate(kept, 1)]
+    return [Cue(i, c.start_ms, c.end_ms, c.src) for i, c in enumerate(kept, 1)]
 
 
 def run_row(

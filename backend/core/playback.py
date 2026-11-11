@@ -67,5 +67,5 @@ def shift_cues(cues: Iterable[Cue], offset_ms: int) -> list[Cue]:
     for c in cues:
         end = c.end_ms + offset_ms
         if end > 0:
-            shifted.append(Cue(c.id, max(0, c.start_ms + offset_ms), end, c.en, c.zh))
+            shifted.append(Cue(c.id, max(0, c.start_ms + offset_ms), end, c.src, c.zh))
     return shifted

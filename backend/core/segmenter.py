@@ -6,7 +6,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import accumulate
 
-from backend.core.model import Cue, Segment, Word
+from backend.core import unspaced
+from backend.core.model import DEFAULT_SOURCE, Cue, Segment, Word
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +20,9 @@ _GLUE_GAP_MS = 250
 _SENTENCE_END = ".?!…"
 _CLOSERS = "\"'”’»)]}"
 _CLAUSE_END = ",;:—"
-_GLUED = re.compile(r"[,.;:!?)\]}%…]+|['’](?:s|re|ll|ve|d|m|t)|n['’]t", re.IGNORECASE)
+_GLUED = re.compile(
+    r"[,.;:!?)\]}%…、。，！？」』）〕】]+|['’](?:s|re|ll|ve|d|m|t)|n['’]t", re.IGNORECASE
+)
 _WEAK_END = frozenset(
     "a an the of to in on at for with from by and but or nor so as if that than into about "
     "is are was were be i you we they he she it my your our their his her its this these".split()
@@ -29,9 +32,14 @@ _WEAK_START = frozenset("and but or so because which who that when while where t
 
 @dataclass(frozen=True, slots=True)
 class CueRules:
-    """SPEC §5.1 limits for English subtitles. Lines are always at most two."""
+    """SPEC §5.1 limits for subtitles. Lines are always at most two. `max_line_chars` counts
+    characters, or display columns when `unspaced` (Japanese, where a full-width character is two
+    columns and words are not separated by spaces). `max_cps` is how many of them a second may
+    show before a cue is penalised."""
 
     max_line_chars: int = 42
+    unspaced: bool = False
+    max_cps: float = 17.0
     min_cue_ms: int = 1000
     max_cue_ms: int = 7000
     min_gap_ms: int = 80
@@ -115,6 +123,25 @@ def merge_words(segments: Sequence[Segment]) -> list[Word]:
     return kept
 
 
+class _Widths:
+    """The width of any run of words `i..j` as it is laid out on a line."""
+
+    def __init__(self, words: Sequence[Word], r: CueRules) -> None:
+        if r.unspaced:
+            sizes = [unspaced.columns(w.text) for w in words]
+            joints = [
+                unspaced.joint(a.text, b.text) for a, b in zip(words, words[1:], strict=False)
+            ]
+        else:
+            sizes = [len(w.text) for w in words]
+            joints = [1] * max(0, len(words) - 1)
+        self._words = list(accumulate(sizes, initial=0))
+        self._joints = list(accumulate(joints, initial=0))
+
+    def span(self, i: int, j: int) -> int:
+        return self._words[j + 1] - self._words[i] + self._joints[j] - self._joints[i]
+
+
 def _display_end(words: Sequence[Word], i: int, j: int, follow_ms: int | None, r: CueRules) -> int:
     end = max(words[j].end_ms, words[i].start_ms + r.min_cue_ms)
     if follow_ms is not None:
@@ -122,15 +149,15 @@ def _display_end(words: Sequence[Word], i: int, j: int, follow_ms: int | None, r
     return end
 
 
-def _fits_two_lines(widths: Sequence[int], i: int, j: int, limit: int) -> bool:
-    total = widths[j + 1] - widths[i] + (j - i)
-    if total <= limit:
+def _fits_two_lines(widths: _Widths, i: int, j: int, limit: int) -> bool:
+    if widths.span(i, j) <= limit:
         return True
     first = i
-    while first < j and widths[first + 2] - widths[i] + (first + 1 - i) <= limit:
+    while first < j and widths.span(i, first + 1) <= limit:
         first += 1
-    head = widths[first + 1] - widths[i] + (first - i)
-    return head <= limit and total - head - 1 <= limit
+    head = widths.span(i, first)
+    rest = widths.span(first + 1, j) if first < j else 0
+    return head <= limit and rest <= limit
 
 
 def _break_cost(words: Sequence[Word], j: int, follow: Word | None) -> float:
@@ -139,39 +166,64 @@ def _break_cost(words: Sequence[Word], j: int, follow: Word | None) -> float:
     if last not in _SENTENCE_END + _CLAUSE_END and _norm(words[j].text) in _WEAK_END:
         cost += 3.0
     if follow is not None:
-        pause = follow.start_ms - words[j].end_ms
-        cost = min(cost, 0.3 if pause >= 700 else 1.0 if pause >= 300 else cost)
+        cost = _pause_cost(cost, follow.start_ms - words[j].end_ms)
         if _norm(follow.text) in _WEAK_START and last not in _SENTENCE_END:
             cost -= 0.5
     return cost
 
 
-def _cue_cost(
-    words: Sequence[Word],
-    widths: Sequence[int],
-    i: int,
-    j: int,
-    follow: Word | None,
-    r: CueRules,
-) -> float:
+def _pause_cost(cost: float, pause_ms: int) -> float:
+    return min(cost, 0.3 if pause_ms >= 700 else 1.0 if pause_ms >= 300 else cost)
+
+
+@dataclass(frozen=True, slots=True)
+class _Run:
+    """The words of one run with what `_split_run` asks about them again and again."""
+
+    words: Sequence[Word]
+    follow: Word | None
+    widths: _Widths
+    rules: CueRules
+    breaks: Sequence[float] | None
+    """For unspaced text, what it costs to end a cue after each word, from the script alone."""
+
+    def break_cost(self, j: int, follow: Word | None) -> float:
+        if self.breaks is None:
+            return _break_cost(self.words, j, follow)
+        cost = self.breaks[j]
+        return cost if follow is None else _pause_cost(cost, follow.start_ms - self.words[j].end_ms)
+
+    def sentence_ends(self, i: int, j: int) -> int:
+        end = unspaced.is_sentence_end if self.rules.unspaced else _ends_a_sentence
+        return sum(1 for k in range(i, j) if end(self.words[k].text))
+
+
+def _ends_a_sentence(text: str) -> bool:
+    return _last_char(text) in _SENTENCE_END
+
+
+def _cue_cost(run: _Run, i: int, j: int, follow: Word | None) -> float:
+    r, words = run.rules, run.words
     cost = 2.0
     start = words[i].start_ms
     duration = _display_end(words, i, j, follow.start_ms if follow else None, r) - start
-    if not _fits_two_lines(widths, i, j, r.max_line_chars):
+    if not _fits_two_lines(run.widths, i, j, r.max_line_chars):
         cost += _VIOLATION
     if duration > r.max_cue_ms or duration < r.min_cue_ms:
         cost += _VIOLATION
     spoken = max(words[j].end_ms - start, r.min_cue_ms)
-    chars = widths[j + 1] - widths[i] + (j - i)
-    cost += max(0.0, chars * 1000 / spoken - 17.0) * 0.5
+    chars = run.widths.span(i, j)
+    cost += max(0.0, chars * 1000 / spoken - r.max_cps) * 0.5
     if spoken < 1500:
         cost += 2.0
-    cost += 6.0 * sum(1 for k in range(i, j) if _last_char(words[k].text) in _SENTENCE_END)
-    return cost + _break_cost(words, j, follow)
+    cost += 6.0 * run.sentence_ends(i, j)
+    return cost + run.break_cost(j, follow)
 
 
 def _split_run(words: Sequence[Word], follow: Word | None, r: CueRules) -> list[tuple[int, int]]:
-    widths = [0, *accumulate(len(w.text) for w in words)]
+    run = _Run(
+        words, follow, _Widths(words, r), r, unspaced.break_costs(words) if r.unspaced else None
+    )
     n = len(words)
     best = [0.0] + [float("inf")] * n
     back = [0] * (n + 1)
@@ -179,12 +231,12 @@ def _split_run(words: Sequence[Word], follow: Word | None, r: CueRules) -> list[
     for i in range(n):
         for j in range(i, n):
             if j > i and (
-                widths[j + 1] - widths[i] + (j - i) > max_chars
+                run.widths.span(i, j) > max_chars
                 or words[j].end_ms - words[i].start_ms > r.max_cue_ms
             ):
                 break
             nxt = words[j + 1] if j + 1 < n else follow
-            total = best[i] + _cue_cost(words, widths, i, j, nxt, r)
+            total = best[i] + _cue_cost(run, i, j, nxt)
             if total < best[j + 1]:
                 best[j + 1], back[j + 1] = total, i
     spans: list[tuple[int, int]] = []
@@ -217,7 +269,9 @@ def _wrap(words: Sequence[Word], limit: int) -> str:
     return " ".join(texts[: best[1]]) + "\n" + " ".join(texts[best[1] :])
 
 
-def to_cues(segments: Sequence[Segment], rules: CueRules | None = None) -> list[Cue]:
+def to_cues(
+    segments: Sequence[Segment], rules: CueRules | None = None, lang: str = DEFAULT_SOURCE
+) -> list[Cue]:
     """Turn ASR word timestamps into subtitle cues that follow SPEC §5.1.
 
     Cues break at sentence ends, then clause punctuation and pauses, then anywhere that
@@ -238,8 +292,8 @@ def to_cues(segments: Sequence[Segment], rules: CueRules | None = None) -> list[
             start = run[i].start_ms
             nxt = run[j + 1] if j + 1 < len(run) else follow
             end = max(start, _display_end(run, i, j, nxt.start_ms if nxt else None, r))
-            text = _wrap(run[i : j + 1], r.max_line_chars)
-            cues.append(Cue(len(cues) + 1, start, end, text))
+            text = (unspaced.wrap if r.unspaced else _wrap)(run[i : j + 1], r.max_line_chars)
+            cues.append(Cue(len(cues) + 1, start, end, text, lang=lang))
         begin = index
     return cues
 
@@ -249,13 +303,15 @@ def violations(cues: Sequence[Cue], rules: CueRules | None = None) -> list[str]:
     problems: list[str] = []
     for index, cue in enumerate(cues):
         where = f"cue {cue.id} ({cue.start_ms} ms)"
-        lines = cue.en.split("\n")
+        lines = cue.src.split("\n")
+        size = unspaced.columns if r.unspaced else len
+        unit = "columns" if r.unspaced else "characters"
         if len(lines) > MAX_LINES:
             problems.append(f"{where}: {len(lines)} lines")
         problems += [
-            f"{where}: line of {len(line)} characters"
+            f"{where}: line of {size(line)} {unit}"
             for line in lines
-            if len(line) > r.max_line_chars
+            if size(line) > r.max_line_chars
         ]
         duration = cue.end_ms - cue.start_ms
         if not r.min_cue_ms <= duration <= r.max_cue_ms:
