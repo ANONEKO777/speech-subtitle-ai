@@ -314,7 +314,7 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 - 字幕清單面板：點擊條目跳轉；播放時自動捲動；可雙擊編輯文字與時間（編輯後寫回 `project.json`）。
 - 摘要頁：章節時間戳可跳轉到影片位置。
 - 格式相容：HTML5 video 播不動（如 MKV、HEVC）時，背景用 ffmpeg 產生 H.264/AAC 的 proxy mp4；或改用 libmpv。
-- 燒錄字幕：原文是拉丁字母時用 Arial。含假名或漢字的原文要先在系統已安裝的字型裡找一個有全部字形的日文字型（Yu Gothic、Meiryo、MS Gothic，讀 Windows 字型登錄與字型檔的 cmap），找不到或缺字時燒錄回 422，訊息說明缺哪個字型或哪些字，不會燒出空白方塊。匯出的 bilingual.ass 仍寫 Arial，交給播放器補字型。
+- 燒錄字幕：英文來源的專案一律用 Arial，不查字型（彎引號、破折號、刪節號等一般標點 Arial 畫得出來）。日文來源的字幕，若含假名、漢字、全形字元或日文標點，要先在系統已安裝的字型裡找一個有全部字形的日文字型（Yu Gothic、Meiryo、MS Gothic，讀 Windows 字型登錄與字型檔的 cmap），找不到或缺字時燒錄回 422，訊息說明缺哪個字型或哪些字，不會燒出空白方塊。匯出的 bilingual.ass 仍寫 Arial，交給播放器補字型。
 - 匯出：SRT（英、中、雙語）、ASS（雙語）、VTT、`summary.md`；可選「燒錄成新影片」（非預設）。
 
 ## 11. 專案資料格式

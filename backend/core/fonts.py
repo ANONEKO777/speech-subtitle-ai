@@ -17,8 +17,20 @@ from backend.core.audio import AudioError
 from backend.core.model import Cue
 from backend.core.source_langs import ENGLISH, ENGLISH_SOURCE, SOURCES
 
-LATIN_LIMIT = 0x024F
-"""The last code point of Latin Extended-B. Arial draws everything up to it."""
+CJK_RANGES = (
+    (0x3000, 0x30FF),
+    (0x3400, 0x4DBF),
+    (0x4E00, 0x9FFF),
+    (0xF900, 0xFAFF),
+    (0xFF00, 0xFFEF),
+)
+"""CJK symbols and punctuation, kana, ideographs, compatibility ideographs and full-width forms.
+General punctuation such as curly quotes, the em dash and the ellipsis is not here: Arial draws it."""
+
+
+def needs_cjk_font(char: str) -> bool:
+    return any(low <= ord(char) <= high for low, high in CJK_RANGES)
+
 
 MISSING_FONT_MESSAGE = (
     "這台電腦沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。"
@@ -151,10 +163,11 @@ Lookup = Callable[[Iterable[str]], Callable[[str], tuple[Path, set[str]] | None]
 
 
 def burn_font(cues: Sequence[Cue], lookup: Lookup = windows_coverage) -> str:
-    """The font to burn the source text of `cues` in. Latin text keeps the font the first release
-    used, with no lookup. Text with kana or kanji goes to the first installed font of its language
-    that draws all of it. When there is none, raises `FontMissing` saying what is missing."""
-    needed = {c for cue in cues for c in cue.src if ord(c) > LATIN_LIMIT}
+    """The font to burn the source text of `cues` in. An English source keeps the font the first
+    release used, with no lookup, whatever punctuation it has. Japanese text with kana or kanji goes
+    to the first installed font of its language that draws all of it. When there is none, raises
+    `FontMissing` saying what is missing."""
+    needed = {c for cue in cues if cue.lang != ENGLISH for c in cue.src if needs_cjk_font(c)}
     if not needed:
         return ENGLISH_SOURCE.fonts[0]
     langs = [code for code in dict.fromkeys(cue.lang for cue in cues) if code in SOURCES]

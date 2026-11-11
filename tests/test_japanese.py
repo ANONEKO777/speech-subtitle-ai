@@ -549,6 +549,25 @@ class TestBurnFont:
 
         assert burn_font([Cue(1, 0, 1000, "Hello café.")], refuse) == "Arial"
 
+    @pytest.mark.parametrize("text", ["I don’t know — really…", "He said “hi”", "50–60 • ok"])
+    def test_english_typographic_punctuation_never_looks_at_the_fonts(self, text: str) -> None:
+        def refuse(chars: Iterable[str]) -> Callable[[str], tuple[Path, set[str]] | None]:
+            raise AssertionError("the fonts were looked up")
+
+        assert burn_font([Cue(1, 0, 1000, text)], refuse) == "Arial"
+
+    def test_a_japanese_cue_with_only_general_punctuation_needs_no_cjk_font(self) -> None:
+        def refuse(chars: Iterable[str]) -> Callable[[str], tuple[Path, set[str]] | None]:
+            raise AssertionError("the fonts were looked up")
+
+        cues = [Cue(1, 0, 1000, "Perforce — ok…", "好", "ja")]
+        assert burn_font(cues, refuse) == "Arial"
+
+    def test_a_japanese_cue_is_still_checked_for_kana_and_full_width_forms(self) -> None:
+        for text in ("あ", "ア", "漢", "「。」", "Ａ！"):
+            with pytest.raises(FontMissing):
+                burn_font([Cue(1, 0, 1000, text, "好", "ja")], self.installed())
+
     def test_japanese_text_takes_the_first_font_that_draws_all_of_it(self) -> None:
         lookup = self.installed({"Yu Gothic": {"本"}, "Meiryo": set(), "MS Gothic": set()})
         assert burn_font(self.JA, lookup) == "Meiryo"
