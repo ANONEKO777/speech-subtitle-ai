@@ -713,6 +713,7 @@ try {
     note("the picker in the player switches back to English", (await p.locator(tid("source-note")).count()) === 0 && (await p.locator(tid("source-lang")).count()) === 0, "note and picker gone");
     await p.fill(tid("video-path"), join(clips, "queue-en-45s.mp4"));
     await p.click(tid("import"));
+    await p.waitForSelector(tid("importing"), { timeout: 20000 });
     await waitPlayer();
     const enBody = jobBodies.at(-1);
     note("English import from the player starts with source_lang en", enBody !== undefined && JSON.parse(enBody).source_lang === "en", `POST /jobs body ${enBody}`);
