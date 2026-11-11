@@ -292,8 +292,11 @@ P24：來源語言選擇（日文、日英混合）；雙語切換在混合影�
 |---|---|
 | `p22_asr.py` | 跑一個引擎，整檔或 VAD 切段，存原始單位、VRAM、RTF（`--lenient` 即不帶 `--strict-pipeline`） |
 | `p22_run_matrix.sh` | 重跑表 1、表 2 的整組 |
-| `p22_finesegs.py` | 依停頓切短語音段 |
+| `p22_finesegs.py` | 依停頓切短語音段（第三個參數是最短停頓 ms，預設 700，表 3c 用 300） |
 | `p22_analyze.py` | `table` 產生表 1、表 2、時間戳表；`cer` 算 CER；`window` 看視窗文字 |
 | `p22_langmap.py` | 逐段語言地圖與表 3 |
 | `p22_dup_judge.py` | 口譯重複判斷 |
+| `p22_langscore.py` | 用 Whisper 語言偵測與 `-l ja` 的英文字詞當獨立訊號，替 Qwen3 逐段評分（表 3b、3c） |
 | `p22_pick_sentences.py`、`p22_translate_probe.py` | 取樣與翻譯探測 |
+
+表 3b、3c 的執行不在 `p22_run_matrix.sh` 裡。用 `p22_finesegs.py` 切出 `kirby.fine300.json`，再用 `p22_asr.py --mode chunks --chunks-json ... --suffix=-fine300 --lenient` 跑 Qwen3（`--lang auto` 與 `--lang ja`）與 Whisper（`--lang auto`），最後 `uv run python scripts/p22_langscore.py RUNS_DIR OUT.json fine300`。
