@@ -1,8 +1,12 @@
 """P22 lever: score what Qwen3-ASR and Whisper do to a two-language talk, per pause-cut segment.
 
 `p22_langmap.py` labels each segment from the Qwen3-ASR `-l auto` text, so it cannot score Qwen3.
-This script groups the segments by two signals that do not come from Qwen3 and then reads what
-each engine wrote for each group.
+This script groups the segments by two signals that come from Whisper and one that comes from
+Qwen3 `-l auto` (the script of its text, used by `group_of`), then reads what each engine wrote for
+each group. The grouping is therefore not independent of Qwen3: the English words Qwen3 `-l auto`
+wrote in `ja_then_en` and the Japanese it wrote in `en_only` are zero by definition, and the `-l ja`
+rate in `en_only` is conditioned on `-l auto` having written English. The `fine300` cut is chosen
+by Whisper language ID alone.
 
 - `lid`: Whisper `-l auto` picks one language for the whole segment (its own language ID).
 - `en_run`: Whisper `-l ja` wrote a run of four or more Latin words. Whisper written for Japanese
