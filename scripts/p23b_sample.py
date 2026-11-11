@@ -36,7 +36,7 @@ from p22_langscore import group_of, script_of, segments
 DEFAULT_RUNS = Path(
     "C:/Users/abcd1997/.claude/orchestrate/video-subtitle-translator/swarm/P22/runs"
 )
-DEFAULT_OUT = Path(__file__).resolve().parents[1] / ".work/p23b-labels/manifest.json"
+DEFAULT_OUT = Path(".work/p23b-labels/manifest.json")
 FINE_TAG = "fine300"
 TOTAL = 120
 QUOTAS = {"disagree": 14, "fragment": 14, "ja_then_en": 32, "en_as_ja": 20}

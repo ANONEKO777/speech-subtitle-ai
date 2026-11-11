@@ -14,8 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / ".work/p23b-labels/manifest.json"
+DEFAULT_MANIFEST = Path(".work/p23b-labels/manifest.json")
 DEFAULT_FFMPEG = Path("C:/Program Files/ffmpeg-n6.1-latest-win64-gpl-shared-6.1/bin/ffmpeg.exe")
 MARGIN_S = 0.3
 BITRATE = "48k"
