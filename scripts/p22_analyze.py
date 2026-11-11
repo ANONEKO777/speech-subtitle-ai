@@ -107,7 +107,7 @@ def normalise(text: str, *, for_cer: bool = False, ja_only: bool = False) -> str
         for filler in _FILLERS:
             text = text.replace(filler, "")
         text = re.sub("[〇一二三四五六七八九十百千]+", _kanji_number, text)
-        text = re.sub(r"four", "4", text)
+        text = re.sub(r"\bfour\b", "4", text)
     if ja_only:
         return "".join(c for c in text if "぀" <= c <= "ヿ" or "㐀" <= c <= "鿿")
     return "".join(c for c in text if unicodedata.category(c)[0] in "LN")
