@@ -21,7 +21,7 @@
 
 兩支影片都在專案根目錄，被 `.gitignore` 擋住，沒有被修改、搬動或提交。
 
-- `【CEDEC2026】Perforce P4とAI…_1080p.mp4`：3526 s，日文單人演講。單一音軌，語言標記 `eng`，不能當語言依據（ffprobe，`Efprobe.txt`）。
+- `【CEDEC2026】Perforce P4とAI…_1080p.mp4`：3526 s，日文單人演講。單一音軌，語言標記 `eng`，不能當語言依據（ffprobe，`E\ffprobe.txt`）。
 - `The Many Dimensions of Kirby_1080p.mp4`：3236 s，單一音軌標記 `eng`。立體聲左右聲道完全相同（RMS 兩聲道差小於 0.001 dB），所以不能用聲道分講者。
 
 **公開參考稿。** 搜尋了 CEDEC 與 GDC 的公開頁面。找到的只有場次介紹與 Classmethod 的聽講摘要（不是逐字稿），Kirby 在 GDC Vault 與 YouTube 有影片但搜尋沒有找到逐字稿。沒有可用的公開逐字稿，所以沒有採用任何公開來源。
@@ -50,7 +50,7 @@
 
 - kotoba 檔案：`ggml-kotoba-whisper-v2.0.bin`，來源 `huggingface.co/kotoba-tech/kotoba-whisper-v2.0-ggml`，授權 Apache-2.0（模型卡標示），SHA-256 `eff70a8a236e731abba774ba71e1f6d0fce53302137208c32207e694e0bf4546`，放在 `.work/p22/models/`，沒有提交。它的輸出字數比 whisper 少 21%，視窗文字顯示整句漏掉與重複（`E\tables\windows_cedec_texts.txt` 的 1300 s 與 1900 s 視窗）。**操作者決定不需要測試 kotoba，所以它被放棄，不是被證明不行。** 它的 31.8% CER 與短少的輸出沒有查明原因：沒有換設定重跑，沒有查是模型本身、ggml 轉檔還是執行參數造成。所以這一行只是一次跑出的紀錄，不能讀成「kotoba 這個模型有缺陷」。若日後要重新考慮它，要先查這個原因。
 - CER 對 whisper 有利。參考稿是我從三者的共識寫的，而 whisper 的輸出最接近多數寫法。Qwen3 的差距有一部分是它的寫法：「P four」、漢數字、保留「まあ」（CER 已正規化這三項，但標點與其他寫法差異沒有）。參考稿距離 whisper 的輸出 87 個編輯，距離 Qwen3 的輸出 162 個編輯，兩個引擎彼此差 214 個編輯（9.9%，見 §8 風險 1）。所以 4.0% 對 7.5% 只能說「兩者都在 10% 以內」，CER 沒有排出兩者的高低。
-- Qwen3-ASR 每千字有 15.2 個「。」與 20.6 個「、」，whisper 只有 3.9 與 8.8（CEDEC，VAD 切段，`Euns\*-cedec-chunks-ja.json` 計數）。whisper 日文的標點很少，句界多半只能靠段落邊界。這影響翻譯單位的切法，見 §5。
+- Qwen3-ASR 每千字有 15.2 個「。」與 20.6 個「、」，whisper 只有 3.9 與 8.8（CEDEC，VAD 切段，`E\runs\*-cedec-chunks-ja.json` 計數）。whisper 日文的標點很少，句界多半只能靠段落邊界。這影響翻譯單位的切法，見 §5。
 - 專有名詞兩者都錯：Perforce 被寫成パフォース、パフォッシャ、ビフォ、パフォーシャ，各引擎 15 到 30 次（`E\tables\terms_cedec.md`）。「CEDEC」被寫成「SELECT2」或「セレック」。翻譯需要詞彙表，見 §5。
 - 英文術語（CEDEC，整支 59 分鐘，`E\tables\terms_cedec.md`）：whisper 與 Qwen3 都保留拉丁字母（P4、MCP、AI），不轉片假名。Qwen3 另有 14 處寫成「P four」。kotoba 把 MCP 寫成 MC 或エムシー 9 次。`ChatGPT` 與 `Claude`：Qwen3 寫 ChatGPT 拉丁、クロード片假名，whisper 寫成「チャットGPT」與「クロード」。對翻譯最好的呈現是拉丁字母，所以 Qwen3 後處理要把「P four」改回「P4」。
 
