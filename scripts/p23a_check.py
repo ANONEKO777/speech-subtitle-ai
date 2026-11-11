@@ -5,8 +5,8 @@
 Reports the cue counts, the line lengths in full-width characters, the cue timing, how many cue
 and line breaks fall inside a word by the script rule of `backend.core.unspaced`, and the
 output checks on every translated cue and on the summary: kana left over, Japanese kanji
-forms, Simplified characters, Mainland wording, cues with only punctuation, and cues that kept their Japanese because the
-model failed every attempt. Exit code 1 when any check finds an error.
+forms, Simplified characters, Mainland wording, cues with only punctuation, and cues that kept
+their Japanese because the model failed every attempt. Exit code 1 when any check finds an error.
 """
 
 from __future__ import annotations
