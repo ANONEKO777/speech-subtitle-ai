@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>語言標註</title>
+<style>
+:root { --bg:#f6f7f9; --card:#fff; --text:#1d2433; --muted:#5b6578; --line:#d5dae3; --accent:#2457d6; --accent-text:#fff; --ok:#1f7a45; --warn:#b4540a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171f; --card:#1e2330; --text:#e8ebf2; --muted:#9aa4b8; --line:#363e52; --accent:#6b93ff; --accent-text:#0b1020; --ok:#5fcf8f; --warn:#f0a35e; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:17px/1.6 "Microsoft JhengHei","PingFang TC","Noto Sans TC",system-ui,sans-serif; }
+main { max-width:760px; margin:0 auto; padding:16px; }
+h1 { font-size:20px; margin:8px 0 12px; }
+details.help { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:14px; }
+details.help summary { cursor:pointer; font-weight:600; }
+details.help li { margin:4px 0; }
+.bar { height:12px; background:var(--line); border-radius:6px; overflow:hidden; }
+.bar > div { height:100%; width:0; background:var(--accent); transition:width .15s; }
+.meta { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:15px; margin:6px 0 14px; flex-wrap:wrap; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+.player { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.player audio { flex:1 1 280px; min-width:0; }
+button { font:inherit; color:var(--text); background:var(--card); border:2px solid var(--line); border-radius:10px; padding:10px 14px; cursor:pointer; }
+button:hover { border-color:var(--accent); }
+button.big { width:100%; min-height:64px; font-size:21px; font-weight:600; text-align:left; display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+button kbd { font-size:15px; color:var(--muted); font-weight:400; }
+button.sel { border-color:var(--accent); background:var(--accent); color:var(--accent-text); }
+button.sel kbd { color:inherit; }
+.order { display:none; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.order.on { display:flex; }
+.order button { flex:1 1 200px; }
+textarea { width:100%; margin-top:12px; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px; min-height:60px; }
+.nav { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.status { margin-top:10px; min-height:1.4em; font-size:15px; }
+.status.err { color:var(--warn); }
+.done { text-align:center; padding:24px 8px; }
+.done h2 { color:var(--ok); }
+#fallback { display:none; width:100%; min-height:120px; margin-top:10px; font:13px/1.4 monospace; }
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+<h1>語言標註：聽一小段，選日文或英文</h1>
+<details class="help" open>
+<summary>怎麼做（先看一次）</summary>
+<ul>
+<li>你不需要看懂日文，只要分辨聽到的是日文還是英文。</li>
+<li>每一題先按「播放」聽一次，再選答案。按 <b>空白鍵</b> 可以重聽。</li>
+<li>整段只有一種語言，選「日文」或「英文」。</li>
+<li>一段裡面兩種語言都清楚地講了，選「兩者都有」，再選先講哪一種。</li>
+<li>聽兩次還是不確定，或是只有雜音、沒有人聲，選「聽不出來或沒有人聲」。</li>
+<li>錯了可以按「上一題」（左方向鍵）改答案。進度會自動存在這台電腦的瀏覽器，下次開同一個檔案會接著做。</li>
+<li>全部做完，或是想先停，都按右上角的「匯出標註」，把下載的 labels.json 交回。</li>
+</ul>
+</details>
+
+<div class="meta">
+  <span id="count">第 0 題，共 0 題</span>
+  <span><span id="answered">已答 0</span>　<button id="export" type="button" style="padding:4px 10px">匯出標註</button></span>
+</div>
+<div class="bar" aria-hidden="true"><div id="bar"></div></div>
+
+<section id="quiz" class="card" style="margin-top:14px">
+  <div class="player">
+    <audio id="audio" controls preload="auto"></audio>
+    <button id="replay" type="button">重播 <kbd>空白鍵</kbd></button>
+  </div>
+  <div id="status" class="status" role="status"></div>
+  <button class="big" data-label="ja" type="button"><span>日文</span><kbd>1</kbd></button>
+  <button class="big" data-label="en" type="button"><span>英文</span><kbd>2</kbd></button>
+  <button class="big" data-label="both" type="button"><span>兩者都有</span><kbd>3</kbd></button>
+  <div id="order" class="order">
+    <button data-order="ja_en" type="button">先日文後英文 <kbd>5</kbd></button>
+    <button data-order="en_ja" type="button">先英文後日文 <kbd>6</kbd></button>
+  </div>
+  <button class="big" data-label="unclear" type="button"><span>聽不出來或沒有人聲</span><kbd>4</kbd></button>
+  <textarea id="note" placeholder="備註（可不填）。要寫的話，先寫在這裡，再用滑鼠點上面的答案。"></textarea>
+  <div class="nav">
+    <button id="prev" type="button">上一題 <kbd>←</kbd></button>
+    <button id="next" type="button">下一題 <kbd>→</kbd></button>
+  </div>
+</section>
+
+<section id="done" class="card done hidden" style="margin-top:14px">
+  <h2>全部做完了</h2>
+  <p id="doneMsg">請按「匯出標註」，把下載的 labels.json 交回。</p>
+  <button id="back" type="button">回到最後一題</button>
+</section>
+
+<textarea id="fallback" readonly aria-label="標註內容"></textarea>
+</main>
+
+<script>
+/*__LOGIC__*/
+</script>
+<script>
+(function () {
+  "use strict";
+  var L = window.P23bLogic;
+  var SET_ID = /*__SET_ID__*/"";
+  var ITEMS = /*__ITEMS__*/[];
+  var STORE_KEY = "p23b-label:" + SET_ID;
+  var state = L.createState(ITEMS);
+  var el = function (id) { return document.getElementById(id); };
+  var audio = el("audio");
+
+  function storeGet() { try { return window.localStorage.getItem(STORE_KEY); } catch (e) { return null; } }
+  function storeSet(v) { try { window.localStorage.setItem(STORE_KEY, v); return true; } catch (e) { return false; } }
+  function save() { return storeSet(L.serialize(state)); }
+  function nowIso() { return new Date().toISOString(); }
+
+  function setStatus(msg, isErr) {
+    el("status").textContent = msg;
+    el("status").className = "status" + (isErr ? " err" : "");
+  }
+
+  function render() {
+    var total = state.items.length;
+    var done = L.isDone(state);
+    el("quiz").classList.toggle("hidden", done);
+    el("done").classList.toggle("hidden", !done);
+    var answered = L.answeredCount(state);
+    el("answered").textContent = "已答 " + answered;
+    el("count").textContent = done ? "共 " + total + " 題" : "第 " + (state.index + 1) + " 題，共 " + total + " 題";
+    el("bar").style.width = (total ? (100 * answered) / total : 0) + "%";
+    if (done) {
+      var missing = total - answered;
+      el("doneMsg").textContent = missing > 0
+        ? "還有 " + missing + " 題沒答。可以按「回到最後一題」補答，或直接匯出。"
+        : "請按「匯出標註」，把下載的 labels.json 交回。";
+      return;
+    }
+    var item = L.current(state);
+    var a = state.answers[item.id] || { label: null, order: null, note: "" };
+    Array.prototype.forEach.call(document.querySelectorAll("button[data-label]"), function (b) {
+      b.classList.toggle("sel", b.getAttribute("data-label") === a.label);
+    });
+    el("order").classList.toggle("on", a.label === "both");
+    Array.prototype.forEach.call(document.querySelectorAll("button[data-order]"), function (b) {
+      b.classList.toggle("sel", b.getAttribute("data-order") === a.order);
+    });
+    el("note").value = a.note || "";
+    if (audio.getAttribute("data-id") !== item.id) {
+      audio.setAttribute("data-id", item.id);
+      audio.src = item.clip;
+      setStatus("", false);
+    }
+  }
+
+  function move(i) {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    L.goto(state, i);
+    save();
+    render();
+  }
+
+  function choose(label) {
+    if (L.isDone(state)) return;
+    L.answer(state, label, nowIso());
+    var ok = save();
+    if (label === "both") {
+      render();
+      setStatus(ok ? "請再選先講哪一種語言（5 或 6），或按右方向鍵跳過。" : "進度無法存在瀏覽器，請記得匯出。", !ok);
+      return;
+    }
+    move(state.index + 1);
+    if (!ok) setStatus("進度無法存在瀏覽器，請記得匯出。", true);
+  }
+
+  function chooseOrder(order) {
+    if (L.isDone(state) || !L.setOrder(state, order)) return;
+    save();
+    move(state.index + 1);
+  }
+
+  function replay() {
+    if (L.isDone(state)) return;
+    try {
+      audio.currentTime = 0;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () { setStatus("無法播放這段聲音。請確認 clips 資料夾和本檔放在同一層。", true); });
+    } catch (e) {
+      setStatus("無法播放這段聲音。", true);
+    }
+  }
+
+  function exportLabels() {
+    var data = L.exportLabels(state, nowIso());
+    var text = JSON.stringify(data, null, 1);
+    var fb = el("fallback");
+    try {
+      var blob = new Blob([text], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = "labels.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    } catch (e) {
+      fb.style.display = "block";
+      fb.value = text;
+      setStatus("下載失敗。請把下方文字全部複製，存成 labels.json。", true);
+      return data;
+    }
+    setStatus("已匯出 " + data.answered + " 題到 labels.json（看瀏覽器的下載資料夾）。", false);
+    return data;
+  }
+
+  audio.addEventListener("error", function () {
+    setStatus("找不到這段聲音檔。請確認 clips 資料夾和本檔放在同一層。", true);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("button"), function (b) {
+    b.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-label]"), function (b) {
+    b.addEventListener("click", function () { choose(b.getAttribute("data-label")); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-order]"), function (b) {
+    b.addEventListener("click", function () { chooseOrder(b.getAttribute("data-order")); });
+  });
+  el("replay").addEventListener("click", replay);
+  el("prev").addEventListener("click", function () { move(state.index - 1); });
+  el("next").addEventListener("click", function () { move(state.index + 1); });
+  el("back").addEventListener("click", function () { move(state.items.length - 1); });
+  el("export").addEventListener("click", exportLabels);
+  el("note").addEventListener("input", function () {
+    if (L.isDone(state)) return;
+    L.setNote(state, el("note").value);
+    save();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+    var handled = true;
+    if (e.key === "1") choose("ja");
+    else if (e.key === "2") choose("en");
+    else if (e.key === "3") choose("both");
+    else if (e.key === "4") choose("unclear");
+    else if (e.key === "5") chooseOrder("ja_en");
+    else if (e.key === "6") chooseOrder("en_ja");
+    else if (e.key === " " || e.code === "Space") replay();
+    else if (e.key === "ArrowLeft") move(state.index - 1);
+    else if (e.key === "ArrowRight") move(state.index + 1);
+    else handled = false;
+    if (handled) e.preventDefault();
+  });
+
+  L.restore(state, storeGet());
+  if (state.index === 0 && L.answeredCount(state) > 0) L.goto(state, L.firstUnanswered(state));
+  window.__p23b = { state: state, exportLabels: exportLabels, choose: choose, chooseOrder: chooseOrder, replay: replay };
+  render();
+})();
+</script>
+</body>
+</html>
