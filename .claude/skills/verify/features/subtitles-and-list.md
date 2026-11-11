@@ -19,7 +19,7 @@ While a video plays, the subtitle area under it shows the current cue in English
 
 Preconditions: a player is showing a translated project with at least 200 cues.
 
-- **Modes.** Click `mode-en`, `mode-zh`, `mode-both`. Read `subtitle p[data-lang]`: `["en"]`, `["zh"]`, `["zh","en"]`.
+- **Modes.** Click `mode-en`, `mode-zh`, `mode-both`. Read `subtitle p[data-lang]`: `["src"]`, `["zh"]`, `["zh","src"]`.
 - **Jump.** Click `cue-200 button`. After 0.5 s `video.currentTime` is within 0.1 s of `cue-200`'s `data-start` / 1000. With the video paused the match is exact.
 - **Autoscroll.** Play from cue 200 for 60 s, sampling each second. The `[data-active="true"]` row rectangle is inside the `cue-list` rectangle every time.
 - **Persist.** Fill `font-size` and `font-color`, press `mode-zh`, close the window, relaunch, import the same video. Computed `fontSize` and `color` on `subtitle` match, and `mode-zh` has `aria-pressed=true`.

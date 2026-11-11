@@ -79,7 +79,7 @@ await app.shot("import-to-play.png");
 const box = await playerBox(p);
 note("1 below", box.subtitle.top >= box.video.bottom - 0.5 && box.video.height > 200, `video bottom ${box.video.bottom}, subtitle top ${box.subtitle.top}`);
 
-for (const [mode, expected] of [["en", ["en"]], ["zh", ["zh"]], ["both", ["zh", "en"]]]) {
+for (const [mode, expected] of [["en", ["src"]], ["zh", ["zh"]], ["both", ["zh", "src"]]]) {
   await p.click(`[data-testid="mode-${mode}"]`);
   await sleep(300);
   const got = await subtitleLangs(p);
