@@ -728,7 +728,10 @@ class TestGlossaryMending:
 
 
 class TestLastResort:
-    LONG = "這是一個很長的回覆，說明了很多原文沒有的內容，而且遠遠超過這一句話本來的長度，所以通常會被拒絕。"
+    LONG = (
+        "這是一個很長的回覆，說明了很多原文沒有的內容，而且遠遠超過這一句話本來的長度，所以會被拒絕。"
+        * 1
+    )
 
     @staticmethod
     def ask(text: str, cues: list[Cue], source: translate.SourceLanguage) -> list[Cue]:
