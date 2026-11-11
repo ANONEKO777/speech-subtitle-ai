@@ -40,6 +40,7 @@ import { SettingsPage } from "./settings/SettingsPage";
 import { SettingsBar } from "./settings/SettingsBar";
 import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
 import { Wizard } from "./wizard/Wizard";
+import { LinkedText } from "./manage/LinkedText";
 import { KEY, parseSettings } from "./settings/settings";
 
 type Screen =
@@ -423,7 +424,9 @@ export function App() {
         {screen.kind === "idle" && screen.error && (
           <p className="error" role="alert" data-testid="error">
             <TriangleAlert className="icon" aria-hidden />
-            <span>{screen.error}</span>
+            <span>
+              <LinkedText text={screen.error} />
+            </span>
           </p>
         )}
         {backend && importing && (

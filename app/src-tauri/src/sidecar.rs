@@ -1,12 +1,12 @@
 //! Starts the Python backend, reads its `READY port=<n> token=<t>` line, and kills it, with every
 //! process it started, when the window closes or the app exits.
 //!
-//! The backend is run from the repository's own virtual environment. P14 replaces this with the
-//! packaged executable; only `command` changes.
+//! An installed app runs the packaged backend (`backend/vst-backend.exe` in the resource folder)
+//! with the bundled FFmpeg. `tauri dev` runs it from the repository's virtual environment.
 
 use serde::Serialize;
 use std::io::{BufRead, BufReader, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
@@ -58,13 +58,53 @@ fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
 }
 
-fn command() -> Command {
-    let root = repo_root();
-    let python = std::env::var_os("VST_BACKEND_PYTHON")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| root.join(".venv").join("Scripts").join("python.exe"));
-    let mut cmd = Command::new(python);
-    cmd.args(["-m", "backend.main"]).current_dir(root);
+/// The packaged backend and its FFmpeg, in the folders the installer puts beside the app.
+struct Packaged {
+    exe: PathBuf,
+    ffmpeg: PathBuf,
+}
+
+/// An exe inside this crate's own `target` folder is a developer build. `tauri build` leaves a copy
+/// of the packaged backend beside it that goes stale, so it must not win over the `.venv`.
+fn in_build_tree(exe: &Path) -> bool {
+    let target = Path::new(env!("CARGO_MANIFEST_DIR")).join("target");
+    let canon = |p: &Path| p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+    canon(exe).starts_with(canon(&target))
+}
+
+fn packaged(app: &AppHandle) -> Option<Packaged> {
+    if std::env::current_exe().is_ok_and(|exe| in_build_tree(&exe)) {
+        return None;
+    }
+    let resources = app.path().resource_dir().ok()?;
+    let exe = resources.join("backend").join("vst-backend.exe");
+    exe.is_file().then(|| Packaged { exe, ffmpeg: resources.join("ffmpeg") })
+}
+
+/// `VST_BACKEND_PYTHON` wins (the drivers use it), then the packaged executable, then the
+/// repository's own virtual environment for `tauri dev`.
+fn command(app: &AppHandle) -> Command {
+    let mut cmd = match (std::env::var_os("VST_BACKEND_PYTHON"), packaged(app)) {
+        (None, Some(p)) => {
+            let mut cmd = Command::new(&p.exe);
+            if let Some(dir) = p.exe.parent() {
+                cmd.current_dir(dir);
+            }
+            if std::env::var_os("VST_FFMPEG_DIR").is_none() {
+                cmd.env("VST_FFMPEG_DIR", &p.ffmpeg);
+            }
+            cmd
+        }
+        (python, _) => {
+            let root = repo_root();
+            let python = python
+                .map(PathBuf::from)
+                .unwrap_or_else(|| root.join(".venv").join("Scripts").join("python.exe"));
+            let mut cmd = Command::new(python);
+            cmd.args(["-m", "backend.main"]).current_dir(root);
+            cmd
+        }
+    };
     if let Some(dir) = std::env::var_os("VST_PROJECTS") {
         cmd.arg("--projects").arg(dir);
     }
@@ -112,7 +152,7 @@ pub fn start(app: AppHandle) {
     if app.state::<BackendState>().0.lock().unwrap().stopped {
         return;
     }
-    let mut cmd = command();
+    let mut cmd = command(&app);
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     #[cfg(windows)]
     {
@@ -252,5 +292,20 @@ mod job {
             // SAFETY: the handle was created in `adopt` and is closed once.
             unsafe { CloseHandle(self.0) };
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_binary_built_in_this_crate_is_a_developer_build() {
+        assert!(in_build_tree(&std::env::current_exe().unwrap()));
+    }
+
+    #[test]
+    fn an_installed_copy_elsewhere_is_not() {
+        assert!(!in_build_tree(&std::env::temp_dir().join("Video Subtitle Translator").join("app.exe")));
     }
 }

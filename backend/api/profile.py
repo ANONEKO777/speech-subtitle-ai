@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
 from backend.api.deps import Context, job_json
+from backend.core import vc_runtime
 from backend.manager import profiles
 from backend.manager.profiles import PROFILES, ProfileId
 from backend.manager.switch import current, download_missing, requirements, warnings_for
@@ -56,6 +57,7 @@ def view(ctx: Context) -> dict[str, Any]:
     report = ctx.selftest.load()
     return {
         "hardware": asdict(hardware),
+        "vc_runtime_missing": bool(vc_runtime.missing()),
         "recommended": {
             "id": rec.profile.id.value,
             "label": rec.profile.label,

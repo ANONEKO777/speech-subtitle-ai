@@ -384,6 +384,15 @@ def test_switching_to_cpu_lists_the_missing_assets_and_offers_the_download(rig: 
     assert next(p for p in after["profiles"] if p["id"] == "cpu")["missing"] == []
 
 
+def test_the_profile_view_says_when_the_visual_cpp_runtime_is_missing(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("VST_SIMULATE_NO_VCRUNTIME", "1")
+    assert rig.client.get("/api/profile").json()["vc_runtime_missing"] is True
+    monkeypatch.delenv("VST_SIMULATE_NO_VCRUNTIME")
+    assert rig.client.get("/api/profile").json()["vc_runtime_missing"] is False
+
+
 def test_a_chosen_profile_survives_a_restart_and_null_returns_to_the_recommendation(
     rig: Rig,
 ) -> None:

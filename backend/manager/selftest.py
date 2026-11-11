@@ -18,6 +18,7 @@ import wave
 from collections.abc import Callable
 from pathlib import Path
 
+from backend.core import vc_runtime
 from backend.core.process_guard import adopt
 from backend.manager.profiles import (
     LLAMA_CPU_RUNTIME,
@@ -46,6 +47,7 @@ Probe = Callable[[str, Path, Path, Device, float], str]
 
 
 def _run(command: list[str], timeout_s: float) -> str:
+    vc_runtime.require(ProbeFailed)
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     try:
         proc = subprocess.Popen(

@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from backend.core import process_guard
+from backend.core import process_guard, vc_runtime
 from backend.core.audio import wav_duration_ms
 from backend.core.model import Segment, Word
 from backend.manager.profiles import Device
@@ -291,6 +291,7 @@ class SubprocessEngine(ABC):
         cancel: threading.Event | None,
         timeout_s: float,
     ) -> None:
+        vc_runtime.require(EngineUnavailableError)
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         try:
             proc = subprocess.Popen(

@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 from types import TracebackType
 
+from backend.core import vc_runtime
 from backend.core.process_guard import KillOnClose
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class LlamaServer:
         for label, path in (("llama-server", self.exe), ("LLM model", self.gguf)):
             if not path.is_file():
                 raise ServerError(f"{label} not found: {path}")
+        vc_runtime.require(ServerError)
         self.port = free_port()
         command = [
             str(self.exe), "-m", str(self.gguf), "--host", HOST, "--port", str(self.port),

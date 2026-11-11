@@ -5,6 +5,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
+import { openSeams } from "./seams.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const EXE = process.env.VST_APP_EXE ?? resolve(here, "../src-tauri/target/release/video-subtitle-translator.exe");
@@ -55,15 +56,16 @@ export function descendants(rootPid) {
 }
 
 /**
- * Starts the app. `env` adds variables for the app and its backend (VST_USER_DATA, VST_SIMULATE_CUDA_FAILURE),
+ * Starts the app (`exe` defaults to the release build). `env` adds variables for the app and its backend (VST_USER_DATA, VST_SIMULATE_CUDA_FAILURE). VST_OPEN_URL_LOG and VST_OPEN_FOLDER_LOG default to files in `shots`, so links and folders are recorded, never opened,
  * and `ready` is the selector that means the start screen is up (the wizard has its own).
  */
-export async function launch({ projects, port = Number(process.env.VST_CDP_PORT ?? 9222), shots = "shots", env = {}, ready = '[data-testid="ready"]' }) {
+export async function launch({ projects, port = Number(process.env.VST_CDP_PORT ?? 9222), shots = "shots", env = {}, ready = '[data-testid="ready"]', exe = EXE }) {
   mkdirSync(shots, { recursive: true });
   const started = Date.now();
-  const child = spawn(EXE, [], {
+  const child = spawn(exe, [], {
     env: {
       ...process.env,
+      ...openSeams(shots, { ...process.env, ...env }),
       ...env,
       VST_PROJECTS: projects,
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { openUrl } from "./api";
 
-/** An https link that opens in the default browser. The app opens it, so the window never navigates away. */
+/** An https link that opens in the default browser. The app opens it after the host check in `open_url`, and a refusal is logged, so the window never navigates away or opens the link itself. */
 export function ExternalLink({ href, children, testId }: { href: string; children: ReactNode; testId?: string }) {
   return (
     <a
@@ -10,7 +10,7 @@ export function ExternalLink({ href, children, testId }: { href: string; childre
       data-testid={testId}
       onClick={(e) => {
         e.preventDefault();
-        void openUrl(href).catch(() => window.open(href, "_blank", "noreferrer"));
+        openUrl(href).catch((err: unknown) => console.error(`cannot open ${href}`, err));
       }}
     >
       {children}

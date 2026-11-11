@@ -18,6 +18,7 @@ import type { DownloadJob, LicenseEntry, ProfileId } from "../manage/types";
 import { useDownloads } from "../manage/useDownloads";
 import { CPU_NOTICE, SelfTestPanel } from "../settings/HardwareSection";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
+export const VC_REDIST_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist";
 import { downloadPlan } from "./plan";
 import { initialWizard, reduceWizard } from "./flow";
 
@@ -263,6 +264,12 @@ function Choose({
           記憶體 {mib(hw.ramMib)} · 磁碟可用 {mib(hw.diskFreeMib)}
         </span>
       </div>
+      {view.vcRuntimeMissing && (
+        <div className="note bad" role="alert" data-testid="wizard-vcredist">
+          這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請先
+          <ExternalLink href={VC_REDIST_URL}>到 Microsoft 下載並安裝 vc_redist.x64.exe</ExternalLink>，裝好後再按「下載並開始」。
+        </div>
+      )}
       <p data-testid="wizard-recommended">
         建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外兩個。
       </p>

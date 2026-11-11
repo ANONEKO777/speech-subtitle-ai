@@ -22,11 +22,62 @@
     ],
     "security": {
       "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*; media-src 'self' asset: http://asset.localhost; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'",
-      "assetProtocol": { "enable": true, "scope": [] }
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      }
     }
   },
   "bundle": {
-    "active": false,
-    "resources": { "../../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md" }
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "speech-subtitle-ai",
+    "copyright": "AGPL-3.0-or-later",
+    "shortDescription": "Local English-to-Traditional-Chinese subtitle translator",
+    "resources": {
+      "../../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
+      "../../installer/THIRD_PARTY.md": "THIRD_PARTY.md",
+      "../../LICENSE": "LICENSE",
+      "../../installer/LICENSE-whisper.cpp.txt": "licenses/LICENSE-whisper.cpp.txt"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "compression": "lzma",
+        "languages": [
+          "TradChinese",
+          "English"
+        ],
+        "installerHooks": "../../installer/hooks.nsh",
+        "customLanguageFiles": {
+          "TradChinese": "../../installer/lang-TradChinese.nsh",
+          "English": "../../installer/lang-English.nsh"
+        }
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZCNEEzOTg0QzQxNDBGNEQKUldSTkR4VEVoRGxLYTIxRERLNWhUS0pCY2VNOHJHWHhFQ0RIaVQxWEh5b1VzYUZaTnlVbHVuREcK",
+      "endpoints": [
+        "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai/-/releases/permalink/latest/downloads/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

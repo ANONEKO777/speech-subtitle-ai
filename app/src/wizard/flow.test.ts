@@ -18,6 +18,7 @@ const option = (id: ProfileOption["id"], over: Partial<ProfileOption> = {}): Pro
   ...over,
 });
 const view: ProfileView = {
+  vcRuntimeMissing: false,
   hardware: { gpuName: "RTX 4090", vramMib: 24564, driverVersion: "596.36", ramMib: 65536, diskFreeMib: 500000 },
   recommended: { id: "gpu-24gb", label: "24 GB", why: "fits" },
   active: { id: "gpu-24gb", label: "24 GB", source: "recommended", device: "cuda" },

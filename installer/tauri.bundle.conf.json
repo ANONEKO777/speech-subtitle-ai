@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "resources": {
+      "../../installer/build/backend/": "backend/",
+      "../../installer/build/ffmpeg/": "ffmpeg/"
+    }
+  }
+}

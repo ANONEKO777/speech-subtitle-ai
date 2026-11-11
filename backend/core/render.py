@@ -9,6 +9,7 @@ the person's subtitle offset) before the file is written.
 
 from __future__ import annotations
 
+import functools
 import os
 import subprocess
 import sys
@@ -35,6 +36,84 @@ MIN_FPS = 5.0
 MAX_FPS = 240.0
 _MP4_AUDIO = frozenset({"aac", "mp3", "ac3", "eac3", "alac"})
 _FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+_MF_QUALITY = "75"
+
+
+_PROBE_TIMEOUT_S = 20
+NO_ENCODER_MESSAGE = (
+    "這台電腦的 Windows 沒有 H.264 編碼器，無法把字幕燒進影片。"
+    "請到「設定 > 系統 > 選用功能」安裝「媒體功能套件」（Windows N 或 KN 版才需要），"
+    "或執行 Windows Update 後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
+)
+
+
+class EncoderMissing(AudioError):
+    """Burn-in cannot run because this PC has no usable H.264 encoder."""
+
+
+def _h264_mf_works(ffmpeg: str) -> bool:
+    """Encodes one frame to the null device. `-encoders` lists h264_mf even where Windows has no
+    H.264 encoder, so only an encode shows whether it is there."""
+    if os.environ.get("VST_SIMULATE_NO_H264"):
+        return False
+    try:
+        probe = subprocess.run(  # noqa: S603
+            [
+                ffmpeg,
+                "-hide_banner",
+                "-v",
+                "error",
+                "-nostdin",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=black:s=128x128:r=1",
+                "-frames:v",
+                "1",
+                "-c:v",
+                "h264_mf",
+                "-rate_control",
+                "quality",
+                "-quality",
+                _MF_QUALITY,
+                "-pix_fmt",
+                "yuv420p",
+                "-f",
+                "null",
+                os.devnull,
+            ],  # fmt: skip
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=_PROBE_TIMEOUT_S,
+            creationflags=_FLAGS,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    return probe.returncode == 0
+
+
+@functools.cache
+def _video_encoder(ffmpeg: str) -> tuple[str, ...]:
+    """libx264 where this ffmpeg has it. The LGPL ffmpeg the installer ships has no x264 (it is
+    GPL), so it uses the H.264 encoder that comes with Windows, tried once before the first burn.
+    Raises EncoderMissing, which is not cached, so a fix on the PC works without a restart."""
+    try:
+        listed = subprocess.run(  # noqa: S603
+            [ffmpeg, "-hide_banner", "-encoders"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=_PROBE_TIMEOUT_S,
+            creationflags=_FLAGS,
+        ).stdout
+    except subprocess.TimeoutExpired:
+        listed = ""
+    if " libx264 " in listed:
+        return ("-c:v", "libx264", "-preset", PRESET, "-crf", str(CRF))
+    if not _h264_mf_works(ffmpeg):
+        raise EncoderMissing(NO_ENCODER_MESSAGE)
+    return ("-c:v", "h264_mf", "-rate_control", "quality", "-quality", _MF_QUALITY)
+
 
 BurnState = Literal["running", "done", "failed", "cancelled"]
 
@@ -346,8 +425,9 @@ class BurnBook:
             if _audio_codec(video) in _MP4_AUDIO
             else ["-c:a", "aac", "-b:a", "192k"]
         )
+        ffmpeg = str(find_tool("ffmpeg"))
         command = [
-            str(find_tool("ffmpeg")),
+            ffmpeg,
             "-y",
             "-nostdin",
             "-v",
@@ -367,12 +447,7 @@ class BurnBook:
             "0:a:0?",
             "-vf",
             "ass=sub.ass",
-            "-c:v",
-            "libx264",
-            "-preset",
-            PRESET,
-            "-crf",
-            str(CRF),
+            *_video_encoder(ffmpeg),
             "-pix_fmt",
             "yuv420p",
             *audio,

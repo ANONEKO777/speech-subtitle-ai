@@ -1,5 +1,7 @@
 mod folders;
+mod links;
 mod sidecar;
+mod updater;
 
 use folders::Folders;
 
@@ -156,24 +158,25 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
     explorer.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
-/// Opens an https address in the default browser. Only https, so the page cannot start a program.
+/// Opens an https address in the default browser. Only a host the license pages already link to
+/// (see `links`), so the page cannot start a program or send the person to a site of its choice.
+/// With `VST_OPEN_URL_LOG` set (the e2e drivers do), the address is appended to that file and no
+/// browser starts.
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
-    let plain = url.starts_with("https://") && !url.chars().any(|c| c.is_whitespace() || c.is_control() || c == '"' || c == '^' || c == '&');
-    if !plain {
-        return Err(format!("{url} is not an https address"));
-    }
-    std::process::Command::new("explorer").arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
+    links::open(&url, std::env::var_os("VST_OPEN_URL_LOG").map(PathBuf::from).as_deref())
 }
 
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(BackendState::default())
         .manage(Picked::default())
+        .manage(updater::Pending::default())
         .manage(Folders::new(folders::user_data()))
-        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder, open_url, pick_videos])
+        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder, open_url, pick_videos, updater::update_check, updater::update_download, updater::update_install])
         .setup(|app| {
             sidecar::start(app.handle().clone());
             Ok(())

@@ -37,6 +37,7 @@ import {
   slotAt,
 } from "./model";
 import { baseName } from "./paths";
+import { LinkedText } from "../manage/LinkedText";
 
 const STATE_LABEL: Record<ItemState, string> = {
   queued: "等待中",
@@ -330,7 +331,9 @@ function Row({ item, languages, dragging, canDrag, onOpen, onAct, onDragStart, o
       {item.error && (
         <p className="batch-error" role="alert" data-testid={`qerror-${item.id}`}>
           <TriangleAlert className="icon" aria-hidden />
-          <span>{item.error}</span>
+          <span>
+            <LinkedText text={item.error} />
+          </span>
         </p>
       )}
     </li>

@@ -1,4 +1,4 @@
-import { Cpu, FileBadge, HardDrive, Sparkles } from "lucide-react";
+import { Cpu, FileBadge, HardDrive, RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { Backend } from "../api/client";
 import { useDownloads } from "../manage/useDownloads";
@@ -7,14 +7,16 @@ import { StorageCard } from "../models-page/StorageCard";
 import { HardwareSection } from "./HardwareSection";
 import { LicensesSection } from "./LicensesSection";
 import { LlmSection } from "./LlmSection";
+import { UpdateSection } from "./UpdateSection";
 
-export type Section = "models" | "hardware" | "llm" | "licenses";
+export type Section = "models" | "hardware" | "llm" | "licenses" | "update";
 
 const SECTIONS: readonly { id: Section; label: string; icon: typeof Cpu }[] = [
   { id: "models", label: "模型與執行環境", icon: HardDrive },
   { id: "hardware", label: "硬體與效能", icon: Cpu },
   { id: "llm", label: "LLM 來源", icon: Sparkles },
   { id: "licenses", label: "第三方授權", icon: FileBadge },
+  { id: "update", label: "檢查更新", icon: RefreshCw },
 ];
 
 export function SettingsPage({ backend, initial = "models" }: { backend: Backend; initial?: Section }) {
@@ -49,6 +51,7 @@ export function SettingsPage({ backend, initial = "models" }: { backend: Backend
         {section === "hardware" && <HardwareSection backend={backend} downloads={downloads} onOpenLlm={() => setSection("llm")} />}
         {section === "llm" && <LlmSection backend={backend} />}
         {section === "licenses" && <LicensesSection backend={backend} />}
+        {section === "update" && <UpdateSection />}
       </div>
     </div>
   );
