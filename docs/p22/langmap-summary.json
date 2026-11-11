@@ -1,0 +1,57 @@
+{
+ "segments_total": 348,
+ "labels": {
+  "ja": 234,
+  "en": 106,
+  "none": 3,
+  "mixed": 5
+ },
+ "ja_seconds": 1337,
+ "en_seconds": 1284,
+ "language_switches": 183,
+ "whisper_pick_not_en_or_ja": 3,
+ "interpretation_test": {
+  "japanese_segments_tested": 124,
+  "median_word_overlap_next_english": 0.042,
+  "median_word_overlap_unrelated_english": 0.0,
+  "share_with_overlap_at_least_0.2": 0.04,
+  "share_of_baseline_at_least_0.2": 0.0
+ },
+ "methods": {
+  "per-segment auto (Whisper top pick, any language)": {
+   "segments": 340,
+   "language_decision_correct": 276,
+   "accuracy": 0.8118,
+   "english_speech_read_as_japanese": "1/106",
+   "japanese_speech_read_as_english": "60/234"
+  },
+  "per-segment restricted to en/ja (forced decodes, higher mean token probability)": {
+   "segments": 340,
+   "language_decision_correct": 256,
+   "accuracy": 0.7529,
+   "english_speech_read_as_japanese": "33/106",
+   "japanese_speech_read_as_english": "51/234"
+  },
+  "whole file -l ja": {
+   "segments": 340,
+   "language_decision_correct": 184,
+   "accuracy": 0.5412,
+   "english_speech_read_as_japanese": "41/106",
+   "japanese_speech_read_as_english": "26/234"
+  },
+  "whole file -l en": {
+   "segments": 340,
+   "language_decision_correct": 96,
+   "accuracy": 0.2824,
+   "english_speech_read_as_japanese": "0/106",
+   "japanese_speech_read_as_english": "138/234"
+  },
+  "whole file -l auto": {
+   "segments": 340,
+   "language_decision_correct": 96,
+   "accuracy": 0.2824,
+   "english_speech_read_as_japanese": "0/106",
+   "japanese_speech_read_as_english": "138/234"
+  }
+ }
+}
