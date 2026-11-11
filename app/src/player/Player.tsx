@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { openFolder, pickFolder } from "../api/backend";
 import type { Backend, LanguageInfo } from "../api/client";
+import type { SourceLang } from "../api/sourceLang";
 import { type Look, type Playback, takeStill } from "../api/library";
 import { type Loaded, useCueEditing } from "../editor/useCueEditing";
 import { exportItems, shortName } from "../export/exports";
@@ -23,6 +24,8 @@ interface Props {
   readonly backend: Backend;
   readonly projectId: string;
   readonly videoPath: string;
+  /** The language spoken in the video. */
+  readonly sourceLang: SourceLang;
   readonly settings: Settings;
   readonly onSettings: (patch: Partial<Settings>) => void;
   readonly languages: readonly LanguageInfo[];
@@ -64,7 +67,7 @@ function ownsKey(target: EventTarget | null, key: string): boolean {
 }
 
 export function Player(props: Props) {
-  const { backend, projectId, videoPath, settings, onSettings, languages, lang, onLang, loaded, notice, playback } = props;
+  const { backend, projectId, videoPath, sourceLang, settings, onSettings, languages, lang, onLang, loaded, notice, playback } = props;
   const video = useRef<HTMLVideoElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [unplayable, setUnplayable] = useState(false);
@@ -295,9 +298,9 @@ export function Player(props: Props) {
   };
   useEffect(() => () => window.clearTimeout(idleTimer.current), []);
 
-  const lines: Array<{ lang: "en" | "zh"; text: string }> = [];
-  if (cue && settings.mode !== "zh") lines.push({ lang: "en", text: cue.en });
-  if (cue && settings.mode !== "en") lines.push({ lang: "zh", text: cue.zh });
+  const lines: Array<{ side: "src" | "zh"; lang: string; text: string }> = [];
+  if (cue && settings.mode !== "zh") lines.push({ side: "src", lang: cue.lang, text: cue.src });
+  if (cue && settings.mode !== "en") lines.push({ side: "zh", lang: "zh-TW", text: cue.zh });
   if (settings.zhFirst) lines.reverse();
 
   const subtitleStyle = {
@@ -381,7 +384,7 @@ export function Player(props: Props) {
         )}
         <div className="subtitle" data-testid="subtitle" style={subtitleStyle}>
           {lines.map((line) => (
-            <p key={line.lang} data-lang={line.lang}>
+            <p key={line.side} data-lang={line.side} lang={line.lang}>
               {line.text}
             </p>
           ))}
@@ -400,7 +403,7 @@ export function Player(props: Props) {
         onLang={onLang}
         summary={summary?.text}
         summaryDegraded={summary?.degraded ?? false}
-        exports={exportItems(videoPath, lang, label)}
+        exports={exportItems(videoPath, lang, label, sourceLang)}
         actions={[
           { id: "burn-full", label: "MP4 燒入字幕（整部）", run: () => startBurn(false), disabled: burn.view?.state === "running" },
           { id: "burn-clip", label: `MP4 燒入字幕（從目前位置 ${CLIP_S} 秒）`, run: () => startBurn(true), disabled: burn.view?.state === "running" },

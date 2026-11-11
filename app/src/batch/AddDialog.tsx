@@ -2,6 +2,7 @@ import { FileVideo, Folder, FolderOpen, ListPlus, X } from "lucide-react";
 import { useState } from "react";
 import { pickFolder, pickVideos } from "../api/backend";
 import type { Backend, LanguageSet } from "../api/client";
+import { SOURCE_LANGS, SOURCE_NOTES, type SourceLang, canTarget, parseSourceLang } from "../api/sourceLang";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
 import { isExperimental } from "./lang";
 import { baseName, classifyPath } from "./paths";
@@ -10,9 +11,13 @@ interface Row extends AddEntry {
   readonly key: string;
 }
 
-export const rowsFor = (paths: readonly string[], lang: string): AddEntry[] =>
+/** The target language a source language can use: the one asked for, or the first it allows. */
+const targetFor = (source: SourceLang, lang: string, languages: LanguageSet): string =>
+  canTarget(source, lang) ? lang : (languages.languages.find((l) => canTarget(source, l.code))?.code ?? lang);
+
+export const rowsFor = (paths: readonly string[], lang: string, source: SourceLang): AddEntry[] =>
   paths.map((path) =>
-    classifyPath(path) === "folder" ? { path, lang, folder: { recursive: true } } : { path, lang },
+    classifyPath(path) === "folder" ? { path, lang, source, folder: { recursive: true } } : { path, lang, source },
   );
 
 interface Props {
@@ -23,16 +28,35 @@ interface Props {
   readonly onAdded: (count: number) => void;
 }
 
-function LangSelect({ value, set, onChange, label, testid }: {
+function SourceSelect({ value, onChange, label, testid }: {
+  value: SourceLang;
+  onChange: (code: SourceLang) => void;
+  label: string;
+  testid: string;
+}) {
+  return (
+    <select className="lang-select" data-testid={testid} aria-label={label} value={value} onChange={(e) => onChange(parseSourceLang(e.target.value))}>
+      {SOURCE_LANGS.map((l) => (
+        <option key={l.code} value={l.code}>
+          {l.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function LangSelect({ value, set, onChange, label, testid, source }: {
   value: string;
   set: LanguageSet;
+  /** The language spoken in the video, which may allow only some targets. */
+  source: SourceLang;
   onChange: (code: string) => void;
   label: string;
   testid: string;
 }) {
   return (
     <select className="lang-select" data-testid={testid} aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-      {set.languages.map((l) => (
+      {set.languages.filter((l) => canTarget(source, l.code)).map((l) => (
         <option key={l.code} value={l.code}>
           {l.nativeName}
           {l.quality === "experimental" ? "（實驗性）" : ""}
@@ -44,6 +68,7 @@ function LangSelect({ value, set, onChange, label, testid }: {
 
 export function AddDialog({ backend, languages, initial, onClose, onAdded }: Props) {
   const [defaultLang, setDefaultLang] = useState(languages.defaultCode);
+  const [defaultSource, setDefaultSource] = useState<SourceLang>(initial[0]?.source ?? "en");
   const [seq, setSeq] = useState(initial.length);
   const [rows, setRows] = useState<readonly Row[]>(() => initial.map((e, i) => ({ ...e, key: `r${i}` })));
   const [busy, setBusy] = useState(false);
@@ -61,11 +86,11 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   const patch = (key: string, p: Partial<AddEntry>) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...p } : x)));
 
   async function addFiles() {
-    append((await pickVideos()).map((path) => ({ path, lang: defaultLang })));
+    append((await pickVideos()).map((path) => ({ path, lang: defaultLang, source: defaultSource })));
   }
   async function addFolder() {
     const path = await pickFolder();
-    if (path) append([{ path, lang: defaultLang, folder: { recursive: true } }]);
+    if (path) append([{ path, lang: defaultLang, source: defaultSource, folder: { recursive: true } }]);
   }
   async function submit() {
     setBusy(true);
@@ -108,18 +133,35 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
           </button>
           <span className="spacer" />
           <label className="add-lang">
-            <span>預設語言</span>
-            <LangSelect value={defaultLang} set={languages} onChange={setDefaultLang} label="預設語言" testid="add-default-lang" />
+            <span>影片語言</span>
+            <SourceSelect
+              value={defaultSource}
+              onChange={(source) => {
+                setDefaultSource(source);
+                setDefaultLang((l) => targetFor(source, l, languages));
+              }}
+              label="預設影片語言"
+              testid="add-default-source"
+            />
+          </label>
+          <label className="add-lang">
+            <span>字幕語言</span>
+            <LangSelect value={defaultLang} set={languages} source={defaultSource} onChange={setDefaultLang} label="預設字幕語言" testid="add-default-lang" />
           </label>
           <button
             type="button"
             data-testid="add-apply-all"
             disabled={rows.length === 0}
-            onClick={() => setRows((r) => r.map((x) => ({ ...x, lang: defaultLang })))}
+            onClick={() => setRows((r) => r.map((x) => ({ ...x, lang: defaultLang, source: defaultSource })))}
           >
             套用到全部
           </button>
         </div>
+        {(defaultSource !== "en" || rows.some((r) => r.source !== "en")) && (
+          <p className="add-note" data-testid="add-source-note">
+            {SOURCE_NOTES.ja}
+          </p>
+        )}
         {rows.length === 0 ? (
           <p className="add-empty">選擇影片檔或資料夾，也可以直接把多個檔案拖到視窗上。</p>
         ) : (
@@ -141,7 +183,13 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                     含子資料夾
                   </label>
                 )}
-                <LangSelect value={row.lang} set={languages} onChange={(lang) => patch(row.key, { lang })} label="目標語言" testid="add-row-lang" />
+                <SourceSelect
+                  value={row.source}
+                  onChange={(source) => patch(row.key, { source, lang: targetFor(source, row.lang, languages) })}
+                  label="影片語言"
+                  testid="add-row-source"
+                />
+                <LangSelect value={row.lang} set={languages} source={row.source} onChange={(lang) => patch(row.key, { lang })} label="字幕語言" testid="add-row-lang" />
                 {isExperimental(row.lang, languages.languages) && <span className="chip-exp">實驗性</span>}
                 <button
                   type="button"

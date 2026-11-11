@@ -60,7 +60,9 @@ const Row = memo(function Row({ cue, n, active, mode, edited, editor, onSeek, on
             {edited && <Pencil className="edited-mark" aria-label="已手動修改" data-testid="edited-mark" />}
           </span>
           <span className="text">
-            {mode !== "zh" && <span className="en">{cue.en}</span>}
+            {mode !== "zh" && <span className="src" lang={cue.lang}>
+              {cue.src}
+            </span>}
             {mode !== "en" && <span className="zh">{cue.zh}</span>}
           </span>
         </button>

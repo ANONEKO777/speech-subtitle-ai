@@ -16,7 +16,7 @@ import {
   stepSpeed,
 } from "./transport";
 
-const cue = (id: number, startMs: number, endMs: number): Cue => ({ id, startMs, endMs, en: "e", zh: "z" });
+const cue = (id: number, startMs: number, endMs: number): Cue => ({ id, startMs, endMs, src: "e", lang: "en", zh: "z" });
 const cues = [cue(1, 1000, 2000), cue(2, 3000, 4000), cue(3, 6000, 7000)];
 
 describe("stepSpeed", () => {

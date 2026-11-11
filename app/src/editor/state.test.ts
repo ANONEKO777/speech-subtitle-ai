@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Cue } from "../player/cues";
 import { edited, fresh, undoPlan, undone } from "./state";
 
-const cue = (id: number, zh: string): Cue => ({ id, startMs: id * 1000, endMs: id * 1000 + 900, en: `en${id}`, zh });
+const cue = (id: number, zh: string): Cue => ({ id, startMs: id * 1000, endMs: id * 1000 + 900, src: `en${id}`, lang: "en", zh });
 const start = fresh([cue(1, "一"), cue(2, "二")], [2]);
 
 describe("edit state", () => {

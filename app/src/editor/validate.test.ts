@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Cue } from "../player/cues";
 import { type Draft, formatClock, parseClock, validateDraft } from "./validate";
 
-const cue = (id: number, startMs: number, endMs: number, zh = `字${id}`): Cue => ({ id, startMs, endMs, en: `en${id}`, zh });
+const cue = (id: number, startMs: number, endMs: number, zh = `字${id}`): Cue => ({ id, startMs, endMs, src: `en${id}`, lang: "en", zh });
 const cues = [cue(1, 0, 2000), cue(2, 2000, 4000), cue(3, 4500, 6000)];
 const draft = (index: number, patch: Partial<Draft>): Draft => {
   const c = cues[index] as Cue;

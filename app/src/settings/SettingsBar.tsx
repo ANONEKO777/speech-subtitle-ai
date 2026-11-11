@@ -4,7 +4,7 @@ import type { SubtitleMode } from "../player/cues";
 import type { Settings } from "./settings";
 
 const modes = (langName: string): ReadonlyArray<readonly [SubtitleMode, string]> => [
-  ["en", "英文"],
+  ["en", "原文"],
   ["zh", langName],
   ["both", "雙語"],
 ];
@@ -99,7 +99,7 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
           shown={settings.lineHeight.toFixed(1)}
           onChange={(lineHeight) => set({ lineHeight })}
         />
-        <label className="control toggle" title={`雙語時${langName}放在英文上方`}>
+        <label className="control toggle" title={`雙語時${langName}放在原文上方`}>
           <ArrowUpDown className="icon" aria-hidden />
           <span className="collapsible">{langName}在上</span>
           <input

@@ -7,6 +7,7 @@ import {
   formatEta,
   moveId,
   overall,
+  parseItem,
   parseSnapshot,
   reduceBatch,
   secondsLeft,
@@ -34,6 +35,7 @@ const item = (id: string, over: Partial<BatchItem> = {}): BatchItem => ({
   videoPath: `${id}.mp4`,
   projectId: id,
   lang: "zh-TW",
+  sourceLang: "en",
   state: "queued",
   position: 0,
   step: null,
@@ -190,5 +192,13 @@ describe("row actions", () => {
     expect(actionsFor("failed")).toContain("retry");
     expect(actionsFor("cancelled")).toContain("retry");
     expect(actionsFor("done")).toEqual(["remove"]);
+  });
+});
+
+describe("the video language of a queue item", () => {
+  it("reads source_lang and says English when the backend sends none", () => {
+    expect(parseItem(raw("a", { source_lang: "ja" }))?.sourceLang).toBe("ja");
+    expect(parseItem(raw("b"))?.sourceLang).toBe("en");
+    expect(parseItem(raw("c", { source_lang: "xx" }))?.sourceLang).toBe("en");
   });
 });

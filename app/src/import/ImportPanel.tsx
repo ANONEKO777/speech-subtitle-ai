@@ -1,13 +1,16 @@
 import { ArrowDownToLine, FileVideo, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { pickVideo } from "../api/backend";
+import { SOURCE_LANGS, type SourceLang, parseSourceLang } from "../api/sourceLang";
 
 interface Props {
   readonly busy: boolean;
+  readonly sourceLang: SourceLang;
+  readonly onSourceLang: (code: SourceLang) => void;
   readonly onImport: (videoPath: string) => void;
 }
 
-export function ImportPanel({ busy, onImport }: Props) {
+export function ImportPanel({ busy, sourceLang, onSourceLang, onImport }: Props) {
   const [path, setPath] = useState("");
 
   async function browse() {
@@ -34,6 +37,22 @@ export function ImportPanel({ busy, onImport }: Props) {
           spellCheck={false}
         />
       </div>
+      <label className="source-pick" title="影片裡的人說的語言">
+        <span className="collapsible">影片語言</span>
+        <select
+          data-testid="source-lang"
+          aria-label="影片語言"
+          value={sourceLang}
+          disabled={busy}
+          onChange={(e) => onSourceLang(parseSourceLang(e.target.value))}
+        >
+          {SOURCE_LANGS.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <button type="button" title="選擇檔案" onClick={() => void browse()} disabled={busy}>
         <FolderOpen className="icon" aria-hidden />
         <span className="collapsible">選擇檔案</span>
