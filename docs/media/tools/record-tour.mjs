@@ -40,6 +40,19 @@ await click("mode-both");
 await sleep(1500);
 await video$(() => document.querySelector("video").pause());
 
+mark("player");
+await p.mouse.move(600, 300);
+await p.click('[data-testid="ctl-speed"]');
+await sleep(1500);
+await p.keyboard.press("Escape");
+await p.mouse.move(600, 320);
+await p.focus("body");
+await p.keyboard.press("?");
+await p.waitForSelector('[data-testid="help"]');
+await sleep(2600);
+await p.click('[data-testid="help-close"]');
+await sleep(500);
+
 mark("edit");
 await p.dblclick(`[data-testid="cue-${editCue}"] button`);
 await p.waitForSelector('[data-testid="edit-text"]');

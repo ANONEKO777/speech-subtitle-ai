@@ -6,7 +6,7 @@ import { fixWindow, lib, sleep, snap, startCast } from "./capture.mjs";
 
 const [projects, video, out] = process.argv.slice(2);
 if (!projects || !video || !out) throw new Error("usage: record-import.mjs <projects> <video> <out>");
-const app = await lib.launch({ projects, shots: out, port: 9441 });
+const app = await lib.launch({ projects, shots: out, port: Number(process.env.VST_CDP_PORT ?? 9441) });
 const p = app.page;
 console.log("viewport", await fixWindow(p));
 const shot = (name) => snap(p, join(out, name));

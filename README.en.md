@@ -49,11 +49,43 @@ The summary tab shows a one-line gist, chapters with timestamps, key points and 
 
 <img src="docs/media/summary.png" alt="The summary tab with a chapter card and key points" width="760">
 
+### A real player with a library
+
+Every finished talk sits in a library with a thumbnail, its languages and a resume bar. The play queue steps from one talk to the next, and a talk reopens where you stopped. The controls sit over the bottom of the picture, so the subtitles stay below it. You get play, previous and next talk, previous and next line, volume, a seek bar, speed from 0.5 to 2, an A-B loop, a subtitle offset, a screenshot of the current frame, picture in picture and fullscreen. Frame step and the other keys are on the keyboard, and `?` lists them all. Drop a video on the window to import it.
+
+The offset does not rewrite the cues. It is applied when you play and when you export, so you can take it back.
+
+<img src="docs/media/library.png" alt="The library tab with thumbnails, language chips and the play queue" width="760">
+
+<img src="docs/media/shortcuts.png" alt="The keyboard shortcut list opened over the player" width="760">
+
 ### Export
 
-Export SRT (English, translation or bilingual), ASS, VTT, and the summary as Markdown. Subtitle files are plain UTF-8 and open in any player.
+Export SRT (English, translation or bilingual), ASS, VTT, and the summary as Markdown. Subtitle files are plain UTF-8 and open in any player. You can also burn the subtitles into an MP4, for the whole video or for 30 seconds from where you are.
 
-<img src="docs/media/export-menu.png" alt="The export menu listing SRT, ASS, VTT and the summary" width="760">
+<img src="docs/media/export-menu.png" alt="The export menu listing SRT, ASS, VTT, the summary and the burned-in video" width="760">
+
+### Batch queue
+
+Queue many videos and let them run, overnight if you like. Add several files at once, pick a folder, or drop files on the window, and choose a target language for each video. The panel shows each video's state, its current step and an estimate of the time left. Pause the queue or one video, cancel, retry, remove, or drag a row to reorder. A finished row opens in the player. When the queue ends you get a notice in the window and a Windows notification. The app can also put the PC to sleep or shut it down, but that is off by default and needs your confirmation first.
+
+| Adding videos, one language each | A queue at work |
+| --- | --- |
+| <img src="docs/media/queue-add.png" alt="The add dialog with five clips and a language for each" width="440"> | <img src="docs/media/queue-running.png" alt="The queue with one video done, one nearly done and three waiting" width="440"> |
+
+### Settings and first-run setup
+
+The first time you start the app with no speech or translation model installed, a setup wizard detects your GPU, VRAM, driver, RAM and free disk. It recommends one of three profiles (24 GB GPU, 8 GB GPU, CPU only), lists every download with its size and license, downloads with progress and a cancel button, and ends with a self-test. If the GPU test fails, it falls back to the CPU and says why.
+
+The gear button opens the settings page. There you can verify, repair, re-download or delete each model and runtime, check for updates, move the models folder, switch the profile at any time, choose the language model (built in, Ollama, or a cloud model after you agree that the text leaves your PC), and read the license of every component.
+
+| First-run wizard | Downloading, with progress |
+| --- | --- |
+| <img src="docs/media/wizard.png" alt="The first-run wizard with the detected RTX 4090 and three profiles" width="440"> | <img src="docs/media/wizard-downloading.png" alt="The wizard downloading models, with overall and per-file progress" width="440"> |
+
+| Models and runtimes | Hardware and profile |
+| --- | --- |
+| <img src="docs/media/settings-models.png" alt="The settings page listing installed models and runtimes" width="440"> | <img src="docs/media/settings-hardware.png" alt="The hardware page with the detected GPU and the three profiles" width="440"> |
 
 ### Thirteen target languages
 
@@ -71,17 +103,15 @@ Traditional Chinese (Taiwan) is the default. A project can hold several language
 
 ![demo](docs/media/demo.mp4)
 
-[Download the video](docs/media/demo.mp4). About a minute: import, progress, playback, switching modes, an edit, a summary chapter jump, export, and a second language. The progress part is sped up.
+[Download the video](docs/media/demo.mp4). About a minute and a half: import, progress, playback, switching modes, the shortcut list, an edit, a summary chapter jump, a second language and export, then the batch queue, the settings page and the first-run wizard. The progress and the queue run are sped up.
 
 ## In development
 
-These are not in the app yet. Some have a backend and no screen.
+These are not in the app yet.
 
-- **Batch queue.** Queue many videos and run them overnight, with ETA and an optional sleep or shutdown at the end. The backend and its API exist. There is no screen for it yet.
-- **Settings and model management.** Delete, re-download or update models and runtimes, switch between GPU and CPU profiles, choose a local or cloud language model, and self-test the GPU. The backend and its API exist. There is no settings screen yet.
-- **First-run setup and an installer.** There is no setup wizard and no installer. See [Install and run from source](#install-and-run-from-source).
-- **More player features.** The player is the system's built-in video control plus the subtitle area and the cue list. Richer playback controls are still being built.
-- **Choosing the target language in the window.** The window imports into Traditional Chinese (Taiwan). Other languages are chosen from the command line today.
+- **An installer.** There is no installer and no download, so you build the app from source. See [Install and run from source](#install-and-run-from-source).
+- **Choosing the target language for a single import.** The import box imports into Traditional Chinese (Taiwan). Other languages are chosen per video in the batch queue, or with `--lang` on the command line.
+- **Deleting a saved cloud key.** The window can save a key and replace it, but not remove it.
 
 ## System requirements
 
@@ -108,28 +138,19 @@ npm --prefix app ci                       # frontend dependencies
 cd app; npx tauri build --no-bundle; cd ..   # builds app/src-tauri/target/release/video-subtitle-translator.exe
 ```
 
-The speech and language models and their runtimes are not part of the repository, and the window has no setup screen yet. Download them for your hardware through the download API, which runs as a small local server:
+The speech and language models and their runtimes are not part of the repository. Start `app/src-tauri/target/release/video-subtitle-translator.exe`. When no model is installed, the setup wizard offers to download the ones your hardware needs from their public hosts. That takes a network connection and, for the default profile, about 12 GB of disk. You can skip it and download later from the settings page.
 
-```powershell
-uv run python scripts/serve_downloads.py --port 8765    # prints READY port=8765 data=...
-# in a second terminal:
-curl.exe -X POST http://127.0.0.1:8765/api/profile/download
-curl.exe http://127.0.0.1:8765/api/downloads             # progress of each file
-```
-
-Files land in `%LOCALAPPDATA%\video-subtitle-translator` (set `VST_USER_DATA` to use another folder). `GET /api/profile` on the same server shows what is missing. The server has no authentication, so run it only while you download.
-
-Then start `app/src-tauri/target/release/video-subtitle-translator.exe`. The window starts the Python backend from `.venv` and stops it when you close the window.
+Files land in `%LOCALAPPDATA%\video-subtitle-translator` (set `VST_USER_DATA` to use another folder). The window starts the Python backend from `.venv` and stops it when you close the window.
 
 ## Usage
 
 ### In the window
 
-1. Paste the full path of a video, or press the pick-file button.
-2. Press the import button. The progress screen shows the current step.
-3. When it finishes, the player opens. A video that was processed before opens straight in the player.
-4. Use the mode switch for English, translation or both. Change the size, color and line spacing of the subtitles in the toolbar.
-5. Double-click a cue to edit it. Open the summary tab and click a chapter time to jump. Use the export menu to save files.
+1. Paste the full path of a video or press "Choose file", then press "Import". The progress screen shows the current step. To process many videos, press "Add", or drop several files on the window, and give each its own language.
+2. When it finishes you land in the player. A talk you processed before opens straight in the player, where you left off, and the library tab lists the others.
+3. Use the mode switch for English only, translation only or both. The size, color and line spacing of the subtitles are in the toolbar.
+4. Double-click a subtitle to edit it. Open the summary tab and click a chapter time to jump, and save files from the export menu. Press `?` for every keyboard shortcut.
+5. The gear button opens the settings page, for models, the hardware profile and the language model.
 
 The window plays what the system's WebView2 can decode. H.264 with AAC in MP4 is the safe choice. If a video does not play, the window says so and asks for an H.264/AAC MP4 copy.
 
@@ -145,7 +166,7 @@ This writes `talk.vst\` next to the video with `en.srt`, `ja.srt`, `bilingual.en
 
 Speech recognition and translation run on your machine by default. The video, the audio and the transcript never leave it, and the local API listens on `127.0.0.1` only, behind a per-run token.
 
-A cloud language model is optional and off by default. If you choose one, the backend refuses to save the setting until you give explicit consent, because the text of your video would then leave your computer. The API key is encrypted with Windows DPAPI, can only be written and never read back through the API, and is kept out of settings files and logs. This choice is available through the backend API; the settings screen for it is in development.
+A cloud language model is optional and off by default. If you choose it, the backend refuses to save the setting until you explicitly agree, because the text of your video leaves your PC. The API key is encrypted with Windows DPAPI, can be written but not read back through the API, and does not appear in config files or logs. You choose it on the settings page, where the window asks for your agreement first.
 
 Downloading the models and runtimes is the only time the app needs the network, apart from the optional cloud model.
 

@@ -1,6 +1,6 @@
 // Turns the two screencasts into docs/media/demo.mp4 and poster.png with amber-on-graphite captions.
 // node docs/media/tools/build-demo.mjs <shots-dir> <work-dir> <out-dir> <hero.png>
-// <shots-dir> holds cast-import/, marks-import.json, and tour/ (cast-tour/, marks-tour.json).
+// <shots-dir> holds import/, tour/, queue/ and setup/ (each with its cast-*/ and marks-*.json).
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,16 +20,26 @@ const BAR = 80;
 const H = 720 + BAR;
 const ffmpeg = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
 
-const marksImport = JSON.parse(readFileSync(join(shots, "marks-import.json"), "utf8"));
-const marksTour = JSON.parse(readFileSync(join(shots, "tour", "marks-tour.json"), "utf8"));
+const read = (...p) => JSON.parse(readFileSync(join(shots, ...p), "utf8"));
+const marksImport = read("import", "marks-import.json");
+const marksTour = read("tour", "marks-tour.json");
+const marksQueue = read("queue", "marks-queue.json");
+const marksSettings = read("setup", "marks-settings.json");
+const marksWizard = read("setup", "marks-wizard.json");
 
 function castToVideo(dir, file) {
   ffmpeg("-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", `fps=${FPS},scale=${W}:720:flags=lanczos,format=yuv420p`, "-c:v", "libx264", "-crf", "14", "-preset", "fast", file);
 }
-const importVideo = join(work, "import.mp4");
-const tourVideo = join(work, "tour.mp4");
-castToVideo(join(shots, "cast-import"), importVideo);
-castToVideo(join(shots, "tour", "cast-tour"), tourVideo);
+const source = (name, ...dir) => {
+  const file = join(work, `${name}.mp4`);
+  castToVideo(join(shots, ...dir), file);
+  return file;
+};
+const importVideo = source("import", "import", "cast-import");
+const tourVideo = source("tour", "tour", "cast-tour");
+const queueVideo = source("queue", "queue", "cast-queue");
+const settingsVideo = source("settings", "setup", "cast-settings");
+const wizardVideo = source("wizard", "setup", "cast-wizard");
 
 const caption = (text) =>
   `pad=${W}:${H}:0:0:color=${GRAPHITE},drawbox=x=0:y=720:w=${W}:h=1:color=0x2a2a30@1:t=fill,` +
@@ -59,15 +69,21 @@ card("title", 3, "Video Subtitle Translator", "English talks in, well-timed subt
 piece("import-a", importVideo, 0.8, i.click + 0.9, "Pick a talk video");
 piece("import-b", importVideo, i.click + 0.9, i.player - 0.4, "Speech, translation and summary run locally (sped up)", speed);
 const t = marksTour;
-const tour = [
-  ["play", "modes", "Bilingual subtitles under the video"],
-  ["modes", "edit", "English only, Chinese only, or both"],
-  ["edit", "summary", "Fix a line. Your edit survives a re-translation"],
-  ["summary", "lang", "Key points and chapters, one click to jump"],
-  ["lang", "export", "The same talk in Japanese"],
-  ["export", "end", "Export SRT, ASS, VTT and the summary"],
-];
-tour.forEach(([a, b, text]) => piece(`tour-${a}`, tourVideo, t[a], t[b], text));
+piece("tour-play", tourVideo, t.play, t.play + 5.5, "Bilingual subtitles under the video");
+piece("tour-modes", tourVideo, t.modes, t.player, "English only, Chinese only, or both");
+piece("tour-player", tourVideo, t.player, t.edit, "Speed, loops, screenshots and a key for everything");
+piece("tour-edit", tourVideo, t.edit, t.summary, "Fix a line. Your edit survives a re-translation");
+piece("tour-summary", tourVideo, t.summary, t.lang, "Key points and chapters, one click to jump");
+piece("tour-lang", tourVideo, t.lang, t.export, "The same talk in Japanese");
+piece("tour-export", tourVideo, t.export, t.end, "Export SRT, ASS, VTT and the summary");
+const q = marksQueue;
+piece("queue-add", queueVideo, 1.2, q.add, "Queue many videos, one language for each");
+piece("queue-run", queueVideo, q.add, q.done, "They run one after another, overnight if you like (sped up)", 16);
+piece("settings-models", settingsVideo, 2, marksSettings.hardware, "Manage models and runtimes in Settings");
+piece("settings-hardware", settingsVideo, marksSettings.hardware + 0.7, marksSettings.llm, "Switch between GPU and CPU any time");
+const w = marksWizard;
+piece("wizard-choose", wizardVideo, w.choose, w.download - 0.4, "First run. It detects your GPU and picks a profile");
+piece("wizard-download", wizardVideo, w.download + 1.5, w.download + 10.5, "Models download with progress and can resume", 1.8);
 card("outro", 3.5, "Local first. Open source.", "AGPL-3.0-or-later", "Demo video from the NASA State of NASA 2023 address, NASA media");
 
 const list = join(work, "concat.txt");
