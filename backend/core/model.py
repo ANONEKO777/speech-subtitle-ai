@@ -44,9 +44,13 @@ def _check_text(name: str, text: str) -> None:
 
 @dataclass(frozen=True, slots=True)
 class Word:
+    """One recognised word. `lang` is the language it was recognised as, set only for a talk in two
+    languages; None means the one language of the project."""
+
     text: str
     start_ms: int
     end_ms: int
+    lang: str | None = None
 
     def __post_init__(self) -> None:
         _check_span(self.start_ms, self.end_ms)

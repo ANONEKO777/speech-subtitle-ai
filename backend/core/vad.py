@@ -196,3 +196,34 @@ def plan_chunks(probs: Probs, total_ms: int, params: VadParams | None = None) ->
 
 def split(wav: Path, model: Path, params: VadParams | None = None) -> list[Chunk]:
     return plan_chunks(frame_probs(wav, model), wav_duration_ms(wav), params)
+
+
+PAUSE_CUT_MS = 300
+PAUSE_PAD_MS = 150
+PAUSE_MIN_MS = 800
+PAUSE_MAX_MS = 28_000
+_PAUSE_SPLIT_FROM_MS = 10_000
+
+
+def plan_pauses(probs: Probs, total_ms: int, min_silence_ms: int = PAUSE_CUT_MS) -> list[Chunk]:
+    """One chunk for each stretch of speech between pauses of `min_silence_ms`, padded by 150 ms.
+
+    A talk that changes language does so at a pause more often than not, and a chunk that holds
+    one language is recognised in it. A stretch under 800 ms with its padding (speech under 500 ms:
+    a cough, a lone sound) is dropped. A stretch over 28 s is cut at its quietest frame."""
+    out: list[Chunk] = []
+    for begin, end in speech_runs(probs, VadParams(min_silence_ms=min_silence_ms)):
+        start, stop = max(0, begin - PAUSE_PAD_MS), min(total_ms, end + PAUSE_PAD_MS)
+        while stop - start > PAUSE_MAX_MS:
+            first = (start + _PAUSE_SPLIT_FROM_MS) // FRAME_MS
+            last = (start + PAUSE_MAX_MS) // FRAME_MS
+            cut = (first + int(np.argmin(probs[first : last + 1]))) * FRAME_MS
+            out.append(Chunk(start, cut))
+            start = cut
+        if stop - start >= PAUSE_MIN_MS:
+            out.append(Chunk(start, stop))
+    return out
+
+
+def split_at_pauses(wav: Path, model: Path) -> list[Chunk]:
+    return plan_pauses(frame_probs(wav, model), wav_duration_ms(wav))

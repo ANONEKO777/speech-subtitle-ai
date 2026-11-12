@@ -33,9 +33,13 @@ class CrispAsrEngine(SubprocessEngine):
         *,
         device: Device = Device.CUDA,
         timeout_s: float | None = None,
+        strict: bool = True,
     ) -> None:
         super().__init__(binary, model, device=device, timeout_s=timeout_s)
         self.aligner = aligner
+        self.strict = strict
+        """`--strict-pipeline` exits with code 31 when the text and the audio disagree on the
+        language, as Japanese text over English audio does, so a talk in two languages turns it off."""
 
     def required_files(self) -> dict[str, Path]:
         return {**super().required_files(), "aligner": self.aligner}
@@ -44,7 +48,10 @@ class CrispAsrEngine(SubprocessEngine):
         self, inputs: Sequence[Path], output_bases: Sequence[Path], language: str
     ) -> list[str]:
         command = [str(self.binary), "--backend", "qwen3", "-m", str(self.model)]
-        command += ["-l", language, "-am", str(self.aligner), "--strict-pipeline", "-ojf"]
+        command += ["-l", language, "-am", str(self.aligner)]
+        if self.strict:
+            command.append("--strict-pipeline")
+        command.append("-ojf")
         if self.device is Device.CPU:
             command += ["--gpu-backend", "cpu"]
         for out in output_bases:

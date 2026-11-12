@@ -57,7 +57,10 @@ def parse_chunks(text: str) -> list[Chunk]:
 
 def render_words(engine_id: str, words: Sequence[Word]) -> str:
     """`segments.json`: the ASR result as one time-ordered word list and the engine id."""
-    rows = [{"text": w.text, "start_ms": w.start_ms, "end_ms": w.end_ms} for w in words]
+    rows = [
+        {"text": w.text, "start_ms": w.start_ms, "end_ms": w.end_ms, **({"lang": w.lang} if w.lang else {})}
+        for w in words
+    ]
     doc = {"schema_version": ARTIFACT_SCHEMA_VERSION, "engine": engine_id, "words": rows}
     return json.dumps(doc, ensure_ascii=False, indent=1) + "\n"
 
@@ -70,6 +73,7 @@ def parse_words(text: str) -> list[Word]:
                 str(row.get("text")),
                 _int(row, "start_ms", "segments.json"),
                 _int(row, "end_ms", "segments.json"),
+                str(row["lang"]) if "lang" in row else None,
             )
             for row in rows
         ]

@@ -115,9 +115,9 @@ def merge_words(segments: Sequence[Segment]) -> list[Word]:
             if kept and _GLUED.fullmatch(text):
                 prev = kept[-1]
                 joined = end if start - prev.end_ms <= _GLUE_GAP_MS else prev.end_ms
-                kept[-1] = Word(prev.text + text, prev.start_ms, max(prev.end_ms, joined))
+                kept[-1] = Word(prev.text + text, prev.start_ms, max(prev.end_ms, joined), prev.lang)
             else:
-                kept.append(Word(text, start, end))
+                kept.append(Word(text, start, end, word.lang))
     if clamped:
         log.warning("moved %d word start(s) forward to keep time order", clamped)
     return kept
