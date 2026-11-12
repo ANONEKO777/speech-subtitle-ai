@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--engine",
         default="whispercpp",
         help=f"speech recognition engine: {', '.join(ENGINE_ALIASES)} or a full engine id "
-        "(default: whispercpp, whisper.cpp large-v3-turbo)",
+        "(default: whispercpp, whisper.cpp large-v3-turbo). A talk in ja+en always uses crispasr",
     )
     parser.add_argument(
         "--llm",
