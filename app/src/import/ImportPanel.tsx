@@ -1,30 +1,40 @@
 import { ArrowDownToLine, FileVideo, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { pickVideo } from "../api/backend";
-import { SOURCE_LANGS, type SourceLang, parseSourceLang } from "../api/sourceLang";
+import { SOURCE_LANGS, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
 
 interface PickProps {
   readonly busy: boolean;
   readonly sourceLang: SourceLang;
+  readonly unavailable: Unavailable;
   readonly onSourceLang: (code: SourceLang) => void;
 }
 
-export function SourcePick({ busy, sourceLang, onSourceLang }: PickProps) {
+/** The choices of a video language. One this machine cannot process is shown but cannot be picked, and its option says why. */
+export function SourceOptions({ unavailable }: { readonly unavailable: Unavailable }) {
+  return SOURCE_LANGS.map((l) => {
+    const why = unavailable[l.code];
+    return (
+      <option key={l.code} value={l.code} disabled={why !== undefined} title={why}>
+        {why === undefined ? l.label : `${l.label}（${why}）`}
+      </option>
+    );
+  });
+}
+
+export function SourcePick({ busy, sourceLang, unavailable, onSourceLang }: PickProps) {
   return (
     <label className="source-pick" title="影片裡的人說的語言">
       <span className="collapsible">影片語言</span>
       <select
         data-testid="source-lang"
+        data-source={sourceLang}
         aria-label="影片語言"
         value={sourceLang}
         disabled={busy}
         onChange={(e) => onSourceLang(parseSourceLang(e.target.value))}
       >
-        {SOURCE_LANGS.map((l) => (
-          <option key={l.code} value={l.code}>
-            {l.label}
-          </option>
-        ))}
+        <SourceOptions unavailable={unavailable} />
       </select>
     </label>
   );
@@ -35,7 +45,7 @@ interface Props extends PickProps {
   readonly onImport: (videoPath: string) => void;
 }
 
-export function ImportPanel({ busy, sourceLang, onSourceLang, withPicker, onImport }: Props) {
+export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withPicker, onImport }: Props) {
   const [path, setPath] = useState("");
 
   async function browse() {
@@ -62,7 +72,7 @@ export function ImportPanel({ busy, sourceLang, onSourceLang, withPicker, onImpo
           spellCheck={false}
         />
       </div>
-      {withPicker && <SourcePick busy={busy} sourceLang={sourceLang} onSourceLang={onSourceLang} />}
+      {withPicker && <SourcePick busy={busy} sourceLang={sourceLang} unavailable={unavailable} onSourceLang={onSourceLang} />}
       <button type="button" title="選擇檔案" onClick={() => void browse()} disabled={busy}>
         <FolderOpen className="icon" aria-hidden />
         <span className="collapsible">選擇檔案</span>

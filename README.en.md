@@ -15,7 +15,7 @@
 
 </div>
 
-Pick an English or Japanese talk video that has no subtitles. The app recognizes the speech, cuts it into subtitle lines, translates them, writes a summary with chapters, and plays the video with the subtitles under it. Every step runs on your machine. On an RTX 4090 a 38-minute talk takes about 5 to 6 minutes.
+Pick an English, Japanese, or mixed Japanese and English talk video that has no subtitles. The app recognizes the speech, cuts it into subtitle lines, translates them, writes a summary with chapters, and plays the video with the subtitles under it. Every step runs on your machine. On an RTX 4090 a 38-minute talk takes about 5 to 6 minutes.
 
 ## Features
 
@@ -93,14 +93,19 @@ Traditional Chinese (Taiwan) is the default. A project can hold several language
 
 <img src="docs/media/languages.png" alt="The same talk shown in Japanese, with the language selector in the cue column" width="760">
 
-### English and Japanese videos
+### English, Japanese and mixed videos
 
 At import, the "video language" menu says what language the people in the video speak: English (the default) or Japanese. A Japanese video is recognized as Japanese, cut into subtitle lines at Japanese punctuation and meaning units, and translated into Traditional Chinese (Taiwan). The bilingual mode of the player shows the Japanese original and the Traditional Chinese together under the video. The subtitle offset, editing, export and burned-in subtitles work the same as for English. Each item in the batch queue can have its own video language, and the library and the queue put a small tag on a Japanese video. The original is the source of the translation and the summary, so the list does not let you edit it, only the translation and the times. Burning Japanese subtitles needs one of the fonts Yu Gothic, Meiryo or MS Gothic on the PC, and the window says so when there is none.
+
+The third choice, "Japanese and English mixed", is for a talk where a Japanese speaker is followed by an English speaker. The app recognizes both languages in the one video, and every subtitle line keeps its own language. The cue list and the editor put a small 日 or 英 next to each original line, and only in a mixed video. In the bilingual mode of the player, each original line is shown in its own language, above the Traditional Chinese line. Editing never merges two neighbouring lines of different languages. The library and the queue put the tag 日英混合 on these videos. The original subtitle file of a mixed video is exported as `<video>.ja-en.srt`, and burning subtitles into it needs the same Japanese font as a Japanese video. Picking the mixed choice shows a note that only Traditional Chinese subtitles come out and that it needs the 24 GB model set. The choice needs the Qwen3 speech engine, which only the 24 GB profile installs, and a GPU. When this PC cannot run it, the choice is greyed out and its text says why, for example that the models are not installed or that the app is set to CPU mode. If a job starts anyway, the window shows the refusal message as it is. The app does not fall back to another engine.
 
 <!-- PLACEHOLDER(P24a): add a Japanese example screenshot here. It needs Japanese material that may be shown publicly, and none is available yet. -->
 > Japanese example screenshot: to come. The example must use Japanese material that may be shown publicly, and there is none yet, so there is no picture here.
 
-**Limits:** A Japanese video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. A video that mixes Japanese and English (Japanese plus English) is not supported yet either.
+<!-- PLACEHOLDER(P24b): add a mixed Japanese and English example screenshot here. The talks used in testing are private, and no public material exists yet. -->
+> Mixed-language example screenshot: to come. The talks used in testing are private and cannot be shown, and there is no public material yet, so there is no picture here.
+
+**Limits:** A Japanese or mixed video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. The mixed choice runs only with the 24 GB profile and a GPU. You pick the video language yourself at import. The app does not detect it, and it cannot choose between audio tracks.
 
 ### More
 
@@ -119,8 +124,9 @@ At import, the "video language" menu says what language the people in the video 
 These are not in the app yet.
 
 - **An installer.** There is no installer and no download, so you build the app from source. See [Install and run from source](#install-and-run-from-source).
-- **Other target languages for a Japanese video.** A Japanese video can only be translated into Traditional Chinese (Taiwan) for now.
-- **Videos that mix Japanese and English.** A video where Japanese and English take turns is not supported yet. At import you pick English or Japanese, one of the two.
+- **Other target languages for a Japanese or mixed video.** These videos can only be translated into Traditional Chinese (Taiwan) for now.
+- **Automatic detection of the video language.** At import you pick English, Japanese or mixed. The app does not guess, and it cannot choose between audio tracks.
+- **Other source languages.** Only English, Japanese and the mix of the two are supported.
 - **Choosing the target language for a single import.** The import box imports into Traditional Chinese (Taiwan). Other languages are chosen per video in the batch queue, or with `--lang` on the command line.
 - **Deleting a saved cloud key.** The window can save a key and replace it, but not remove it.
 
@@ -157,7 +163,7 @@ Files land in `%LOCALAPPDATA%\video-subtitle-translator` (set `VST_USER_DATA` to
 
 ### In the window
 
-1. Paste the full path of a video or press "Choose file", pick English or Japanese in the "video language" menu beside it, then press "Import". The progress screen shows the current step. To process many videos, press "Add", or drop several files on the window, and give each its own language.
+1. Paste the full path of a video or press "Choose file", pick English, Japanese or the mixed choice in the "video language" menu beside it, then press "Import". The progress screen shows the current step. To process many videos, press "Add", or drop several files on the window, and give each its own language.
 2. When it finishes you land in the player. A talk you processed before opens straight in the player, where you left off, and the library tab lists the others.
 3. Use the mode switch for the original only, the translation only or both. The size, color and line spacing of the subtitles are in the toolbar.
 4. Double-click a subtitle to edit it. Open the summary tab and click a chapter time to jump, and save files from the export menu. Press `?` for every keyboard shortcut.
@@ -180,6 +186,14 @@ uv run python -m backend.cli talk.mp4 --source-lang ja
 ```
 
 In the project folder the Japanese original is `ja.srt` and the translation is `zh-TW.srt`.
+
+For a talk that mixes Japanese and English use `--source-lang ja+en`. It also translates into Traditional Chinese only, and it needs the 24 GB profile:
+
+```powershell
+uv run python -m backend.cli talk.mp4 --source-lang ja+en
+```
+
+In the project folder the original-language subtitles are `src.srt` and the translation is `zh-TW.srt`.
 
 ## Privacy
 
@@ -212,7 +226,8 @@ The video language (what the people in the video speak) decides which subtitle l
 | Video language | Subtitle languages | Note |
 | --- | --- | --- |
 | English | The thirteen above | Default |
-| Japanese | Traditional Chinese (Taiwan) | Other languages and Japanese plus English are not supported yet |
+| Japanese | Traditional Chinese (Taiwan) | Other languages are not supported yet |
+| Japanese and English mixed | Traditional Chinese (Taiwan) | Only with the 24 GB profile and a GPU. Other languages are not supported yet |
 
 Quality differs by language. On the 38-minute talk, a back-translation check scored Spanish, Simplified Chinese and German on a par with Traditional Chinese, Japanese a little below, and Korean clearly lower, with wrong names and meanings in some lines. Korean and Thai are marked experimental for that reason. Of the thirteen, six were run end to end on a real talk (zh-TW, zh-CN, ja, ko, es, de). The others are covered by tests only.
 

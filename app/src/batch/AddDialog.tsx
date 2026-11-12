@@ -2,7 +2,8 @@ import { FileVideo, Folder, FolderOpen, ListPlus, X } from "lucide-react";
 import { useState } from "react";
 import { pickFolder, pickVideos } from "../api/backend";
 import type { Backend, LanguageSet } from "../api/client";
-import { SOURCE_LANGS, SOURCE_NOTES, type SourceLang, canTarget, parseSourceLang } from "../api/sourceLang";
+import { SOURCE_NOTES, type SourceLang, type Unavailable, canTarget, parseSourceLang } from "../api/sourceLang";
+import { SourceOptions } from "../import/ImportPanel";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
 import { isExperimental } from "./lang";
 import { baseName, classifyPath } from "./paths";
@@ -28,19 +29,16 @@ interface Props {
   readonly onAdded: (count: number) => void;
 }
 
-function SourceSelect({ value, onChange, label, testid }: {
+function SourceSelect({ value, unavailable, onChange, label, testid }: {
   value: SourceLang;
+  unavailable: Unavailable;
   onChange: (code: SourceLang) => void;
   label: string;
   testid: string;
 }) {
   return (
     <select className="lang-select" data-testid={testid} aria-label={label} value={value} onChange={(e) => onChange(parseSourceLang(e.target.value))}>
-      {SOURCE_LANGS.map((l) => (
-        <option key={l.code} value={l.code}>
-          {l.label}
-        </option>
-      ))}
+      <SourceOptions unavailable={unavailable} />
     </select>
   );
 }
@@ -74,6 +72,8 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<readonly Skipped[]>([]);
+
+  const notes = [...new Set([defaultSource, ...rows.map((r) => r.source)])].flatMap((code) => SOURCE_NOTES[code] ?? []);
 
   const append = (entries: readonly AddEntry[]) => {
     setRows((r) => {
@@ -136,6 +136,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
             <span>影片語言</span>
             <SourceSelect
               value={defaultSource}
+              unavailable={languages.unavailable}
               onChange={(source) => {
                 setDefaultSource(source);
                 setDefaultLang((l) => targetFor(source, l, languages));
@@ -157,9 +158,9 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
             套用到全部
           </button>
         </div>
-        {(defaultSource !== "en" || rows.some((r) => r.source !== "en")) && (
+        {notes.length > 0 && (
           <p className="add-note" data-testid="add-source-note">
-            {SOURCE_NOTES.ja}
+            {notes.join(" ")}
           </p>
         )}
         {rows.length === 0 ? (
@@ -185,6 +186,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                 )}
                 <SourceSelect
                   value={row.source}
+                  unavailable={languages.unavailable}
                   onChange={(source) => patch(row.key, { source, lang: targetFor(source, row.lang, languages) })}
                   label="影片語言"
                   testid="add-row-source"

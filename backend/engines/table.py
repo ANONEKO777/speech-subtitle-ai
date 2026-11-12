@@ -101,6 +101,16 @@ def engine_paths(
     )
 
 
+def missing_files(
+    engine_id: str, storage: Storage, *, registry: Registry | None = None
+) -> list[Path]:
+    """The engine's program, model and aligner that are not on disk, in that order."""
+    found = engine_paths(engine_id, storage, registry=registry)
+    return [
+        path for path in (found.binary, found.model, found.aligner) if path and not path.is_file()
+    ]
+
+
 def spec_for(engine_id: str) -> EngineSpec:
     try:
         return ENGINES[engine_id]

@@ -1,6 +1,7 @@
-// P24a live check of the video language (英文, 日文) in the real window, driven over CDP only.
+// P24a and P24b live check of the video language (英文, 日文, 日文與英文混合) in the real window, driven over CDP only.
 // node e2e/p24a-lanes.mjs <phase> <projects-dir> <clips-dir> <shots-dir> [port]
 // phase: ja | en | queue | nofont | layout (the toolbar and the file box, on a finished English project plus one short Japanese and one short English import)
+//   P24b: mixed (a 10 minute Japanese and English talk end to end) | mixed-queue | unavailable (a user data folder without the Qwen3 files)
 // Env: VST_USER_DATA (a disposable copy), WEBVIEW2_USER_DATA_FOLDER (a profile folder of its own),
 // P24A_MEDIA (where review PNGs and the recording go), P24A_EXPORTS (where exports land).
 // Every action goes through the DevTools protocol. The clipboard, the Windows notification, the
@@ -23,6 +24,7 @@ mkdirSync(shots, { recursive: true });
 const FFMPEG = process.env.P24A_FFMPEG ?? "C:/Program Files/ffmpeg-n6.1-latest-win64-gpl-shared-6.1/bin/ffmpeg.exe";
 const FFPROBE = FFMPEG.replace(/ffmpeg\.exe$/, "ffprobe.exe");
 
+const reviewPrefix = process.env.P24A_REVIEW_PREFIX ?? "P24a-review";
 const results = [];
 const note = (lane, ok, detail) => {
   results.push({ lane, ok, detail });
@@ -119,7 +121,7 @@ const caption = (text) =>
 const review = async (name, text) => {
   await caption("");
   await sleep(150);
-  const file = join(media, `${process.env.P24A_REVIEW_PREFIX ?? "P24a-review"}-${name}.png`);
+  const file = join(media, `${reviewPrefix}-${name}.png`);
   await p.screenshot({ path: file });
   await caption(text ?? "");
   return file;
@@ -165,6 +167,8 @@ const fileBoxChecks = async (label, min) => {
 };
 const PLAYER_BOX = { 1280: 130, 960: 66 };
 const HOME_BOX = { 1280: 780, 960: 590 };
+const HOME_BOX_MIXED = { 1280: 700, 960: 520 };
+const MIXED_NOTE = "日英混合影片目前只輸出繁體中文字幕，需要 24 GB 的模型組。";
 
 const folderOf = (needle) => {
   for (const d of readdirSync(projects)) {
@@ -173,10 +177,16 @@ const folderOf = (needle) => {
   }
   return null;
 };
-const diskCues = (folder) => JSON.parse(readFileSync(join(folder, "subs.zh-TW.json"), "utf8")).cues;
+// English cues keep the first release layout on disk (text under `en`, no `lang`), so both layouts are read as `src` and `lang`.
+const diskCues = (folder) => JSON.parse(readFileSync(join(folder, "subs.zh-TW.json"), "utf8")).cues.map((c) => ({ ...c, lang: c.lang ?? "en", src: c.src ?? c.en }));
 const row = (n) => tid(`cue-${n}`);
 const zhOf = (n) => p.textContent(`${row(n)} .zh`);
-const srcOf = (n) => p.textContent(`${row(n)} .src`);
+const srcOf = (n) =>
+  p.evaluate((sel) => {
+    const e = document.querySelector(sel).cloneNode(true);
+    e.querySelectorAll(".lang-mark").forEach((m) => m.remove());
+    return e.textContent;
+  }, `${row(n)} .src`);
 const startOf = async (n) => Number(await p.getAttribute(row(n), "data-start"));
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
 const noOverlap = (cues) => cues.every((c, i) => c.end_ms > c.start_ms && (i === 0 || c.start_ms >= cues[i - 1].end_ms));
@@ -231,7 +241,7 @@ async function watchProgress(prefix) {
   return { seconds: (Date.now() - started) / 1000, steps: [...seen] };
 }
 
-async function playerChecks(prefix, { japanese }) {
+async function playerChecks(prefix, { japanese, mixed = false }) {
   const cueCount = await p.locator(`${tid("cue-list")} li`).count();
   await p.evaluate(() => document.querySelector("video").pause());
   const idx = Math.min(cueCount, 30);
@@ -249,10 +259,16 @@ async function playerChecks(prefix, { japanese }) {
   note(`${prefix} subtitle under the video`, geo.sTop >= geo.vBottom - 1, `video ends ${geo.vBottom.toFixed(0)}, subtitle starts ${geo.sTop.toFixed(0)}`);
   await p.click(tid("mode-both"));
   await sleep(300);
-  const both = await p.evaluate(() => [...document.querySelectorAll('[data-testid="subtitle"] p')].map((e) => ({ side: e.dataset.lang, lang: e.lang, text: e.textContent })));
+  const both = await p.evaluate(() => [...document.querySelectorAll('[data-testid="subtitle"] p')].map((e) => ({ side: e.dataset.lang, lang: e.lang, cueLang: e.dataset.cueLang ?? null, text: e.textContent })));
+  const srcLine = (l) => {
+    if (l.side !== "src") return false;
+    const isJa = hasKana(l.text) || /[\u4e00-\u9fff]/.test(l.text);
+    if (mixed) return (l.lang === "ja" || l.lang === "en") && l.cueLang === l.lang && (l.lang === "ja" ? isJa : /[A-Za-z]/.test(l.text));
+    return l.lang === (japanese ? "ja" : "en") && (japanese ? isJa : /[A-Za-z]/.test(l.text));
+  };
   note(
     `${prefix} bilingual shows original and Chinese`,
-    both.length === 2 && both.some((l) => l.side === "src" && l.lang === (japanese ? "ja" : "en") && (japanese ? hasKana(l.text) || /[\u4e00-\u9fff]/.test(l.text) : /[A-Za-z]/.test(l.text))) && both.some((l) => l.side === "zh" && /[\u4e00-\u9fff]/.test(l.text) && !hasKana(l.text)),
+    both.length === 2 && both.some(srcLine) && both.some((l) => l.side === "zh" && /[\u4e00-\u9fff]/.test(l.text) && !hasKana(l.text)),
     JSON.stringify(both),
   );
   const labels = await p.evaluate(() => ["en", "zh", "both"].map((m) => document.querySelector(`[data-testid="mode-${m}"]`).textContent));
@@ -298,7 +314,8 @@ async function offsetCheck(prefix, folder) {
 }
 
 async function editChecks(prefix, folder, { japanese }) {
-  const n = 5;
+  let n = 5;
+  while ((await startOf(n + 1)) - (await startOf(n)) > 6000) n += 1;
   const EDIT = japanese ? "人工校對：這是我改的一句。" : "人工校對：這一句是我改的。";
   const srcBefore = await srcOf(n);
   await beginEdit(n);
@@ -307,7 +324,9 @@ async function editChecks(prefix, folder, { japanese }) {
   await p.press(`${row(n)} ${tid("edit-text")}`, "Enter");
   await p.waitForSelector(`${row(n)}[data-editing="false"]`);
   const saved = diskCues(folder).find((c) => c.zh === EDIT);
-  note(`${prefix} edit saved`, (await zhOf(n)) === EDIT && !!saved && (await p.locator(`${row(n)} ${tid("edited-mark")}`).count()) === 1 && saved[japanese ? "src" : "en"] === srcBefore, `row shows the text with the edited mark; disk cue ${saved?.id}; source line kept "${srcBefore}"`);
+  const shownZh = await zhOf(n);
+  const marksN = await p.locator(`${row(n)} ${tid("edited-mark")}`).count();
+  note(`${prefix} edit saved`, shownZh === EDIT && !!saved && marksN === 1 && saved.src === srcBefore, `row ${n} shows "${shownZh}" with ${marksN} edited mark(s); disk cue ${saved?.id}; source line kept "${srcBefore}", disk source "${saved?.src}"`);
   await review(`${prefix}-edit-saved`, `${prefix}: 已儲存，旁邊有鉛筆記號`);
 
   const next = await startOf(n + 1);
@@ -391,13 +410,15 @@ async function exportChecks(prefix, folder, stem, source, EDIT) {
     files[id] = readdirSync(exportDir).find((f) => statSync(join(exportDir, f)).mtimeMs >= since) ?? null;
   }
   const text = (id) => (files[id] ? readFileSync(join(exportDir, files[id]), "utf8") : "");
-  const ja = source === "ja";
+  const ja = source !== "en";
+  const fileTag = source.replace("+", "-");
   note(`${prefix} export menu says 原文`, labels.some((l) => l.includes("SRT 原文")) && !labels.some((l) => l.includes("英文")), labels.join(" | "));
-  note(`${prefix} export file names`, files["srt-en"] === `${stem}.${source}.srt` || files["srt-en"]?.startsWith(`${stem}.${source}`), JSON.stringify(files));
+  note(`${prefix} export file names`, files["srt-en"] === `${stem}.${fileTag}.srt`, JSON.stringify(files));
   note(`${prefix} source srt`, ja ? hasKana(text("srt-en")) && !text("srt-en").includes(EDIT) : /[A-Za-z]{4}/.test(text("srt-en")) && !text("srt-en").includes(EDIT), `${text("srt-en").length} chars`);
   note(`${prefix} zh srt has the edit and no kana`, text("srt-zh").includes(EDIT) && !hasKana(text("srt-zh")), `${text("srt-zh").length} chars`);
   note(`${prefix} bilingual srt has both`, text("srt-bilingual").includes(EDIT) && (ja ? hasKana(text("srt-bilingual")) : /[A-Za-z]{4}/.test(text("srt-bilingual"))), `${text("srt-bilingual").length} chars`);
   note(`${prefix} ass and vtt`, text("ass").includes("[Events]") && text("ass").includes(EDIT.slice(0, 6)) && text("vtt").startsWith("WEBVTT") && text("vtt").includes(EDIT), `ass ${text("ass").length}, vtt ${text("vtt").length} chars`);
+  if (source === "ja+en") note(`${prefix} mixed source srt holds both languages`, hasKana(text("srt-en")) && /[A-Za-z]{4}/.test(text("srt-en")) && /[A-Za-z]{4}/.test(text("srt-bilingual")), `kana ${hasKana(text("srt-en"))}, Latin words ${/[A-Za-z]{4}/.test(text("srt-en"))}`);
   note(`${prefix} summary`, text("summary") === readFileSync(join(folder, "summary.md"), "utf8"), "summary.md equals the project's");
   return files;
 }
@@ -421,7 +442,7 @@ async function shotAndBurn(prefix, folder, { japanese }) {
   const pngs = readdirSync(shotsDir).filter((f) => f.endsWith(".png") && !had.has(f));
   const plain = pngs.find((f) => !f.includes("_sub"));
   const burned = pngs.find((f) => f.includes("_sub"));
-  if (burned) copyFileSync(join(shotsDir, burned), join(media, `P24a-review-${prefix}-screenshot-burned-file.png`));
+  if (burned) copyFileSync(join(shotsDir, burned), join(media, `${reviewPrefix}-${prefix}-screenshot-burned-file.png`));
   const clip = await p.evaluate(() => window.__clip);
   note(`${prefix} screenshot plain and burned`, !!plain && !!burned && toast1.includes("截圖已存到") && clip !== "none", `S saved ${plain}, Shift+S saved ${burned}, clipboard stub got ${clip}`);
   await p.click(tid("toast-action"));
@@ -446,7 +467,7 @@ async function shotAndBurn(prefix, folder, { japanese }) {
   let ok = !!out && existsSync(out);
   if (ok) {
     const dur = Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], { encoding: "utf8" }).trim());
-    const frameOut = join(media, `P24a-review-${prefix}-burned-frame.png`);
+    const frameOut = join(media, `${reviewPrefix}-${prefix}-burned-frame.png`);
     const inWindow = diskCues(folder).filter((c) => c.start_ms / 1000 >= t + 1 && c.end_ms / 1000 <= t + 29);
     const cue = inWindow[1] ?? inWindow[0];
     const at = cue ? ((cue.start_ms + cue.end_ms) / 2000 - t).toFixed(2) : "6";
@@ -466,8 +487,9 @@ async function libraryChecks(prefix, expect) {
   const chips = await p.evaluate(() => [...document.querySelectorAll('[data-testid="library-list"] li')].map((li) => ({ title: li.querySelector(".lib-title")?.textContent, tags: [...li.querySelectorAll(".chip")].map((c) => c.textContent) })));
   for (const [needle, tag] of expect) {
     const item = chips.find((c) => c.title?.includes(needle));
-    const has = item?.tags.includes("日文影片") ?? false;
-    note(`${prefix} library tag ${tag ? "present" : "absent"} for ${needle}`, item !== undefined && has === tag, JSON.stringify(item));
+    const want = tag === true ? "日文影片" : tag;
+    const has = want ? (item?.tags.includes(want) ?? false) : !(item?.tags ?? []).some((t) => /影片|混合/.test(t));
+    note(`${prefix} library tag ${want ? `${want} present` : "absent"} for ${needle}`, item !== undefined && has, JSON.stringify(item));
   }
   const show = () => p.evaluate(() => document.querySelector('[data-testid="library-list"]').scrollIntoView({ block: "center" }));
   await show();
@@ -484,7 +506,7 @@ async function homeChecks() {
   await step("首頁：影片語言預設是英文", 900);
   const first = await p.inputValue(tid("source-lang"));
   const opts = await p.locator(`${tid("source-lang")} option`).allInnerTexts();
-  note("video language picker", first === "en" && opts.join() === "英文,日文", `default ${first}, options ${opts.join()}`);
+  note("video language picker", first === "en" && opts.length === 3 && opts[0] === "英文" && opts[1] === "日文" && opts[2].startsWith("日文與英文混合"), `default ${first}, options ${opts.join()}`);
   note("no note for English", (await p.locator(tid("source-note")).count()) === 0, "no note under the toolbar");
   await oneRow("home, English");
   await fileBoxChecks("home, English", HOME_BOX);
@@ -498,7 +520,82 @@ async function homeChecks() {
   await resize(960, 600);
   await review("home-japanese-960", "首頁：選日文，960 px 寬");
   await resize(1280, 720);
+  const mixedOption = p.locator(`${tid("source-lang")} option[value="ja+en"]`);
+  if (!(await mixedOption.evaluate((e) => e.disabled))) {
+    await p.selectOption(tid("source-lang"), "ja+en");
+    await sleep(300);
+    const mixedNote = await p.textContent(tid("source-note"));
+    note("note for the mixed choice", mixedNote === MIXED_NOTE, `"${mixedNote}"`);
+    await oneRow("home, mixed note");
+    await fileBoxChecks("home, mixed", HOME_BOX_MIXED);
+    await review("home-mixed-1280", "首頁：選日文與英文混合，顯示一行說明");
+    await resize(960, 600);
+    await review("home-mixed-960", "首頁：選日文與英文混合，960 px 寬");
+    await resize(1280, 720);
+  }
   await p.selectOption(tid("source-lang"), "en");
+}
+
+async function mixedChecks(label, folder, { quiet = false } = {}) {
+  await p.click(tid("mode-both"));
+  await p.evaluate(() => document.querySelector('[data-testid="cue-list"]').scrollTo(0, 0));
+  await sleep(300);
+  const disk = diskCues(folder);
+  const rows = await p.evaluate(() =>
+    [...document.querySelectorAll('[data-testid="cue-list"] > li')].map((li) => {
+      const src = li.querySelector(".src");
+      const mark = li.querySelector('[data-testid="lang-mark"]');
+      const clone = src?.cloneNode(true);
+      clone?.querySelectorAll(".lang-mark").forEach((m) => m.remove());
+      return { lang: src?.lang ?? null, cueLang: src?.dataset.cueLang ?? null, mark: mark?.textContent ?? null, markLang: mark?.dataset.cueLang ?? null, text: clone?.textContent ?? "" };
+    }),
+  );
+  const mapMark = { ja: "日", en: "英" };
+  const agrees = (r, i) => r.lang === disk[i].lang && r.cueLang === disk[i].lang && r.markLang === disk[i].lang && r.mark === mapMark[disk[i].lang] && r.text === disk[i].src;
+  const same = rows.length === disk.length && rows.every(agrees);
+  const firstBad = rows.findIndex((r, i) => !agrees(r, i));
+  const ja = disk.filter((c) => c.lang === "ja").length;
+  const en = disk.filter((c) => c.lang === "en").length;
+  const wrongScript = rows.flatMap((r, i) => ((r.lang === "ja" ? hasKana(r.text) || /[一-鿿]/.test(r.text) : /[A-Za-z]/.test(r.text)) ? [] : [`row ${i + 1} ${r.lang} ${JSON.stringify(r.text)}`]));
+  const scriptOk = wrongScript.length <= rows.length * 0.02;
+  note(`${label}: each cue row carries its own language mark`, same && scriptOk && ja > 10 && en > 10, `${rows.length} rows against ${disk.length} on disk; ${ja} Japanese (日) and ${en} English (英); lang attribute, data-cue-lang, mark and text equal the file for every row; rows whose text is not in the script of their language (ASR output, not the window): ${wrongScript.join(" | ") || "none"}${same ? "" : `; first mismatch row ${firstBad + 1}: ${JSON.stringify(rows[firstBad])} against ${JSON.stringify(disk[firstBad])}`}`);
+  let flips = 0;
+  for (let i = 1; i < disk.length; i++) if (disk[i].lang !== disk[i - 1].lang) flips += 1;
+  note(`${label}: neighbours of different languages stay separate cues`, flips > 5 && rows.length === disk.length, `${flips} language changes between neighbouring cues, one row each (${rows.length} rows)`);
+  if (quiet) return;
+  await review("mixed-cue-marks", "mixed: 清單每條字幕有日或英記號，原文用該條的語言");
+  for (const mode of ["en", "zh", "both"]) {
+    await p.click(tid(`mode-${mode}`));
+    await sleep(250);
+    const marks = await p.locator(tid("lang-mark")).count();
+    note(`${label}: marks in mode ${mode}`, mode === "zh" ? marks === 0 : marks === disk.length, `${marks} marks`);
+  }
+  const jaIdx = disk.findIndex((c) => c.lang === "ja");
+  const enIdx = disk.findIndex((c) => c.lang === "en");
+  for (const [lang, idx] of [["ja", jaIdx], ["en", enIdx]]) {
+    const n = idx + 1;
+    await p.click(`${row(n)} button`);
+    await sleep(700);
+    await p.evaluate(() => document.querySelector("video").pause());
+    const line = await p.evaluate(() => {
+      const e = document.querySelector('[data-testid="subtitle"] p[data-lang="src"]');
+      return e ? { lang: e.lang, cueLang: e.dataset.cueLang, text: e.textContent, font: getComputedStyle(e).fontFamily } : null;
+    });
+    note(`${label}: the player line of a ${lang} cue follows that cue`, line !== null && line.lang === lang && line.cueLang === lang && line.text === disk[idx].src, JSON.stringify(line));
+    await review(`mixed-player-${lang}-cue`, `mixed: ${lang === "ja" ? "日文" : "英文"}字幕，原文行是${lang === "ja" ? "日文" : "英文"}`);
+  }
+  for (const lang of ["ja", "en"]) {
+    const n = disk.findIndex((c) => c.lang === lang) + 1;
+    await beginEdit(n);
+    const editorSrc = await p.evaluate((sel) => {
+      const e = document.querySelector(sel);
+      return { lang: e.lang, cueLang: e.dataset.cueLang, mark: e.querySelector(".lang-mark")?.textContent ?? null };
+    }, `${row(n)} ${tid("edit-source")}`);
+    note(`${label}: the editor's source line of a ${lang} cue`, editorSrc.lang === lang && editorSrc.cueLang === lang && editorSrc.mark === mapMark[lang], JSON.stringify(editorSrc));
+    if (lang === "en") await review("mixed-editor-en", "mixed: 編輯英文字幕，原文行有英記號");
+    await p.press(`${row(n)} ${tid("edit-text")}`, "Escape");
+    await sleep(250);
+  }
 }
 
 async function finish() {
@@ -632,9 +729,131 @@ try {
     note("open the Japanese item from the queue", hasKana(await srcOf(2)) || /[\u4e00-\u9fff]/.test(await srcOf(2)), `cue 2 "${(await srcOf(2)).slice(0, 30)}"`);
     await review("queue-open-ja", "佇列：開啟日文項目，播放器顯示原文與繁體中文");
     await libraryChecks("queue", [["queue-ja-60s", true], ["queue-en-45s", false]]);
+  } else if (phase === "mixed") {
+    const video = join(clips, "kirby-5-15.mp4");
+    await homeChecks();
+    await step("匯入混合語言影片：影片語言選日文與英文混合", 600);
+    await p.selectOption(tid("source-lang"), "ja+en");
+    await p.fill(tid("video-path"), video);
+    await review("mixed-import-form", "匯入：影片語言 日文與英文混合，路徑已貼上");
+    const resumed = folderOf("kirby-5-15") !== null;
+    await importVideo(video, "ja+en");
+    const prog = resumed ? { seconds: 0, steps: ["already processed in an earlier run of this phase"] } : await watchProgress("mixed");
+    const body = jobBodies.at(-1);
+    if (!resumed) note("job body carries source_lang ja+en", body !== undefined && JSON.parse(body).source_lang === "ja+en", `POST /jobs body ${body}`);
+    const folder = folderOf("kirby-5-15");
+    const proj = JSON.parse(readFileSync(join(folder, "project.json"), "utf8"));
+    note("mixed project processed", proj.source_lang === "ja+en" && existsSync(join(folder, "src.srt")) && existsSync(join(folder, "subs.src.json")) && existsSync(join(folder, "subs.zh-TW.json")), `${prog.seconds.toFixed(0)} s, steps seen ${prog.steps.join(" / ")}; project.json source_lang ${proj.source_lang}; files ${readdirSync(folder).filter((f) => /srt|json|md/.test(f)).join(" ")}`);
+    await p.waitForSelector(tid("cue-list"));
+    const { cueCount } = await playerChecks("mixed", { japanese: true, mixed: true });
+    await mixedChecks("mixed", folder);
+    await offsetCheck("mixed", folder);
+    const EDIT = await editChecks("mixed", folder, { japanese: true });
+    await mixedChecks("mixed after edits", folder, { quiet: true });
+    await p.click(tid("tab-summary"));
+    await p.waitForSelector(tid("summary"));
+    await review("mixed-summary", "mixed: 重點摘要（繁體中文）");
+    await p.click(tid("tab-cues"));
+    await exportChecks("mixed", folder, "kirby-5-15", "ja+en", EDIT);
+    await shotAndBurn("mixed", folder, { japanese: true });
+    await libraryChecks("mixed", [["kirby-5-15", "日英混合"], ["Agent", false]]);
+    note("mixed cue count", cueCount > 100, `${cueCount} cues`);
+  } else if (phase === "mixed-restart") {
+    const video = join(clips, "kirby-5-15.mp4");
+    const folder = folderOf("kirby-5-15");
+    await importVideo(video, "en");
+    await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
+    const status = await p.textContent(tid("side-status"));
+    note("a finished mixed project plays as it is, with a note", status.includes("先前以日文與英文混合處理"), `status "${status}"`);
+    const editedRows = await p.evaluate(() => [...document.querySelectorAll('[data-testid="cue-list"] > li')].flatMap((li, i) => (li.querySelector(".zh")?.textContent.includes("這是我改的一句") && li.querySelector('[data-testid="edited-mark"]') ? [i + 1] : [])));
+    note("edit survived the restart", editedRows.length === 1, `the edited sentence is on row ${editedRows.join()} with its pencil mark`);
+    note("marks and source language kept", JSON.parse(readFileSync(join(folder, "project.json"), "utf8")).source_lang === "ja+en" && (await p.locator(tid("lang-mark")).count()) > 50, "project.json source_lang ja+en, the list has marks");
+    await review("mixed-restart-note", "重新開啟：先前以日文與英文混合處理，已直接播放，修改仍在");
+  } else if (phase === "mixed-queue") {
+    const A = join(clips, "queue-mixed-90s.mp4");
+    const B = join(clips, "queue-en-45s.mp4");
+    const emit = (event, payload) => p.evaluate(([e, pl]) => window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: e, payload: pl }), [event, payload]);
+    await step("批次佇列：一個混合語言、一個英文", 700);
+    await emit("tauri://drag-enter", { paths: [], position: { x: 10, y: 10 } });
+    await emit("tauri://drag-drop", { paths: [A, B], position: { x: 10, y: 10 } });
+    await p.waitForSelector(tid("add-dialog"));
+    await p.locator(tid("add-row-source")).nth(0).selectOption("ja+en");
+    const sources = await p.locator(tid("add-row-source")).evaluateAll((els) => els.map((e) => e.value));
+    const targets = await p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => [...e.options].map((o) => o.value)));
+    const noteText = await p.textContent(tid("add-source-note"));
+    const optionTexts = await p.locator(`${tid("add-row-source")} >> nth=0`).evaluate((e) => [...e.options].map((o) => o.textContent));
+    note("add dialog offers the mixed choice per item", sources.join() === "ja+en,en" && targets[0].join() === "zh-TW" && targets[1].length > 3 && noteText.includes("24 GB") && optionTexts.length === 3, `sources ${sources.join()}; row 1 targets ${targets[0].join()}; row 2 has ${targets[1].length}; note "${noteText}"; options ${optionTexts.join()}`);
+    await review("queue-add-dialog-mixed", "佇列：加入對話框，一項選日文與英文混合");
+    const sent = [];
+    p.on("request", (r) => { if (r.method() === "POST" && r.url().endsWith("/api/queue/items")) sent.push(r.postData()); });
+    await p.click(tid("add-submit"));
+    await p.waitForSelector(tid("add-dialog"), { state: "detached" });
+    await until("2 rows", async () => (await p.locator("li.batch-row").count()) === 2, 20000);
+    const items = JSON.parse(sent.at(-1)).items;
+    note("queue body carries source_lang ja+en", items.find((i) => i.path.includes("queue-mixed")).source_lang === "ja+en" && items.find((i) => i.path.includes("queue-en")).source_lang === "en", sent.at(-1));
+    await review("queue-running-mixed-1280", "佇列：混合語言與英文各一項處理中");
+    const tags = await p.evaluate(() => [...document.querySelectorAll("li.batch-row")].map((li) => ({ name: li.querySelector(".batch-name b")?.textContent, src: li.querySelector(".chip-src")?.textContent ?? null })));
+    note("queue tags", tags.find((t) => t.name.includes("queue-mixed"))?.src === "日英混合" && tags.find((t) => t.name.includes("queue-en"))?.src === null, JSON.stringify(tags));
+    await resize(960, 600);
+    await review("queue-running-mixed-960", "佇列 960 px");
+    await resize(1280, 720);
+    await oneRow("queue, mixed");
+    await until("both done", async () => (await p.evaluate(() => [...document.querySelectorAll("li.batch-row")].map((li) => li.dataset.state))).every((s) => s === "done"), 20 * 60 * 1000, 1500);
+    await review("queue-done-mixed", "佇列：兩項都完成");
+    const mFolder = folderOf("queue-mixed-90s");
+    const eFolder = folderOf("queue-en-45s");
+    note("queue projects by language", JSON.parse(readFileSync(join(mFolder, "project.json"), "utf8")).source_lang === "ja+en" && existsSync(join(mFolder, "src.srt")) && existsSync(join(eFolder, "en.srt")), "mixed project has source_lang ja+en and src.srt; english project has en.srt");
+    const cues = diskCues(mFolder);
+    const langs = new Set(cues.map((c) => c.lang));
+    note("queue mixed output", cues.length > 10 && [...langs].every((l) => l === "ja" || l === "en") && cues.every((c) => !hasKana(c.zh)), `${cues.length} cues, languages ${[...langs].join()}, no kana in the Chinese`);
+    const open = p.locator(tid("qopen-" + (await p.evaluate(() => [...document.querySelectorAll("li.batch-row")].find((li) => li.querySelector(".batch-name b")?.textContent.includes("queue-mixed")).dataset.rowId))));
+    await open.click();
+    await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
+    note("open the mixed item from the queue", (await p.locator(tid("lang-mark")).count()) > 5, `${await p.locator(tid("lang-mark")).count()} marks in the list`);
+    await review("queue-open-mixed", "佇列：開啟混合語言項目，清單每條字幕有語言記號");
+    await libraryChecks("queue", [["queue-mixed-90s", "日英混合"], ["queue-en-45s", false]]);
+  } else if (phase === "unavailable") {
+    await step("這台電腦沒有 Qwen3 檔案：混合語言不能選", 700);
+    const opt = p.locator(`${tid("source-lang")} option[value="ja+en"]`);
+    const text = await opt.textContent();
+    const disabled = await opt.evaluate((e) => e.disabled);
+    note("mixed choice disabled with a reason in the picker", disabled && text.includes("這台電腦沒有安裝混合語言所需的模型") && (await p.inputValue(tid("source-lang"))) === "en", `option "${text}", disabled ${disabled}`);
+    await oneRow("home, mixed unavailable");
+    await fileBoxChecks("home, mixed unavailable", HOME_BOX);
+    await review("unavailable-home", "沒有 Qwen3 檔案：混合語言選項不能選，並說明原因");
+    await p.click(tid("batch-open-add"));
+    await p.waitForSelector(tid("add-dialog"));
+    const dialogOpt = await p.locator(`${tid("add-default-source")} option[value="ja+en"]`).evaluate((e) => ({ disabled: e.disabled, text: e.textContent }));
+    note("mixed choice disabled in the add dialog", dialogOpt.disabled && dialogOpt.text.includes("這台電腦沒有安裝混合語言所需的模型"), JSON.stringify(dialogOpt));
+    await review("unavailable-add-dialog", "沒有 Qwen3 檔案：加入對話框的混合語言選項不能選");
+    await p.click(tid("add-close"));
+    // the backend refuses the job anyway when the picker is bypassed, and the window shows its text as is
+    const video = join(clips, "queue-mixed-90s.mp4");
+    await p.route("**/api/languages", async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      json.sources = json.sources.map((s) => ({ ...s, available: true, reason: null }));
+      await route.fulfill({ response: res, json });
+    });
+    await p.click(tid("settings-open"));
+    await p.waitForSelector(tid("settings-page"));
+    await p.click(tid("settings-open"));
+    await p.waitForSelector(tid("ready"));
+    await sleep(1200);
+    const bypassed = await p.locator(`${tid("source-lang")} option[value="ja+en"]`).evaluate((e) => e.disabled);
+    note("with the check faked as available the choice opens", !bypassed, "GET /api/languages answered through a route that sets available true");
+    await p.selectOption(tid("source-lang"), "ja+en");
+    await p.fill(tid("video-path"), video);
+    await p.click(tid("import"));
+    await p.waitForSelector(tid("error"), { timeout: 30000 });
+    const shown = await p.textContent(tid("error"));
+    await review("unavailable-backend-refusal", "繞過選單時，後端的拒絕訊息原文顯示");
+    note("the backend refusal is shown as is", shown.includes("Japanese and English talks need the Qwen3-ASR engine") && shown.includes("24 GB profile"), `error text "${shown.slice(0, 220)}"`);
+    await p.unroute("**/api/languages");
   } else if (phase === "nofont") {
-    const video = join(clips, "cedec-25-35.mp4");
-    await importVideo(video, "ja");
+    const mixedTalk = process.env.P24B_NOFONT === "mixed";
+    const video = join(clips, mixedTalk ? "kirby-5-15.mp4" : "cedec-25-35.mp4");
+    await importVideo(video, mixedTalk ? "ja+en" : "ja");
     await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
     await p.evaluate(() => document.querySelector("video").pause());
     await p.keyboard.press("Shift+s");
@@ -673,6 +892,11 @@ try {
     await p.selectOption(tid("source-lang"), "ja");
     await heightIs("home, Japanese note", 48, 50);
     await fileBoxChecks("home, Japanese note", HOME_BOX);
+    if (!(await p.locator(`${tid("source-lang")} option[value="ja+en"]`).evaluate((e) => e.disabled))) {
+      await p.selectOption(tid("source-lang"), "ja+en");
+      await heightIs("home, mixed note", 48, 50);
+      await fileBoxChecks("home, mixed note", HOME_BOX_MIXED);
+    }
     await p.selectOption(tid("source-lang"), "en");
 
     await importVideo(demo, "en");
@@ -719,6 +943,23 @@ try {
     const enBody = jobBodies.at(-1);
     note("English import from the player starts with source_lang en", enBody !== undefined && JSON.parse(enBody).source_lang === "en", `POST /jobs body ${enBody}`);
     await heightIs("player, English after import", 50, 52);
+    await resize(1280, 720);
+
+    await p.click(tid("home"));
+    await p.waitForSelector(tid("library-list"));
+    await p.selectOption(tid("source-lang"), "ja+en");
+    await p.fill(tid("video-path"), join(clips, "queue-mixed-90s.mp4"));
+    await p.click(tid("import"));
+    await waitPlayer();
+    const mixedBody = jobBodies.at(-1);
+    note("mixed import starts with source_lang ja+en", mixedBody !== undefined && JSON.parse(mixedBody).source_lang === "ja+en", `POST /jobs body ${mixedBody}`);
+    await heightIs("player, mixed", 50, 52);
+    const mbar = await p.evaluate(() => ({ value: document.querySelector('.source-bar [data-testid="source-lang"]')?.value ?? null, note: document.querySelector('[data-testid="source-note"]')?.textContent ?? null }));
+    note("mixed player: picker and note sit under the toolbar", mbar.value === "ja+en" && mbar.note === MIXED_NOTE && (await inHeader(tid("source-lang"))) === 0, `picker ${mbar.value}, note "${mbar.note}"`);
+    await fileBoxChecks("player, mixed", PLAYER_BOX);
+    await review("player-mixed-1280", "混合語言播放器：工具列一排，影片語言與說明在工具列下面");
+    await resize(960, 600);
+    await review("player-mixed-960", "混合語言播放器 960 px：輸入框可讀");
     await resize(1280, 720);
   } else {
     throw new Error(`unknown phase ${phase}`);

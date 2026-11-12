@@ -2,6 +2,7 @@ import { Pencil } from "lucide-react";
 import { type KeyboardEvent, memo, useEffect, useRef } from "react";
 import { CueEditor, type EditorHooks } from "../editor/CueEditor";
 import { type Cue, type SubtitleMode } from "./cues";
+import { LangMark } from "./LangMark";
 
 export function clock(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -17,13 +18,14 @@ interface RowProps {
   readonly active: boolean;
   readonly mode: SubtitleMode;
   readonly edited: boolean;
+  readonly marks: boolean;
   readonly editor: EditorHooks | null;
   readonly onSeek: (cue: Cue) => void;
   readonly onEdit: (id: number) => void;
 }
 
 /** Memoized so a cue change re-renders the two rows whose `active` flipped, not the whole list. */
-const Row = memo(function Row({ cue, n, active, mode, edited, editor, onSeek, onEdit }: RowProps) {
+const Row = memo(function Row({ cue, n, active, mode, edited, marks, editor, onSeek, onEdit }: RowProps) {
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "F2") {
       e.preventDefault();
@@ -45,7 +47,7 @@ const Row = memo(function Row({ cue, n, active, mode, edited, editor, onSeek, on
       data-start={cue.startMs}
     >
       {editor ? (
-        <CueEditor cue={cue} hooks={editor} />
+        <CueEditor cue={cue} hooks={editor} marks={marks} />
       ) : (
         <button
           ref={button}
@@ -60,9 +62,12 @@ const Row = memo(function Row({ cue, n, active, mode, edited, editor, onSeek, on
             {edited && <Pencil className="edited-mark" aria-label="已手動修改" data-testid="edited-mark" />}
           </span>
           <span className="text">
-            {mode !== "zh" && <span className="src" lang={cue.lang}>
-              {cue.src}
-            </span>}
+            {mode !== "zh" && (
+              <span className="src" lang={cue.lang} data-cue-lang={cue.lang}>
+                {marks && <LangMark lang={cue.lang} />}
+                {cue.src}
+              </span>
+            )}
             {mode !== "en" && <span className="zh">{cue.zh}</span>}
           </span>
         </button>
@@ -75,6 +80,8 @@ interface Props {
   readonly cues: readonly Cue[];
   readonly active: number;
   readonly mode: SubtitleMode;
+  /** Whether each cue shows its language, as in a mixed talk. */
+  readonly marks: boolean;
   readonly edited: ReadonlySet<number>;
   readonly editingId: number | null;
   /** Hooks for the editor of the cue being edited. */
@@ -83,7 +90,7 @@ interface Props {
   readonly onEdit: (id: number) => void;
 }
 
-export function CueList({ cues, active, mode, edited, editingId, editor, onSeek, onEdit }: Props) {
+export function CueList({ cues, active, mode, marks, edited, editingId, editor, onSeek, onEdit }: Props) {
   const list = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
@@ -105,6 +112,7 @@ export function CueList({ cues, active, mode, edited, editingId, editor, onSeek,
           n={i + 1}
           active={i === active}
           mode={mode}
+          marks={marks}
           edited={edited.has(cue.id)}
           editor={cue.id === editingId ? editor(cue) : null}
           onSeek={onSeek}
