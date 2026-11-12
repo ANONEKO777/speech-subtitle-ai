@@ -43,6 +43,7 @@ _NOT_A_PORT = _not_after(
 _NOT_A_SEARCH_PARTY = _not_after("警方|警察|地毯式")
 _CALLED = "函式|函數|方法|API|模型|工具|介面|端點|服務|子程式|外掛"
 _CALLER = "工具|函式|函數|方法|API|模型|系統|遞迴|遠端|重複|再次|多次"
+_OPTIMIZED = "過|效能|程式|演算法|查詢|編譯|記憶體|速度|延遲|成本|提示|模型|渲染|載入"
 _NOT_ADOPTION = "新|制度|流程|機制|方案|標準|文化|做法|期|階段|AI|ERP|CRM|敏捷|DevOps|門|言|語|式"
 _NOT_LED_IN = _not_after("引|誘|指|帶|領|傳")
 _WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
@@ -99,6 +100,7 @@ _TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...]
         (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動)", "搜尋"),
         (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
         (f"(?:{_after(_CALLER)})調用|調用(?={_MARK}(?:{_CALLED}))", "呼叫"),
+        (f"(?:{_after('效能|性能')})優化|優化(?=了?(?:{_OPTIMIZED}))", "最佳化"),
         ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
         (f"{_NOT_LED_IN}導入(?!{_NOT_ADOPTION})", "匯入"),
         ("倉庫", _repository),
