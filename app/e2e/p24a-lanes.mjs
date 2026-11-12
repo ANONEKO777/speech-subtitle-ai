@@ -177,7 +177,8 @@ const folderOf = (needle) => {
   }
   return null;
 };
-const diskCues = (folder) => JSON.parse(readFileSync(join(folder, "subs.zh-TW.json"), "utf8")).cues;
+// English cues keep the first release layout on disk (text under `en`, no `lang`), so both layouts are read as `src` and `lang`.
+const diskCues = (folder) => JSON.parse(readFileSync(join(folder, "subs.zh-TW.json"), "utf8")).cues.map((c) => ({ ...c, lang: c.lang ?? "en", src: c.src ?? c.en }));
 const row = (n) => tid(`cue-${n}`);
 const zhOf = (n) => p.textContent(`${row(n)} .zh`);
 const srcOf = (n) =>
