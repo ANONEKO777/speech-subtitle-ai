@@ -34,6 +34,9 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
     for pattern, replacement in (
         ("程式代碼", "程式碼"),
         ("源代碼", "原始碼"),
+        ("(?<![資能電水光熱泉])源碼(?!頭)", "原始碼"),
+        ("運營(?!商)", "營運"),
+        ("(?<![單一二三四五六七八九十百千萬億紀公美日])元(?:數據|資料)", "中繼資料"),
         ("(?<![程源原])代碼", "程式碼"),
         ("用戶", "使用者"),
         ("(?<![個屬特人天本品習理感彈韌惰慣可])性能(?![夠否])", "效能"),
@@ -76,19 +79,14 @@ _JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], st
         lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存庫",
     ),
     (re.compile(f"{_NOT_FACTORY_LINE}流水線"), "管線"),
-    (re.compile("(?<![單一二三四五六七八九十百千萬億紀公美日])元(?:數據|資料)"), "中繼資料"),
-    (re.compile("(?<!資)源碼"), "原始碼"),
-    (re.compile("運營(?!商)"), "營運"),
 )
 
 
 def taiwan_terms_from_japanese(text: str) -> str:
     """Taiwan wording for words a Japanese talk gives that an English one does not: a code
-    repository (リポジトリ) comes out as 倉庫, a build pipeline (パイプライン) as 流水線, source
-    code (ソースコード) as 源碼, operations (運営) as 運營 and metadata (メタデータ) as 元數據,
-    which `taiwan_terms` has already made 元資料. A text that talks about goods keeps its
-    warehouse, and one about a factory its assembly line. None of it is in `taiwan_terms`, so the
-    output of an English talk stays as it was."""
+    repository (リポジトリ) comes out as 倉庫 and a build pipeline (パイプライン) as 流水線. A
+    text that talks about goods keeps its warehouse, and one about a factory its assembly line.
+    Neither is in `taiwan_terms`, so the output of an English talk keeps them."""
     for pattern, taiwan in _JAPANESE_TERMS:
         text = pattern.sub(taiwan, text)
     return text
