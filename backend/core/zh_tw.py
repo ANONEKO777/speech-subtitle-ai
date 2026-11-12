@@ -62,9 +62,10 @@ _IMPORT_TARGET = (
     "(?:渲染執行緒|主執行緒|執行緒|模組|套件|目錄|資料夾|檔案|程式碼庫|資料庫|記憶體)"
 )
 _IMPORT_OF = "(?:那些|所有|這些|這個|該|其|它們?的|的)?(?:[^，。？！；]{0,8}被導入的)?"
-_IMPORT_PAIR = "(?:[和與及或](?:依賴|相依)|或(?:阻斷|阻止|禁止|限制)導入)"
-_NOT_A_PRODUCT = "化|管理|系統|平台|工具|框架|方案|服務|技術|產品|機制|流程|標準"
-_THEN_A_PRODUCT = f"(?!{_NOT_A_PRODUCT})"
+_IMPORT_PAIR = "(?:[和與及或](?:依賴|相依)(?!性?注入)|或(?:阻斷|阻止|禁止|限制)導入)"
+_IMPORT_ENDS = (
+    r"(?:\Z|[^一-鿿]|的|了|項|們|和|與|或|及|到|至|進|中(?!心)|裡|內|上|時|並|而|來|去|也|都)"
+)
 _WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
 _CODE_REPOSITORY = re.compile(
     "程式碼|代碼|Git|GitHub|GitLab|分支|提交|合併|PR|CI|單一|克隆|開源|函式庫|monorepo|repo|技能|代理人"
@@ -72,13 +73,18 @@ _CODE_REPOSITORY = re.compile(
 _CUE_MARK = re.compile(r"\[\[\d+\]\]")
 
 
-def _repository(match: re.Match[str]) -> str:
-    """儲存庫 when the cue the word is in talks about code and not about goods. A reply that holds
-    several cues is cut at the cue markers, so the grouping of cues never changes the result."""
+def _cue_of(match: re.Match[str]) -> str:
+    """The cue the match is in. A reply that holds several cues is cut at the cue markers, so the
+    grouping of cues never changes what a rule sees."""
     text = match.string
     start = max((m.end() for m in _CUE_MARK.finditer(text, 0, match.start())), default=0)
     after = _CUE_MARK.search(text, match.end())
-    cue = text[start : after.start() if after else len(text)]
+    return text[start : after.start() if after else len(text)]
+
+
+def _repository(match: re.Match[str]) -> str:
+    """儲存庫 when the cue the word is in talks about code and not about goods."""
+    cue = _cue_of(match)
     if _WAREHOUSE.search(cue) or not _CODE_REPOSITORY.search(cue):
         return match.group()
     return "儲存庫"
@@ -150,8 +156,8 @@ _ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str
         (f"(?:{_after('效能|性能')})優化|優化(?=了?(?:{_OPTIMIZED}))", "最佳化"),
         ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
         (
-            f"導入(?=(?:了|過)?{_GAP}{_IMPORT_OF}(?:{_IMPORT_OBJECT}){_THEN_A_PRODUCT})"
-            f"|導入(?=(?:到|至|進){_GAP}(?:{_IMPORT_TARGET}){_THEN_A_PRODUCT})"
+            f"導入(?=(?:了|過)?{_GAP}{_IMPORT_OF}(?:{_IMPORT_OBJECT}){_IMPORT_ENDS})"
+            f"|導入(?=(?:到|至|進){_GAP}(?:{_IMPORT_TARGET}){_IMPORT_ENDS})"
             f"|導入(?={_IMPORT_PAIR})",
             "匯入",
         ),
