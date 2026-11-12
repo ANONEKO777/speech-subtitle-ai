@@ -30,7 +30,7 @@ AUTO = "auto"
 FRAGMENT_MS = 1800
 """A piece this short has too little audio for the language to be told from the sound alone."""
 TAIL_MS = 1500
-"""Speech left without words at the end of a piece that is at least this long is recognised again."""
+"""Speech left without words at the end of a piece this long is recognised again."""
 EN_RUN_WORDS = 3
 """A run of Latin words this long is an English sentence, not a name inside a Japanese one."""
 _FIRST_PASS_SHARE = 0.9

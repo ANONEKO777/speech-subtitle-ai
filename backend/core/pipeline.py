@@ -35,7 +35,7 @@ from backend.core.model import (
     StepStatus,
     Word,
 )
-from backend.core.segmenter import CueRules, to_cues
+from backend.core.segmenter import CueRules, to_cues, to_mixed_cues
 from backend.core.source_langs import SourceLanguage, get_source
 from backend.core.subtitle_io import (
     parse_project,
@@ -56,6 +56,7 @@ from backend.llm.client import Message
 log = logging.getLogger(__name__)
 
 PROJECT_JSON = "project.json"
+MIXED_CUT = "pauses-300-guard-tail-1"
 
 
 class File(StrEnum):
@@ -123,6 +124,10 @@ class Settings:
     @property
     def cue_rules(self) -> CueRules:
         return self.cues or self.source.cues
+
+    def rules_of(self, lang: str) -> CueRules:
+        """The cue rules for cues spoken in `lang`."""
+        return self.cues or self.source.of(lang).cues
 
     @property
     def summary_langs(self) -> tuple[str, ...]:
@@ -257,7 +262,12 @@ def _segment(ctx: _Ctx) -> None:
     words = parse_words(_read(ctx, File.WORDS))
     text = " ".join(w.text for w in words)
     segment = Segment(text, words[0].start_ms, words[-1].end_ms, tuple(words))
-    cues = to_cues([segment], ctx.settings.cue_rules, ctx.settings.source_lang)
+    settings = ctx.settings
+    if settings.source.mixed:
+        rules = {member.code: settings.rules_of(member.code) for member in settings.source.members}
+        cues = to_mixed_cues([segment], rules)
+    else:
+        cues = to_cues([segment], settings.cue_rules, settings.source_lang)
     write_text_file(ctx.path(ctx.settings.source.files.subs), render_subs(cues))
 
 
@@ -318,7 +328,11 @@ def _prompt_digest(*names: str) -> str:
 def _translate_prompt_digest(code: str, source: str) -> str:
     """The digest of the translation prompt for talks in `source` as `code` sees it, glossary left
     unfilled."""
-    text = translate.system_prompt_template(get_language(code), get_source(source))
+    language = get_language(code)
+    chosen = get_source(source)
+    text = "".join(
+        translate.system_prompt_template(language, member) for member in chosen.members or (chosen,)
+    )
     return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
 
 
@@ -343,6 +357,18 @@ def _rules_key(rules: CueRules) -> dict[str, object]:
     if rules.max_cps == CueRules().max_cps:
         del key["max_cps"]
     return key
+
+
+def _cut_key(settings: Settings) -> dict[str, str]:
+    """A talk in two languages is cut at its pauses and recognised in passes (`engines.mixed`).
+    The label changes when those rules do, so the chunks and the words are made again."""
+    return {"cut": MIXED_CUT} if settings.source.mixed else {}
+
+
+def _segment_rules_key(settings: Settings) -> object:
+    if not settings.source.mixed:
+        return _rules_key(settings.cue_rules)
+    return {m.code: _rules_key(settings.rules_of(m.code)) for m in settings.source.members}
 
 
 def _glossary(settings: Settings) -> list[dict[str, str]]:
@@ -376,7 +402,7 @@ STEPS: tuple[_StepSpec, ...] = (
         1,
         (Step.AUDIO,),
         lambda s: (File.CHUNKS.value,),
-        lambda s, video: {"vad": s.vad_identity, "params": asdict(s.vad)},
+        lambda s, video: {"vad": s.vad_identity, "params": asdict(s.vad), **_cut_key(s)},
         _vad,
     ),
     _StepSpec(
@@ -384,7 +410,12 @@ STEPS: tuple[_StepSpec, ...] = (
         1,
         (Step.VAD,),
         lambda s: (File.WORDS.value,),
-        lambda s, video: {"engine": s.asr_engine, "model": s.asr_identity, "lang": s.source_lang},
+        lambda s, video: {
+            "engine": s.asr_engine,
+            "model": s.asr_identity,
+            "lang": s.source_lang,
+            **_cut_key(s),
+        },
         _asr,
     ),
     _StepSpec(
@@ -392,7 +423,7 @@ STEPS: tuple[_StepSpec, ...] = (
         1,
         (Step.ASR,),
         lambda s: (s.source.files.subs,),
-        lambda s, video: {"rules": _rules_key(s.cue_rules)},
+        lambda s, video: {"rules": _segment_rules_key(s)},
         _segment,
     ),
     _StepSpec(

@@ -22,7 +22,7 @@ from backend.manager.registry import load as load_registry
 from backend.manager.runtimes import recover_runtime
 from backend.manager.storage import Storage
 
-Factory = Callable[[Path, Path, Path | None, Device, float | None], SubprocessEngine]
+Factory = Callable[[Path, Path, Path | None, Device, float | None, bool], SubprocessEngine]
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,16 +35,26 @@ class EngineSpec:
 
 
 def _whispercpp(
-    binary: Path, model: Path, aligner: Path | None, device: Device, timeout_s: float | None
+    binary: Path,
+    model: Path,
+    aligner: Path | None,
+    device: Device,
+    timeout_s: float | None,
+    strict: bool,
 ) -> SubprocessEngine:
     return WhisperCppEngine(binary, model, device=device, timeout_s=timeout_s)
 
 
 def _crispasr(
-    binary: Path, model: Path, aligner: Path | None, device: Device, timeout_s: float | None
+    binary: Path,
+    model: Path,
+    aligner: Path | None,
+    device: Device,
+    timeout_s: float | None,
+    strict: bool,
 ) -> SubprocessEngine:
     assert aligner is not None
-    return CrispAsrEngine(binary, model, aligner, device=device, timeout_s=timeout_s)
+    return CrispAsrEngine(binary, model, aligner, device=device, timeout_s=timeout_s, strict=strict)
 
 
 ENGINES: Mapping[str, EngineSpec] = MappingProxyType(
@@ -113,8 +123,10 @@ def create_engine(
     aligner: Path | None = None,
     device: Device = Device.CUDA,
     timeout_s: float | None = None,
+    strict: bool = True,
 ) -> SubprocessEngine:
+    """`strict` is for CrispASR: whether it checks the text against the language it was given."""
     spec = spec_for(engine_id)
     if spec.needs_aligner and aligner is None:
         raise ValueError(f"{engine_id} needs an aligner model path")
-    return spec.factory(binary, model, aligner, device, timeout_s)
+    return spec.factory(binary, model, aligner, device, timeout_s, strict)

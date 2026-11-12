@@ -39,7 +39,7 @@ class CrispAsrEngine(SubprocessEngine):
         self.aligner = aligner
         self.strict = strict
         """`--strict-pipeline` exits with code 31 when the text and the audio disagree on the
-        language, as Japanese text over English audio does, so a talk in two languages turns it off."""
+        language, as Japanese text over English audio does, so a mixed talk turns it off."""
 
     def required_files(self) -> dict[str, Path]:
         return {**super().required_files(), "aligner": self.aligner}
@@ -79,6 +79,8 @@ class CrispAsrEngine(SubprocessEngine):
 
 
 def _segment(item: dict[str, Any]) -> Segment | None:
+    if "words" not in item and not str(item.get("text", "")).strip():
+        return None
     words = strip_annotations(
         [
             Word(

@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import MappingProxyType
 
 from backend.core import unspaced
@@ -30,6 +30,8 @@ ENGLISH = DEFAULT_SOURCE
 JAPANESE = "ja"
 
 _KANA = re.compile("[぀-ヿㇰ-ㇿｦ-ﾟ]")
+_LATIN_WORD = re.compile(r"[A-Za-z0-9]+")
+_CJK = re.compile("[぀-ヿ㐀-䶿一-鿿ｦ-ﾟ]")
 _KATAKANA_MIDDLE_DOT = "・"
 _MIDDLE_DOT = "·"
 
@@ -93,6 +95,19 @@ class SourceLanguage:
     rejects_bare_punctuation: bool = False
     """A translation with no letter or digit in it, such as 「。」, is a bad reply: the sentence it
     belongs to was put in the cue before it."""
+    members: tuple[SourceLanguage, ...] = ()
+    """For a talk in more than one language, the language of each cue. Every other field is then the
+    talk's as a whole: the files, the summary notes and the checks of the Chinese it is written in."""
+    asr_engine: str | None = None
+    """The one speech recognition engine that can do this source, when it is not the default."""
+
+    @property
+    def mixed(self) -> bool:
+        return bool(self.members)
+
+    def of(self, code: str) -> SourceLanguage:
+        """The language of a cue spoken in `code`: this one, or its member for a mixed talk."""
+        return next((member for member in self.members if member.code == code), self)
 
     @property
     def spaced(self) -> bool:
@@ -116,6 +131,12 @@ class SourceLanguage:
         return unspaced.join([self.flat(text) for text in texts])
 
     def words(self, text: str) -> int:
+        if self.mixed:
+            japanese = self.of(JAPANESE)
+            kana_and_kanji = len(_CJK.findall(text))
+            return len(_LATIN_WORD.findall(text)) + -(
+                -kana_and_kanji // round(japanese.chars_per_word)
+            )
         if self.spaced:
             return len(text.split())
         return -(-len("".join(text.split())) // round(self.chars_per_word))
@@ -240,8 +261,20 @@ JAPANESE_SOURCE = SourceLanguage(
     rejects_bare_punctuation=True,
 )
 
+MIXED = "ja+en"
+MIXED_SOURCE = replace(
+    JAPANESE_SOURCE,
+    code=MIXED,
+    name="Japanese and English",
+    native="日本語と英語",
+    files=SourceFiles("subs.src.json", "src.srt"),
+    summary_map="summarize_map_ja_en.md",
+    members=(JAPANESE_SOURCE, ENGLISH_SOURCE),
+    asr_engine="crispasr-qwen3-asr-1.7b",
+)
+
 SOURCES: Mapping[str, SourceLanguage] = MappingProxyType(
-    {source.code: source for source in (ENGLISH_SOURCE, JAPANESE_SOURCE)}
+    {source.code: source for source in (ENGLISH_SOURCE, JAPANESE_SOURCE, MIXED_SOURCE)}
 )
 
 

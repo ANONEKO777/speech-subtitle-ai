@@ -80,6 +80,9 @@ _SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
 }
 
 
+_SOURCE_GLOSSARY["ja+en"] = _SOURCE_GLOSSARY["ja"]
+
+
 def default_glossary(source: str) -> tuple[GlossaryEntry, ...]:
     """The glossary every run of a talk in `source` starts with. The names of the products the
     Japanese test talks are about are in it because speech recognition garbles them."""
@@ -161,12 +164,13 @@ def sentence_units(
     cues: Sequence[Cue], start: int, stop: int, limit: int, source: SourceLanguage = ENGLISH_SOURCE
 ) -> list[Unit]:
     """Group `cues[start:stop]` into sentences: a unit ends at a cue that ends a sentence, or after
-    `limit` cues when speech runs on without one."""
+    `limit` cues when speech runs on without one, or where the language changes."""
     units: list[Unit] = []
     first = start
     for index in range(start, stop):
-        ends = source.sentence_end.search(cues[index].src.rstrip()) is not None
-        if ends or index + 1 == stop or index + 1 - first == limit:
+        ends = source.of(cues[index].lang).sentence_end.search(cues[index].src.rstrip()) is not None
+        switches = index + 1 < stop and cues[index + 1].lang != cues[index].lang
+        if ends or switches or index + 1 == stop or index + 1 - first == limit:
             units.append(Unit(first, index + 1))
             first = index + 1
     return units
@@ -186,11 +190,11 @@ def plan_batches(
     start: int | None = None
     for index in range(len(cues) + 1):
         open_run = index < len(cues) and not cues[index].zh
-        if open_run and start is None:
-            start = index
-        elif not open_run and start is not None:
+        if start is not None and (not open_run or cues[index].lang != cues[start].lang):
             batches.extend(_pack(sentence_units(cues, start, index, unit_limit, source), size))
             start = None
+        if open_run and start is None:
+            start = index
     return batches
 
 
@@ -277,11 +281,13 @@ def build_request(
     source: SourceLanguage = ENGLISH_SOURCE,
 ) -> BatchRequest:
     groups = [cues[unit.start : unit.stop] for unit in batch.units]
+    source = source.of(cues[batch.start].lang)
+    same = [i for i, cue in enumerate(cues) if cue.lang == cues[batch.start].lang]
+    before = [cues[i].src for i in same if i < batch.start][-context:] if context else []
+    after = [cues[i].src for i in same if i >= batch.stop][:context]
     body = {
-        "context_before": source.prose(
-            [cue.src for cue in cues[max(0, batch.start - context) : batch.start]]
-        ),
-        "context_after": source.prose([cue.src for cue in cues[batch.stop : batch.stop + context]]),
+        "context_before": source.prose(before),
+        "context_after": source.prose(after),
         "translate": [
             {"id": group[0].id, source.prompt.key: _marked(group, source)} for group in groups
         ],
@@ -451,10 +457,10 @@ def settle_bare_punctuation(cues: Sequence[Cue], source: SourceLanguage) -> list
     the break goes in front of the punctuation. Timestamps and ids never change. A cue that has no
     cue before it, or one whose neighbour has no break to cut at, keeps what it has."""
     settled = list(cues)
-    if not source.rejects_bare_punctuation:
-        return settled
     for index in range(1, len(settled)):
         cue, before = settled[index], settled[index - 1]
+        if not source.of(cue.lang).rejects_bare_punctuation or before.lang != cue.lang:
+            continue
         if not cue.zh or not is_bare_punctuation(cue.zh) or is_bare_punctuation(cue.src):
             continue
         breaks = [m.end() for m in _CLAUSE_BREAK.finditer(before.zh)]
@@ -508,10 +514,13 @@ class _Run:
         self.on_progress = on_progress
         self.sleep = sleep
 
+    def source_of(self, batch: Batch) -> SourceLanguage:
+        """The language the cues of `batch` were spoken in. A batch never holds two."""
+        return self.source.of(self.cues[batch.start].lang)
+
     def translate(self, batch: Batch) -> None:
-        request = build_request(
-            self.cues, batch, self.glossary, self.context, self.lang, self.source
-        )
+        source = self.source_of(batch)
+        request = build_request(self.cues, batch, self.glossary, self.context, self.lang, source)
         started = time.monotonic()
         first, last = self.cues[batch.start].id, self.cues[batch.stop - 1].id
         try:
@@ -519,7 +528,7 @@ class _Run:
                 self.chat,
                 request.messages,
                 lambda text: parse_reply(
-                    text, request, self.cues, self.glossary, self.lang, self.source
+                    text, request, self.cues, self.glossary, self.lang, source
                 ),
                 reprompt=lambda reason: (
                     f"That reply was rejected: {reason}. Reply again with the "
@@ -559,7 +568,7 @@ class _Run:
             cue.id,
             exc.attempts,
             exc.reason,
-            self.source.name,
+            self.source_of(batch).name,
         )
         self.store(batch, {cue.id: cue.src}, started, 0)
 
@@ -570,7 +579,7 @@ class _Run:
         than the Japanese does. A reply that is only punctuation passes here and is settled with its
         neighbour once every cue is translated (`settle_bare_punctuation`). English has no repair,
         so it keeps its English."""
-        source = self.source
+        source = self.source_of(batch)
         if source.repair is None:
             return None
         repair = source.repair
