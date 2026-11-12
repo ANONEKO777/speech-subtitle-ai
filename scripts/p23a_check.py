@@ -23,11 +23,16 @@ from backend.core.model import Cue, Word
 from backend.core.segmenter import violations
 from backend.core.source_langs import JAPANESE_SOURCE, is_bare_punctuation
 from backend.core.subtitle_io import parse_project, parse_subs, read_text_file
-from backend.core.zh_tw import taiwan_terms, taiwan_terms_from_japanese
+from backend.core.zh_tw import taiwan_terms_from_japanese
 
 ZH_TW = get_language("zh-TW")
 INSIDE_WORD = 7.5
 """A break that costs at least this much by `unspaced.break_costs` is inside a word."""
+
+
+def has_mainland_wording(text: str) -> bool:
+    """True when the wording step the pipeline runs for a Japanese source would change `text`."""
+    return taiwan_terms_from_japanese(ZH_TW.terms_from(JAPANESE_SOURCE.code, text)) != text
 
 
 def percentile(values: list[float], share: float) -> float:
@@ -58,7 +63,7 @@ def cue_problems(cue: Cue) -> list[str]:
         found.append(f"cue {cue.id} {problem}")
     if problem := JAPANESE_SOURCE.problem(cue.zh):
         found.append(f"cue {cue.id} {problem}")
-    if taiwan_terms(taiwan_terms_from_japanese(cue.zh)) != cue.zh:
+    if has_mainland_wording(cue.zh):
         found.append(f"cue {cue.id} has Mainland wording: {cue.zh}")
     if cue.zh == cue.src:
         found.append(f"cue {cue.id} kept its Japanese")
@@ -93,9 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         for problem in (
             ZH_TW.prose_problem(text),
             JAPANESE_SOURCE.problem(text),
-            "has Mainland wording"
-            if taiwan_terms(taiwan_terms_from_japanese(text)) != text
-            else None,
+            "has Mainland wording" if has_mainland_wording(text) else None,
         ):
             if problem:
                 problems.append(f"{name} {problem}")
