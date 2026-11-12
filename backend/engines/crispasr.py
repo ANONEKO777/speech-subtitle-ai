@@ -66,7 +66,7 @@ class CrispAsrEngine(SubprocessEngine):
     def parse(self, output: Path, language: str = "en") -> list[Segment]:
         raw = read_json(output)
         try:
-            segments = (_segment(item) for item in raw["transcription"])
+            segments = (_segment(item, self.strict) for item in raw["transcription"])
             return [segment for segment in segments if segment is not None]
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise EngineOutputError(f"unexpected CrispASR JSON in {output.name}: {exc!r}") from exc
@@ -78,9 +78,34 @@ class CrispAsrEngine(SubprocessEngine):
             progress.within_file(1.0)
 
 
-def _segment(item: dict[str, Any]) -> Segment | None:
-    if "words" not in item and not str(item.get("text", "")).strip():
-        return None
+def _spread(text: str, start_ms: int, end_ms: int) -> list[Word]:
+    """Words for text the aligner gave none for: a Latin word each, or a character each in text
+    with no spaces, in equal shares of the segment."""
+    units = text.split() if " " in text.strip() else list(text.strip())
+    step = max(1, (end_ms - start_ms) // len(units))
+    return [
+        Word(
+            unit,
+            start_ms + i * step,
+            max(start_ms + i * step, min(end_ms, start_ms + (i + 1) * step)),
+        )
+        for i, unit in enumerate(units)
+    ]
+
+
+def _segment(item: dict[str, Any], strict: bool = True) -> Segment | None:
+    """A segment the aligner gave no words for is an error, except in a talk in two languages
+    (`strict` off), where text Qwen3 wrote over the other language's audio cannot be aligned: it is
+    spread evenly over the segment."""
+    if "words" not in item:
+        text = str(item.get("text", "")).strip()
+        if not text:
+            return None
+        if strict:
+            raise KeyError("words")
+        start, end = item["offsets"]["from"], item["offsets"]["to"]
+        spread = strip_annotations(_spread(text, start, end))
+        return segment_of(spread, start, end) if spread else None
     words = strip_annotations(
         [
             Word(

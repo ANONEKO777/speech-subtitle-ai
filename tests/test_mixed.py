@@ -566,3 +566,38 @@ def test_the_command_line_and_the_job_body_accept_the_mixed_source() -> None:
 
     assert build_parser().parse_args(["x.mp4", "--source-lang", "ja+en"]).source_lang == "ja+en"
     assert JobBody(source_lang="ja+en").options().source_lang == "ja+en"
+
+
+class TestLenientCrispAsr:
+    @staticmethod
+    def parse(tmp_path: Path, strict: bool) -> list[Segment]:
+        from backend.engines.crispasr import CrispAsrEngine
+
+        out = tmp_path / "o.json"
+        item = {"offsets": {"from": 1000, "to": 3000}, "text": " Thank you so much "}
+        empty = {"offsets": {"from": 0, "to": 5}, "text": ""}
+        out.write_text(json.dumps({"transcription": [item, empty]}), encoding="utf-8")
+        engine = CrispAsrEngine(Path("a"), Path("m"), Path("al"), strict=strict)
+        return engine.parse(out)
+
+    def test_text_without_aligned_words_is_spread_evenly_when_not_strict(
+        self, tmp_path: Path
+    ) -> None:
+        (segment,) = self.parse(tmp_path, strict=False)
+        assert segment.words is not None
+        assert [w.text for w in segment.words] == ["Thank", "you", "so", "much"]
+        assert segment.words[0].start_ms == 1000 and segment.words[-1].end_ms == 3000
+
+    def test_it_is_still_an_error_when_strict(self, tmp_path: Path) -> None:
+        from backend.engines.base import EngineOutputError
+
+        with pytest.raises(EngineOutputError, match="unexpected CrispASR JSON"):
+            self.parse(tmp_path, strict=True)
+
+    def test_the_command_has_the_strict_flag_only_when_strict(self) -> None:
+        from backend.engines.crispasr import CrispAsrEngine
+
+        args = (Path("a"), Path("m"), Path("al"))
+        strict = CrispAsrEngine(*args).command([Path("x.wav")], [Path("o")], "auto")
+        lenient = CrispAsrEngine(*args, strict=False).command([Path("x.wav")], [Path("o")], "auto")
+        assert "--strict-pipeline" in strict and "--strict-pipeline" not in lenient
