@@ -601,3 +601,14 @@ class TestLenientCrispAsr:
         strict = CrispAsrEngine(*args).command([Path("x.wav")], [Path("o")], "auto")
         lenient = CrispAsrEngine(*args, strict=False).command([Path("x.wav")], [Path("o")], "auto")
         assert "--strict-pipeline" in strict and "--strict-pipeline" not in lenient
+
+
+class TestSummaryNotes:
+    def test_a_note_that_copies_japanese_is_rejected_for_a_japanese_talk_only(self) -> None:
+        from backend.core import summarize
+
+        window = summarize.make_windows([summarize.Line(0, 1000, "今日は晴れです。")])[0]
+        note = json.dumps({"topic": "星のカービィ", "points": [{"at": "0:00", "text": "天氣"}]})
+        with pytest.raises(summarize.ReplyError, match="kana"):
+            summarize.parse_map(note, window, MIXED_SOURCE)
+        assert summarize.parse_map(note, window).topic == "星のカービィ"

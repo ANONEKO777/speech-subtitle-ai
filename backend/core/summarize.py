@@ -312,9 +312,13 @@ def _list(value: object, name: str) -> list[object]:
     return cast("list[object]", value)
 
 
-def parse_map(text: str, window: Window) -> MapResult:
+def parse_map(text: str, window: Window, source: SourceLanguage = ENGLISH_SOURCE) -> MapResult:
+    """The notes of one window. The notes are in the language of the summary, so a source whose
+    text must not show in it (Japanese kana) rejects a note that copies the speaker's words."""
     doc = _object(parse_json_reply(text), '"topic" and "points"')
     topic = _text(doc.get("topic"), "topic", _MAX_TITLE_CHARS)
+    if problem := source.problem(topic):
+        raise ReplyError(f'"topic" {problem}')
     raw = _list(doc.get("points"), "points")
     if not raw:
         raise ReplyError('"points" must hold at least 1 point, but holds none')
@@ -330,7 +334,10 @@ def parse_map(text: str, window: Window) -> MapResult:
                 f"({clock(window.start_ms)} to {clock(window.end_ms)})"
             )
         snapped = max((start for start in starts if start <= at_ms), default=starts[0])
-        points.append(Point(snapped, _text(entry.get("text"), "text", _MAX_POINT_CHARS)))
+        note = _text(entry.get("text"), "text", _MAX_POINT_CHARS)
+        if problem := source.problem(note):
+            raise ReplyError(f"point {position} {problem}")
+        points.append(Point(snapped, note))
     points.sort(key=lambda point: point.at_ms)
     return MapResult(window.start_ms, window.end_ms, topic, thin(points, max_points(window)))
 
@@ -658,7 +665,7 @@ class _Run:
             part, _ = ask(
                 self.chat,
                 messages,
-                lambda text: parse_map(text, window),
+                lambda text: parse_map(text, window, self.source),
                 reprompt=reprompt,
                 label=label,
                 retries=self.max_retries,

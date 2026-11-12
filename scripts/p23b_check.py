@@ -28,6 +28,7 @@ from backend.engines.mixed import is_japanese_text
 
 ZH_TW = get_language("zh-TW")
 _LATIN = re.compile("[A-Za-z]")
+_KANA = re.compile("[぀-ヿ]")
 
 
 def cue_problems(cue: Cue) -> list[str]:
@@ -39,7 +40,9 @@ def cue_problems(cue: Cue) -> list[str]:
         found.append(f"cue {cue.id} {problem}")
     if cue.lang == "ja" and taiwan_terms(taiwan_terms_from_japanese(cue.zh)) != cue.zh:
         found.append(f"cue {cue.id} has Mainland wording: {cue.zh}")
-    if cue.zh == cue.src:
+    if cue.zh == cue.src and (
+        _KANA.search(cue.src) if cue.lang == "ja" else _LATIN.search(cue.src)
+    ):
         found.append(f"cue {cue.id} kept its {source.name}")
     if is_bare_punctuation(cue.zh) and not is_bare_punctuation(cue.src):
         found.append(f"cue {cue.id} is only punctuation: {cue.zh}")
