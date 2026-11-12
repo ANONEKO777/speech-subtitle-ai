@@ -97,7 +97,7 @@ Traditional Chinese (Taiwan) is the default. A project can hold several language
 
 At import, the "video language" menu says what language the people in the video speak: English (the default) or Japanese. A Japanese video is recognized as Japanese, cut into subtitle lines at Japanese punctuation and meaning units, and translated into Traditional Chinese (Taiwan). The bilingual mode of the player shows the Japanese original and the Traditional Chinese together under the video. The subtitle offset, editing, export and burned-in subtitles work the same as for English. Each item in the batch queue can have its own video language, and the library and the queue put a small tag on a Japanese video. The original is the source of the translation and the summary, so the list does not let you edit it, only the translation and the times. Burning Japanese subtitles needs one of the fonts Yu Gothic, Meiryo or MS Gothic on the PC, and the window says so when there is none.
 
-The third choice, "Japanese and English mixed", is for a talk where a Japanese speaker is followed by an English speaker. The app recognizes both languages in the one video, and every subtitle line keeps its own language. The cue list and the editor put a small 日 or 英 next to each original line, and only in a mixed video. In the bilingual mode of the player, each original line is shown in its own language, above the Traditional Chinese line. Editing never merges two neighbouring lines of different languages. The library and the queue put the tag 日英混合 on these videos. The original subtitle file of a mixed video is exported as `<video>.ja-en.srt`, and burning subtitles into it needs the same Japanese font as a Japanese video. Picking the mixed choice shows a note that only Traditional Chinese subtitles come out and that it needs the 24 GB model set. The choice needs the Qwen3 speech engine, which only the 24 GB profile installs, and a GPU. When this PC cannot run it, the choice is greyed out and its text says why, for example that the models are not installed or that the app is set to CPU mode. If a job starts anyway, the window shows the refusal message as it is. The app does not fall back to another engine.
+The third choice, "Japanese and English mixed", is for a talk where a Japanese speaker is followed by an English speaker. The app recognizes both languages in the one video, and every subtitle line keeps its own language. The cue list and the editor put a small 日 or 英 next to each original line, and only in a mixed video. In the bilingual mode of the player, each original line is shown in its own language, together with the Traditional Chinese line. The Traditional Chinese line is on top by default, and the toolbar switch 繁體中文在上 swaps the order. Editing never merges two neighbouring lines of different languages. The library and the queue put the tag 日英混合 on these videos. The original subtitle file of a mixed video is exported as `<video>.ja-en.srt`, and burning subtitles into it needs the same Japanese font as a Japanese video. Picking the mixed choice shows a note that only Traditional Chinese subtitles come out and that it needs the Qwen3 model files, which the 24 GB model set installs. The choice needs those Qwen3 speech engine files and a GPU, because it has no CPU mode. When this PC cannot run it, the choice is greyed out and its text says why, for example that the models are not installed or that this PC runs on the CPU. If a job starts anyway, the window shows the refusal message as it is. The app does not fall back to another engine.
 
 <!-- PLACEHOLDER(P24a): add a Japanese example screenshot here. It needs Japanese material that may be shown publicly, and none is available yet. -->
 > Japanese example screenshot: to come. The example must use Japanese material that may be shown publicly, and there is none yet, so there is no picture here.
@@ -105,7 +105,7 @@ The third choice, "Japanese and English mixed", is for a talk where a Japanese s
 <!-- PLACEHOLDER(P24b): add a mixed Japanese and English example screenshot here. The talks used in testing are private, and no public material exists yet. -->
 > Mixed-language example screenshot: to come. The talks used in testing are private and cannot be shown, and there is no public material yet, so there is no picture here.
 
-**Limits:** A Japanese or mixed video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. The mixed choice runs only with the 24 GB profile and a GPU. You pick the video language yourself at import. The app does not detect it, and it cannot choose between audio tracks.
+**Limits:** A Japanese or mixed video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. The mixed choice needs the Qwen3 model files (installed with the 24 GB model set) and a GPU. You pick the video language yourself at import. The app does not detect it, and it cannot choose between audio tracks.
 
 ### More
 
@@ -187,7 +187,7 @@ uv run python -m backend.cli talk.mp4 --source-lang ja
 
 In the project folder the Japanese original is `ja.srt` and the translation is `zh-TW.srt`.
 
-For a talk that mixes Japanese and English use `--source-lang ja+en`. It also translates into Traditional Chinese only, and it needs the 24 GB profile:
+For a talk that mixes Japanese and English use `--source-lang ja+en`. It also translates into Traditional Chinese only, and it needs the Qwen3 model files, which the 24 GB profile installs:
 
 ```powershell
 uv run python -m backend.cli talk.mp4 --source-lang ja+en
@@ -227,7 +227,7 @@ The video language (what the people in the video speak) decides which subtitle l
 | --- | --- | --- |
 | English | The thirteen above | Default |
 | Japanese | Traditional Chinese (Taiwan) | Other languages are not supported yet |
-| Japanese and English mixed | Traditional Chinese (Taiwan) | Only with the 24 GB profile and a GPU. Other languages are not supported yet |
+| Japanese and English mixed | Traditional Chinese (Taiwan) | Needs the Qwen3 model files (installed with the 24 GB model set) and a GPU. Other languages are not supported yet |
 
 Quality differs by language. On the 38-minute talk, a back-translation check scored Spanish, Simplified Chinese and German on a par with Traditional Chinese, Japanese a little below, and Korean clearly lower, with wrong names and meanings in some lines. Korean and Thai are marked experimental for that reason. Of the thirteen, six were run end to end on a real talk (zh-TW, zh-CN, ja, ko, es, de). The others are covered by tests only.
 
