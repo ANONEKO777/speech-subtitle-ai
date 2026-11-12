@@ -16,7 +16,7 @@ Strata, in the order a segment is claimed (a segment counts once, under the firs
 
 The two model guesses go into the manifest under `guesses`. The label page never reads them.
 
-    uv run python scripts/p23b_sample.py [--runs RUNS_DIR] [--out MANIFEST.json] [--seed N]
+    uv run python scripts/p23b_sample.py --runs RUNS_DIR [--out MANIFEST.json] [--seed N]
 """
 
 from __future__ import annotations
@@ -34,9 +34,6 @@ from typing import Any
 from p22_langmap import load_chunks
 from p22_langscore import group_of, script_of, segments
 
-DEFAULT_RUNS = Path(
-    "C:/Users/abcd1997/.claude/orchestrate/video-subtitle-translator/swarm/P22/runs"
-)
 DEFAULT_OUT = Path(".work/p23b-labels/manifest.json")
 FINE_TAG = "fine300"
 TOTAL = 120
@@ -270,7 +267,7 @@ def report(manifest: dict[str, Any]) -> str:
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--runs", type=Path, default=DEFAULT_RUNS)
+    ap.add_argument("--runs", type=Path, required=True, help="the P22 runs directory")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--seed", type=int, default=23)
     args = ap.parse_args()

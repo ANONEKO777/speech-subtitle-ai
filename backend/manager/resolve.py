@@ -23,6 +23,7 @@ from backend.core.translate import BATCH_SIZE, GlossaryEntry, default_glossary
 from backend.core.vad import Chunk
 from backend.engines.chunks import transcribe_chunks
 from backend.engines.crispasr import ENGINE_ID as CRISPASR_ID
+from backend.engines.mixed import transcribe_mixed
 from backend.engines.table import create_engine, engine_paths, spec_for
 from backend.engines.whispercpp import ENGINE_ID as WHISPERCPP_ID
 from backend.llm.ask import json_chat
@@ -92,7 +93,13 @@ Transcribe = Callable[[Path, Sequence[Chunk], ProgressCb, threading.Event], list
 
 
 def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, str, Transcribe]:
-    engine_id = ENGINE_ALIASES.get(request.engine, request.engine)
+    source = get_source(request.source_lang)
+    engine_id = source.asr_engine or ENGINE_ALIASES.get(request.engine, request.engine)
+    if source.asr_engine and request.cpu:
+        raise SettingsError(
+            f"{source.name} talks need the Qwen3-ASR engine, which has no CPU build. "
+            "Turn off CPU mode, or choose one language"
+        )
     try:
         spec = spec_for(engine_id)
     except ValueError as exc:
@@ -100,8 +107,16 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     cpu_runtime = WHISPER_CPU_RUNTIME if request.cpu and engine_id == WHISPERCPP_ID else None
     found = engine_paths(engine_id, storage, registry=registry, runtime_id=cpu_runtime)
     found_runtime = cpu_runtime or spec.runtime_id
-    binary = _need_file(request.asr_bin or found.binary, f"{engine_id} program")
-    model = _need_file(request.asr_model or found.model, f"{engine_id} model")
+    try:
+        binary = _need_file(request.asr_bin or found.binary, f"{engine_id} program")
+        model = _need_file(request.asr_model or found.model, f"{engine_id} model")
+    except SettingsError as exc:
+        if source.asr_engine:
+            raise SettingsError(
+                f"{source.name} talks need the Qwen3-ASR engine, which is installed only with "
+                f"the 24 GB profile: {exc}"
+            ) from exc
+        raise
     aligner = request.aligner or found.aligner
     if spec.needs_aligner:
         aligner = _need_file(aligner or Path("aligner"), f"{engine_id} aligner model")
@@ -123,7 +138,11 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     def transcribe(
         wav: Path, chunks: Sequence[Chunk], progress: ProgressCb, cancel: threading.Event
     ) -> list[Word]:
-        engine = create_engine(engine_id, binary, model, aligner=aligner, device=device)
+        engine = create_engine(
+            engine_id, binary, model, aligner=aligner, device=device, strict=not source.mixed
+        )
+        if source.mixed:
+            return transcribe_mixed(engine, wav, chunks, progress, cancel)
         return transcribe_chunks(engine, wav, chunks, request.source_lang, progress, cancel)
 
     return engine_id, "|".join(parts), transcribe
@@ -181,8 +200,10 @@ def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
     def extract_audio(video: Path, wav: Path, cancel: threading.Event) -> None:
         audio.extract(video, wav, tool_dir=ffmpeg_dir, cancel=cancel)
 
+    mixed = get_source(request.source_lang).mixed
+
     def split_vad(wav: Path) -> list[Chunk]:
-        return vad.split(wav, vad_path)
+        return vad.split_at_pauses(wav, vad_path) if mixed else vad.split(wav, vad_path)
 
     opener: Callable[[threading.Event], AbstractContextManager[LlmSession]]
     if request.llm.startswith(("http://", "https://")):

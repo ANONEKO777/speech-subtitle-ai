@@ -76,7 +76,10 @@ def good_map(messages: Sequence[Message]) -> str:
     body = user.split("Lines to summarise:", 1)[1].strip().splitlines()
     room = int(first_number(r"at most (\d+) points", user))
     picks = [body[0], body[-1]] if room > 1 and len(body) > 1 else [body[0]]
-    points = [{"at": ln[1 : ln.index("]")], "text": f"Point: {ln}"} for ln in picks]
+    points = [
+        {"at": ln[1 : ln.index("]")], "text": "Point: " + ln.encode("ascii", "ignore").decode()}
+        for ln in picks
+    ]
     return json.dumps({"topic": "A topic", "points": points})
 
 
@@ -632,7 +635,7 @@ def front_loaded_map(messages: Sequence[Message], extra: int = 0) -> str:
     body = user.split("Lines to summarise:", 1)[1].strip().splitlines()
     room = int(first_number(r"at most (\d+) points", user))
     points = [
-        {"at": ln[1 : ln.index("]")], "text": f"Point: {ln}"}
+        {"at": ln[1 : ln.index("]")], "text": "Point: " + ln.encode("ascii", "ignore").decode()}
         for ln in body[: min(len(body), room + extra)]
     ]
     return json.dumps({"topic": "A topic", "points": points})

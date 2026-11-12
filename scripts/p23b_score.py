@@ -10,6 +10,8 @@ Inputs:
 
 It prints the accuracy by stratum, the segments of 2 s or longer where English speech was written
 as Japanese or dropped, and every exact disagreement. `unclear` labels are left out of the scores.
+The order of a `both` segment (Japanese then English, or the reverse) is not scored: a `both` label
+is right when the tag says both. A manifest segment with no label makes the verdict PARTIAL.
 
     uv run python scripts/p23b_score.py MANIFEST.json LABELS.json TAGS.json [--json OUT.json]
 """
@@ -123,6 +125,16 @@ def fmt_row(r: Row) -> str:
     return f"  {where}  heard {r.truth}, tagged {r.tag}{note}"
 
 
+def verdict(rows: list[Row], unlabelled: list[str]) -> str:
+    gate = f"P23b gate (accuracy >= {ACCURACY_GATE:.0%} and 0 lost English segments): "
+    if unlabelled:
+        return gate + f"PARTIAL, {len(unlabelled)} segments are not labelled"
+    ok = sum(r.correct for r in rows)
+    lost = any(r.english_lost for r in rows)
+    passed = bool(rows) and ok / len(rows) >= ACCURACY_GATE and not lost
+    return gate + ("PASS on this sample" if passed else "FAIL")
+
+
 def render(rows: list[Row], unlabelled: list[str], unclear: list[str], total: int) -> str:
     n, ok = len(rows), sum(r.correct for r in rows)
     lost = sorted((r for r in rows if r.english_lost), key=lambda r: r.start_s)
@@ -139,11 +151,7 @@ def render(rows: list[Row], unlabelled: list[str], unclear: list[str], total: in
     out += [fmt_row(r) for r in lost]
     out.append(f"exact disagreements: {len(wrong)}")
     out += [fmt_row(r) for r in wrong]
-    passed = n > 0 and ok / n >= ACCURACY_GATE and not lost
-    out.append(
-        f"P23b gate (accuracy >= {ACCURACY_GATE:.0%} and 0 lost English segments): "
-        + ("PASS on this sample" if passed else "FAIL")
-    )
+    out.append(verdict(rows, unlabelled))
     return "\n".join(out)
 
 

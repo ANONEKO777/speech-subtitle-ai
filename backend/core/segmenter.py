@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import accumulate
 
@@ -115,9 +115,11 @@ def merge_words(segments: Sequence[Segment]) -> list[Word]:
             if kept and _GLUED.fullmatch(text):
                 prev = kept[-1]
                 joined = end if start - prev.end_ms <= _GLUE_GAP_MS else prev.end_ms
-                kept[-1] = Word(prev.text + text, prev.start_ms, max(prev.end_ms, joined))
+                kept[-1] = Word(
+                    prev.text + text, prev.start_ms, max(prev.end_ms, joined), prev.lang
+                )
             else:
-                kept.append(Word(text, start, end))
+                kept.append(Word(text, start, end, word.lang))
     if clamped:
         log.warning("moved %d word start(s) forward to keep time order", clamped)
     return kept
@@ -293,15 +295,36 @@ def to_cues(
     longer when the next cue is far enough away, and merged into its neighbor otherwise.
     A word wider than a line cannot be wrapped, and `violations` reports it.
     """
-    r = rules or CueRules()
+    return _cues_of(merge_words(segments), rules or CueRules(), lang, None, 1)
+
+
+def to_mixed_cues(segments: Sequence[Segment], rules: Mapping[str, CueRules]) -> list[Cue]:
+    """`to_cues` for a talk in more than one language. Every word has a `lang`. Cues are made
+    separately for each run of words of one language, with that language's rules, so a cue never
+    holds two languages, and the cues are numbered in time order."""
     words = merge_words(segments)
+    cues: list[Cue] = []
+    begin = 0
+    for index in range(1, len(words) + 1):
+        if index < len(words) and words[index].lang == words[begin].lang:
+            continue
+        lang = words[begin].lang or DEFAULT_SOURCE
+        follow = words[index] if index < len(words) else None
+        cues += _cues_of(words[begin:index], rules[lang], lang, follow, len(cues) + 1)
+        begin = index
+    return cues
+
+
+def _cues_of(
+    words: Sequence[Word], r: CueRules, lang: str, after: Word | None, first_id: int
+) -> list[Cue]:
     cues: list[Cue] = []
     begin = 0
     for index in range(1, len(words) + 1):
         if index < len(words) and words[index].start_ms - words[index - 1].end_ms < r.split_gap_ms:
             continue
         run = words[begin:index]
-        follow = words[index] if index < len(words) else None
+        follow = words[index] if index < len(words) else after
         breaks = unspaced.break_costs(run) if r.unspaced else None
         for i, j in _split_run(run, follow, r):
             start = run[i].start_ms
@@ -311,7 +334,7 @@ def to_cues(
                 text = _wrap(run[i : j + 1], r.max_line_chars)
             else:
                 text = unspaced.wrap(run[i : j + 1], r.max_line_chars, breaks[i:j])
-            cues.append(Cue(len(cues) + 1, start, end, text, lang=lang))
+            cues.append(Cue(first_id + len(cues), start, end, text, lang=lang))
         begin = index
     return cues
 

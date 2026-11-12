@@ -55,7 +55,7 @@ def transcribe_chunks(
     with ascii_temp_dir() as work:
         paths = write_chunks(wav, chunks, work, cancel)
         results = engine.transcribe_many(paths, language, progress_cb, cancel)
-    per_chunk = [_place(chunk, segments) for chunk, segments in zip(chunks, results, strict=True)]
+    per_chunk = [place(chunk, segments) for chunk, segments in zip(chunks, results, strict=True)]
     trimmed = trim_overlaps(chunks, per_chunk)
     repaired = trimmed
     if is_spaced(language):
@@ -84,7 +84,7 @@ def write_chunks(
     return paths
 
 
-def _place(chunk: Chunk, segments: Sequence[Segment]) -> list[Word]:
+def place(chunk: Chunk, segments: Sequence[Segment]) -> list[Word]:
     return [
         Word(w.text, w.start_ms + chunk.start_ms, w.end_ms + chunk.start_ms)
         for segment in segments
