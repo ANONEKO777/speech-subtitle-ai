@@ -1,4 +1,5 @@
 import type { Cue } from "../player/cues";
+import { DEFAULT_SOURCE, type SourceLang, parseSourceLang } from "./sourceLang";
 
 export interface Backend {
   readonly port: number;
@@ -13,6 +14,8 @@ export interface ProjectView {
   readonly activeLang: string;
   /** Codes of the languages whose translation is finished, the active one first. */
   readonly translatedLangs: readonly string[];
+  /** The language spoken in the video. */
+  readonly sourceLang: SourceLang;
 }
 
 /** A cue the backend refused to save, with the reason. */
@@ -96,6 +99,7 @@ function projectView(body: unknown): ProjectView {
     activeJob: typeof job === "string" ? job : null,
     activeLang: active,
     translatedLangs,
+    sourceLang: parseSourceLang(o["source_lang"]),
   };
 }
 
@@ -138,8 +142,10 @@ export async function createProject(b: Backend, videoPath: string): Promise<Proj
   return projectView(await call(b, "/api/projects", { method: "POST", body }));
 }
 
-export async function startJob(b: Backend, projectId: string): Promise<string> {
-  const body = asRecord(await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: "{}" }));
+export async function startJob(b: Backend, projectId: string, sourceLang: SourceLang = DEFAULT_SOURCE): Promise<string> {
+  const body = asRecord(
+    await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify({ source_lang: sourceLang }) }),
+  );
   if (typeof body?.["id"] !== "string") throw new ApiError(500, "unexpected job reply");
   return body["id"];
 }
@@ -150,21 +156,30 @@ export async function cancelJob(b: Backend, jobId: string): Promise<void> {
 
 const targetQuery = (lang: string) => `target_lang=${encodeURIComponent(lang)}`;
 
+/**
+ * A cue of a Japanese project has `src` and `lang`. A cue of an English project keeps the first
+ * release's layout, with the source text under `en` and no `lang`. The `en` that the backend adds
+ * to a Japanese cue as a temporary alias is never read.
+ */
 function parseCues(body: unknown): Cue[] {
   const list = asRecord(body)?.["cues"];
   if (!Array.isArray(list)) throw new ApiError(500, "unexpected subtitles reply");
   return list.map((item): Cue => {
     const c = asRecord(item);
+    const named = typeof c?.["src"] === "string";
+    const text = named ? c["src"] : c?.["en"];
     if (
       typeof c?.["id"] !== "number" ||
       typeof c["start_ms"] !== "number" ||
       typeof c["end_ms"] !== "number" ||
-      typeof c["en"] !== "string" ||
-      typeof c["zh"] !== "string"
+      typeof text !== "string" ||
+      typeof c["zh"] !== "string" ||
+      (named && typeof c["lang"] !== "string")
     ) {
       throw new ApiError(500, "unexpected cue");
     }
-    return { id: c["id"], startMs: c["start_ms"], endMs: c["end_ms"], en: c["en"], zh: c["zh"] };
+    const lang = named ? String(c["lang"]) : DEFAULT_SOURCE;
+    return { id: c["id"], startMs: c["start_ms"], endMs: c["end_ms"], src: text, lang, zh: c["zh"] };
   });
 }
 
@@ -172,10 +187,10 @@ export async function fetchCues(b: Backend, projectId: string, lang: string): Pr
   return parseCues(await call(b, `/api/projects/${projectId}/subtitles?lang=bilingual&format=json&${targetQuery(lang)}`));
 }
 
-/** Saves the whole cue list of `lang`. The backend refuses it with `problems` naming the bad cues. */
+/** Saves the whole cue list of `lang`. The backend refuses it with `problems` naming the bad cues. Its request body still calls the source text `en`. */
 export async function putCues(b: Backend, projectId: string, lang: string, cues: readonly Cue[]): Promise<void> {
   const body = JSON.stringify({
-    cues: cues.map((c) => ({ id: c.id, start_ms: c.startMs, end_ms: c.endMs, en: c.en, zh: c.zh })),
+    cues: cues.map((c) => ({ id: c.id, start_ms: c.startMs, end_ms: c.endMs, en: c.src, zh: c.zh })),
   });
   await call(b, `/api/projects/${projectId}/subtitles?${targetQuery(lang)}`, { method: "PUT", body });
 }

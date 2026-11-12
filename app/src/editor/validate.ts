@@ -18,7 +18,7 @@ export const BACKEND_PROBLEM: Readonly<Record<string, string>> = {
   too_long: "超過 7 秒的上限",
   overlap: "與相鄰的字幕重疊",
   out_of_order: "開始時間早於上一條",
-  english_changed: "英文原文不能修改",
+  english_changed: "原文不能修改，只能改譯文和時間",
   bad_text: "文字有多餘的空白或換行",
 };
 

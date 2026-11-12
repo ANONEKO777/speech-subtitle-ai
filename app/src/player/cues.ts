@@ -2,10 +2,14 @@ export interface Cue {
   readonly id: number;
   readonly startMs: number;
   readonly endMs: number;
-  readonly en: string;
+  /** What was said, in the language `lang`. */
+  readonly src: string;
+  /** The spoken language of this cue, a source language code. */
+  readonly lang: string;
   readonly zh: string;
 }
 
+/** Which lines show. `en` is the name the backend and the saved settings give the source text, whatever language it is in. */
 export type SubtitleMode = "en" | "zh" | "both";
 
 /**

@@ -15,6 +15,7 @@ const item = (id: string): BatchItem => ({
   id,
   videoPath: `C:/v/${id}.mp4`,
   lang: "zh-TW",
+  sourceLang: "en",
   state: "queued",
   step: null,
   progress: 0,

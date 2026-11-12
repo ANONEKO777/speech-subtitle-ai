@@ -5,7 +5,8 @@ const cue = (id: number, startMs: number, endMs: number): Cue => ({
   id,
   startMs,
   endMs,
-  en: `en ${id}`,
+  src: `en ${id}`,
+  lang: "en",
   zh: `zh ${id}`,
 });
 

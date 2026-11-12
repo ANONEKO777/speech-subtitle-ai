@@ -1,4 +1,5 @@
 import { asRecord } from "../api/client";
+import { type SourceLang, parseSourceLang } from "../api/sourceLang";
 
 export const STEP_ORDER = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type QueueStep = (typeof STEP_ORDER)[number];
@@ -25,6 +26,7 @@ export interface BatchItem {
   readonly videoPath: string;
   readonly projectId: string;
   readonly lang: string;
+  readonly sourceLang: SourceLang;
   readonly state: ItemState;
   readonly position: number;
   readonly step: QueueStep | null;
@@ -110,6 +112,7 @@ export function parseItem(raw: unknown): BatchItem | null {
     videoPath: o["video_path"],
     projectId: typeof o["project_id"] === "string" ? o["project_id"] : "",
     lang: o["target_lang"],
+    sourceLang: parseSourceLang(o["source_lang"]),
     state: o["state"],
     position: num(o["position"]) ?? 0,
     step: isStep(o["step"]) ? o["step"] : null,

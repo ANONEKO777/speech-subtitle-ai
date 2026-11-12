@@ -768,7 +768,7 @@ button.ghost:hover:not(:disabled) {
   margin: 0;
 }
 
-.subtitle p[data-lang="en"] {
+.subtitle p[data-lang="src"] {
   font-weight: var(--weight-regular);
 }
 
@@ -1107,7 +1107,7 @@ button.chapter-time:hover:not(:disabled) {
   white-space: pre-line;
 }
 
-.cues .en {
+.cues .src {
   color: var(--text-muted);
   font-size: var(--text-sm);
   line-height: 1.45;
@@ -1119,17 +1119,17 @@ button.chapter-time:hover:not(:disabled) {
   line-height: 1.5;
 }
 
-.cues .en:only-child {
+.cues .src:only-child {
   color: var(--text);
   font-size: var(--text-md);
 }
 
 .cues li[data-active="true"] .zh,
-.cues li[data-active="true"] .en:only-child {
+.cues li[data-active="true"] .src:only-child {
   color: var(--text);
 }
 
-.cues li[data-active="true"] .en {
+.cues li[data-active="true"] .src {
   color: color-mix(in srgb, var(--text-muted), var(--text) 35%);
 }
 
@@ -1212,7 +1212,7 @@ button.chapter-time:hover:not(:disabled) {
   margin: 0;
 }
 
-.editor-en {
+.editor-src {
   color: var(--text-muted);
   font-size: var(--text-sm);
   line-height: 1.45;
@@ -2385,4 +2385,74 @@ kbd {
   position: fixed;
   bottom: var(--space-5);
   z-index: 30;
+}
+
+/* video language: a compact picker in the toolbar, and a one-line note under it */
+.source-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.source-pick select {
+  width: 64px;
+  height: 32px;
+  padding: 0 var(--space-1);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+/* the picker sits in the toolbar except in the player, where the toolbar has no spare width: there it moves into this bar, which only shows for 日文 */
+.source-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--accent-soft);
+}
+
+.source-bar .source-pick select {
+  height: 24px;
+  font-size: var(--text-xs);
+}
+
+.source-note {
+  margin: 0;
+  color: var(--on-accent-light);
+  font-size: var(--text-xs);
+}
+
+.add-note {
+  margin: 0;
+  color: var(--on-accent-light);
+  font-size: var(--text-xs);
+}
+
+.chip-src {
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  color: var(--on-accent-light);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.lib-sub .chip-src {
+  padding: 1px 7px;
+  font-size: var(--text-xs);
+}
+
+/* Japanese text takes the Japanese glyph forms, which the Traditional Chinese fonts do not draw for kana */
+:lang(ja) {
+  font-family: "Yu Gothic UI", "Yu Gothic", "Meiryo UI", "Meiryo", "MS Gothic", var(--font-sans);
 }

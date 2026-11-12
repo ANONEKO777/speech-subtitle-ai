@@ -2,6 +2,7 @@ import { Clock, Film, ListPlus, ListX, Play, TriangleAlert } from "lucide-react"
 import { useEffect, useRef, useState } from "react";
 import type { Backend } from "../api/client";
 import { type LibraryItem, fetchThumbnail } from "../api/library";
+import { DEFAULT_SOURCE, sourceTag } from "../api/sourceLang";
 import { type Queue } from "./queue";
 import { playClock } from "./transport";
 
@@ -64,6 +65,11 @@ function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: 
           </span>
           <span className="lib-sub">
             <span className="num">{item.durationS > 0 ? playClock(item.durationS) : "—"}</span>
+            {item.sourceLang !== DEFAULT_SOURCE && (
+              <span className="chip chip-src" data-testid={`${kind}-src-${item.id}`} title="影片語言">
+                {sourceTag(item.sourceLang)}
+              </span>
+            )}
             {item.langs.map((l) => (
               <span key={l} className="chip">
                 {p.names.get(l) ?? l}

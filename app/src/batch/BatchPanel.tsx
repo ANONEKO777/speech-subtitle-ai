@@ -21,6 +21,7 @@ import {
   reorderQueue,
   setQueuePaused,
 } from "./api";
+import { DEFAULT_SOURCE, sourceTag } from "../api/sourceLang";
 import { isExperimental, langName } from "./lang";
 import {
   type Batch,
@@ -284,6 +285,11 @@ function Row({ item, languages, dragging, canDrag, onOpen, onAct, onDragStart, o
         <b>{baseName(item.videoPath)}</b>
       </button>
       <span className="batch-lang" data-testid={`qlang-${item.id}`}>
+        {item.sourceLang !== DEFAULT_SOURCE && (
+          <span className="chip-src" data-testid={`qsrc-${item.id}`} title="影片語言">
+            {sourceTag(item.sourceLang)}
+          </span>
+        )}
         {langName(item.lang, languages)}
         {isExperimental(item.lang, languages) && <span className="chip-exp">實驗性</span>}
       </span>

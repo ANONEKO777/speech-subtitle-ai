@@ -6,8 +6,8 @@ import { CueEditor } from "./CueEditor";
 import { type Loaded, useCueEditing } from "./useCueEditing";
 
 const cues: readonly Cue[] = [
-  { id: 1, startMs: 1000, endMs: 2000, en: "Hello there.", zh: "你好。" },
-  { id: 2, startMs: 3000, endMs: 4000, en: "Second.", zh: "第二。" },
+  { id: 1, startMs: 1000, endMs: 2000, src: "こんにちは。", lang: "ja", zh: "你好。" },
+  { id: 2, startMs: 3000, endMs: 4000, src: "二つ目。", lang: "ja", zh: "第二。" },
 ];
 const loaded: Loaded = { cues, editedIds: [] };
 const backend = { port: 1, token: "t" };
@@ -51,7 +51,7 @@ describe("a failed save shows its reason on the cue after the person has typed",
     await typeAndSave(() =>
       reply(422, { detail: { message: "bad", problems: [{ id: 1, code: "english_changed", message: "m" }] } }),
     );
-    expect((await screen.findByTestId("edit-error")).textContent).toBe("英文原文不能修改");
+    expect((await screen.findByTestId("edit-error")).textContent).toBe("原文不能修改，只能改譯文和時間");
     expect(screen.getByTestId("cue-editor")).toBeTruthy();
   });
 
@@ -71,5 +71,22 @@ describe("a failed save shows its reason on the cue after the person has typed",
     await screen.findByTestId("edit-error");
     fireEvent.keyDown(screen.getByTestId("edit-text"), { key: "Enter" });
     await waitFor(() => expect(screen.queryByTestId("edit-error")).toBeNull());
+  });
+
+  it("typing on the source line says the source cannot be changed, and the draft is not sent", async () => {
+    const fetchImpl = vi.fn(() => reply(200, {}));
+    vi.stubGlobal("fetch", fetchImpl);
+    render(<Harness />);
+    fireEvent.click(screen.getByText("edit"));
+    const source = await screen.findByTestId("edit-source");
+    expect(source.textContent).toBe("こんにちは。");
+    expect(source.getAttribute("lang")).toBe("ja");
+    const reachedPlayer = vi.fn();
+    window.addEventListener("keydown", reachedPlayer);
+    fireEvent.keyDown(source, { key: "x" });
+    window.removeEventListener("keydown", reachedPlayer);
+    expect((await screen.findByTestId("edit-error")).textContent).toBe("原文不能修改，只能改譯文和時間");
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(reachedPlayer).not.toHaveBeenCalled();
   });
 });

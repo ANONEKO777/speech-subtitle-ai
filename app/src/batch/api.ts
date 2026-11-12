@@ -1,4 +1,5 @@
 import { type Backend, asRecord, call } from "../api/client";
+import type { SourceLang } from "../api/sourceLang";
 import type { BatchSettings, Snapshot } from "./model";
 import { parseSettings, parseSnapshot } from "./model";
 
@@ -7,6 +8,8 @@ export const fetchQueue = async (b: Backend): Promise<Snapshot> => parseSnapshot
 export interface AddEntry {
   readonly path: string;
   readonly lang: string;
+  /** The language spoken in the video. */
+  readonly source: SourceLang;
   /** A folder is scanned by the backend for videos. */
   readonly folder?: { readonly recursive: boolean };
 }
@@ -17,9 +20,9 @@ export interface Skipped {
 }
 
 export async function addToQueue(b: Backend, entries: readonly AddEntry[]): Promise<{ added: number; skipped: Skipped[] }> {
-  const items = entries.filter((e) => !e.folder).map((e) => ({ path: e.path, target_lang: e.lang }));
+  const items = entries.filter((e) => !e.folder).map((e) => ({ path: e.path, target_lang: e.lang, source_lang: e.source }));
   const folders = entries.flatMap((e) =>
-    e.folder ? [{ path: e.path, target_lang: e.lang, recursive: e.folder.recursive }] : [],
+    e.folder ? [{ path: e.path, target_lang: e.lang, source_lang: e.source, recursive: e.folder.recursive }] : [],
   );
   const body = asRecord(await call(b, "/api/queue/items", { method: "POST", body: JSON.stringify({ items, folders }) }));
   const skipped = (Array.isArray(body?.["skipped"]) ? (body["skipped"] as unknown[]) : []).flatMap((s): Skipped[] => {

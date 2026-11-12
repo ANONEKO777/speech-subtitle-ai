@@ -1,4 +1,5 @@
 import { ApiError, type Backend, asRecord, base, call } from "./client";
+import { type SourceLang, parseSourceLang } from "./sourceLang";
 
 export interface LibraryItem {
   readonly id: string;
@@ -6,6 +7,7 @@ export interface LibraryItem {
   readonly title: string;
   readonly exists: boolean;
   readonly langs: readonly string[];
+  readonly sourceLang: SourceLang;
   readonly durationS: number;
   readonly positionS: number;
   readonly openedAtMs: number;
@@ -35,6 +37,7 @@ export async function fetchLibrary(b: Backend): Promise<LibraryItem[]> {
         title: typeof o["title"] === "string" ? o["title"] : o["id"],
         exists: o["exists"] === true,
         langs,
+        sourceLang: parseSourceLang(o["source_lang"]),
         durationS: num(o["duration_s"]),
         positionS: num(o["position_s"]),
         openedAtMs: num(o["opened_at_ms"]),

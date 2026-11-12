@@ -1,5 +1,6 @@
 import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel } from "./api/sourceLang";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
   ApiError,
@@ -26,7 +27,7 @@ import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
-import { ImportPanel } from "./import/ImportPanel";
+import { ImportPanel, SourcePick } from "./import/ImportPanel";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
@@ -51,6 +52,7 @@ type Screen =
       readonly kind: "playing";
       readonly videoPath: string;
       readonly projectId: string;
+      readonly sourceLang: SourceLang;
       /** The languages the project has a finished translation for. */
       readonly languages: readonly LanguageInfo[];
       readonly lang: string;
@@ -62,7 +64,7 @@ type Screen =
 const editsNotice = ({ kept, unmatched }: EditsReport): string | null => {
   const parts = [
     kept > 0 ? `重新翻譯後已保留 ${kept} 條手動修改` : "",
-    unmatched > 0 ? `${unmatched} 條修改因英文原文已變而沒有套用，仍存在專案資料夾的 edits 檔` : "",
+    unmatched > 0 ? `${unmatched} 條修改因原文已變而沒有套用，仍存在專案資料夾的 edits 檔` : "",
   ].filter(Boolean);
   return parts.length > 0 ? parts.join("；") : null;
 };
@@ -121,6 +123,7 @@ export function App() {
   const [library, setLibrary] = useState<readonly LibraryItem[]>([]);
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
+  const [sourceLang, setSourceLang] = useState<SourceLang>(DEFAULT_SOURCE);
   const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [] });
   const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
   const [batchRequest, setBatchRequest] = useState(0);
@@ -171,7 +174,7 @@ export function App() {
       ]);
       const languages = project.translatedLangs.flatMap((code) => known.filter((l) => l.code === code));
       const lang = prefer !== null && languages.some((l) => l.code === prefer) ? prefer : languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
-      setScreen({ kind: "playing", videoPath, projectId, languages, lang, loaded: await load(b, projectId, lang), playback, notice });
+      setScreen({ kind: "playing", videoPath, projectId, sourceLang: project.sourceLang, languages, lang, loaded: await load(b, projectId, lang), playback, notice });
       setQueue((q) => playing(q, projectId));
     },
     [load],
@@ -191,16 +194,18 @@ export function App() {
   );
 
   const startImport = useCallback(
-    async (videoPath: string, prefer: string | null = null) => {
+    async (videoPath: string, prefer: string | null = null, chosen: SourceLang | null = null) => {
       if (!backend) return;
       try {
         await allowVideo(videoPath);
         const project = await createProject(backend, videoPath);
         if (project.translated && project.activeJob === null) {
-          await show(backend, videoPath, project.id, null, prefer);
+          const differs = chosen !== null && chosen !== project.sourceLang;
+          const notice = differs ? `這部影片先前以${sourceLabel(project.sourceLang)}處理，已直接播放` : null;
+          await show(backend, videoPath, project.id, notice, prefer);
           return;
         }
-        const jobId = project.activeJob ?? (await startJob(backend, project.id));
+        const jobId = project.activeJob ?? (await startJob(backend, project.id, chosen ?? project.sourceLang));
         setScreen({ kind: "importing", videoPath, projectId: project.id, jobId });
       } catch (e) {
         setScreen({ kind: "idle", error: e instanceof ApiError ? e.message : message(e) });
@@ -235,13 +240,13 @@ export function App() {
     void watchDrops(
       (paths) => {
         const [first] = paths;
-        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first);
-        else if (paths.length > 0) setAdding(rowsFor(paths, languageSet.defaultCode));
+        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first, null, sourceLang);
+        else if (paths.length > 0) setAdding(rowsFor(paths, languageSet.defaultCode, sourceLang));
       },
       setDropping,
     ).then((s) => (stop = s));
     return () => stop?.();
-  }, [backend, startImport, languageSet.defaultCode]);
+  }, [backend, startImport, languageSet.defaultCode, sourceLang]);
 
   const playItem = useCallback((item: LibraryItem) => void startImport(item.videoPath), [startImport]);
   const stepVideo = useCallback(
@@ -323,68 +328,84 @@ export function App() {
 
   return (
     <div className="app">
-      <header>
-        {backend && (
-          <div className="tool-icons">
-            {screen.kind !== "idle" && (
+      <div className="app-top">
+        <header>
+          {backend && (
+            <div className="tool-icons">
+              {screen.kind !== "idle" && (
+                <button
+                  type="button"
+                  className="ghost icon-only"
+                  data-testid="home"
+                  title="回到媒體庫"
+                  aria-label="媒體庫"
+                  onClick={() => setScreen({ kind: "idle" })}
+                  disabled={screen.kind === "importing"}
+                >
+                  <Home className="icon" aria-hidden />
+                </button>
+              )}
+              <button
+                type="button"
+                className="icon-only"
+                title="批次加入：一次加入多個影片或資料夾"
+                aria-label="批次加入"
+                data-testid="batch-open-add"
+                onClick={() => setAdding([])}
+              >
+                <ListPlus className="icon" aria-hidden />
+              </button>
+              {badge && (
+                <button
+                  type="button"
+                  className="icon-only queue-chip"
+                  data-testid="queue-chip"
+                  data-active={total.active}
+                  title={total.etaS !== null ? `佇列 ${badge}：剩餘${formatEta(total.etaS)}` : `佇列 ${badge}`}
+                  aria-label={`佇列 ${badge}`}
+                  onClick={showQueue}
+                >
+                  <Layers className="icon" aria-hidden />
+                  <span className="chip-badge">{badge}</span>
+                  {total.active && (
+                    <span className="chip-percent" style={{ width: `${Math.round(total.fraction * 100)}%` }} />
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 className="ghost icon-only"
-                data-testid="home"
-                title="回到媒體庫"
-                aria-label="媒體庫"
-                onClick={() => setScreen({ kind: "idle" })}
+                data-testid="settings-open"
+                title="設定：模型、硬體、LLM 來源、授權"
+                aria-label="設定"
+                aria-pressed={screen.kind === "settings"}
                 disabled={screen.kind === "importing"}
+                onClick={() => setScreen(screen.kind === "settings" ? { kind: "idle" } : { kind: "settings" })}
               >
-                <Home className="icon" aria-hidden />
+                <Settings className="icon" aria-hidden />
               </button>
-            )}
-            <button
-              type="button"
-              className="icon-only"
-              title="批次加入：一次加入多個影片或資料夾"
-              aria-label="批次加入"
-              data-testid="batch-open-add"
-              onClick={() => setAdding([])}
-            >
-              <ListPlus className="icon" aria-hidden />
-            </button>
-            {badge && (
-              <button
-                type="button"
-                className="icon-only queue-chip"
-                data-testid="queue-chip"
-                data-active={total.active}
-                title={total.etaS !== null ? `佇列 ${badge}：剩餘${formatEta(total.etaS)}` : `佇列 ${badge}`}
-                aria-label={`佇列 ${badge}`}
-                onClick={showQueue}
-              >
-                <Layers className="icon" aria-hidden />
-                <span className="chip-badge">{badge}</span>
-                {total.active && (
-                  <span className="chip-percent" style={{ width: `${Math.round(total.fraction * 100)}%` }} />
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              className="ghost icon-only"
-              data-testid="settings-open"
-              title="設定：模型、硬體、LLM 來源、授權"
-              aria-label="設定"
-              aria-pressed={screen.kind === "settings"}
-              disabled={screen.kind === "importing"}
-              onClick={() => setScreen(screen.kind === "settings" ? { kind: "idle" } : { kind: "settings" })}
-            >
-              <Settings className="icon" aria-hidden />
-            </button>
+            </div>
+          )}
+          <ImportPanel
+            busy={!backend || screen.kind === "importing"}
+            sourceLang={sourceLang}
+            onSourceLang={setSourceLang}
+            withPicker={screen.kind !== "playing"}
+            onImport={(p) => void startImport(p, null, sourceLang)}
+          />
+          {screen.kind === "playing" && (
+            <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
+          )}
+        </header>
+        {SOURCE_NOTES[sourceLang] && (
+          <div className="source-bar">
+            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} onSourceLang={setSourceLang} />}
+            <p className="source-note" data-testid="source-note">
+              {SOURCE_NOTES[sourceLang]}
+            </p>
           </div>
         )}
-        <ImportPanel busy={!backend || screen.kind === "importing"} onImport={(p) => void startImport(p)} />
-        {screen.kind === "playing" && (
-          <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
-        )}
-      </header>
+      </div>
       <main>
         {status.kind === "starting" && (
           <div className="empty" data-testid="starting">
@@ -437,6 +458,7 @@ export function App() {
             backend={backend}
             projectId={screen.projectId}
             videoPath={screen.videoPath}
+            sourceLang={screen.sourceLang}
             settings={settings}
             languages={screen.languages}
             lang={screen.lang}
