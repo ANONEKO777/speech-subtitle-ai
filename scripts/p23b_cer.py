@@ -1,7 +1,7 @@
 """P23b lever: character error rates for a candidate's words (`p23b_proto.py` output).
 
-`ja REF.json WORDS.json`: the Japanese CER on the three Kirby windows of `docs/p22/reference-kirby.json`
-(Japanese characters only, as P22 counted). The reference is one model's reading of three engines'
+`ja REF.json WORDS.json`: the Japanese CER on the three Kirby windows of
+`docs/p22/reference-kirby.json` (Japanese characters only, as P22 counted). The reference is one model's reading of three engines'
 text, not a person's, and it sits closer to Whisper than to Qwen3 (P22 section 8).
 
 `en WORDS.json WHISPER_EN.json CHUNKS.json [MANIFEST.json LABELS.json]`: the English disagreement
@@ -67,7 +67,10 @@ def english(argv: list[str]) -> None:
         if not ref:
             continue
         errors, total, used = errors + edit_distance(ref, hyp), total + len(ref), used + 1
-    print(f"English disagreement with Whisper -l en: {errors / total:.4f} ({errors}/{total} chars, {used} chunks)")
+    rate = errors / total
+    print(
+        f"English disagreement with Whisper -l en: {rate:.4f} ({errors}/{total} chars, {used} chunks)"
+    )
 
 
 if __name__ == "__main__":
