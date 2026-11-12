@@ -501,3 +501,68 @@ def test_the_cue_json_of_a_mixed_file_keeps_english_cues_in_the_old_shape() -> N
 def test_rules_are_per_language_in_the_settings() -> None:
     assert MIXED_SETTINGS.rules_of(JA) == JAPANESE_SOURCE.cues
     assert MIXED_SETTINGS.rules_of(EN) == CueRules()
+
+
+class TestResolve:
+    @staticmethod
+    def install_crispasr(user_data: Path) -> None:
+        from test_resolve import REGISTRY, install
+
+        from backend.manager.profiles import CRISPASR_RUNTIME, QWEN3_ASR
+
+        storage = install(user_data)
+        model = REGISTRY.models[QWEN3_ASR]
+        files = [REGISTRY.models[n] for n in (QWEN3_ASR, *model.needs)]
+        for entry in files:
+            path = storage.model_file(entry)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"model")
+        runtime = REGISTRY.runtimes[CRISPASR_RUNTIME]
+        exe = storage.runtime_dir(runtime) / (runtime.executable or "")
+        exe.parent.mkdir(parents=True, exist_ok=True)
+        exe.write_bytes(b"exe")
+
+    def test_a_mixed_talk_uses_the_qwen3_engine_whatever_the_request_says(
+        self, tmp_path: Path
+    ) -> None:
+        from backend.engines.crispasr import ENGINE_ID
+        from backend.manager.resolve import Request, resolve
+
+        self.install_crispasr(tmp_path)
+        settings, _ = resolve(Request(user_data=tmp_path, source_lang="ja+en"), tmp_path / "p")
+        assert settings.asr_engine == ENGINE_ID and settings.source_lang == "ja+en"
+
+    def test_a_machine_without_the_qwen3_engine_is_told_why(self, tmp_path: Path) -> None:
+        from test_resolve import install
+
+        from backend.manager.resolve import Request, SettingsError, resolve
+
+        install(tmp_path)
+        with pytest.raises(SettingsError, match="24 GB profile"):
+            resolve(Request(user_data=tmp_path, source_lang="ja+en"), tmp_path / "p")
+
+    def test_cpu_mode_is_refused_for_a_mixed_talk(self, tmp_path: Path) -> None:
+        from backend.manager.resolve import Request, SettingsError, resolve
+
+        self.install_crispasr(tmp_path)
+        with pytest.raises(SettingsError, match="no CPU build"):
+            resolve(Request(user_data=tmp_path, source_lang="ja+en", cpu=True), tmp_path / "p")
+
+    def test_the_other_sources_still_use_the_engine_that_was_asked_for(
+        self, tmp_path: Path
+    ) -> None:
+        from backend.engines.whispercpp import ENGINE_ID
+        from backend.manager.resolve import Request, resolve
+
+        self.install_crispasr(tmp_path)
+        for code in ("en", "ja"):
+            settings, _ = resolve(Request(user_data=tmp_path, source_lang=code), tmp_path / "p")
+            assert settings.asr_engine == ENGINE_ID
+
+
+def test_the_command_line_and_the_job_body_accept_the_mixed_source() -> None:
+    from backend.api.jobs import JobBody
+    from backend.cli import build_parser
+
+    assert build_parser().parse_args(["x.mp4", "--source-lang", "ja+en"]).source_lang == "ja+en"
+    assert JobBody(source_lang="ja+en").options().source_lang == "ja+en"
