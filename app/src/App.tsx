@@ -1,6 +1,6 @@
 import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel } from "./api/sourceLang";
+import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
   ApiError,
@@ -224,6 +224,7 @@ export function App() {
         if (!alive) return;
         setLibrary(items);
         setLanguageSet(set);
+        setSourceLang((picked) => usableSource(picked, set.unavailable));
         setLanguageNames(new Map(set.languages.map((l) => [l.code, shortName(l.nativeName)])));
         setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
       },

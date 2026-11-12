@@ -168,7 +168,7 @@ const fileBoxChecks = async (label, min) => {
 const PLAYER_BOX = { 1280: 130, 960: 66 };
 const HOME_BOX = { 1280: 780, 960: 590 };
 const HOME_BOX_MIXED = { 1280: 700, 960: 520 };
-const MIXED_NOTE = "日英混合影片目前只輸出繁體中文字幕，需要 24 GB 的模型組。";
+const MIXED_NOTE = "日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。";
 
 const folderOf = (needle) => {
   for (const d of readdirSync(projects)) {

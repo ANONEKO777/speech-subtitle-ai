@@ -13,7 +13,7 @@ export const SOURCE_LANGS: ReadonlyArray<{ readonly code: SourceLang; readonly l
 /** What a person is told after picking a language whose subtitles come out in one language only. */
 export const SOURCE_NOTES: Readonly<Partial<Record<SourceLang, string>>> = {
   ja: "日文影片目前只輸出繁體中文字幕。",
-  "ja+en": "日英混合影片目前只輸出繁體中文字幕，需要 24 GB 的模型組。",
+  "ja+en": "日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。",
 };
 
 /** The target languages a source language can be translated into for now, or null for all of them. Mirrors `targets` of the backend's source table. */
@@ -35,7 +35,7 @@ export const sourceTag = (code: string): string => SOURCE_LANGS.find((l) => l.co
 /** Why this machine cannot process a source language, by the code the backend gives. */
 const UNAVAILABLE_TEXT: Readonly<Record<string, string>> = {
   missing_files: "這台電腦沒有安裝混合語言所需的模型",
-  cpu: "混合語言需要顯示卡，目前設定為 CPU 模式",
+  cpu: "混合語言需要顯示卡，這台電腦目前以 CPU 執行",
 };
 
 /** The source languages this machine cannot process, each with the reason in words. A language that is not listed can be picked. */
@@ -53,6 +53,10 @@ export function parseUnavailable(sources: unknown): Unavailable {
   }
   return out;
 }
+
+/** The language to keep selected: the one picked, or the default when this machine can no longer process it. */
+export const usableSource = (picked: SourceLang, unavailable: Unavailable): SourceLang =>
+  unavailable[picked] === undefined ? picked : DEFAULT_SOURCE;
 
 /** The two cue languages the window marks in a mixed talk: the one letter and the full name. */
 const CUE_MARKS: Readonly<Record<string, { readonly mark: string; readonly name: string }>> = {
