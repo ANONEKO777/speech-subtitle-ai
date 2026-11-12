@@ -90,6 +90,11 @@ def _repository(match: re.Match[str]) -> str:
     return "儲存庫"
 
 
+def _monorepo(match: re.Match[str]) -> str:
+    """單一儲存倉 for a monorepo, unless the cue is about goods."""
+    return match.group() if _WAREHOUSE.search(_cue_of(match)) else "單一儲存倉"
+
+
 def _after(words: str) -> str:
     return "(?:" + "|".join(f"(?<={word})" for word in words.split("|")) + ")"
 
@@ -161,6 +166,7 @@ _ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str
             f"|導入(?={_IMPORT_PAIR})",
             "匯入",
         ),
+        ("單一(?:倉庫|儲存庫)", _monorepo),
         ("倉庫", _repository),
     )
 )
