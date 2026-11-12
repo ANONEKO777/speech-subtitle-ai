@@ -1,8 +1,9 @@
 """P23b lever: character error rates for a candidate's words (`p23b_proto.py` output).
 
 `ja REF.json WORDS.json`: the Japanese CER on the three Kirby windows of
-`docs/p22/reference-kirby.json` (Japanese characters only, as P22 counted). The reference is one
-model's reading of three engines' text, not a person's, and it sits closer to Whisper than to Qwen3 (P22 section 8).
+`docs/p22/reference-kirby.json` (Japanese characters only, as P22 counted). The reference is
+one model's reading of three engines' text, not a person's, and it sits closer to Whisper than
+to Qwen3 (P22 section 8).
 
 `en WORDS.json WHISPER_EN.json CHUNKS.json [MANIFEST.json LABELS.json]`: the English disagreement
 rate. No person wrote the English, so the reference is Whisper `-l en` on the same chunk, a forced
