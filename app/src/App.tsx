@@ -124,7 +124,7 @@ export function App() {
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
   const [sourceLang, setSourceLang] = useState<SourceLang>(DEFAULT_SOURCE);
-  const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [] });
+  const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [], unavailable: {} });
   const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
   const [batchRequest, setBatchRequest] = useState(0);
   const { toast, show: showToast, hide: hideToast } = useToast(9000);
@@ -389,6 +389,7 @@ export function App() {
           <ImportPanel
             busy={!backend || screen.kind === "importing"}
             sourceLang={sourceLang}
+            unavailable={languageSet.unavailable}
             onSourceLang={setSourceLang}
             withPicker={screen.kind !== "playing"}
             onImport={(p) => void startImport(p, null, sourceLang)}
@@ -399,7 +400,7 @@ export function App() {
         </header>
         {SOURCE_NOTES[sourceLang] && (
           <div className="source-bar">
-            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} onSourceLang={setSourceLang} />}
+            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={setSourceLang} />}
             <p className="source-note" data-testid="source-note">
               {SOURCE_NOTES[sourceLang]}
             </p>

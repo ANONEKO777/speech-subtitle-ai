@@ -24,7 +24,7 @@ export function exportItems(videoPath: string, lang: string, label: string, sour
   const subs = (show: "en" | "zh" | "bilingual", format: "srt" | "vtt" | "ass") => (b: Backend, id: string) =>
     fetchSubtitleText(b, id, lang, { show, format });
   return [
-    { id: "srt-en", label: "SRT 原文", file: `${stem}.${source}.srt`, text: subs("en", "srt") },
+    { id: "srt-en", label: "SRT 原文", file: `${stem}.${source.replace("+", "-")}.srt`, text: subs("en", "srt") },
     { id: "srt-zh", label: `SRT ${label}`, file: `${stem}.${lang}.srt`, text: subs("zh", "srt") },
     { id: "srt-bilingual", label: "SRT 雙語", file: `${stem}.bilingual.${lang}.srt`, text: subs("bilingual", "srt") },
     { id: "ass", label: "ASS 雙語", file: `${stem}.bilingual.${lang}.ass`, text: subs("bilingual", "ass") },

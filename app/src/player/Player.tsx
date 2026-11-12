@@ -2,7 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { openFolder, pickFolder } from "../api/backend";
 import type { Backend, LanguageInfo } from "../api/client";
-import type { SourceLang } from "../api/sourceLang";
+import { MIXED, type SourceLang } from "../api/sourceLang";
 import { type Look, type Playback, takeStill } from "../api/library";
 import { type Loaded, useCueEditing } from "../editor/useCueEditing";
 import { exportItems, shortName } from "../export/exports";
@@ -384,7 +384,7 @@ export function Player(props: Props) {
         )}
         <div className="subtitle" data-testid="subtitle" style={subtitleStyle}>
           {lines.map((line) => (
-            <p key={line.side} data-lang={line.side} lang={line.lang}>
+            <p key={line.side} data-lang={line.side} data-cue-lang={line.side === "src" ? line.lang : undefined} lang={line.lang}>
               {line.text}
             </p>
           ))}
@@ -398,6 +398,7 @@ export function Player(props: Props) {
         editing={editing}
         active={active}
         mode={settings.mode}
+        marks={sourceLang === MIXED}
         languages={languages}
         lang={lang}
         onLang={onLang}

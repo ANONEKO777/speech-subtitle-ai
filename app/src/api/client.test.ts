@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchCues, putCues, startJob } from "./client";
+import { fetchCues, fetchLanguageSet, putCues, startJob } from "./client";
 
 const backend = { port: 1, token: "t" };
 
@@ -33,6 +33,48 @@ describe("fetchCues", () => {
   it("does not need the alias: a Japanese cue without en still reads", async () => {
     vi.stubGlobal("fetch", answer({ cues: [{ id: 0, start_ms: 0, end_ms: 9, src: "あ", lang: "ja", zh: "啊" }] }));
     expect((await fetchCues(backend, "p", "zh-TW"))[0]?.src).toBe("あ");
+  });
+});
+
+describe("fetchCues in a mixed talk", () => {
+  it("keeps the language of each cue, so neighbours of different languages stay apart", async () => {
+    vi.stubGlobal(
+      "fetch",
+      answer({
+        cues: [
+          { id: 0, start_ms: 0, end_ms: 900, src: "こんにちは", lang: "ja", zh: "你好" },
+          { id: 1, start_ms: 900, end_ms: 2000, src: "Thank you", lang: "en", zh: "謝謝" },
+        ],
+      }),
+    );
+    const cues = await fetchCues(backend, "p", "zh-TW");
+    expect(cues.map((c) => c.lang)).toEqual(["ja", "en"]);
+  });
+});
+
+describe("fetchLanguageSet", () => {
+  const set = (sources: unknown) =>
+    answer({
+      default: "zh-TW",
+      languages: [{ code: "zh-TW", name: "Traditional Chinese", native_name: "繁體中文", quality: "stable" }],
+      sources,
+    });
+
+  it("lists the video languages this machine cannot process, with the reason in words", async () => {
+    vi.stubGlobal(
+      "fetch",
+      set([
+        { code: "en", available: true, reason: null },
+        { code: "ja", available: true, reason: null },
+        { code: "ja+en", available: false, reason: "missing_files" },
+      ]),
+    );
+    expect((await fetchLanguageSet(backend)).unavailable).toEqual({ "ja+en": "這台電腦沒有安裝混合語言所需的模型" });
+  });
+
+  it("offers everything when the backend does not say, so its own refusal is what a person sees", async () => {
+    vi.stubGlobal("fetch", set(undefined));
+    expect((await fetchLanguageSet(backend)).unavailable).toEqual({});
   });
 });
 

@@ -1,5 +1,5 @@
 import type { Cue } from "../player/cues";
-import { DEFAULT_SOURCE, type SourceLang, parseSourceLang } from "./sourceLang";
+import { DEFAULT_SOURCE, type SourceLang, type Unavailable, parseSourceLang, parseUnavailable } from "./sourceLang";
 
 export interface Backend {
   readonly port: number;
@@ -118,6 +118,8 @@ export interface LanguageInfo {
 export interface LanguageSet {
   readonly defaultCode: string;
   readonly languages: LanguageInfo[];
+  /** The video languages this machine cannot process now, with the reason. */
+  readonly unavailable: Unavailable;
 }
 
 export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
@@ -130,7 +132,11 @@ export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
     const quality = l["quality"] === "experimental" ? "experimental" : "stable";
     return [{ code: l["code"], name: l["name"], nativeName: l["native_name"], quality }];
   });
-  return { defaultCode: typeof body?.["default"] === "string" ? body["default"] : "zh-TW", languages };
+  return {
+    defaultCode: typeof body?.["default"] === "string" ? body["default"] : "zh-TW",
+    languages,
+    unavailable: parseUnavailable(body?.["sources"]),
+  };
 }
 
 export async function fetchLanguages(b: Backend): Promise<LanguageInfo[]> {

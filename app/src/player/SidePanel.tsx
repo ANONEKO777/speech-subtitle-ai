@@ -19,6 +19,7 @@ interface Props {
   readonly editing: CueEditing;
   readonly active: number;
   readonly mode: SubtitleMode;
+  readonly marks: boolean;
   readonly languages: readonly LanguageInfo[];
   readonly lang: string;
   readonly onLang: (code: string) => void;
@@ -99,6 +100,7 @@ export function SidePanel(p: Props) {
           cues={cues}
           active={p.active}
           mode={p.mode}
+          marks={p.marks}
           edited={edited}
           editingId={editing.editingId}
           editor={(cue) => ({

@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import type { Cue } from "../player/cues";
+import { LangMark } from "../player/LangMark";
 import { BACKEND_PROBLEM, type Draft, formatClock, normalizeText, parseClock } from "./validate";
 
 export interface EditorHooks {
@@ -15,7 +16,7 @@ const BAD_TIME = "時間格式為 分:秒.毫秒，例如 1:05.250";
 const SOURCE_LOCKED = BACKEND_PROBLEM["english_changed"] ?? "";
 
 /** Inline editor for one cue: the target language text and the two times. The source line is shown for reference and cannot be changed. */
-export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: EditorHooks }) {
+export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly hooks: EditorHooks; readonly marks: boolean }) {
   const [zh, setZh] = useState(cue.zh);
   const [start, setStart] = useState(formatClock(cue.startMs));
   const [end, setEnd] = useState(formatClock(cue.endMs));
@@ -107,6 +108,7 @@ export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: E
         className="editor-src"
         data-testid="edit-source"
         lang={cue.lang}
+        data-cue-lang={cue.lang}
         tabIndex={0}
         title="原文是翻譯與摘要的來源，不能在這裡修改"
         onKeyDown={(e) => {
@@ -117,6 +119,7 @@ export function CueEditor({ cue, hooks }: { readonly cue: Cue; readonly hooks: E
         }}
         onPaste={() => setTypedOnSource(true)}
       >
+        {marks && <LangMark lang={cue.lang} />}
         {cue.src}
       </p>
       {problem && (

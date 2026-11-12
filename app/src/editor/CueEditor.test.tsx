@@ -19,6 +19,7 @@ function Harness() {
   return (
     <CueEditor
       cue={cue}
+      marks={false}
       hooks={{
         validate: (d) => editing.validate(cue.id, d),
         refusal: editing.refusal,
