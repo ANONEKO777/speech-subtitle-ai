@@ -851,8 +851,9 @@ try {
     note("the backend refusal is shown as is", shown.includes("Japanese and English talks need the Qwen3-ASR engine") && shown.includes("24 GB profile"), `error text "${shown.slice(0, 220)}"`);
     await p.unroute("**/api/languages");
   } else if (phase === "nofont") {
-    const video = join(clips, "cedec-25-35.mp4");
-    await importVideo(video, "ja");
+    const mixedTalk = process.env.P24B_NOFONT === "mixed";
+    const video = join(clips, mixedTalk ? "kirby-5-15.mp4" : "cedec-25-35.mp4");
+    await importVideo(video, mixedTalk ? "ja+en" : "ja");
     await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
     await p.evaluate(() => document.querySelector("video").pause());
     await p.keyboard.press("Shift+s");
