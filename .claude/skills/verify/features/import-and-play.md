@@ -6,6 +6,8 @@ A user pastes a video path, presses 匯入, watches a progress bar with the curr
 
 - `import-form` accepts a typed path and enables 匯入 only with a non-empty path.
 - `import-progress` shows a bar that follows the job's server-sent events and names the step (擷取音訊, 偵測語音, 語音辨識, 斷句, 翻譯成繁體中文, 輸出字幕, 重點摘要).
+- `source-pick` the 影片語言 select (`source-lang` in the import bar, `add-default-source` and `add-row-source` in the add dialog) offers 英文, 日文 and 日文與英文混合. Picking the mixed one shows the note 「日英混合影片目前只輸出繁體中文字幕，需要 24 GB 的模型組。」 (`source-note` in the import bar, `add-source-note` in the dialog), and the job body carries `source_lang: "ja+en"`.
+- `source-unavailable` when `GET /api/languages` lists `ja+en` with `available: false` (reason `missing_files` or `cpu`), the mixed option is `disabled` and its text says why. The tag 日英混合 shows in the library (`lib-src-<id>`) and the queue (`qsrc-<id>`) for a mixed project.
 - `import-cached` goes straight to the player when the project is already translated.
 - `play-below` puts the subtitle area under the video, not over it.
 - `shutdown` kills the backend and its ASR children when the window closes.

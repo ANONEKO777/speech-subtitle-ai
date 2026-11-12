@@ -98,7 +98,7 @@ video-subtitle-translator/
   → [3] ASR 辨識 → 原文文字 + 時間戳
   → [4] 斷句 / 字幕行切分（見 §5.1）
   → [5] 翻譯成目標語言（見 §8）
-  → [6] 輸出：en.srt（日文影片是 ja.srt）、<語言>.srt（繁中為 zh-TW.srt）、bilingual.ass/vtt、project.json
+  → [6] 輸出：en.srt（日文影片是 ja.srt，日英混合是 src.srt）、<語言>.srt（繁中為 zh-TW.srt）、bilingual.ass/vtt、project.json
   → [7] 摘要（獨立步驟，可延後或重跑）→ summary.md
 ```
 
@@ -108,8 +108,8 @@ video-subtitle-translator/
 - 影片的語言是專案的一個設定：`en`（預設）、`ja` 或 `ja+en`（日英混合，見下）（`backend/core/source_langs.py` 的型別化表，每筆有檔名、斷句規則、翻譯與摘要提示詞、輸出檢查、燒錄字型）。CLI `--source-lang`、工作 body 的 `source_lang`、佇列項目的 `source_lang`（項目或資料夾可各自指定）都對照這張表，未知代碼回 422。日文目前只能翻成繁體中文（`zh-TW`），其他目標語言回 422，等 P25。表的設計讓之後加別的來源語言不必改流程。
 - 來源語言屬於辨識（已有）、斷句、翻譯、摘要的設定與快取鍵。英文不加任何新欄位，所以舊專案的快取鍵、提示詞與輸出逐位元組不變，不必重跑。日文專案的快取鍵與輸出也不變，只有一處行為不同（P23b）：摘要的每則重點筆記含假名時現在會被拒絕並重問（`summarize.parse_map`），舊版會收下；快取鍵沒變，已摘要的日文專案保留舊摘要。英文專案不受影響。
 - 檔名：英文是 `subs.en.json` 與 `en.srt`（不變），日文是 `subs.ja.json` 與 `ja.srt`。`project.json` 只在不是英文時才多一個 `source_lang`。一個專案資料夾只有一種來源語言，換語言會重跑辨識以後的步驟，舊語言的來源檔留在原處不刪（`en.srt` 與 `ja.srt` 一律不刪）。
-- 字幕的來源文字欄位在程式裡叫 `src`，每則字幕有自己的 `lang`（給之後的日英混合用，P23a 的專案每則都是專案的語言）。`subs.*.json` 的英文字幕仍寫 `en`，其他語言寫 `src` 加 `lang`，兩種都讀得進來。HTTP API 的請求還用 `en` 這個名字（`lang=en` 取來源文字，PUT 內文也是 `en`，`mode` 的值 `en`），這是請求的格式，不是語言；介面上一律叫「原文」。`GET /subtitles?format=json` 對日文專案的每則字幕除了 `src` 與 `lang` 之外，另外附一個 `en` 欄位放同樣的來源文字，這是暫時的別名，只出現在 API 回覆，不寫進檔案。介面（P24a）已經不讀它：桌面程式讀 `src` 與 `lang`，英文專案的字幕沒有 `lang`，仍讀 `en`。別名在後續的 PR 刪除，英文專案的回覆不變。
-- 日英混合（`ja+en`，P23b，後端；介面是 P24b）：第三個來源語言，給日文講者加英文口譯的演講。決定與證據見 `docs/P23b-mixed-source-decision.md`。
+- 字幕的來源文字欄位在程式裡叫 `src`，每則字幕有自己的 `lang`（日英混合的專案每則各有自己的語言，其他專案每則都是專案的語言）。`subs.*.json` 的英文字幕仍寫 `en`，其他語言寫 `src` 加 `lang`，兩種都讀得進來。HTTP API 的請求還用 `en` 這個名字（`lang=en` 取來源文字，PUT 內文也是 `en`，`mode` 的值 `en`），這是請求的格式，不是語言；介面上一律叫「原文」。`GET /subtitles?format=json` 對日文專案的每則字幕除了 `src` 與 `lang` 之外，另外附一個 `en` 欄位放同樣的來源文字，這是暫時的別名，只出現在 API 回覆，不寫進檔案。介面（P24a）已經不讀它：桌面程式讀 `src` 與 `lang`，英文專案的字幕沒有 `lang`，仍讀 `en`。別名在後續的 PR 刪除，英文專案的回覆不變。
+- 日英混合（`ja+en`，P23b 是後端，P24b 是介面，見 §10）：第三個來源語言，給日文講者加英文口譯的演講。決定與證據見 `docs/P23b-mixed-source-decision.md`。
   - 檔名 `subs.src.json` 與 `src.srt`。每則字幕有自己的 `lang`（`ja` 或 `en`），日文字幕寫 `src` 加 `lang`，英文字幕仍寫 `en`。新專案，不遷移舊專案。`GET /api/projects` 與專案 JSON 的 `source_lang` 為 `ja+en`。
   - 辨識固定用 Qwen3-ASR（CrispASR）`-l auto`，不帶 `--strict-pipeline`，`--engine` 對 `ja+en` 不起作用。音訊在每個 300 ms 以上的停頓切開（`vad.plan_pauses`，前後各 150 ms，不到 0.5 秒的語音不送），逐段辨識。再做兩個修補（`backend/engines/mixed.py`）：輸出不是日文也不是英文的短段（韓文、簡體中文）用 `-l ja` 重辨；一段尾端有 1.5 秒以上沒有被任何字覆蓋的語音，把那一截另外辨識。之後每個字依文字種類標 `ja` 或 `en`。Qwen3 只在 `gpu-24gb` 設定檔，CPU 與 8 GB 設定檔選 `ja+en` 回明確的錯誤，不降級成 Whisper（操作者 2026-11-12 決定 `ja+en` 只給 24 GB 設定檔；Whisper 逐段偵測把日文講者的話丟掉，見決定文件）。
   - 斷句依語言（各用自己的規則），相鄰不同語言的字永遠不併成一則字幕。
@@ -117,7 +117,7 @@ video-subtitle-translator/
   - 摘要用 `prompts/summarize_map_ja_en.md`（日文版加上「英文段常是前一段日文的口譯，同一點只寫一次」）。視窗大小依字數與英文詞數混算。
   - 快取鍵：只有 `ja+en` 在 VAD、ASR、斷句、翻譯、摘要的鍵多出自己的欄位，`en` 與 `ja` 的鍵逐位元組不變（`tests/test_mixed.py::TestCacheKeys`、`tests/test_japanese.py::TestEnglishIsUnchanged`）。
   - 沒有選音軌：一個音軌，兩種語言混在一起。選音軌要改匯入、佇列與 API，不便宜，沒有做。
-- 介面（P24a）：匯入框與佇列的加入對話框有「影片語言」（英文、日文，預設英文），送出時帶 `source_lang`。選日文時顯示一行說明（目前只輸出繁體中文）。播放器的工具列沒有多餘寬度，所以在播放器裡，影片語言改放在工具列下方那一條（只在選了日文時出現，和說明同一行），英文時播放器的工具列與以前相同。佇列的日文項目只能選繁體中文。`GET /api/projects` 的每個項目帶 `source_lang`，媒體庫與佇列用它在日文影片上顯示小標籤。已處理完的專案匯入時直接播放，來源語言以專案為準。編輯字幕時原文那一行唯讀，輸入會顯示「原文不能修改」，後端回 422 `english_changed` 也顯示同一句。
+- 介面（P24a）：匯入框與佇列的加入對話框有「影片語言」（英文、日文，預設英文），送出時帶 `source_lang`。選日文時顯示一行說明（目前只輸出繁體中文）。P24b 在選單加上第三個選項，日文與英文混合，見 §10。播放器的工具列沒有多餘寬度，所以在播放器裡，影片語言改放在工具列下方那一條（只在選了日文時出現，和說明同一行），英文時播放器的工具列與以前相同。佇列的日文與日英混合項目只能選繁體中文。`GET /api/projects` 的每個項目帶 `source_lang`，媒體庫與佇列用它在日文影片上顯示小標籤。已處理完的專案匯入時直接播放，來源語言以專案為準。編輯字幕時原文那一行唯讀，輸入會顯示「原文不能修改」，後端回 422 `english_changed` 也顯示同一句。
 
 ### 5.1 字幕規則
 - 取得時間戳的方式：
@@ -251,7 +251,7 @@ POST /api/models/{id}/download
 DELETE /api/models/{id}
 POST /api/projects                       # body: {video_path}
 GET  /api/projects/{id}                  # 狀態、檔案路徑、設定；steps 是 active_lang 的各步驟，languages 是每個語言的 translate/export/summarize 狀態
-GET  /api/languages                      # 可用的目標語言、品質標籤（stable|experimental）與各自的輸出檔名
+GET  /api/languages                      # 可用的目標語言、品質標籤（stable|experimental）與各自的輸出檔名；另有 `sources`，影片語言清單 [{code, name, native_name, available, reason}]，`reason` 是 null、`missing_files`（沒有 Qwen3 檔案）或 `cpu`（CPU 模式），視窗用它把這台電腦跑不了的選項停用（見 §10）
 POST /api/projects/{id}/jobs             # body: {engine, llm, llm_model, cpu, glossary, summary_en, batch_size, target_lang, source_lang}（source_lang 預設 en，見 §5.0）；target_lang 對照登錄表，未知代碼回 422，預設 zh-TW；步驟一律全跑，輸入沒變的自動跳過；同專案已有未完成 job 回 409
 GET  /api/jobs/{id}/events               # SSE 進度
 GET  /api/jobs/{id}                       # job 狀態與總進度
@@ -320,11 +320,16 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 
 - 影片區 + **其下方**的字幕區（不疊在畫面上）；可切換：僅原文 / 僅中文 / 雙語（中文在上、原文在下，或相反，可設定）。
 - 字幕大小、顏色、行距可調。
+- 影片語言（P24b）：匯入框、加入對話框（預設與每個項目）與批次佇列的「影片語言」選單有三個選項，英文、日文、日文與英文混合，送出時帶 `source_lang`（`en`、`ja`、`ja+en`）。選混合時顯示一行說明「日英混合影片目前只輸出繁體中文字幕，需要 24 GB 的模型組。」，目標語言只能選繁體中文。
+- 混合語言的可用性：混合需要 Qwen3 的引擎檔案（只有 24 GB 設定檔會安裝）與顯示卡，沒有 CPU 模式。視窗讀 `GET /api/languages` 的 `sources`，這台電腦跑不了時，該選項停用，選項文字寫原因，`missing_files` 是「這台電腦沒有安裝混合語言所需的模型」，`cpu` 是「混合語言需要顯示卡，目前設定為 CPU 模式」。選項被略過而工作還是送出時，後端拒絕並回明確的訊息，視窗照原樣顯示，不降級成 Whisper。
+- 標籤：媒體庫與佇列在日文影片上顯示「日文影片」，在日英混合影片上顯示「日英混合」，英文影片不顯示。
+- 每則字幕的語言標記：只在日英混合的專案，字幕清單與編輯器在每則原文旁顯示小標記「日」或「英」（`data-testid="lang-mark"`，帶 `data-cue-lang`）。原文那一行用該則字幕自己的語言設定字型（`lang` 屬性）。編輯時，相鄰但語言不同的字幕不會被合併。
+- 播放器的雙語模式用每則字幕自己的語言顯示它的原文行。字幕的每一行 `p` 帶 `data-lang`（`src` 是原文，`zh` 是翻譯）；原文那一行另帶 `data-cue-lang`（`ja` 或 `en`）與 `lang`。字幕清單與編輯器的原文那一行（`.src`、`edit-source`）也帶 `data-cue-lang`。
 - 字幕清單面板：點擊條目跳轉；播放時自動捲動；可雙擊編輯文字與時間（編輯後寫回 `project.json`）。
 - 摘要頁：章節時間戳可跳轉到影片位置。
 - 格式相容：HTML5 video 播不動（如 MKV、HEVC）時，背景用 ffmpeg 產生 H.264/AAC 的 proxy mp4；或改用 libmpv。
 - 燒錄字幕：英文來源的專案一律用 Arial，不查字型（彎引號、破折號、刪節號等一般標點 Arial 畫得出來）。日文來源的字幕，若含假名、漢字、全形字元或日文標點，要先在系統已安裝的字型裡找一個有全部字形的日文字型（Yu Gothic、Meiryo、MS Gothic，讀 Windows 字型登錄與字型檔的 cmap），找不到或缺字時燒錄回 422，訊息說明缺哪個字型或哪些字，不會燒出空白方塊。匯出的 bilingual.ass 仍寫 Arial，交給播放器補字型。
-- 匯出：SRT（英、中、雙語）、ASS（雙語）、VTT、`summary.md`；可選「燒錄成新影片」（非預設）。
+- 匯出：SRT（原文、中、雙語）、ASS（雙語）、VTT、`summary.md`；可選「燒錄成新影片」（非預設）。原文 SRT 的檔名是 `<影片名>.<來源語言>.srt`，來源語言裡的 `+` 換成 `-`，所以英文是 `.en.srt`，日文是 `.ja.srt`，日英混合是 `.ja-en.srt`。日英混合的燒錄與日文影片相同，需要日文字型。
 
 ## 11. 專案資料格式
 
@@ -333,7 +338,7 @@ POST   /api/storage/move {target, source?} # 唯一會搬模型檔的呼叫；GE
 project.json        # 影片路徑、引擎/模型版本、設定、各步驟狀態與時間
 audio.wav           # 快取
 segments.json       # ASR 原始結果（含字詞時間戳）
-subs.en.json / subs.zh-TW.json   # 內部字幕表示（其他語言 subs.<代碼>.json）；日文影片的原文是 subs.ja.json
+subs.en.json / subs.zh-TW.json   # 內部字幕表示（其他語言 subs.<代碼>.json）；日文影片的原文是 subs.ja.json，日英混合是 subs.src.json
 en.srt / zh-TW.srt / bilingual.ass / bilingual.vtt   # 其他語言 <代碼>.srt、bilingual.en-<代碼>.ass/.vtt
 summary.md                       # 其他語言 summary.<代碼>.md；英文版 summary.en.md
 ```
