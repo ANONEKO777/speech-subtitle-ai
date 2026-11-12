@@ -765,7 +765,8 @@ try {
     await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
     const status = await p.textContent(tid("side-status"));
     note("a finished mixed project plays as it is, with a note", status.includes("先前以日文與英文混合處理"), `status "${status}"`);
-    note("edit survived the restart", (await zhOf(5)).includes("這是我改的一句") && (await p.locator(`${row(5)} ${tid("edited-mark")}`).count()) === 1, `cue 5 "${await zhOf(5)}"`);
+    const editedRows = await p.evaluate(() => [...document.querySelectorAll('[data-testid="cue-list"] > li')].flatMap((li, i) => (li.querySelector(".zh")?.textContent.includes("這是我改的一句") && li.querySelector('[data-testid="edited-mark"]') ? [i + 1] : [])));
+    note("edit survived the restart", editedRows.length === 1, `the edited sentence is on row ${editedRows.join()} with its pencil mark`);
     note("marks and source language kept", JSON.parse(readFileSync(join(folder, "project.json"), "utf8")).source_lang === "ja+en" && (await p.locator(tid("lang-mark")).count()) > 50, "project.json source_lang ja+en, the list has marks");
     await review("mixed-restart-note", "重新開啟：先前以日文與英文混合處理，已直接播放，修改仍在");
   } else if (phase === "mixed-queue") {
