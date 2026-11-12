@@ -27,6 +27,7 @@ from backend.core.segmenter import CueRules, merge_words, to_cues, violations
 from backend.core.source_langs import (
     ENGLISH_SOURCE,
     JAPANESE_SOURCE,
+    SourceLanguage,
     UnknownSource,
     get_source,
     is_spaced,
@@ -108,13 +109,6 @@ class TestEnglishIsUnchanged:
             sha(translate.system_prompt_template(ZH_TW))
             == "8f7fb7ae131e06c38d119ce8c02f2763fc592263c312de66298af1787c9f66b2"
         )
-
-    def test_an_english_translation_keeps_the_words_main_leaves_alone(self) -> None:
-        said = "我們看了元數據、源碼與運營的報告。"
-        cues = [Cue(1, 0, 1000, "We read the metadata, source and operations report.")]
-        request = build_request(cues, Batch((Unit(0, 1),)), (), 5, ZH_TW)
-        got = parse_reply(reply([1], said), request, cues, (), ZH_TW)
-        assert got == {1: "我們看了元資料、源碼與運營的報告。"}
 
     def test_english_cue_files_keep_their_layout(self) -> None:
         text = render_subs([Cue(1, 0, 1000, "Hello there.", "你好。")])
@@ -409,6 +403,13 @@ class TestTaiwanTerms:
             ("源代碼審查", "原始碼審查"),
             ("大數據改變了世界", "大數據改變了世界"),
             ("使用者數據", "使用者資料"),
+            ("源碼審查", "原始碼審查"),
+            ("運營相關意見", "營運相關意見"),
+            ("運營商的網路", "運營商的網路"),
+            ("資源碼", "資源碼"),
+            ("元資料與原始碼", "中繼資料與原始碼"),
+            ("元數據與資料", "中繼資料與資料"),
+            ("單元資料", "單元資料"),
         ],
     )
     def test_terms_for_every_talk(self, mainland: str, taiwan: str) -> None:
@@ -420,12 +421,6 @@ class TestTaiwanTerms:
             ("針對P4的倉庫進行審查", "針對P4的儲存庫進行審查"),
             ("大規模倉庫", "大規模儲存庫"),
             ("與資產流水線整合", "與資產管線整合"),
-            ("源碼審查", "原始碼審查"),
-            ("運營相關意見", "營運相關意見"),
-            ("運營商的網路", "運營商的網路"),
-            ("資源碼", "資源碼"),
-            ("元資料與原始碼", "中繼資料與原始碼"),
-            ("單元資料", "單元資料"),
             ("物流倉庫的貨物", "物流倉庫的貨物"),
             ("汽車生產流水線", "汽車生產流水線"),
         ],
@@ -433,22 +428,10 @@ class TestTaiwanTerms:
     def test_terms_only_a_japanese_talk_needs(self, mainland: str, taiwan: str) -> None:
         assert taiwan_terms_from_japanese(mainland) == taiwan
 
-    @pytest.mark.parametrize(
-        ("said", "main_wrote"),
-        [
-            ("源碼審查", "源碼審查"),
-            ("運營相關意見", "運營相關意見"),
-            ("運營商的網路", "運營商的網路"),
-            ("元數據與資料", "元資料與資料"),
-            ("我們看了元數據、源碼與運營的報告。", "我們看了元資料、源碼與運營的報告。"),
-        ],
-    )
-    def test_an_english_translation_gets_what_main_gave_it(
-        self, said: str, main_wrote: str
-    ) -> None:
-        assert taiwan_terms(said) == main_wrote
-        assert ZH_TW.terms(said) == main_wrote
-        assert ZH_TW.clean(said, "We reviewed the source and the metadata.") == main_wrote
+    def test_an_english_translation_gets_these_terms_too(self) -> None:
+        said = "我們看了元數據、源碼與運營的報告。"
+        want = "我們看了中繼資料、原始碼與營運的報告。"
+        assert ZH_TW.clean(said, "We reviewed the source and the metadata.") == want
 
     def test_a_japanese_translation_gets_these_terms(self) -> None:
         said = "元數據、源碼與運營"
@@ -458,6 +441,51 @@ class TestTaiwanTerms:
     def test_english_translations_keep_their_warehouse(self) -> None:
         said = "我們把資料放進倉庫，再走流水線。"
         assert ZH_TW.clean(said, "We put the data in the warehouse.") == said
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "國內的 Perforce P4 導入實績",
+            "導入事例與導入諮詢",
+            "入職導入時也會詢問",
+            "也已經導入了 Git、Subversion 等版本管理系統",
+            "P4 MCP 伺服器導入方式",
+            "我們公司在去年導入了新的系統",
+            "導入模組、依賴與導入到渲染執行緒",
+            "我訪問了系統管理員",
+            "訪問權限與訪問資料庫",
+            "創建版本，搜索檔案，存儲資料",
+            "調用工具與工具調用",
+            "接口與反饋",
+            "可視化與優化了效能",
+        ],
+    )
+    def test_a_japanese_talk_does_not_get_the_english_wording(self, said: str) -> None:
+        assert check("あ" * len(said), said)[1] == taiwan_terms(said)
+        assert ZH_TW.terms_from("ja", said) == taiwan_terms(said)
+        assert "匯入" not in ZH_TW.terms_from("ja", said)
+        assert "存取" not in ZH_TW.terms_from("ja", said)
+
+    @pytest.mark.parametrize(
+        ("source", "said", "want"),
+        [
+            (JAPANESE_SOURCE, "導入實績與訪問資料庫", "導入實績與訪問資料庫"),
+            (ENGLISH_SOURCE, "導入模組，訪問資料庫", "匯入模組，存取資料庫"),
+        ],
+    )
+    def test_the_english_wording_follows_the_source_in_a_summary(
+        self, source: SourceLanguage, said: str, want: str
+    ) -> None:
+        chapter = {"at": "00:01", "title": "章", "summary": said}
+        body = json.dumps(
+            {"one_liner": said, "chapters": [chapter], "key_points": [said], "takeaways": []},
+            ensure_ascii=False,
+        )
+        maps = (summarize.MapResult(0, 600_000, "t", (summarize.Point(1000, "x"),)),)
+        job = summarize.ReduceInput("zh-TW", 0, 600_000, maps, (), (), source)
+        result = summarize.parse_reduce(body, job)
+        assert result.one_liner == want
+        assert result.key_points == (want,)
 
 
 class TestPipeline:

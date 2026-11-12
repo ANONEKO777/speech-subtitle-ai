@@ -5,6 +5,7 @@ import json
 import pytest
 
 from backend.core.fillers import drop_fillers, strip_markdown_emphasis
+from backend.core.languages import get
 from backend.core.model import Cue
 from backend.core.translate import (
     Batch,
@@ -19,7 +20,10 @@ from backend.core.zh_tw import (
     in_big5,
     simplified_chars,
     taiwan_terms,
+    taiwan_terms_from_english,
 )
+
+ZH_TW = get("zh-TW")
 
 TAIWAN_SENTENCES = [
     "這個演算法很快。",
@@ -83,6 +87,21 @@ MAINLAND_CUES = [
     ("不允許運行在渲染執行緒上。我們", "不允許執行在渲染執行緒上。我們"),
     ("導致運行速度變慢。", "導致執行速度變慢。"),
     ("是運行整個 Dune 應用程式的東西", "是執行整個 Dune 應用程式的東西"),
+    ("我注意到，當我查看實際的工具調用時，", "我注意到，當我查看實際的工具呼叫時，"),
+    (
+        "我們有一個巨大的單一倉庫，我們有，我也不清楚，",
+        "我們有一個巨大的單一儲存倉，我們有，我也不清楚，",
+    ),
+    ("能為建立一個技能團隊倉庫做出貢獻", "能為建立一個技能團隊儲存庫做出貢獻"),
+    ("我們關於代理視窗和 Rockbot 等的反饋。", "我們關於代理視窗和 Rockbot 等的回饋。"),
+    (
+        "因此我有了創建一種稱為特徵地圖的東西的想法，",
+        "因此我有了建立一種稱為特徵地圖的東西的想法，",
+    ),
+    (
+        "你懂的，像是導入或阻斷導入那些不應該被導入的依賴項。",
+        "你懂的，像是匯入或阻斷匯入那些不應該被匯入的依賴項。",
+    ),
     ("在 Grochbot 虛擬機器上運行。當然", "在 Grochbot 虛擬機器上執行。當然"),
 ]
 
@@ -92,6 +111,112 @@ KEPT_PROCEDURES = [
     "他走完了手續程序。",
     "標準作業程序很重要。",
     "針線程序很細。",
+]
+
+
+ENGLISH_TALK_TERMS = [
+    ("代理無法訪問你的資料庫。", "代理無法存取你的資料庫。"),
+    ("你需要訪問權限。", "你需要存取權限。"),
+    ("我創建了一個新的技能。", "我建立了一個新的技能。"),
+    ("我們把資料可視化。", "我們把資料視覺化。"),
+    ("記錄存儲在雲端。", "記錄儲存在雲端。"),
+    ("它能搜索整個程式碼庫。", "它能搜尋整個程式碼庫。"),
+    ("暴露一個 API 接口。", "暴露一個 API 介面。"),
+    ("我查看了實際的工具調用。", "我查看了實際的工具呼叫。"),
+    ("調用 API，再用 API 調用它。", "呼叫 API，再用 API 呼叫它。"),
+    ("透過 API 調用，調用了模型。", "透過 API 呼叫，呼叫了模型。"),
+    ("訪問 API 和資料庫。", "存取 API 和資料庫。"),
+    ("導入和依賴圖，被導入至渲染執行緒。", "匯入和依賴圖，被匯入至渲染執行緒。"),
+    ("從一個目錄導入到另一個目錄的程式碼。", "從一個目錄匯入到另一個目錄的程式碼。"),
+    (
+        "像是導入或阻斷導入那些不應該被導入的依賴項。",
+        "像是匯入或阻斷匯入那些不應該被匯入的依賴項。",
+    ),
+    ("導入模組，也導入了套件。", "匯入模組，也匯入了套件。"),
+    ("暴露一個 API 接口，不是 USB 接口。", "暴露一個 API 介面，不是 USB 接口。"),
+    ("它會調用函式，再次調用自己。", "它會呼叫函式，再次呼叫自己。"),
+    ("我做過效能優化。", "我做過效能最佳化。"),
+    ("它優化了記憶體和速度。", "它最佳化了記憶體和速度。"),
+    ("介面並不是為此優化過的。", "介面並不是為此最佳化過的。"),
+    ("許多人給我們反饋。", "許多人給我們回饋。"),
+    ("這段程式碼被導入到渲染執行緒。", "這段程式碼被匯入到渲染執行緒。"),
+    ("我們有一個巨大的單一倉庫。", "我們有一個巨大的單一儲存倉。"),
+    ("我們用單一儲存庫管理所有服務。", "我們用單一儲存倉管理所有服務。"),
+    ("導入函式庫，也導入套件。", "匯入函式庫，也匯入套件。"),
+    ("把技能放進團隊的倉庫，再提交 PR。", "把技能放進團隊的儲存庫，再提交 PR。"),
+]
+
+ENGLISH_TALK_KEPT = [
+    "我們訪問了那家公司的創辦人。",
+    "他們去訪問了東京的工廠。",
+    "他創建了這家公司，也共同創建了這個團隊。",
+    "這座城市創建於十二世紀。",
+    "他是這家公司的創建者。",
+    "存儲器的容量不夠。",
+    "警方搜索了整棟房子。",
+    "搜索隊找到了他們。",
+    "地毯式搜索花了一整天。",
+    "這台主機的 USB接口壞了。",
+    "這台主機的 USB 接口壞了。",
+    "HDMI 接口和 Type-C 接口。",
+    "USB-C 接口很鬆。",
+    "我訪問了系統管理員。",
+    "訪問了資料科學家。",
+    "她訪問了資料中心的工程師。",
+    "訪問了伺服器農場的工人。",
+    "他導入了新制度。",
+    "公司導入了新流程，學校導入了新課程。",
+    "導入了新系統。",
+    "我們導入 AI，公司導入 ERP，也導入 ISO 標準。",
+    "我們導入了 Git，導入了 Docker。",
+    "導入了檔案管理系統。",
+    "導入電子病歷，導入太陽能。",
+    "電流被導入地面。",
+    "把水導入水池。",
+    "我們導入依賴注入。",
+    "我們導入函式式程式設計。",
+    "我們導入檔案命名規則。",
+    "我們導入檔案同步。",
+    "我們導入目錄結構規範。",
+    "我們導入類別導向。",
+    "我們導入套件版本控制。",
+    "我們導入依賴注入框架。",
+    "我們導入相依性注入。",
+    "我們導入和依賴注入的做法。",
+    "我們導入模組化設計。",
+    "我們導入類別繼承的設計。",
+    "我們導入函式式風格。",
+    "我們導入目錄樹狀結構。",
+    "我們導入資料夾命名慣例。",
+    "我們導入檔案版本控制系統。",
+    "我們導入套件鎖定機制。",
+    "我們導入了類別型別檢查。",
+    "我們導入檔案系統。",
+    "把貨放進單一倉庫。",
+    "單一儲存庫的貨物堆到天花板。",
+    "創建了一個新的樂團。",
+    "他們創建了新的流派。",
+    "搜索與救援任務。",
+    "充電接口很鬆。",
+    "他是我們的接口人。",
+    "能源碼頭的工人很多。",
+    "資源碼不在這裡。",
+    "電信運營商的網路。",
+    "單元資料不在這裡。",
+    "公司調用了所有人手去救火。",
+    "指揮部調用了軍隊。",
+    "電路的反饋迴路很穩定。",
+    "政府優化了營商環境。",
+    "我們優化組織架構。",
+    "服務優化是下一季的重點。",
+    "公司導入新制度之後變好了。",
+    "導入期很長。",
+    "這本書的導言很短。",
+    "他引導入門的新手。",
+    "倉庫裡的貨物堆到天花板。",
+    "我們把資料放進倉庫。",
+    "物流倉庫的貨架很高。",
+    "把資料視覺化、存取、儲存、搜尋、回饋。",
 ]
 
 
@@ -131,10 +256,52 @@ def test_correct_taiwan_text_is_left_alone(zh: str) -> None:
         ("默認服務器和內存", "預設伺服器和記憶體"),
         ("屏幕、鼠標、調試", "螢幕、滑鼠、除錯"),
         ("拉取請求", "合併請求"),
+        ("你可以閱讀源碼。", "你可以閱讀原始碼。"),
+        ("我們的運營團隊很小。", "我們的營運團隊很小。"),
+        ("每個檔案都有元數據。", "每個檔案都有中繼資料。"),
+        ("每個檔案都有元資料。", "每個檔案都有中繼資料。"),
     ],
 )
 def test_mainland_terms_become_taiwan_terms(mainland: str, taiwan: str) -> None:
     assert taiwan_terms(mainland) == taiwan
+
+
+@pytest.mark.parametrize(("mainland", "taiwan"), ENGLISH_TALK_TERMS)
+def test_mainland_words_of_an_english_talk_become_taiwan_words(mainland: str, taiwan: str) -> None:
+    assert taiwan_terms_from_english(mainland) == taiwan
+    assert taiwan_terms_from_english(taiwan) == taiwan
+    assert ZH_TW.terms_from("en", mainland) == taiwan
+    assert reply_for(mainland) == taiwan
+
+
+@pytest.mark.parametrize(("mainland", "taiwan"), ENGLISH_TALK_TERMS)
+def test_the_english_rules_do_not_run_for_a_japanese_talk(mainland: str, taiwan: str) -> None:
+    assert ZH_TW.terms_from("ja", mainland) == taiwan_terms(mainland)
+    assert ZH_TW.terms_from("ja+en", mainland) == taiwan_terms(mainland)
+
+
+@pytest.mark.parametrize("zh", ENGLISH_TALK_KEPT)
+def test_a_mainland_word_that_is_the_right_word_is_kept(zh: str) -> None:
+    assert taiwan_terms(zh) == zh
+    assert taiwan_terms_from_english(zh) == zh
+    assert reply_for(zh) == zh
+
+
+@pytest.mark.parametrize("target", ["zh-CN", "ja", "ko", "es"])
+def test_a_target_that_is_not_traditional_chinese_gets_no_taiwan_wording(target: str) -> None:
+    text = "導入和依賴圖，訪問權限，倉庫。"
+    assert get(target).terms_from("en", text) == text
+
+
+def test_a_warehouse_is_judged_from_its_own_cue_whatever_the_grouping() -> None:
+    code, goods = "我們有一個巨大的單一倉庫。", "把貨放進倉庫。"
+    joined = taiwan_terms_from_english(f"[[1]]{code}[[2]]{goods}")
+    assert joined == "[[1]]我們有一個巨大的單一儲存倉。[[2]]把貨放進倉庫。"
+    assert taiwan_terms_from_english(code) == "我們有一個巨大的單一儲存倉。"
+    assert taiwan_terms_from_english(goods) == goods
+    assert taiwan_terms_from_english(f"[[1]]{goods}[[2]]{code}") == (
+        "[[1]]把貨放進倉庫。[[2]]我們有一個巨大的單一儲存倉。"
+    )
 
 
 @pytest.mark.parametrize("zh", KITCHEN_CUES)
@@ -146,7 +313,7 @@ def test_kitchen_setup_and_physical_running_are_not_touched(zh: str) -> None:
 def test_configuration_and_running_software_terms_from_a_real_talk_are_replaced(
     mainland: str, taiwan: str
 ) -> None:
-    assert taiwan_terms(mainland) == taiwan
+    assert ZH_TW.terms_from("en", mainland) == taiwan
 
 
 @pytest.mark.parametrize("zh", KEPT_PROCEDURES)

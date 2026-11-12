@@ -317,7 +317,7 @@ def _clean(
     source: SourceLanguage,
     glossary: Sequence[GlossaryEntry] = (),
 ) -> str:
-    zh = source.clean(lang.clean(zh, en))
+    zh = source.clean(lang.clean(lang.terms_from(source.code, zh), en))
     if source.mends_glossary:
         for entry in glossary:
             if entry.zh:
@@ -372,7 +372,7 @@ def _split_at_markers(
     if len(cue_ids) == 1:
         text = _MARKER.sub("", zh)
         return {cue_ids[0]: _clean(lang, text, english[cue_ids[0]], source, glossary)}
-    zh = lang.terms(zh)
+    zh = lang.terms_from(source.code, zh)
     marks = list(_MARKER.finditer(zh))
     found = [int(m.group(1)) for m in marks]
     if found != list(cue_ids):
