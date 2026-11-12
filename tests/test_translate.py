@@ -226,6 +226,23 @@ def test_a_single_cue_that_never_validates_raises_and_keeps_earlier_batches() ->
     assert len([c for c in saved[-1] if not c.zh]) == 21
 
 
+def test_mainland_wording_is_replaced_and_never_makes_a_retry() -> None:
+    said = "我們創建了源碼的元數據，搜索接口，再運營存儲服務。"
+    taiwan = "我們建立了原始碼的中繼資料，搜尋介面，再營運儲存服務。"
+
+    def script(n: int, m: Sequence[Message]) -> str | None:
+        items = payload(m[:2])["translate"]
+        return json.dumps(
+            {"translations": [{"id": item["id"], "zh": said} for item in items]},
+            ensure_ascii=False,
+        )
+
+    llm = FakeLlm(script)
+    result = run_all(make_cues(3), llm)
+    assert len(llm.calls) == 1
+    assert [c.zh for c in result] == [taiwan] * 3
+
+
 def test_non_retryable_llm_error_stops_at_once() -> None:
     def script(n: int, m: Sequence[Message]) -> str | None:
         raise LlmError("cannot reach the LLM server at http://x/v1: refused")

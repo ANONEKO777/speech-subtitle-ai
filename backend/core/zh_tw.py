@@ -5,6 +5,12 @@ import unicodedata
 from collections.abc import Callable
 
 _MARK = r"(?:\[\[\d+\]\])?"
+
+
+def _not_after(words: str) -> str:
+    return "".join(f"(?<!{word})" for word in words.split("|"))
+
+
 _SOFTWARE_NOUN = (
     "環境|選項|參數|檔案|程式碼庫|專案|變數|頁面|組態|權限|規則|偏好|伺服器|網路|代理|模型|工具|"
     "介面|系統|資料庫|帳號|帳戶|密碼|金鑰|路徑|連線|憑證|版本|快捷鍵|工作流程|管線|指令|提示|"
@@ -13,23 +19,50 @@ _SOFTWARE_NOUN = (
 _CLAUSE_CHAR = r"(?:[^，。？！、；：\s\[\]]|\[\[\d+\]\])"
 _CONFIGURE_TAIL = "它們|它|好|為|成|選項|頁面|頁|畫面|選單|檔|面板|中|裡"
 _CONFIGURE_HEAD = "進行|重新|完成|調整|更改|修改|變更|需要|無需|不用"
-_NOT_PHYSICAL_RUN = "".join(
-    f"(?<!{head})"
-    for head in "地球|太陽|月球|行星|星球|星系|天體|軌道|列車|火車|機器|機械|時鐘|鐘錶".split("|")
+_NOT_PHYSICAL_RUN = _not_after(
+    "地球|太陽|月球|行星|星球|星系|天體|軌道|列車|火車|機器|機械|時鐘|鐘錶"
 )
 _CHAT_APP = "Slack|Discord|Teams|Telegram|Reddit|Twitter|Gmail|Email|email|Mastodon|Bluesky"
 _PROCEDURE_HEAD = (
     "法律|司法|行政|訴訟|議事|手續|正當|法定|作業|操作|審查|申請|審批|刑事|民事|聽證|立法|議會|"
     "標準|選舉|破產|仲裁|救濟|調解|審判|表決|針線|縫線"
 )
-_NOT_PROCEDURE = "".join(f"(?<!{head})" for head in _PROCEDURE_HEAD.split("|"))
+_NOT_PROCEDURE = _not_after(_PROCEDURE_HEAD)
+
+
+_ACCESSED = (
+    "權限|控制|令牌|權杖|資料庫|資料|檔案|伺服器|端點|API|URL|網址|記憶體|資源|儲存庫|程式碼|金鑰|"
+    "憑證|日誌|紀錄|目錄|帳號|帳戶|主機|裝置|硬體|系統|工具|介面"
+)
+_ACCESS_OF = "你的|我的|其|該|它的|它們的|這些|所有|整個|私有|公開|遠端|本機|本地|外部|內部|敏感"
+_FOUNDED = "公司|團隊|組織|企業|品牌|學校|基金會|國家|帝國|王朝|文明|新創|事業|協會"
+_NOT_FOUNDING = _not_after("共同|聯合")
+_NOT_A_PORT = _not_after(
+    "USB|HDMI|VGA|SATA|PCIe|充電|耳機|電源|網線|音頻|音訊|串口|並口|硬體|物理|實體"
+)
+_NOT_A_SEARCH_PARTY = _not_after("警方|警察|地毯式")
+_CALLED = "函式|函數|方法|API|模型|工具|介面|端點|服務|子程式|外掛"
+_CALLER = "工具|函式|函數|方法|API|模型|系統|遞迴|遠端|重複|再次|多次"
+_NOT_ADOPTION = "新|制度|流程|機制|方案|標準|文化|做法|期|階段|AI|ERP|CRM|敏捷|DevOps|門|言|語|式"
+_NOT_LED_IN = _not_after("引|誘|指|帶|領|傳")
+_WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
+_CODE_REPOSITORY = re.compile(
+    "程式碼|代碼|Git|GitHub|GitLab|分支|提交|合併|PR|CI|單一|克隆|開源|函式庫|monorepo|repo|技能|代理人"
+)
+
+
+def _repository(match: re.Match[str]) -> str:
+    text = match.string
+    if _WAREHOUSE.search(text) or not _CODE_REPOSITORY.search(text):
+        return match.group()
+    return "儲存庫"
 
 
 def _after(words: str) -> str:
     return "(?:" + "|".join(f"(?<={word})" for word in words.split("|")) + ")"
 
 
-_TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = tuple(
     (re.compile(pattern), replacement)
     for pattern, replacement in (
         ("程式代碼", "程式碼"),
@@ -53,6 +86,22 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         ("(?<![世外境眼視業各全學政商科地邊])界面(?![臨對])", "介面"),
         ("調試", "除錯"),
         ("拉取請求", "合併請求"),
+        (
+            f"訪問(?={_MARK}(?:了|到|過)?{_MARK}(?:{_ACCESS_OF})?(?:{_ACCESSED}))",
+            "存取",
+        ),
+        (
+            f"{_NOT_FOUNDING}創建(?!者|人|於|時期|時代|了?[這那該一]?[家間個所]?(?:{_FOUNDED}))",
+            "建立",
+        ),
+        ("可視化", "視覺化"),
+        ("存儲(?!器)", "儲存"),
+        (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動)", "搜尋"),
+        (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
+        (f"(?:{_after(_CALLER)})調用|調用(?={_MARK}(?:{_CALLED}))", "呼叫"),
+        ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
+        (f"{_NOT_LED_IN}導入(?!{_NOT_ADOPTION})", "匯入"),
+        ("倉庫", _repository),
         (f"設置(?={_CLAUSE_CHAR}{{0,6}}?(?:{_SOFTWARE_NOUN}))", "設定"),
         (f"設置(?={_MARK}(?:{_CONFIGURE_TAIL}))", "設定"),
         (f"{_after(_CONFIGURE_HEAD)}設置", "設定"),
@@ -69,10 +118,7 @@ _TERMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 )
 
 
-_WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
-_NOT_FACTORY_LINE = "".join(
-    f"(?<!{head})" for head in "生產|裝配|組裝|製造|工廠|工業|汽車".split("|")
-)
+_NOT_FACTORY_LINE = _not_after("生產|裝配|組裝|製造|工廠|工業|汽車")
 _JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
     (
         re.compile("倉庫"),
