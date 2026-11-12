@@ -517,7 +517,7 @@ async function homeChecks() {
   await review("home-japanese-960", "首頁：選日文，960 px 寬");
   await resize(1280, 720);
   const mixedOption = p.locator(`${tid("source-lang")} option[value="ja+en"]`);
-  if (!(await mixedOption.isDisabled())) {
+  if (!(await mixedOption.evaluate((e) => e.disabled))) {
     await p.selectOption(tid("source-lang"), "ja+en");
     await sleep(300);
     const mixedNote = await p.textContent(tid("source-note"));
@@ -807,7 +807,7 @@ try {
     await step("這台電腦沒有 Qwen3 檔案：混合語言不能選", 700);
     const opt = p.locator(`${tid("source-lang")} option[value="ja+en"]`);
     const text = await opt.textContent();
-    const disabled = await opt.isDisabled();
+    const disabled = await opt.evaluate((e) => e.disabled);
     note("mixed choice disabled with a reason in the picker", disabled && text.includes("這台電腦沒有安裝混合語言所需的模型") && (await p.inputValue(tid("source-lang"))) === "en", `option "${text}", disabled ${disabled}`);
     await oneRow("home, mixed unavailable");
     await fileBoxChecks("home, mixed unavailable", HOME_BOX);
@@ -831,7 +831,7 @@ try {
     await p.click(tid("settings-open"));
     await p.waitForSelector(tid("ready"));
     await sleep(1200);
-    const bypassed = await p.locator(`${tid("source-lang")} option[value="ja+en"]`).isDisabled();
+    const bypassed = await p.locator(`${tid("source-lang")} option[value="ja+en"]`).evaluate((e) => e.disabled);
     note("with the check faked as available the choice opens", !bypassed, "GET /api/languages answered through a route that sets available true");
     await p.selectOption(tid("source-lang"), "ja+en");
     await p.fill(tid("video-path"), video);
@@ -882,7 +882,7 @@ try {
     await p.selectOption(tid("source-lang"), "ja");
     await heightIs("home, Japanese note", 48, 50);
     await fileBoxChecks("home, Japanese note", HOME_BOX);
-    if (!(await p.locator(`${tid("source-lang")} option[value="ja+en"]`).isDisabled())) {
+    if (!(await p.locator(`${tid("source-lang")} option[value="ja+en"]`).evaluate((e) => e.disabled))) {
       await p.selectOption(tid("source-lang"), "ja+en");
       await heightIs("home, mixed note", 48, 50);
       await fileBoxChecks("home, mixed note", HOME_BOX_MIXED);
