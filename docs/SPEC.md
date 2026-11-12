@@ -111,7 +111,7 @@ video-subtitle-translator/
 - 字幕的來源文字欄位在程式裡叫 `src`，每則字幕有自己的 `lang`（給之後的日英混合用，P23a 的專案每則都是專案的語言）。`subs.*.json` 的英文字幕仍寫 `en`，其他語言寫 `src` 加 `lang`，兩種都讀得進來。HTTP API 的請求還用 `en` 這個名字（`lang=en` 取來源文字，PUT 內文也是 `en`，`mode` 的值 `en`），這是請求的格式，不是語言；介面上一律叫「原文」。`GET /subtitles?format=json` 對日文專案的每則字幕除了 `src` 與 `lang` 之外，另外附一個 `en` 欄位放同樣的來源文字，這是暫時的別名，只出現在 API 回覆，不寫進檔案。介面（P24a）已經不讀它：桌面程式讀 `src` 與 `lang`，英文專案的字幕沒有 `lang`，仍讀 `en`。別名在後續的 PR 刪除，英文專案的回覆不變。
 - 日英混合（`ja+en`，P23b，後端；介面是 P24b）：第三個來源語言，給日文講者加英文口譯的演講。決定與證據見 `docs/P23b-mixed-source-decision.md`。
   - 檔名 `subs.src.json` 與 `src.srt`。每則字幕有自己的 `lang`（`ja` 或 `en`），日文字幕寫 `src` 加 `lang`，英文字幕仍寫 `en`。新專案，不遷移舊專案。`GET /api/projects` 與專案 JSON 的 `source_lang` 為 `ja+en`。
-  - 辨識固定用 Qwen3-ASR（CrispASR）`-l auto`，不帶 `--strict-pipeline`，`--engine` 對 `ja+en` 不起作用。音訊在每個 300 ms 以上的停頓切開（`vad.plan_pauses`，前後各 150 ms，不到 0.5 秒的語音不送），逐段辨識。再做兩個修補（`backend/engines/mixed.py`）：輸出不是日文也不是英文的短段（韓文、簡體中文）用 `-l ja` 重辨；一段尾端有 1.5 秒以上沒有被任何字覆蓋的語音，把那一截另外辨識。之後每個字依文字種類標 `ja` 或 `en`。Qwen3 只在 `gpu-24gb` 設定檔，CPU 與 8 GB 設定檔選 `ja+en` 回明確的錯誤，不降級成 Whisper（Whisper 逐段偵測把日文講者的話丟掉，見決定文件）。
+  - 辨識固定用 Qwen3-ASR（CrispASR）`-l auto`，不帶 `--strict-pipeline`，`--engine` 對 `ja+en` 不起作用。音訊在每個 300 ms 以上的停頓切開（`vad.plan_pauses`，前後各 150 ms，不到 0.5 秒的語音不送），逐段辨識。再做兩個修補（`backend/engines/mixed.py`）：輸出不是日文也不是英文的短段（韓文、簡體中文）用 `-l ja` 重辨；一段尾端有 1.5 秒以上沒有被任何字覆蓋的語音，把那一截另外辨識。之後每個字依文字種類標 `ja` 或 `en`。Qwen3 只在 `gpu-24gb` 設定檔，CPU 與 8 GB 設定檔選 `ja+en` 回明確的錯誤，不降級成 Whisper（操作者 2026-11-12 決定 `ja+en` 只給 24 GB 設定檔；Whisper 逐段偵測把日文講者的話丟掉，見決定文件）。
   - 斷句依語言（各用自己的規則），相鄰不同語言的字永遠不併成一則字幕。
   - 翻譯：每一批只含同一種語言的句子，用該語言的提示詞與輸出檢查，上下文只取同語言的前後 5 則，兩種語言共用同一份詞彙表。英文口譯與日文重複的內容兩邊都保留、都翻譯、都標語言。
   - 摘要用 `prompts/summarize_map_ja_en.md`（日文版加上「英文段常是前一段日文的口譯，同一點只寫一次」）。視窗大小依字數與英文詞數混算。
