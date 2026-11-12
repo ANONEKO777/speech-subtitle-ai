@@ -430,7 +430,7 @@ def _localised(
     if job.lang == ENGLISH:
         return text
     language = get(job.lang)
-    text = job.source.clean(language.terms(text))
+    text = job.source.clean(language.terms_from(job.source.code, text))
     if not job.check_language:
         return text
     if problem := language.prose_problem(text) if prose else language.title_problem(text):

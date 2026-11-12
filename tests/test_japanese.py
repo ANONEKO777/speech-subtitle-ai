@@ -27,6 +27,7 @@ from backend.core.segmenter import CueRules, merge_words, to_cues, violations
 from backend.core.source_langs import (
     ENGLISH_SOURCE,
     JAPANESE_SOURCE,
+    SourceLanguage,
     UnknownSource,
     get_source,
     is_spaced,
@@ -440,6 +441,51 @@ class TestTaiwanTerms:
     def test_english_translations_keep_their_warehouse(self) -> None:
         said = "我們把資料放進倉庫，再走流水線。"
         assert ZH_TW.clean(said, "We put the data in the warehouse.") == said
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "國內的 Perforce P4 導入實績",
+            "導入事例與導入諮詢",
+            "入職導入時也會詢問",
+            "也已經導入了 Git、Subversion 等版本管理系統",
+            "P4 MCP 伺服器導入方式",
+            "我們公司在去年導入了新的系統",
+            "導入模組、依賴與導入到渲染執行緒",
+            "我訪問了系統管理員",
+            "訪問權限與訪問資料庫",
+            "創建版本，搜索檔案，存儲資料",
+            "調用工具與工具調用",
+            "接口與反饋",
+            "可視化與優化了效能",
+        ],
+    )
+    def test_a_japanese_talk_does_not_get_the_english_wording(self, said: str) -> None:
+        assert check("あ" * len(said), said)[1] == taiwan_terms(said)
+        assert ZH_TW.terms_from("ja", said) == taiwan_terms(said)
+        assert "匯入" not in ZH_TW.terms_from("ja", said)
+        assert "存取" not in ZH_TW.terms_from("ja", said)
+
+    @pytest.mark.parametrize(
+        ("source", "said", "want"),
+        [
+            (JAPANESE_SOURCE, "導入實績與訪問資料庫", "導入實績與訪問資料庫"),
+            (ENGLISH_SOURCE, "導入模組，訪問資料庫", "匯入模組，存取資料庫"),
+        ],
+    )
+    def test_the_english_wording_follows_the_source_in_a_summary(
+        self, source: SourceLanguage, said: str, want: str
+    ) -> None:
+        chapter = {"at": "00:01", "title": "章", "summary": said}
+        body = json.dumps(
+            {"one_liner": said, "chapters": [chapter], "key_points": [said], "takeaways": []},
+            ensure_ascii=False,
+        )
+        maps = (summarize.MapResult(0, 600_000, "t", (summarize.Point(1000, "x"),)),)
+        job = summarize.ReduceInput("zh-TW", 0, 600_000, maps, (), (), source)
+        result = summarize.parse_reduce(body, job)
+        assert result.one_liner == want
+        assert result.key_points == (want,)
 
 
 class TestPipeline:

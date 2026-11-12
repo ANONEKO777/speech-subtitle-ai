@@ -11,6 +11,11 @@ def _not_after(words: str) -> str:
     return "".join(f"(?<!{word})" for word in words.split("|"))
 
 
+def _spaced(words: str) -> str:
+    """Each word as written and as followed by a space, for a Latin word set off from Chinese."""
+    return "|".join(f"{word}|{word} " for word in words.split("|"))
+
+
 _SOFTWARE_NOUN = (
     "環境|選項|參數|檔案|程式碼庫|專案|變數|頁面|組態|權限|規則|偏好|伺服器|網路|代理|模型|工具|"
     "介面|系統|資料庫|帳號|帳戶|密碼|金鑰|路徑|連線|憑證|版本|快捷鍵|工作流程|管線|指令|提示|"
@@ -35,26 +40,46 @@ _ACCESSED = (
     "憑證|日誌|紀錄|目錄|帳號|帳戶|主機|裝置|硬體|系統|工具|介面"
 )
 _ACCESS_OF = "你的|我的|其|該|它的|它們的|這些|所有|整個|私有|公開|遠端|本機|本地|外部|內部|敏感"
-_FOUNDED = "公司|團隊|組織|企業|品牌|學校|基金會|國家|帝國|王朝|文明|新創|事業|協會"
+_ACCESS_ENDS = r"(?:\Z|[^一-鿿]|中(?!心)|裡|內|上|時|並|而|來|去|和|與|或|及)"
+_FOUNDED = (
+    "公司|團隊|組織|企業|品牌|學校|基金會|國家|帝國|王朝|文明|新創|事業|協會|樂團|樂隊|宗教|流派|"
+    "政黨|工作室|社團|俱樂部"
+)
 _NOT_FOUNDING = _not_after("共同|聯合")
 _NOT_A_PORT = _not_after(
-    "USB|HDMI|VGA|SATA|PCIe|充電|耳機|電源|網線|音頻|音訊|串口|並口|硬體|物理|實體"
+    _spaced("USB|HDMI|VGA|SATA|PCIe|-C|Lightning|Thunderbolt|DisplayPort")
+    + "|"
+    + "充電|耳機|電源|網線|音頻|音訊|串口|並口|硬體|物理|實體"
 )
 _NOT_A_SEARCH_PARTY = _not_after("警方|警察|地毯式")
+_GAP = rf" ?{_MARK} ?"
 _CALLED = "函式|函數|方法|API|模型|工具|介面|端點|服務|子程式|外掛"
 _CALLER = "工具|函式|函數|方法|API|模型|系統|遞迴|遠端|重複|再次|多次"
 _OPTIMIZED = "過|效能|程式|演算法|查詢|編譯|記憶體|速度|延遲|成本|提示|模型|渲染|載入"
-_NOT_ADOPTION = "新|制度|流程|機制|方案|標準|文化|做法|期|階段|AI|ERP|CRM|敏捷|DevOps|門|言|語|式"
-_NOT_LED_IN = _not_after("引|誘|指|帶|領|傳")
+_IMPORT_OBJECT = "模組|套件|程式庫|函式庫|依賴|相依|命名空間|類別|檔案|目錄|資料夾|函式"
+_IMPORT_TARGET = (
+    "(?:另一個|一個|同一個|這個|那個|該)?"
+    "(?:渲染執行緒|主執行緒|執行緒|模組|套件|目錄|資料夾|檔案|程式碼庫|資料庫|記憶體)"
+)
+_IMPORT_OF = "(?:那些|所有|這些|這個|該|其|它們?的|的)?(?:[^，。？！；]{0,8}被導入的)?"
+_IMPORT_PAIR = "(?:[和與及或](?:依賴|相依)|或(?:阻斷|阻止|禁止|限制)導入)"
+_NOT_A_PRODUCT = "化|管理|系統|平台|工具|框架|方案|服務|技術|產品|機制|流程|標準"
+_THEN_A_PRODUCT = f"(?!{_NOT_A_PRODUCT})"
 _WAREHOUSE = re.compile("貨|物流|庫存|出貨|商品|配送|倉儲|貨架|運輸|零售|電商|工廠|搬運|超市")
 _CODE_REPOSITORY = re.compile(
     "程式碼|代碼|Git|GitHub|GitLab|分支|提交|合併|PR|CI|單一|克隆|開源|函式庫|monorepo|repo|技能|代理人"
 )
+_CUE_MARK = re.compile(r"\[\[\d+\]\]")
 
 
 def _repository(match: re.Match[str]) -> str:
+    """儲存庫 when the cue the word is in talks about code and not about goods. A reply that holds
+    several cues is cut at the cue markers, so the grouping of cues never changes the result."""
     text = match.string
-    if _WAREHOUSE.search(text) or not _CODE_REPOSITORY.search(text):
+    start = max((m.end() for m in _CUE_MARK.finditer(text, 0, match.start())), default=0)
+    after = _CUE_MARK.search(text, match.end())
+    cue = text[start : after.start() if after else len(text)]
+    if _WAREHOUSE.search(cue) or not _CODE_REPOSITORY.search(cue):
         return match.group()
     return "儲存庫"
 
@@ -87,23 +112,6 @@ _TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...]
         ("(?<![世外境眼視業各全學政商科地邊])界面(?![臨對])", "介面"),
         ("調試", "除錯"),
         ("拉取請求", "合併請求"),
-        (
-            f"訪問(?={_MARK}(?:了|到|過)?{_MARK}(?:{_ACCESS_OF})?(?:{_ACCESSED}))",
-            "存取",
-        ),
-        (
-            f"{_NOT_FOUNDING}創建(?!者|人|於|時期|時代|了?[這那該一]?[家間個所]?(?:{_FOUNDED}))",
-            "建立",
-        ),
-        ("可視化", "視覺化"),
-        ("存儲(?!器)", "儲存"),
-        (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動)", "搜尋"),
-        (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
-        (f"(?:{_after(_CALLER)})調用|調用(?={_MARK}(?:{_CALLED}))", "呼叫"),
-        (f"(?:{_after('效能|性能')})優化|優化(?=了?(?:{_OPTIMIZED}))", "最佳化"),
-        ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
-        (f"{_NOT_LED_IN}導入(?!{_NOT_ADOPTION})", "匯入"),
-        ("倉庫", _repository),
         (f"設置(?={_CLAUSE_CHAR}{{0,6}}?(?:{_SOFTWARE_NOUN}))", "設定"),
         (f"設置(?={_MARK}(?:{_CONFIGURE_TAIL}))", "設定"),
         (f"{_after(_CONFIGURE_HEAD)}設置", "設定"),
@@ -116,6 +124,38 @@ _TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...]
         ("(?<![小零])組件", "元件"),
         ("應用程序", "應用程式"),
         (f"{_NOT_PROCEDURE}程序(?!正義|員|性|法|違法|規則|規定|公正|問題)", "程式"),
+    )
+)
+
+
+_ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = tuple(
+    (re.compile(pattern), replacement)
+    for pattern, replacement in (
+        (
+            f"訪問(?={_MARK}(?:了|到|過)?{_GAP}(?:{_ACCESS_OF})?(?:{_ACCESSED})+{_ACCESS_ENDS})",
+            "存取",
+        ),
+        (
+            f"{_NOT_FOUNDING}創建(?!者|人|於|時期|時代|了?[這那該一]?[家間個所]?(?:新的|新)?(?:{_FOUNDED}))",
+            "建立",
+        ),
+        ("可視化", "視覺化"),
+        ("存儲(?!器)", "儲存"),
+        (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動|[與和及]救援)", "搜尋"),
+        (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
+        (
+            f"(?:{_after(_spaced(_CALLER))})調用|調用(?=了?{_GAP}(?:{_CALLED}))",
+            "呼叫",
+        ),
+        (f"(?:{_after('效能|性能')})優化|優化(?=了?(?:{_OPTIMIZED}))", "最佳化"),
+        ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
+        (
+            f"導入(?=(?:了|過)?{_GAP}{_IMPORT_OF}(?:{_IMPORT_OBJECT}){_THEN_A_PRODUCT})"
+            f"|導入(?=(?:到|至|進){_GAP}(?:{_IMPORT_TARGET}){_THEN_A_PRODUCT})"
+            f"|導入(?={_IMPORT_PAIR})",
+            "匯入",
+        ),
+        ("倉庫", _repository),
     )
 )
 
@@ -140,8 +180,19 @@ def taiwan_terms_from_japanese(text: str) -> str:
     return text
 
 
+def taiwan_terms_from_english(text: str) -> str:
+    """Taiwan wording for the Mainland words an English talk gives, and that a Japanese talk
+    writes for another sense: 導入 is adopting something in Japanese, 訪問 is a visit or an
+    interview, and 創建 and 搜索 are valid Chinese. Every rule here replaces only next to words
+    that make the Mainland sense certain, and a missed word is better than a wrong one."""
+    for pattern, taiwan in _ENGLISH_TERMS:
+        text = pattern.sub(taiwan, text)
+    return text
+
+
 def taiwan_terms(text: str) -> str:
-    """Replace Mainland computing terms with their Taiwan equivalents."""
+    """Replace Mainland computing terms with their Taiwan equivalents, for a talk in any
+    language."""
     for pattern, taiwan in _TERMS:
         text = pattern.sub(taiwan, text)
     return text

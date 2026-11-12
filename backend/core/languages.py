@@ -22,6 +22,7 @@ from backend.core.zh_tw import (
     gb2312_hanzi,
     simplified_chars,
     taiwan_terms,
+    taiwan_terms_from_english,
 )
 
 DEFAULT_CODE = "zh-TW"
@@ -88,6 +89,15 @@ class Language:
     quality: Quality
     spellings: Mapping[str, tuple[str, ...]]
     """Other spellings of a keep-English term that count as keeping it, by lower-case term."""
+    source_terms: Mapping[str, Callable[[str], str]]
+    """Wording for the words a talk in one source language gives, by source code. It is run after
+    `terms`, and a source with no entry gets `terms` only."""
+
+    def terms_from(self, source: str, text: str) -> str:
+        """`text` with the wording this language has for a talk spoken in `source`."""
+        text = self.terms(text)
+        extra = self.source_terms.get(source)
+        return extra(text) if extra else text
 
     def keeps(self, term: str, text: str) -> bool:
         """True when `text` holds `term` as written or in one of this language's spellings of it."""
@@ -308,6 +318,7 @@ def _build() -> dict[str, Language]:
         wrap: Wrap = Wrap.SPACES,
         quality: Quality = "stable",
         spellings: Mapping[str, tuple[str, ...]] | None = None,
+        source_terms: Mapping[str, Callable[[str], str]] | None = None,
     ) -> Language:
         return Language(
             code,
@@ -324,6 +335,7 @@ def _build() -> dict[str, Language]:
             wrap,
             quality,
             spellings or MappingProxyType({}),
+            MappingProxyType(source_terms or {}),
         )
 
     table = [
@@ -335,6 +347,7 @@ def _build() -> dict[str, Language]:
             _CHINESE,
             clean=_clean_zh_tw,
             terms=taiwan_terms,
+            source_terms={ENGLISH: taiwan_terms_from_english},
             needs_script=_more_than_a_few_words,
             wrap=Wrap.CJK,
         ),
