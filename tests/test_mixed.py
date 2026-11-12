@@ -568,6 +568,59 @@ def test_the_command_line_and_the_job_body_accept_the_mixed_source() -> None:
     assert JobBody(source_lang="ja+en").options().source_lang == "ja+en"
 
 
+class TestMixedOverTheApi:
+    def test_a_queue_item_keeps_its_mixed_source_through_the_api_and_a_restart(
+        self, tmp_path: Path
+    ) -> None:
+        from test_api import open_client
+        from test_queue import Power, QueueRig, make_app, video
+
+        from backend.core.jobs import JobOptions
+        from backend.core.queue_store import QueueStore
+
+        rig = QueueRig()
+        clip = video(tmp_path, "mixedtalk")
+        with open_client(make_app(tmp_path, rig, Power())) as client:
+            response = client.post(
+                "/api/queue/items", json={"items": [{"path": str(clip), "source_lang": "ja+en"}]}
+            )
+            assert response.status_code == 201, response.text
+            assert response.json()["added"][0]["source_lang"] == "ja+en"
+            (item,) = client.get("/api/queue").json()["items"]
+            assert item["source_lang"] == "ja+en"
+            refused = client.post(
+                "/api/queue/items",
+                json={"items": [{"path": str(clip), "source_lang": "ja+en", "target_lang": "ko"}]},
+            )
+            assert refused.status_code == 422 and "zh-TW" in refused.text
+
+        path = tmp_path / "queue.db"
+        store = QueueStore(path)
+        options = JobOptions("whispercpp", "q", None, False, (), False, 8, "zh-TW", "ja+en")
+        store.add("a.mp4", "1" * 16, options, 3.0, 1)
+        store.close()
+        again = QueueStore(path)
+        assert again.items()[0].options == options
+        again.close()
+
+    def test_the_project_list_returns_the_mixed_source(self, tmp_path: Path) -> None:
+        from test_api import GUARD, events, make_project, open_client, start_job
+
+        from backend.main import AppConfig, create_app
+
+        fakes = MixedFakes(words=mixed_words())
+        app = create_app(
+            AppConfig(tmp_path / "data", GUARD, lambda _o, _f: (MIXED_SETTINGS, fakes.ports()))
+        )
+        client = open_client(app)
+        video = tmp_path / "talk.mp4"
+        video.write_bytes(b"x")
+        pid = make_project(client, video)
+        events(client, start_job(client, pid)["id"])
+        (item,) = client.get("/api/projects").json()["projects"]
+        assert item["id"] == pid and item["source_lang"] == "ja+en"
+
+
 class TestLenientCrispAsr:
     @staticmethod
     def parse(tmp_path: Path, strict: bool) -> list[Segment]:
