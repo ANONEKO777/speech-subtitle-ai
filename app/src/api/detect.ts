@@ -87,9 +87,14 @@ export interface Hint {
   readonly switchTo: SourceLang;
 }
 
-/** What to tell a person whose choice differs from a clear guess, with the one-click switch. Null when they agree or the guess is not clear. */
+/**
+ * What to tell a person whose choice differs from a clear guess, with the one-click switch. Null
+ * when they agree, the guess is not clear, or the guess is a language the mixed choice already
+ * covers: the person who picked mixed knows the talk has a stretch in each.
+ */
 export function hintFor(d: Detection, picked: SourceLang, unavailable: Unavailable): Hint | null {
   if (!d.sure || d.suggested === null || d.suggested === picked || unavailable[d.suggested] !== undefined) return null;
+  if (picked === MIXED) return null;
   const choice = sourceLabel(picked);
   if (d.suggested === MIXED) {
     return { text: `這部影片聽起來日文與英文都有，目前選的是${choice}，另一種語言會被當成${choice}處理`, switchTo: MIXED };

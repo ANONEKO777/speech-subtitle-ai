@@ -88,7 +88,12 @@ describe("hintFor", () => {
 
   it("offers the language heard to a person who chose another", () => {
     expect(hintFor(one("ja"), "en", {})).toEqual({ text: "這部影片聽起來是日文，目前選的是英文", switchTo: "ja" });
-    expect(hintFor(one("en"), "ja+en", {})?.switchTo).toBe("en");
+  });
+
+  it("never pushes a person who chose mixed by hand to one of its two languages", () => {
+    expect(hintFor(one("en"), "ja+en", {})).toBeNull();
+    expect(hintFor(one("ja"), "ja+en", {})).toBeNull();
+    expect(hintFor(mixed(), "ja+en", {})).toBeNull();
   });
 
   it("offers mixed when both languages were heard and mixed can run", () => {

@@ -30,7 +30,7 @@ import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
 import { DetectNote, hasDetectNote } from "./import/DetectNote";
 import { ImportPanel, SourcePick } from "./import/ImportPanel";
-import { useDetections } from "./import/useDetections";
+import { useDetections, useSettledPath } from "./import/useDetections";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
@@ -127,7 +127,7 @@ export function App() {
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
   const [sourceLang, setSourceLang] = useState<SourceLang>(DEFAULT_SOURCE);
-  const [importPath, setImportPath] = useState("");
+  const [typedPath, setTypedPath] = useState("");
   const pickedByHand = useRef(false);
   const preselectedFor = useRef("");
   const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [], unavailable: {} });
@@ -225,6 +225,7 @@ export function App() {
     pickedByHand.current = true;
     setSourceLang(code);
   }, []);
+  const importPath = useSettledPath(typedPath, screen.kind === "idle" || screen.kind === "settings");
   const detections = useDetections(backend, importPath === "" ? [] : [importPath]);
   const found = importPath === "" ? undefined : detections.get(importPath);
   useEffect(() => {
@@ -414,13 +415,13 @@ export function App() {
             onSourceLang={chooseSource}
             withPicker={screen.kind !== "playing"}
             onImport={(p) => void startImport(p, null, sourceLang)}
-            onPath={setImportPath}
+            onPath={setTypedPath}
           />
           {screen.kind === "playing" && (
             <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
           )}
         </header>
-        {(SOURCE_NOTES[sourceLang] || (screen.kind !== "importing" && hasDetectNote(found))) && (
+        {(SOURCE_NOTES[sourceLang] || hasDetectNote(found)) && (
           <div className="source-bar">
             {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={chooseSource} />}
             {SOURCE_NOTES[sourceLang] && (
@@ -428,9 +429,7 @@ export function App() {
                 {SOURCE_NOTES[sourceLang]}
               </p>
             )}
-            {screen.kind !== "importing" && (
-              <DetectNote found={found} picked={sourceLang} unavailable={languageSet.unavailable} onSwitch={chooseSource} />
-            )}
+            <DetectNote found={found} picked={sourceLang} unavailable={languageSet.unavailable} onSwitch={chooseSource} />
           </div>
         )}
       </div>

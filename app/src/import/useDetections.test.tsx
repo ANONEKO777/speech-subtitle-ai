@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ImportPanel } from "./ImportPanel";
-import { useDetections, worthDetecting } from "./useDetections";
+import { useDetections, useSettledPath, worthDetecting } from "./useDetections";
 
 const backend = { port: 1, token: "t" };
 const heard = { detected: "ja", suggested: "ja", mixed_unavailable: null, confidence: 1, sure: true, shares: { ja: 1, en: 0 } };
@@ -71,19 +71,58 @@ describe("useDetections", () => {
   });
 });
 
-describe("the import box tells the window its path once it stops changing", () => {
-  it("waits for a pause, and reports an empty box at once", () => {
+describe("a path that failed is asked again once it is typed again", () => {
+  it("forgets a failure when the path is no longer wanted, and never loops on one that is", async () => {
+    const fetchImpl = vi.fn(async () => new Response("{}", { status: 503 }));
+    vi.stubGlobal("fetch", fetchImpl);
+    const { result, rerender } = renderHook(({ paths }) => useDetections(backend, paths), { initialProps: { paths: ["D:/a.mp4"] } });
+    await waitFor(() => expect(result.current.get("D:/a.mp4")).toBe("failed"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    rerender({ paths: [] });
+    await waitFor(() => expect(result.current.has("D:/a.mp4")).toBe(false));
+    rerender({ paths: ["D:/a.mp4"] });
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.get("D:/a.mp4")).toBe("failed"));
+  });
+});
+
+describe("the path the window asks about", () => {
+  it("is empty while the box changes, the path after a pause, and empty where no picker is shown", () => {
     vi.useFakeTimers();
-    const onPath = vi.fn();
-    render(<ImportPanel busy={false} sourceLang="en" unavailable={{}} onSourceLang={() => undefined} withPicker onImport={() => undefined} onPath={onPath} />);
+    const { result, rerender } = renderHook(({ typed, askable }) => useSettledPath(typed, askable), {
+      initialProps: { typed: "", askable: true },
+    });
+    rerender({ typed: "D:\talks\talk.mp4", askable: true });
+    expect(result.current).toBe("");
+    act(() => vi.advanceTimersByTime(400));
+    expect(result.current).toBe("");
+    act(() => vi.advanceTimersByTime(200));
+    expect(result.current).toBe("D:\talks\talk.mp4");
+    rerender({ typed: "D:\talks\talk.mp4", askable: false });
+    expect(result.current).toBe("");
+    rerender({ typed: "D:\talks\talk.mp4", askable: true });
+    expect(result.current).toBe("D:\talks\talk.mp4");
+    rerender({ typed: "D:\talks\talk.mp", askable: true });
+    expect(result.current).toBe("");
+    rerender({ typed: "", askable: true });
     act(() => vi.advanceTimersByTime(10));
+    expect(result.current).toBe("");
+  });
+});
+
+describe("the import box tells the window its path as it changes", () => {
+  it("reports every change, trimmed, and an empty path when the box is imported", () => {
+    const onPath = vi.fn();
+    const onImport = vi.fn();
+    render(<ImportPanel busy={false} sourceLang="en" unavailable={{}} onSourceLang={() => undefined} withPicker onImport={onImport} onPath={onPath} />);
     expect(onPath).toHaveBeenLastCalledWith("");
     const box = screen.getByTestId("video-path");
-    fireEvent.change(box, { target: { value: '"D:\\talks\\t' } });
-    fireEvent.change(box, { target: { value: '"D:\\talks\\talk.mp4"' } });
-    act(() => vi.advanceTimersByTime(300));
+    fireEvent.change(box, { target: { value: '"D:\talks\talk.mp4"' } });
+    expect(onPath).toHaveBeenLastCalledWith("D:\talks\talk.mp4");
+    fireEvent.click(screen.getByTestId("import"));
+    expect(onImport).toHaveBeenCalledWith("D:\talks\talk.mp4");
     expect(onPath).toHaveBeenLastCalledWith("");
-    act(() => vi.advanceTimersByTime(300));
-    expect(onPath).toHaveBeenLastCalledWith("D:\\talks\\talk.mp4");
+    expect((box as HTMLInputElement).value).toBe('"D:\talks\talk.mp4"');
   });
 });

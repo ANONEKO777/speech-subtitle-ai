@@ -43,11 +43,9 @@ export function SourcePick({ busy, sourceLang, unavailable, onSourceLang }: Pick
 interface Props extends PickProps {
   readonly withPicker: boolean;
   readonly onImport: (videoPath: string) => void;
-  /** The path in the box once it has stopped changing for a moment, or an empty one. */
+  /** The path in the box as it changes, and an empty one when it is imported: the box then keeps the path but it has been used. */
   readonly onPath: (videoPath: string) => void;
 }
-
-const PATH_SETTLE_MS = 500;
 
 export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withPicker, onImport, onPath }: Props) {
   const [path, setPath] = useState("");
@@ -59,15 +57,16 @@ export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withP
 
   const trimmed = path.trim().replace(/^"(.*)"$/, "$1");
   useEffect(() => {
-    const timer = window.setTimeout(() => onPath(trimmed), trimmed === "" ? 0 : PATH_SETTLE_MS);
-    return () => window.clearTimeout(timer);
+    onPath(trimmed);
   }, [trimmed, onPath]);
   return (
     <form
       className="import"
       onSubmit={(e) => {
         e.preventDefault();
-        if (trimmed) onImport(trimmed);
+        if (!trimmed) return;
+        onPath("");
+        onImport(trimmed);
       }}
     >
       <div className="field">
