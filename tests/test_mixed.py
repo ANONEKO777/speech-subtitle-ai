@@ -17,7 +17,7 @@ import pytest
 from test_pipeline import SETTINGS, Fakes
 from test_summarize import good_map, good_reduce
 
-from backend.core import translate, vad
+from backend.core import summarize, translate, vad
 from backend.core.artifacts import parse_words, render_words
 from backend.core.fonts import burn_font
 from backend.core.model import Cue, Segment, Step, Word
@@ -408,6 +408,37 @@ class TestPipeline:
         with pytest.raises(translate.ReplyError, match="kana"):
             check(0, "這是カメラ。")
         assert check(1, "這是一台相機。") == {2: "這是一台相機。"}
+
+    def test_each_cue_gets_the_taiwan_words_of_its_own_language(self) -> None:
+        cues = [
+            Cue(1, 0, 1000, "外部ツールからアクセスします。", lang=JA),
+            Cue(2, 1000, 2000, "An outside tool opens the repository.", lang=EN),
+        ]
+        said = "從外部工具訪問Perforce，並創建版本。"
+
+        def clean(index: int) -> str:
+            batch = translate.Batch((translate.Unit(index, index + 1),))
+            request = translate.build_request(cues, batch, (), source=MIXED_SOURCE)
+            text = json.dumps(
+                {"translations": [{"id": cues[index].id, "zh": said}]}, ensure_ascii=False
+            )
+            source = MIXED_SOURCE.of(cues[index].lang)
+            return translate.parse_reply(text, request, cues, (), source=source)[cues[index].id]
+
+        assert clean(0) == "從外部工具存取Perforce，並建立版本。"
+        assert clean(1) == "從外部工具訪問Perforce，並建立版本。"
+
+    def test_the_summary_of_a_mixed_talk_gets_the_japanese_words(self) -> None:
+        said = "資料存儲於P4D伺服器，REST API提供網頁訪問接口。"
+        chapter = {"at": "00:01", "title": "章", "summary": "章"}
+        body = json.dumps(
+            {"one_liner": said, "chapters": [chapter], "key_points": [said], "takeaways": []},
+            ensure_ascii=False,
+        )
+        maps = (summarize.MapResult(0, 600_000, "t", (summarize.Point(1000, "x"),)),)
+        job = summarize.ReduceInput("zh-TW", 0, 600_000, maps, (), (), MIXED_SOURCE)
+        result = summarize.parse_reduce(body, job)
+        assert result.one_liner == "資料儲存於P4D伺服器，REST API提供網頁存取介面。"
 
     def test_a_second_run_does_nothing_and_a_new_llm_reruns_only_the_language_steps(
         self, tmp_path: Path

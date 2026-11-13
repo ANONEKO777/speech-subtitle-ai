@@ -144,27 +144,44 @@ _TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...]
 )
 
 
-_ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = tuple(
-    (re.compile(pattern), replacement)
-    for pattern, replacement in (
-        (
-            f"訪問(?={_MARK}(?:了|到|過)?{_GAP}(?:{_ACCESS_OF})?(?:{_ACCESSED})+{_ACCESS_ENDS})",
-            "存取",
-        ),
-        (
-            f"{_NOT_FOUNDING}創建(?!者|人|於|時期|時代|了?[這那該一]?[家間個所]?(?:新的|新)?(?:{_FOUNDED}))",
-            "建立",
-        ),
-        ("可視化", "視覺化"),
-        ("存儲(?!器)", "儲存"),
-        (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動|[與和及]救援)", "搜尋"),
-        (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
-        (
-            f"(?:{_after(_spaced(_CALLER))})調用|調用(?=了?{_GAP}(?:{_CALLED}))",
-            "呼叫",
-        ),
+_Rule = tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]]
+
+
+def _rules(*pairs: tuple[str, str | Callable[[re.Match[str]], str]]) -> tuple[_Rule, ...]:
+    return tuple((re.compile(pattern), replacement) for pattern, replacement in pairs)
+
+
+def _access(objects: str, ends: str = _ACCESS_ENDS) -> str:
+    return f"訪問(?={_MARK}(?:了|到|過)?{_GAP}(?:{_ACCESS_OF})?(?:{objects})+{ends})"
+
+
+def _creation(founded: str) -> str:
+    founding = rf"了?[這那該一]?[家間個所]?(?:新的|新)?(?:{founded})"
+    return f"{_NOT_FOUNDING}創建(?!者|人|於|時期|時代|{founding})"
+
+
+_SHARED_TERMS = _rules(
+    ("可視化", "視覺化"),
+    ("存儲(?!器)", "儲存"),
+    (f"{_NOT_A_SEARCH_PARTY}搜索(?!隊|令|票|救援|行動|[與和及]救援)", "搜尋"),
+    (f"{_NOT_A_PORT}接口(?!卡|板|線|人|處)", "介面"),
+    (
+        f"(?:{_after(_spaced(_CALLER))})調用|調用(?=了?{_GAP}(?:{_CALLED}))",
+        "呼叫",
+    ),
+    ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
+)
+"""Mainland words with no reading in a Japanese talk that Taiwan accepts: a model that writes
+存儲 or 接口 for ストレージ or インターフェース is writing Mainland Chinese. Both flows run them."""
+
+_ENGLISH_TERMS = (
+    _rules(
+        (_access(_ACCESSED), "存取"),
+        (_creation(_FOUNDED), "建立"),
+    )
+    + _SHARED_TERMS
+    + _rules(
         (f"(?:{_after('效能|性能')})優化|優化(?=了?(?:{_OPTIMIZED}))", "最佳化"),
-        ("反饋(?!迴路|回路|環路|電路|放大)", "回饋"),
         (
             f"導入(?=(?:了|過)?{_GAP}{_IMPORT_OF}(?:{_IMPORT_OBJECT}){_IMPORT_ENDS})"
             f"|導入(?=(?:到|至|進){_GAP}(?:{_IMPORT_TARGET}){_IMPORT_ENDS})"
@@ -179,21 +196,45 @@ _ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str
 
 
 _NOT_FACTORY_LINE = _not_after("生產|裝配|組裝|製造|工廠|工業|汽車")
-_JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
-    (
-        re.compile("倉庫|儲存庫"),
-        lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存倉",
-    ),
-    (re.compile(f"{_NOT_FACTORY_LINE}流水線"), "管線"),
+_FOUNDED_IN_JAPANESE = "寺院|神社|城|城市|都市|村|王國|幕府|大學|學院|商店|宗派|教會|幫派|工會"
+_CREATED_WORLD = "世界|宇宙|萬物"
+_JAPANESE_FOUNDED = f"{_FOUNDED}|{_FOUNDED_IN_JAPANESE}|{_CREATED_WORLD}"
+_ACCESSED_BY = "工具|使用者|代理|客戶端|用戶端|程式|腳本|伺服器|外部"
+_ACCESS_COMPOUND = "權限|控制|令牌|權杖|端點|日誌|許可|協定|介面|接口"
+_ACCESS_OF_SOFTWARE = "方式|資訊|量|次數|限制"
+_SOFTWARE_CUE = re.compile(
+    f"{_SOFTWARE_NOUN}|{_ACCESSED}|使用者|軟體|網頁|命令列|版本管理|雲端|AI|MCP|SDK|REST|Git|P4"
+)
+
+
+def _access_in_software(match: re.Match[str]) -> str:
+    """存取 when the cue the word is in talks about software, so 訪問方式 stays a way to visit
+    in a talk about travel."""
+    return "存取" if _SOFTWARE_CUE.search(_cue_of(match)) else match.group()
+
+
+_JAPANESE_TERMS = (
+    _rules(
+        ("倉庫|儲存庫", lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存倉"),
+        (f"{_NOT_FACTORY_LINE}流水線", "管線"),
+        (_access(f"{_ACCESSED}|資產|專案", f"(?:的|{_ACCESS_ENDS})"), "存取"),
+        (f"訪問(?={_ACCESS_COMPOUND})", "存取"),
+        (f"{_after(_ACCESSED_BY)}訪問(?= ?[A-Za-z0-9])", "存取"),
+        (f"訪問(?=的?(?:{_ACCESS_OF_SOFTWARE}))|(?<=同時)訪問", _access_in_software),
+        (_creation(_JAPANESE_FOUNDED), "建立"),
+    )
+    + _SHARED_TERMS
 )
 
 
 def taiwan_terms_from_japanese(text: str) -> str:
-    """Taiwan wording for words a Japanese talk gives that an English one does not: a code
+    """Taiwan wording for what a Japanese talk gives that an English one does not: a code
     repository (リポジトリ) comes out as 倉庫 or 儲存庫, and Taiwan writes 儲存倉, and a build
     pipeline (パイプライン) comes out as 流水線. A text that talks about goods keeps its warehouse,
-    and one about a factory its assembly line.
-    Neither is in `taiwan_terms`, so the output of an English talk keeps them."""
+    and one about a factory its assembly line. It also runs the words both flows share (存儲,
+    接口, 搜索, 可視化, 反饋, 調用), and 創建 and 訪問 where the words around them make the
+    Mainland sense certain. 導入 and 優化 are Taiwan words too (導入實績, 優化), so they stay.
+    None of these is in `taiwan_terms`, so the output of an English talk keeps the first two."""
     for pattern, taiwan in _JAPANESE_TERMS:
         text = pattern.sub(taiwan, text)
     return text
@@ -203,7 +244,8 @@ def taiwan_terms_from_english(text: str) -> str:
     """Taiwan wording for the Mainland words an English talk gives, and that a Japanese talk
     writes for another sense: 導入 is adopting something in Japanese, 訪問 is a visit or an
     interview, and 創建 and 搜索 are valid Chinese. Every rule here replaces only next to words
-    that make the Mainland sense certain, and a missed word is better than a wrong one."""
+    that make the Mainland sense certain, and a missed word is better than a wrong one. The
+    Japanese table has its own 訪問 and 創建 rules and shares the rest."""
     for pattern, taiwan in _ENGLISH_TERMS:
         text = pattern.sub(taiwan, text)
     return text
