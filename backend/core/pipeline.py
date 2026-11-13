@@ -57,6 +57,10 @@ log = logging.getLogger(__name__)
 
 PROJECT_JSON = "project.json"
 MIXED_CUT = "pauses-300-guard-tail-1"
+UNSPACED_CUT = "numbers-whole-1"
+"""How cues of an unspaced language (Japanese) are cut. A talk cut by an older rule is cut again."""
+JAPANESE_UNITS = "finals-1"
+"""How the cues of a Japanese talk are grouped into sentences for translation."""
 
 
 class File(StrEnum):
@@ -354,9 +358,16 @@ def _rules_key(rules: CueRules) -> dict[str, object]:
     key = asdict(rules)
     if not rules.unspaced:
         del key["unspaced"]
+    else:
+        key["cut"] = UNSPACED_CUT
     if rules.max_cps == CueRules().max_cps:
         del key["max_cps"]
     return key
+
+
+def _units_key(settings: Settings) -> dict[str, str]:
+    """How sentences are grouped for translation. English adds nothing, so its key is unchanged."""
+    return {} if settings.source_lang == DEFAULT_SOURCE else {"units": JAPANESE_UNITS}
 
 
 def _cut_key(settings: Settings) -> dict[str, str]:
@@ -436,6 +447,7 @@ STEPS: tuple[_StepSpec, ...] = (
             "glossary": _glossary(s),
             "batch": s.batch_size,
             "prompt": _translate_prompt_digest(s.target_lang, s.source_lang),
+            **_units_key(s),
             **_source_key(s),
             **_lang_key(s),
         },

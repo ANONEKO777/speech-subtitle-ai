@@ -33,6 +33,7 @@ MAX_UNIT_CUES = 6
 _LONG_EN_CHARS = 25
 GLOSSARY_MARK = "<<GLOSSARY>>"
 _MARKER = re.compile(r"\[\[(\d+)\]\]")
+_FULL_STOP = re.compile(r"[。！？!?…][」』）)\"”]*\Z")
 
 
 class TranslationError(RuntimeError):
@@ -169,8 +170,9 @@ def sentence_units(
     first = start
     for index in range(start, stop):
         said = source.of(cues[index].lang)
-        ends = said.sentence_end.search(said.flat(cues[index].src).rstrip()) is not None
-        if ends and said.sentence_continues and index + 1 < stop:
+        text = said.flat(cues[index].src).rstrip()
+        ends = said.sentence_end.search(text) is not None
+        if ends and said.sentence_continues and index + 1 < stop and not _FULL_STOP.search(text):
             ends = not said.sentence_continues.match(said.flat(cues[index + 1].src))
         switches = index + 1 < stop and cues[index + 1].lang != cues[index].lang
         if ends or switches or index + 1 == stop or index + 1 - first == limit:
