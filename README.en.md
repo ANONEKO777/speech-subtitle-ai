@@ -105,7 +105,9 @@ The third choice, "Japanese and English mixed", is for a talk where a Japanese s
 <!-- PLACEHOLDER(P24b): add a mixed Japanese and English example screenshot here. The talks used in testing are private, and no public material exists yet. -->
 > Mixed-language example screenshot: to come. The talks used in testing are private and cannot be shown, and there is no public material yet, so there is no picture here.
 
-**Limits:** A Japanese or mixed video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. The mixed choice needs the Qwen3 model files (installed with the 24 GB model set) and a GPU. You pick the video language yourself at import. The app does not detect it, and it cannot choose between audio tracks.
+**Automatic language guess.** After you pick a video (paste a path, press "Choose file", or add a file in the Add dialog), the app takes 24 pieces of audio of 5 seconds each, spread evenly over the video, in the background and asks Whisper which language each piece is in. This takes about 3 to 5 seconds on an RTX 4090 and does not depend on the length of the video. When nearly every piece is in one language, the "video language" menu is set to it and a line under the toolbar says so, for example "偵測到：日文（信心 100%）" (detected: Japanese, confidence 100%). When the smaller language holds at least 15% of the pieces, the menu is set to the mixed choice. A language you picked yourself is never replaced. When your choice differs from a clear guess, a short hint appears with a button that switches in one click. This is a guess and it can be wrong. For example, a long stretch of English in a Japanese talk can make the app call the talk mixed, and a very short video has too few pieces to say anything. When no guess can be made, or it fails or takes too long, the window does nothing and the menu stays as it was. Only English and Japanese are recognized. When this PC cannot process mixed talks, a mixed talk preselects its main language and the line says so. A PC that runs on the CPU makes no guess (each piece takes about 10 seconds). A single file dropped on the window is imported at once with the current choice and is not guessed about.
+
+**Limits:** A Japanese or mixed video can only produce Traditional Chinese (Taiwan) subtitles and summary for now. Other target languages are not supported yet. The mixed choice needs the Qwen3 model files (installed with the 24 GB model set) and a GPU. You can pick the video language yourself. The app also guesses it once (see above), but the guess can be wrong, and it cannot choose between audio tracks.
 
 ### More
 
@@ -125,7 +127,7 @@ These are not in the app yet.
 
 - **An installer.** There is no installer and no download, so you build the app from source. See [Install and run from source](#install-and-run-from-source).
 - **Other target languages for a Japanese or mixed video.** These videos can only be translated into Traditional Chinese (Taiwan) for now.
-- **Automatic detection of the video language.** At import you pick English, Japanese or mixed. The app does not guess, and it cannot choose between audio tracks.
+- **Choosing an audio track.** When a video has several audio tracks, the app uses the first one and you cannot choose.
 - **Other source languages.** Only English, Japanese and the mix of the two are supported.
 - **Choosing the target language for a single import.** The import box imports into Traditional Chinese (Taiwan). Other languages are chosen per video in the batch queue, or with `--lang` on the command line.
 - **Deleting a saved cloud key.** The window can save a key and replace it, but not remove it.
@@ -163,7 +165,7 @@ Files land in `%LOCALAPPDATA%\video-subtitle-translator` (set `VST_USER_DATA` to
 
 ### In the window
 
-1. Paste the full path of a video or press "Choose file", pick English, Japanese or the mixed choice in the "video language" menu beside it, then press "Import". The progress screen shows the current step. To process many videos, press "Add", or drop several files on the window, and give each its own language.
+1. Paste the full path of a video or press "Choose file", pick English, Japanese or the mixed choice in the "video language" menu beside it, then press "Import". When you pick the video, the app guesses the language once and preselects it (a choice you made yourself is never replaced). The progress screen shows the current step. To process many videos, press "Add", or drop several files on the window, and give each its own language.
 2. When it finishes you land in the player. A talk you processed before opens straight in the player, where you left off, and the library tab lists the others.
 3. Use the mode switch for the original only, the translation only or both. The size, color and line spacing of the subtitles are in the toolbar.
 4. Double-click a subtitle to edit it. Open the summary tab and click a chapter time to jump, and save files from the export menu. Press `?` for every keyboard shortcut.
