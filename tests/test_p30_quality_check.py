@@ -98,3 +98,45 @@ class TestNumbersInPlaceAndWordsOutsideTheTable:
         assert counts["simplified_char_cues"] == 1
         assert counts["product_name_wrong_cues"] == 1
         assert counts["product_name_perforce_cues"] == 1
+
+
+class TestProductNamesAndTheLongPlugInForm:
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "用Claude程式碼詢問",
+            "Claude 程式碼",
+            "這邊是Visual Studio碼",
+            "VS 程式碼",
+            "GitHub 副駕駛",
+            "克勞德",
+            "聊天GPT",
+        ],
+    )
+    def test_a_chinese_word_inside_a_product_name_is_counted(self, zh: str) -> None:
+        counts, _ = check([cue(1, "あのツールです", zh)])
+        assert counts["product_name_translated_cues"] == 1
+
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "用Claude Code詢問",
+            "Visual Studio Code",
+            "GitHub上的程式碼庫",
+            "你的程式碼",
+            "Cloud Run",
+        ],
+    )
+    def test_a_product_name_kept_in_latin_letters_is_not_counted(self, zh: str) -> None:
+        counts, _ = check([cue(1, "あのツールです", zh)])
+        assert counts["product_name_translated_cues"] == 0
+
+    def test_cloud_for_claude_is_counted_only_where_the_japanese_says_claude(self) -> None:
+        counts, _ = check(
+            [cue(1, "クロードです", "這是Cloud"), cue(2, "クラウドです", "這是Cloud")]
+        )
+        assert counts["product_name_translated_cues"] == 1
+
+    def test_the_long_plug_in_form_is_counted(self) -> None:
+        counts, _ = check([cue(1, "プラグインです", "外掛程式"), cue(2, "プラグインです", "外掛")])
+        assert counts["plugin_written_long_form_cues"] == 1

@@ -23,8 +23,13 @@ over the windows of the file's run only. The checks:
   same table, so this count shows that the model follows the prompt and does not show that the
   table is right (marked `*` in the printout).
 - words the table does not name: cues with a Mainland word the table has no line for, a simplified
-  character, the product name written as something other than Perforce, and the Japanese word
-  for demo or access written as the Mainland word. These do not depend on the prompt.
+  character, the product name written as something other than Perforce, a product that stays in
+  Latin letters written with a Chinese word in it (Claude Code as Claude程式碼), the plug-in
+  written 外掛程式 where the prompt asks for 外掛, and the Japanese word for demo or access written
+  as the Mainland word. These do not depend on the prompt.
+
+Run it from the checkout it checks, or with `PYTHONPATH` set to it: it imports `backend.core` from
+whichever checkout Python finds first, and an editable install of another checkout answers silently.
 
 Exit code is 0: this reports, the judge is a person.
 """
@@ -52,6 +57,14 @@ _DIGITS = "〇一二三四五六七八九"
 NOT_IN_THE_TABLE = ("硬件", "演示", "訪問", "視頻", "信息", "屏幕", "打印", "文檔")
 """Mainland words that no line of the table names and that the Taiwan wording step may leave."""
 PRODUCT_WRONG = re.compile(r"Power ?[Ff]orce|PowerHorse|BIFFO|Biffo|Pforce")
+PRODUCT_TRANSLATED = re.compile(
+    r"(?i:Claude|Visual ?Studio|VS|GitHub) ?(?:程式碼|代碼|碼)(?!庫)|克勞德|副駕駛|協同駕駛"
+    r"|聊天 ?GPT|對話 ?GPT"
+)
+"""A Chinese rendering inside the name of a product that stays in Latin letters (Claude Code
+written Claude程式碼, Copilot written 副駕駛). The patterns do not come from the term table."""
+CLOUD_FOR_CLAUDE = re.compile(r"(?<![A-Za-z])Cloud(?![A-Za-z])")
+PLUGIN_LONG_FORM = "外掛程式"
 CIRCULAR = frozenset({"glossary_cues_right", "glossary_cues_seen"})
 LENGTH_LIMIT = 2.5
 LOW_RATIO = 0.25
@@ -166,6 +179,13 @@ def not_in_the_table(cues: Sequence[Cue]) -> dict[str, int]:
             1 for c in cues if "デモ" in c.src.replace("\n", "") and "演示" in c.zh
         ),
         "product_name_wrong_cues": sum(1 for c in cues if PRODUCT_WRONG.search(c.zh)),
+        "product_name_translated_cues": sum(
+            1
+            for c in cues
+            if PRODUCT_TRANSLATED.search(c.zh)
+            or ("クロード" in c.src.replace("\n", "") and CLOUD_FOR_CLAUDE.search(c.zh))
+        ),
+        "plugin_written_long_form_cues": sum(1 for c in cues if PLUGIN_LONG_FORM in c.zh),
         "product_name_perforce_cues": sum(1 for c in cues if "Perforce" in c.zh),
     }
 
