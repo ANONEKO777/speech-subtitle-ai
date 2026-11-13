@@ -1,15 +1,19 @@
 import { FileVideo, Folder, FolderOpen, ListPlus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pickFolder, pickVideos } from "../api/backend";
 import type { Backend, LanguageSet } from "../api/client";
+import { type Detected, detectLine, hintFor, isDetection, preselect, switchLabel } from "../api/detect";
 import { SOURCE_NOTES, type SourceLang, type Unavailable, canTarget, parseSourceLang } from "../api/sourceLang";
 import { SourceOptions } from "../import/ImportPanel";
+import { useDetections } from "../import/useDetections";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
 import { isExperimental } from "./lang";
 import { baseName, classifyPath } from "./paths";
 
 interface Row extends AddEntry {
   readonly key: string;
+  /** The person chose this row's language, so a guess does not replace it. */
+  readonly touched?: boolean;
 }
 
 /** The target language a source language can use: the one asked for, or the first it allows. */
@@ -64,6 +68,34 @@ function LangSelect({ value, set, onChange, label, testid, source }: {
   );
 }
 
+function RowDetect({ found, row, unavailable, onSwitch }: {
+  found: Detected | undefined;
+  row: Row;
+  unavailable: Unavailable;
+  onSwitch: (code: SourceLang) => void;
+}) {
+  if (found === "running") return <span className="add-detect" data-testid="add-row-detect" data-state="running">正在偵測影片語言…</span>;
+  if (!isDetection(found)) return null;
+  const line = detectLine(found);
+  if (line === null) return null;
+  const hint = hintFor(found, row.source, unavailable);
+  return (
+    <span className="add-detect">
+      <span data-testid="add-row-detect" data-state="done" data-detected={found.detected ?? ""}>
+        {line}
+      </span>
+      {hint && (
+        <span className="add-detect-hint" data-testid="add-row-hint">
+          {hint.text}
+          <button type="button" data-testid="add-row-switch" onClick={() => onSwitch(hint.switchTo)}>
+            {switchLabel(hint.switchTo)}
+          </button>
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function AddDialog({ backend, languages, initial, onClose, onAdded }: Props) {
   const [defaultLang, setDefaultLang] = useState(languages.defaultCode);
   const [defaultSource, setDefaultSource] = useState<SourceLang>(initial[0]?.source ?? "en");
@@ -83,7 +115,29 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
     });
     setSeq((n) => n + entries.length);
   };
-  const patch = (key: string, p: Partial<AddEntry>) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...p } : x)));
+  const patch = (key: string, p: Partial<Row>) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...p } : x)));
+  const setSource = (row: Row, source: SourceLang) => patch(row.key, { source, lang: targetFor(source, row.lang, languages), touched: true });
+
+  const found = useDetections(
+    backend,
+    rows.filter((r) => !r.folder).map((r) => r.path),
+  );
+  const preselected = useRef(new Set<string>());
+  useEffect(() => {
+    setRows((current) => {
+      let changed = false;
+      const next = current.map((row) => {
+        const guess = found.get(row.path);
+        if (row.folder || !isDetection(guess) || preselected.current.has(row.path)) return row;
+        preselected.current.add(row.path);
+        const code = preselect(guess, row.touched === true, languages.unavailable);
+        if (code === null || code === row.source) return row;
+        changed = true;
+        return { ...row, source: code, lang: targetFor(code, row.lang, languages) };
+      });
+      return changed ? next : current;
+    });
+  }, [found, languages]);
 
   async function addFiles() {
     append((await pickVideos()).map((path) => ({ path, lang: defaultLang, source: defaultSource })));
@@ -153,7 +207,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
             type="button"
             data-testid="add-apply-all"
             disabled={rows.length === 0}
-            onClick={() => setRows((r) => r.map((x) => ({ ...x, lang: defaultLang, source: defaultSource })))}
+            onClick={() => setRows((r) => r.map((x) => ({ ...x, lang: defaultLang, source: defaultSource, touched: true })))}
           >
             套用到全部
           </button>
@@ -173,6 +227,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                 <span className="add-name" title={row.path}>
                   <b>{baseName(row.path) || row.path}</b>
                   <small>{row.path}</small>
+                  {!row.folder && <RowDetect found={found.get(row.path)} row={row} unavailable={languages.unavailable} onSwitch={(code) => setSource(row, code)} />}
                 </span>
                 {row.folder && (
                   <label className="add-sub">
@@ -187,7 +242,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                 <SourceSelect
                   value={row.source}
                   unavailable={languages.unavailable}
-                  onChange={(source) => patch(row.key, { source, lang: targetFor(source, row.lang, languages) })}
+                  onChange={(source) => setSource(row, source)}
                   label="影片語言"
                   testid="add-row-source"
                 />

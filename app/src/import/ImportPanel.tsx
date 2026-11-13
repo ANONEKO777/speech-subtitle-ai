@@ -1,5 +1,5 @@
 import { ArrowDownToLine, FileVideo, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { pickVideo } from "../api/backend";
 import { SOURCE_LANGS, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
 
@@ -43,9 +43,13 @@ export function SourcePick({ busy, sourceLang, unavailable, onSourceLang }: Pick
 interface Props extends PickProps {
   readonly withPicker: boolean;
   readonly onImport: (videoPath: string) => void;
+  /** The path in the box once it has stopped changing for a moment, or an empty one. */
+  readonly onPath: (videoPath: string) => void;
 }
 
-export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withPicker, onImport }: Props) {
+const PATH_SETTLE_MS = 500;
+
+export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withPicker, onImport, onPath }: Props) {
   const [path, setPath] = useState("");
 
   async function browse() {
@@ -54,6 +58,10 @@ export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withP
   }
 
   const trimmed = path.trim().replace(/^"(.*)"$/, "$1");
+  useEffect(() => {
+    const timer = window.setTimeout(() => onPath(trimmed), trimmed === "" ? 0 : PATH_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [trimmed, onPath]);
   return (
     <form
       className="import"

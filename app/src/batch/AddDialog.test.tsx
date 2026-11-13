@@ -13,6 +13,26 @@ const languages = {
 };
 const backend = { port: 1, token: "t" };
 
+/** Answers the language guess with a refusal, which leaves every picker as it was, and the queue with success. */
+function stubFetch(detected?: unknown) {
+  const fetchImpl = vi.fn((url: string) =>
+    Promise.resolve(
+      url.includes("/api/languages/detect")
+        ? detected === undefined
+          ? new Response("{}", { status: 503 })
+          : new Response(JSON.stringify(detected), { status: 200 })
+        : new Response(JSON.stringify({ added: [], skipped: [] }), { status: 201 }),
+    ),
+  );
+  vi.stubGlobal("fetch", fetchImpl);
+  return fetchImpl;
+}
+
+const queued = (fetchImpl: ReturnType<typeof stubFetch>) => {
+  const call = fetchImpl.mock.calls.find(([url]) => url.includes("/api/queue/items")) as unknown as [string, RequestInit];
+  return JSON.parse(String(call[1].body)).items;
+};
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -20,8 +40,7 @@ afterEach(() => {
 
 describe("the add dialog and the video language", () => {
   it("a Japanese row can only target Traditional Chinese, and the body carries source_lang", async () => {
-    const fetchImpl = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ added: [], skipped: [] }), { status: 201 })));
-    vi.stubGlobal("fetch", fetchImpl);
+    const fetchImpl = stubFetch();
     render(
       <AddDialog
         backend={backend}
@@ -39,17 +58,15 @@ describe("the add dialog and the video language", () => {
     expect([...(targets[1]?.options ?? [])].map((o) => o.value)).toEqual(["zh-TW", "ko"]);
     expect(screen.getByTestId("add-source-note").textContent).toContain("繁體中文");
     fireEvent.click(screen.getByTestId("add-submit"));
-    await waitFor(() => expect(fetchImpl).toHaveBeenCalled());
-    const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
-    expect(JSON.parse(String(init.body)).items).toEqual([
+    await waitFor(() => expect(fetchImpl.mock.calls.some(([url]) => url.includes("/api/queue/items"))).toBe(true));
+    expect(queued(fetchImpl)).toEqual([
       { path: "D:/a.mp4", target_lang: "zh-TW", source_lang: "ja" },
       { path: "D:/b.mp4", target_lang: "zh-TW", source_lang: "en" },
     ]);
   });
 
   it("a mixed row can only target Traditional Chinese, shows the 24 GB note and sends ja+en", async () => {
-    const fetchImpl = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ added: [], skipped: [] }), { status: 201 })));
-    vi.stubGlobal("fetch", fetchImpl);
+    const fetchImpl = stubFetch();
     render(
       <AddDialog
         backend={backend}
@@ -64,9 +81,8 @@ describe("the add dialog and the video language", () => {
     expect([...target.options].map((o) => o.value)).toEqual(["zh-TW"]);
     expect(screen.getByTestId("add-source-note").textContent).toContain("24 GB");
     fireEvent.click(screen.getByTestId("add-submit"));
-    await waitFor(() => expect(fetchImpl).toHaveBeenCalled());
-    const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
-    expect(JSON.parse(String(init.body)).items).toEqual([{ path: "D:/a.mp4", target_lang: "zh-TW", source_lang: "ja+en" }]);
+    await waitFor(() => expect(fetchImpl.mock.calls.some(([url]) => url.includes("/api/queue/items"))).toBe(true));
+    expect(queued(fetchImpl)).toEqual([{ path: "D:/a.mp4", target_lang: "zh-TW", source_lang: "ja+en" }]);
   });
 
   it("shows the mixed choice disabled with its reason when this machine cannot run it", () => {
@@ -83,5 +99,86 @@ describe("the add dialog and the video language", () => {
     const mixed = options.find((o) => o.value === "ja+en");
     expect(mixed?.disabled).toBe(true);
     expect(mixed?.textContent).toContain("這台電腦沒有安裝混合語言所需的模型");
+  });
+
+  describe("the guess about each video", () => {
+    const guess = (code: string, extra: object = {}) => ({
+      detected: code,
+      suggested: code,
+      mixed_unavailable: null,
+      confidence: 1,
+      sure: true,
+      shares: { ja: code === "ja" ? 1 : 0, en: code === "en" ? 1 : 0 },
+      ...extra,
+    });
+    const open = (paths: string[]) =>
+      render(
+        <AddDialog backend={backend} languages={languages} initial={rowsFor(paths, "zh-TW", "en")} onClose={() => undefined} onAdded={() => undefined} />,
+      );
+    const rowSource = () => (screen.getByTestId("add-row-source") as HTMLSelectElement).value;
+
+    it("preselects the language heard and says so on the row", async () => {
+      const fetchImpl = stubFetch(guess("ja"));
+      open(["D:/a.mp4"]);
+      await waitFor(() => expect(rowSource()).toBe("ja"));
+      expect(screen.getByTestId("add-row-detect").textContent).toBe("偵測到：日文（信心 100%）");
+      expect(screen.queryByTestId("add-row-hint")).toBeNull();
+      fireEvent.click(screen.getByTestId("add-submit"));
+      await waitFor(() => expect(fetchImpl.mock.calls.some(([url]) => url.includes("/api/queue/items"))).toBe(true));
+      expect(queued(fetchImpl)).toEqual([{ path: "D:/a.mp4", target_lang: "zh-TW", source_lang: "ja" }]);
+    });
+
+    it("asks about one video at a time", async () => {
+      let running = 0;
+      let most = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          most = Math.max(most, ++running);
+          await new Promise((r) => setTimeout(r, 10));
+          running--;
+          return new Response(JSON.stringify(guess("en")), { status: 200 });
+        }),
+      );
+      open(["D:/a.mp4", "D:/b.mp4", "D:/c.mp4"]);
+      await waitFor(() => {
+        const notes = screen.getAllByTestId("add-row-detect");
+        expect(notes).toHaveLength(3);
+        expect(notes.every((n) => n.getAttribute("data-state") === "done")).toBe(true);
+      });
+      expect(most).toBe(1);
+    });
+
+    it("never replaces a language the person chose, and offers the switch instead", async () => {
+      let answer: (r: Response) => void = () => undefined;
+      vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => (answer = resolve))));
+      open(["D:/a.mp4"]);
+      fireEvent.change(screen.getByTestId("add-row-source"), { target: { value: "en" } });
+      answer(new Response(JSON.stringify(guess("ja")), { status: 200 }));
+      await waitFor(() => expect(screen.getByTestId("add-row-hint").textContent).toContain("這部影片聽起來是日文，目前選的是英文"));
+      expect(rowSource()).toBe("en");
+      fireEvent.click(screen.getByTestId("add-row-switch"));
+      expect(rowSource()).toBe("ja");
+      expect(screen.queryByTestId("add-row-hint")).toBeNull();
+    });
+
+    it("leaves the row alone when the guess fails, and when it is not clear", async () => {
+      stubFetch();
+      open(["D:/a.mp4"]);
+      await waitFor(() => expect(screen.queryByTestId("add-row-detect")).toBeNull());
+      expect(rowSource()).toBe("en");
+      cleanup();
+      stubFetch(guess("ja", { sure: false, confidence: 0.75 }));
+      open(["D:/a.mp4"]);
+      await waitFor(() => expect(screen.getByTestId("add-row-detect").textContent).toBe("可能是日文（信心 75%），請確認影片語言"));
+      expect(rowSource()).toBe("en");
+      expect(screen.queryByTestId("add-row-hint")).toBeNull();
+    });
+
+    it("does not ask about a folder", () => {
+      const fetchImpl = stubFetch();
+      open(["D:/clips"]);
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
   });
 });
