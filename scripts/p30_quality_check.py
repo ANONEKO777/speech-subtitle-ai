@@ -14,7 +14,9 @@ over the windows of the file's run only. The checks:
 - Mainland wording: cues the Taiwan wording step would still change (`scripts/p23a_check.py`).
 - fragment endings: a cue whose Chinese ends on a word that needs a continuation (的, 和, 與, ...).
 - length: a cue whose Chinese is more than 2.5 times as long as its Japanese, which an added clause
-  causes.
+  causes; and cues whose Chinese is under 0.25 or over 1.3 times its Japanese (a typical cue is
+  0.6), which is how a sentence put one cue out of place shows.
+- a Chinese cue that starts with punctuation: the sentence it finishes was put in the cue before.
 - kana left in the Chinese.
 - glossary: for each term of `backend.core.ja_terms`, the cues that have the Japanese term and
   whose Chinese has the Taiwan form and none of the wrong ones.
@@ -42,6 +44,8 @@ _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 _DANGLING_END = re.compile(r"[的和與及在對將把但並而由向從為以之或讓使跟同比被給]\Z")
 _DIGITS = "〇一二三四五六七八九"
 LENGTH_LIMIT = 2.5
+LOW_RATIO = 0.25
+HIGH_RATIO = 1.3
 MIN_SOURCE_CHARS = 6
 
 
@@ -161,6 +165,10 @@ def check(cues: Sequence[Cue]) -> tuple[dict[str, float], dict[str, str]]:
         "mainland_wording_cues": sum(1 for c in ja if mainland(c.zh)),
         "fragment_ending_cues": sum(1 for c in ja if _DANGLING_END.search(c.zh.rstrip("，、 "))),
         "length_over_2.5x": sum(1 for r in ratios if r > LENGTH_LIMIT),
+        "length_ratio_extremes": sum(1 for r in ratios if r < LOW_RATIO or r > HIGH_RATIO),
+        "zh_cues_starting_with_punctuation": sum(
+            1 for c in ja if re.match(r"[，。、；：！？]", c.zh.lstrip())
+        ),
         "length_ratio_mean": round(sum(ratios) / max(len(ratios), 1), 3),
         "kana_left_cues": sum(1 for c in ja if JAPANESE_SOURCE.problem(c.zh)),
         "glossary_cues_right": right,
