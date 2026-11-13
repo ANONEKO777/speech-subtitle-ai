@@ -4,8 +4,8 @@
 //   queue add dialog, and the toolbar with the note shown) | unavailable (a user data folder without the Qwen3 files)
 // Env: VST_USER_DATA, WEBVIEW2_USER_DATA_FOLDER (disposable folders), P24C_VIDEOS (a folder with the three videos
 //   of the brief), P24C_MEDIA (review PNGs of the private videos go here, outside the repo), P24C_REVIEW_PREFIX.
-// <projects-dir> holds a finished project of queue-en-45s.mp4 from <clips-dir>, so no import runs. Nothing is
-// imported by the pick phase either: the lane only fills the box and reads what the window says. Every action goes
+// <projects-dir> holds a finished project of queue-en-45s.mp4 from <clips-dir>, so the one import the lane presses
+// (to measure the English player) plays it at once and no job runs. Every action goes
 // through the DevTools protocol; the native file dialog is not used. Exit 1 on a failed check.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -47,7 +47,6 @@ const resize = async (width, height) => {
 };
 const emit = (event, payload) => p.evaluate(([e, pl]) => window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: e, payload: pl }), [event, payload]);
 
-// recording: screencast frames with a caption bar, which the screenshots hide
 const FFMPEG = process.env.P24C_FFMPEG ?? "C:/Program Files/ffmpeg-n6.1-latest-win64-gpl-shared-6.1/bin/ffmpeg.exe";
 const frameDir = join(shots, `frames-${phase}`);
 rmSync(frameDir, { recursive: true, force: true });
@@ -183,7 +182,6 @@ try {
       await clear();
     }
 
-    // a choice made by hand is never replaced, and a clear difference gets a hint with a one-click switch
     await caption("自己選了英文：偵測到日文也不會換掉，只出現提示");
     await p.selectOption(tid("source-lang"), "en");
     const kept = await pick(VIDEO.ja);
@@ -209,7 +207,6 @@ try {
     await clear();
     await p.selectOption(tid("source-lang"), "en");
 
-    // nothing heard, nothing found: the window stays as it was and says nothing
     for (const [label, path] of [["a path that does not exist", "D:\\nope\\missing.mp4"], ["a file that is not media", "D:\\WebProject\\speech-subtitle-ai\\README.md"]]) {
       await p.fill(tid("video-path"), path);
       await sleep(2500);
@@ -218,7 +215,6 @@ try {
     }
     await clear();
 
-    // the queue add dialog: one guess per row, in the background
     await caption("加入佇列：每個檔案各自偵測");
     await emit("tauri://drag-enter", { paths: [], position: { x: 10, y: 10 } });
     await emit("tauri://drag-drop", { paths: [VIDEO.jaClip, VIDEO.en, VIDEO.mixedClip], position: { x: 10, y: 10 } });
@@ -250,7 +246,6 @@ try {
     await p.waitForSelector(tid("add-dialog"), { state: "detached" });
 
     await caption("");
-    // the toolbar with the note shown is the toolbar without it
     for (const [lang, key] of [["en", "en"], ["ja", "jaClip"], ["ja+en", "mixedClip"]]) {
       await clear();
       await p.selectOption(tid("source-lang"), lang);
@@ -265,7 +260,6 @@ try {
     }
     await resize(1280, 720);
 
-    // the English player: the picker is not in the toolbar, the file box is as wide as before
     await p.fill(tid("video-path"), VIDEO.en);
     await p.click(tid("import"));
     await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
