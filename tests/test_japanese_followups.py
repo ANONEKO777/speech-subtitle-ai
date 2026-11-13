@@ -238,9 +238,23 @@ class TestFileWordFollowsTheJapanese:
             "檢查出兩個bug",
             "檢查出Bug",
             "檢查出許多缺陷",
+            "檢查出錯誤",
+            "檢查出漏洞",
+            "檢查出異常",
+            "被檢查出的人",
+            "能檢查出的事",
+            "檢查出瑕疵",
+            "檢查出不一致",
+            "檢查出沒有人用的設定",
+            "檢查出缺陷",
         ],
     )
     def test_a_check_that_found_something_is_not_a_check_out(self, zh: str) -> None:
+        assert fix_from_source(zh, "チェックアウトします") == zh
+
+    @pytest.mark.parametrize("count", list("一兩二三四五六七八九十幾許多個"))
+    def test_a_check_that_found_a_number_of_things_is_not_a_check_out(self, count: str) -> None:
+        zh = f"檢查出{count}處"
         assert fix_from_source(zh, "チェックアウトします") == zh
 
     def test_a_mixed_talk_english_cue_with_the_word_is_not_rewritten_by_a_japanese_cue(

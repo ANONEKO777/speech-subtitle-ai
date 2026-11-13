@@ -228,7 +228,7 @@ def _access_in_software(match: re.Match[str]) -> str:
     return "存取" if _SOFTWARE_CUE.search(_cue_of(match)) else match.group()
 
 
-_PLUG_IN_COMPOUND = "碼|庫|設計|架構|介面|語言|開發|編寫|撰寫"
+_PLUG_IN_COMPOUND = "碼|庫|設計|架構|介面|語言|開發"
 """A 外掛程式 followed by one of these is 外掛 plus a longer word (程式碼, 程式庫, 程式設計), which
 Taiwan writes in full, so the rewrite to 外掛 leaves it."""
 

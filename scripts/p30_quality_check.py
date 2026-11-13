@@ -64,7 +64,7 @@ PRODUCT_TRANSLATED = re.compile(
 """A Chinese rendering inside the name of a product that stays in Latin letters (Claude Code
 written Claude程式碼, Copilot written 副駕駛). The patterns do not come from the term table."""
 CLOUD_FOR_CLAUDE = re.compile(r"(?<![A-Za-z])Cloud(?![A-Za-z])")
-PLUGIN_LONG_FORM = re.compile("外掛程式(?!碼|庫|設計|架構|介面|語言|開發|編寫|撰寫)")
+PLUGIN_LONG_FORM = re.compile("外掛程式(?!碼|庫|設計|架構|介面|語言|開發)")
 CIRCULAR = frozenset({"glossary_cues_right", "glossary_cues_seen"})
 LENGTH_LIMIT = 2.5
 LOW_RATIO = 0.25
