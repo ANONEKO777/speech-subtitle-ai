@@ -448,6 +448,107 @@ class TestTaiwanTerms:
         cleaned = JAPANESE_SOURCE.clean(ZH_TW.clean(said, "リポジトリ"))
         assert cleaned == "把程式碼放進這個儲存倉，再複製那個儲存倉。"
 
+    @pytest.mark.parametrize(
+        ("mainland", "taiwan"),
+        [
+            ("資料存儲與系統整合", "資料儲存與系統整合"),
+            ("資料集中存儲於P4D伺服器", "資料集中儲存於P4D伺服器"),
+            ("REST API提供網頁訪問接口", "REST API提供網頁存取介面"),
+            ("暴露一個 API 接口", "暴露一個 API 介面"),
+            ("內容搜索與命名規則檢查", "內容搜尋與命名規則檢查"),
+            ("進度可視化", "進度視覺化"),
+            ("可以將狀態可視化", "可以將狀態視覺化"),
+            ("把問題反饋給審查者", "把問題回饋給審查者"),
+            ("讓模型調用工具，再看工具調用的結果", "讓模型呼叫工具，再看工具呼叫的結果"),
+            ("創建版本，這樣就會產生新的版本", "建立版本，這樣就會產生新的版本"),
+            ("這些中繼資料會在分支創建時被使用", "這些中繼資料會在分支建立時被使用"),
+            ("在這個創建階段中繼資料為零", "在這個建立階段中繼資料為零"),
+            ("可以直接從外部工具訪問Perforce(P4)。", "可以直接從外部工具存取Perforce(P4)。"),
+            ("當其他外部使用者訪問P4W時，", "當其他外部使用者存取P4W時，"),
+            ("讓AI代理能訪問資產的P4 MCP伺服器", "讓AI代理能存取資產的P4 MCP伺服器"),
+            ("查看訪問資訊，例如將使用者移除", "查看存取資訊，例如將使用者移除"),
+            ("支援多種訪問方式的版本管理工具", "支援多種存取方式的版本管理工具"),
+            (
+                "儲存庫也能快速處理，即使有數千人同時訪問也能穩定執行",
+                "儲存倉也能快速處理，即使有數千人同時存取也能穩定執行",
+            ),
+            ("需要訪問權限與訪問控制", "需要存取權限與存取控制"),
+            ("代理無法訪問你的資料庫", "代理無法存取你的資料庫"),
+        ],
+    )
+    def test_mainland_words_a_japanese_talk_gives_become_taiwan_words(
+        self, mainland: str, taiwan: str
+    ) -> None:
+        assert taiwan_terms_from_japanese(mainland) == taiwan
+        assert taiwan_terms_from_japanese(taiwan) == taiwan
+        assert JAPANESE_SOURCE.clean(ZH_TW.clean(mainland, "あ")) == taiwan
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "存儲器的容量不夠",
+            "USB 接口與 HDMI 接口，還有 Type-C 接口",
+            "充電接口很鬆，他是我們的接口人",
+            "警方搜索了整棟房子，搜索隊找到了他們",
+            "地毯式搜索花了一整天，搜索與救援任務",
+            "電路的反饋迴路很穩定",
+            "公司調用了所有人手，指揮部調用了軍隊",
+            "他創建了這家公司，也創建了這個樂團",
+            "這座寺院創建於十二世紀，創建者是一位僧侶",
+            "創建了寺院與神社，也創建了世界",
+            "我們訪問了京都的寺院，也訪問了那位作家",
+            "我訪問了系統管理員，訪問了資料科學家",
+            "訪問方式：搭乘電車，約十分鐘",
+            "訪問資訊請見官網，同時訪問的人很多",
+            "我們進行訪問，針對管理員則有說明",
+            "他使用者訪問了東京",
+            "能快速處理，即使有數千人同時進行訪問也能穩定運作",
+        ],
+    )
+    def test_a_word_with_a_japanese_sense_is_kept(self, said: str) -> None:
+        assert taiwan_terms_from_japanese(said) == said
+        assert JAPANESE_SOURCE.clean(ZH_TW.clean(said, "あ")) == said
+
+    @pytest.mark.parametrize(
+        "said",
+        [
+            "國內的 Perforce P4 導入實績",
+            "導入事例與導入諮詢，新人導入效率",
+            "我們導入了 Git，也導入模組",
+            "優化了效能，最優化的形狀",
+        ],
+    )
+    def test_adopting_and_optimizing_are_kept_in_a_japanese_talk(self, said: str) -> None:
+        assert JAPANESE_SOURCE.clean(ZH_TW.clean(said, "あ")) == said
+
+    @pytest.mark.parametrize(
+        ("said", "want"),
+        [
+            ("多種訪問方式的版本管理工具", "多種訪問方式的版本管理工具"),
+            ("訪問資產的人，從外部工具訪問Perforce", "訪問資產的人，從外部工具訪問Perforce"),
+            ("進度可視化", "進度視覺化"),
+        ],
+    )
+    def test_the_japanese_only_rules_do_not_run_for_an_english_talk(
+        self, said: str, want: str
+    ) -> None:
+        assert ZH_TW.terms_from("en", said) == want
+        assert ZH_TW.terms_from("ja", said) == taiwan_terms(said)
+
+    def test_the_summary_of_a_japanese_talk_gets_the_same_words(self) -> None:
+        chapter = {"at": "00:01", "title": "章", "summary": "章"}
+        said = "資料集中存儲於P4D伺服器，REST API提供網頁訪問接口，支援多種訪問方式的版本管理工具。"
+        want = "資料集中儲存於P4D伺服器，REST API提供網頁存取介面，支援多種存取方式的版本管理工具。"
+        body = json.dumps(
+            {"one_liner": said, "chapters": [chapter], "key_points": [said], "takeaways": []},
+            ensure_ascii=False,
+        )
+        maps = (summarize.MapResult(0, 600_000, "t", (summarize.Point(1000, "x"),)),)
+        job = summarize.ReduceInput("zh-TW", 0, 600_000, maps, (), (), JAPANESE_SOURCE)
+        result = summarize.parse_reduce(body, job)
+        assert result.one_liner == want
+        assert result.key_points == (want,)
+
     def test_english_translations_keep_their_warehouse(self) -> None:
         said = "我們把資料放進倉庫，再走流水線。"
         assert ZH_TW.clean(said, "We put the data in the warehouse.") == said
@@ -463,11 +564,10 @@ class TestTaiwanTerms:
             "我們公司在去年導入了新的系統",
             "導入模組、依賴與導入到渲染執行緒",
             "我訪問了系統管理員",
-            "訪問權限與訪問資料庫",
-            "創建版本，搜索檔案，存儲資料",
-            "調用工具與工具調用",
-            "接口與反饋",
-            "可視化與優化了效能",
+            "我們訪問了京都的寺院",
+            "創建了一家公司",
+            "調用了所有人手",
+            "優化了效能",
         ],
     )
     def test_a_japanese_talk_does_not_get_the_english_wording(self, said: str) -> None:
@@ -479,7 +579,7 @@ class TestTaiwanTerms:
     @pytest.mark.parametrize(
         ("source", "said", "want"),
         [
-            (JAPANESE_SOURCE, "導入實績與訪問資料庫", "導入實績與訪問資料庫"),
+            (JAPANESE_SOURCE, "導入實績與訪問京都", "導入實績與訪問京都"),
             (ENGLISH_SOURCE, "導入模組，訪問資料庫", "匯入模組，存取資料庫"),
         ],
     )
