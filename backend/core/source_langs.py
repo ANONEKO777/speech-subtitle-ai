@@ -16,7 +16,7 @@ from dataclasses import dataclass, replace
 from types import MappingProxyType
 
 from backend.core import unspaced
-from backend.core.ja_terms import JA_TERMS, JaTerm
+from backend.core.ja_terms import JA_TERMS, JaTerm, fix_from_source
 from backend.core.kana import romanize_katakana
 from backend.core.languages import Density, Language
 from backend.core.model import DEFAULT_SOURCE
@@ -107,6 +107,9 @@ class SourceLanguage:
     sentence_continues: re.Pattern[str] | None = None
     """What a cue starts with when it goes on with the sentence the cue before it ended on, for a
     language whose speech has no full stops to end a sentence by."""
+    fix_from_source: Callable[[str, str], str] | None = None
+    """Rewrites a translation given the source text of the whole sentence it belongs to, for the
+    words only the source can tell apart."""
 
     @property
     def mixed(self) -> bool:
@@ -178,12 +181,12 @@ _JAPANESE_RULES = """\
 - Keep the speaker's spoken tone. Be natural and accurate. Do not add or remove information. Leave out spoken Japanese filler and padding such as "ええと", "えー", "あのー", "まあ", "ですね", "ということで" and "させていただきます" when <<NAME>> does not need them<<FILLER_NOT>>. Leave fillers out only from the cue they are in, and never move words between cues. A cue that holds only a filler gets <<FILLER_CUE>>. Keep a clearly respectful or humble tone natural, and never translate the お and ご honorific prefixes word for word.
 - Japanese often leaves the subject out. Read the context to find who or what each sentence is about, and write that subject only when <<NAME>> needs it. Never invent a subject, a person or a number that the sentence and its context do not give.
 - Write every Japanese kanji in its Traditional form as used in Taiwan (気 becomes 氣, 会 becomes 會, 点 becomes 點, 売 becomes 賣, 続 becomes 續). Never leave a kana or a kanji that only Japanese uses in the translation.
-- A katakana word is usually a loanword or a name. Translate a loanword by meaning when Taiwan has a common word for it. A product, company or person name stays in Latin letters when it has one (パフォース, パーフォース, パフォッシャ, パフォーシャ, パワーフォース, パワフォース, パワーホース and ビフォ are the product Perforce, ビジュアルスタジオコード is Visual Studio Code, 東陽テクニカ is Toyo Corporation, チャットGPT is ChatGPT, クロード is Claude, コパイロット is Copilot), and is spelled in Chinese characters when it has no Latin spelling. The speech recognition garbles names, so take the name the context gives, not a literal copy of the garbled sound. Never leave a name in kana.
+- A katakana word is usually a loanword or a name. Translate a loanword by meaning when Taiwan has a common word for it. A product, company or person name stays in Latin letters when it has one (パフォース, パーフォース, パフォッシャ, パフォーシャ, パワーフォース, パワフォース, パワーホース and ビフォ are the product Perforce, ビジュアルスタジオコード is Visual Studio Code, クロードコード is Claude Code, 東陽テクニカ is Toyo Corporation, チャットGPT is ChatGPT, クロード is Claude, コパイロット is Copilot), and is spelled in Chinese characters when it has no Latin spelling. The speech recognition garbles names, so take the name the context gives, not a literal copy of the garbled sound. Never leave a name in kana.
 - A Latin word the speaker says inside a Japanese sentence (Perforce, P4, MCP, AI, PR) stays in Latin letters, and "P four" means P4.
 - Use the same translation for a name or term everywhere.
 - Translate only what the Japanese says. Never add a reason, a link such as 為了解決這個問題 or 因此, a clause or a name that the sentence does not have, and never turn a plain statement into an explanation.
 - Keep every number exactly as spoken: the same digits, the decimal point and the percent sign (51.9% stays 51.9%), and never drop one. A number written in Arabic digits stays in Arabic digits.
-- Use Taiwan wording. Finishing a game is 通關 (クリア後 is 通關後, and 清關 is customs clearance). A code repository is 儲存倉 (not 倉庫 or 儲存庫), a pipeline is 管線 (not 流水線), operations is 營運 (not 運營), metadata is 中繼資料 (not 元數據), source code is 原始碼 (not 源碼), a plug-in is 外掛程式 (not 插件), storage is 儲存 (not 存儲), an interface is 介面 (not 接口), searching is 搜尋 (not 搜索), visualizing is 視覺化 (not 可視化), feedback is 回饋 (not 反饋), calling a function or tool is 呼叫 (not 調用), creating something in software is 建立 (not 創建), and accessing a resource such as a database, a file or an API is 存取 (not 訪問; 訪問 stays for a visit or an interview). 整備 is a Japanese word: say 整理 or 準備 as the sense needs. 間口が広い means the barrier to entry is low, not that something is wide.
+- Use Taiwan wording. Finishing a game is 通關 (クリア後 is 通關後, and 清關 is customs clearance). A code repository is 儲存倉 (not 倉庫 or 儲存庫), a pipeline is 管線 (not 流水線), operations is 營運 (not 運營), metadata is 中繼資料 (not 元數據), source code is 原始碼 (not 源碼), a plug-in is 外掛 (not 插件, and not 外掛程式), storage is 儲存 (not 存儲), an interface is 介面 (not 接口), searching is 搜尋 (not 搜索), visualizing is 視覺化 (not 可視化), feedback is 回饋 (not 反饋), calling a function or tool is 呼叫 (not 調用), creating something in software is 建立 (not 創建), and accessing a resource such as a database, a file or an API is 存取 (not 訪問; 訪問 stays for a visit or an interview). 整備 is a Japanese word: say 整理 or 準備 as the sense needs. 間口が広い means the barrier to entry is low, not that something is wide.
 - The Japanese comes from speech recognition and may contain mishearings. Use the context to pick the most likely meaning."""
 _JAPANESE_LEFTOVER = (
     "- Translate every Japanese word except names, product names and technical terms that are "
@@ -234,8 +237,12 @@ _JAPANESE_SENTENCE_END = re.compile(
 )
 _JAPANESE_CONTINUES = re.compile(
     "(?:が|けど|けれど|ので|から|し(?!か|ば|ま|っか)|ね[、。]|よ[、。]|で[、は]|て"
-    "|と(?!ても|にかく|もかく|もあれ|ころ)|も(?!う|し|ち|っと|ともと)|ば|ため|こと)"
+    r"|と(?:(?![ぁ-ん])|いう|いっ|おり|です)|も(?:の[のでをがはにと]|[、。]|\Z)|ば|ため|こと)"
 )
+"""と goes on with the sentence when a kanji, katakana, Latin letter, mark or the end of the cue
+follows (とレビュー, と、, と幸い) or one of とおり, という, といった, とです. A hiragana word after と
+(とりあえず, とくに, ときどき, とても, ところで, ともに) starts a sentence. も goes on only as ものの,
+もので, ものを, ものが, ものは, ものに, ものと or a bare も."""
 
 ENGLISH_SOURCE = SourceLanguage(
     ENGLISH,
@@ -279,6 +286,7 @@ JAPANESE_SOURCE = SourceLanguage(
     rejects_bare_punctuation=True,
     sentence_continues=_JAPANESE_CONTINUES,
     terms=JA_TERMS,
+    fix_from_source=fix_from_source,
 )
 
 MIXED = "ja+en"

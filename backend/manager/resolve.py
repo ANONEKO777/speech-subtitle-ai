@@ -19,7 +19,7 @@ from backend.core.model import DEFAULT_SOURCE, Word
 from backend.core.pipeline import LlmSession, Ports, ProgressCb, Settings
 from backend.core.source_langs import UnknownSource, get_source
 from backend.core.summarize import summary_chat
-from backend.core.translate import BATCH_SIZE, GlossaryEntry, default_glossary
+from backend.core.translate import BATCH_SIZE, GlossaryEntry, glossary_for
 from backend.core.vad import Chunk
 from backend.engines.chunks import transcribe_chunks
 from backend.engines.crispasr import ENGINE_ID as CRISPASR_ID
@@ -239,7 +239,7 @@ def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
             vad_identity=vad_identity,
             llm_identity=llm_identity,
             source_lang=source.code,
-            glossary=(*default_glossary(source.code), *request.glossary),
+            glossary=glossary_for(source.code, request.glossary),
             target_lang=target.code,
             summary_en=request.summary_en,
             batch_size=request.batch_size,

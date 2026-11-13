@@ -202,15 +202,35 @@ _JAPANESE_FOUNDED = f"{_FOUNDED}|{_FOUNDED_IN_JAPANESE}|{_CREATED_WORLD}"
 _ACCESSED_BY = "工具|使用者|代理|客戶端|用戶端|程式|腳本|伺服器|外部"
 _ACCESS_COMPOUND = "權限|控制|令牌|權杖|端點|日誌|許可|協定|介面|接口"
 _ACCESS_OF_SOFTWARE = "方式|資訊|量|次數|限制"
-_SOFTWARE_CUE = re.compile(
-    f"{_SOFTWARE_NOUN}|{_ACCESSED}|使用者|軟體|網頁|命令列|版本管理|雲端|AI|MCP|SDK|REST|Git|P4"
+_CHINESE_SOFTWARE = "|".join(
+    word for word in (*_SOFTWARE_NOUN.split("|"), *_ACCESSED.split("|")) if not word.isascii()
 )
+_LATIN_SOFTWARE = "Apps?|CI|CD|Docker|AI|MCP|SDK|REST|API|URL|Git|P4"
+_SOFTWARE_CUE = re.compile(
+    f"{_CHINESE_SOFTWARE}|使用者|軟體|網頁|命令列|版本管理|雲端"
+    f"|(?<![A-Za-z])(?:{_LATIN_SOFTWARE})(?![a-z])"
+)
+_VISITED_NAMES = "NHK|BBC|CNN|Apple|Tokyo|Kyoto|Osaka|Nagoya|Japan|Taiwan|Paris|London"
+_VISITED_OWNER = "總部|節目|辦公室|分公司|公司|團隊|工作室|頻道|電視台|工廠|創辦人|執行長|員工"
+_VISIT_OBJECT = re.compile(
+    rf" ?(?:{_VISITED_NAMES})(?![A-Za-z])|[A-Za-z][A-Za-z0-9. \-]{{0,30}}?的?(?:{_VISITED_OWNER})"
+)
+_GOES_TO_VISIT = re.compile(r"(?:前往|拜|親自)\Z")
 
 
 def _access_in_software(match: re.Match[str]) -> str:
     """存取 when the cue the word is in talks about software, so 訪問方式 stays a way to visit
-    in a talk about travel."""
+    in a talk about travel. A visit to a company, a place or a broadcaster (前往訪問Apple的總部,
+    訪問NHK的節目) stays, whatever else the cue says."""
+    after = match.string[match.end() :]
+    if _VISIT_OBJECT.match(after) or _GOES_TO_VISIT.search(match.string[: match.start()]):
+        return match.group()
     return "存取" if _SOFTWARE_CUE.search(_cue_of(match)) else match.group()
+
+
+_PLUG_IN_COMPOUND = "碼|庫|設計|架構|介面|語言|開發"
+"""A 外掛程式 followed by one of these is 外掛 plus a longer word (程式碼, 程式庫, 程式設計), which
+Taiwan writes in full, so the rewrite to 外掛 leaves it."""
 
 
 _JAPANESE_TERMS = (
@@ -224,6 +244,7 @@ _JAPANESE_TERMS = (
             f"訪問(?=的?(?:{_ACCESS_OF_SOFTWARE}))|(?<=同時)訪問|(?<=進行)訪問|訪問(?= ?[A-Za-z])",
             _access_in_software,
         ),
+        (f"外掛程式(?!{_PLUG_IN_COMPOUND})", "外掛"),
         ("硬件", "硬體"),
         ("演示(?!文稿|稿)", "示範"),
         (_creation(_JAPANESE_FOUNDED), "建立"),

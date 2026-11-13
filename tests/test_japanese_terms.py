@@ -202,10 +202,11 @@ class TestWrongFormLists:
     def test_enabled_by_default_in_taiwan_forms_is_right(self, zh: str) -> None:
         assert term("デフォルトで有効 (enabled by default)").kept_in(zh)
 
-    def test_a_plugin_is_right_as_either_taiwan_form(self) -> None:
+    def test_a_plugin_is_one_word_and_the_long_form_is_wrong(self) -> None:
         plugin = term("プラグイン")
-        assert plugin.zh == "外掛程式"
-        assert plugin.kept_in("外掛") and plugin.kept_in("外掛程式")
+        assert plugin.zh == "外掛"
+        assert plugin.kept_in("外掛")
+        assert not plugin.kept_in("外掛程式")
         assert not plugin.kept_in("插件")
 
     def test_the_word_file_next_to_documentation_is_not_a_wrong_form(self) -> None:

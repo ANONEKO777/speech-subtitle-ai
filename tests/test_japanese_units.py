@@ -1,13 +1,16 @@
-"""P31: the sentence units of a Japanese talk and the cue borders next to a number.
+"""P31, P32: the sentence units of a Japanese talk and the cue borders next to a number.
 The sentences are invented."""
 
 from __future__ import annotations
 
+import hashlib
 import re
+from dataclasses import replace
 
 import pytest
+from test_pipeline import SETTINGS
 
-from backend.core import translate, unspaced
+from backend.core import pipeline, translate, unspaced
 from backend.core.model import Cue, Segment, Word
 from backend.core.segmenter import merge_words, to_cues
 from backend.core.source_langs import JAPANESE_SOURCE, MIXED_SOURCE, SourceLanguage
@@ -25,13 +28,53 @@ def spans(
 
 class TestContinuations:
     @pytest.mark.parametrize(
-        "second", ["とレビューの依頼が来ます", "と、AIが続けます", "とおり、動きます", "と言います"]
+        "second",
+        [
+            "と本棚の話が続きます",
+            "と、猫が続けます",
+            "とおり、動きます",
+            "と言います",
+            "というのが理由です",
+            "といった具合です",
+            "とですね、こうなります",
+            "とABCが並びます",
+            "ものの、時間がありません",
+            "ものを探します",
+        ],
     )
     def test_a_conditional_or_a_how_that_goes_on_does_not_end_the_unit(self, second: str) -> None:
         assert spans(ja("今日は確認します", second, "次に進みます")) == [(0, 2), (2, 3)]
 
     @pytest.mark.parametrize(
-        "second", ["とても重要です", "ところで次の話は", "しかし問題があります", "もし失敗したら"]
+        "second",
+        [
+            "とても重要です",
+            "ところで次の話は",
+            "とにかく進めます",
+            "ともかく続けます",
+            "ともあれ終わりです",
+            "しかし問題があります",
+            "しばらく待ちます",
+            "しっかり確認します",
+            "します",
+            "しました",
+            "しかも速いです",
+            "もし失敗したら",
+            "もちろん大丈夫です",
+            "もっと速くします",
+            "もう終わりです",
+            "もともと別の話です",
+            "とりあえず始めます",
+            "とくに問題はありません",
+            "ときどき止まります",
+            "ときには迷います",
+            "とっても便利です",
+            "とはいえ油断は禁物です",
+            "ともに進みます",
+            "とうとう完成しました",
+            "とんでもない話です",
+            "ものすごく速いです",
+        ],
     )
     def test_a_new_sentence_that_starts_like_a_connective_ends_the_unit(self, second: str) -> None:
         assert spans(ja("今日は確認します", second)) == [(0, 1), (1, 2)]
@@ -39,6 +82,61 @@ class TestContinuations:
     def test_a_connective_that_was_already_in_the_list_still_continues(self) -> None:
         assert spans(ja("確認しますので", "お待ちください")) == [(0, 2)]
         assert spans(ja("確認します", "ので少し待って", "ください")) == [(0, 3)]
+
+    def test_a_bare_to_at_the_end_of_a_cue_goes_on_with_the_cue_before_it(self) -> None:
+        assert spans(ja("今日は確認します", "と")) == [(0, 2)]
+
+    def test_a_full_stop_ends_the_unit_before_a_cue_that_starts_with_to(self) -> None:
+        assert spans(ja("今日は確認します。", "と本棚の話です")) == [(0, 1), (1, 2)]
+
+
+class TestTheUnitRuleVersion:
+    """`JAPANESE_UNITS` is in the cache key. Changing the rule of `sentence_units` without a new
+    version leaves a project with units cut the old way, so this table pins the version to it."""
+
+    RULES = {"finals-3": "95d389826407e889"}
+
+    @staticmethod
+    def digest() -> str:
+        """The two patterns, the full-stop pattern, the cap, and how a fixed run of cues is cut,
+        which also covers the language switch and the order of the checks in `sentence_units`."""
+        continues = JAPANESE_SOURCE.sentence_continues
+        assert continues is not None
+        probe = [
+            Cue(1, 0, 1, "確認します", lang="ja"),
+            Cue(2, 1, 2, "と本棚です", lang="ja"),
+            Cue(3, 2, 3, "確認します。", lang="ja"),
+            Cue(4, 3, 4, "と本棚です", lang="ja"),
+            Cue(5, 4, 5, "Open it", lang="en"),
+            Cue(6, 5, 6, "確認します", lang="ja"),
+            Cue(7, 6, 7, "もちろんです", lang="ja"),
+            *(Cue(8 + i, 7 + i, 8 + i, "そして", lang="ja") for i in range(8)),
+        ]
+        cut = [
+            (u.start, u.stop)
+            for u in translate.sentence_units(probe, 0, len(probe), 6, MIXED_SOURCE)
+        ]
+        text = chr(10).join(
+            (
+                JAPANESE_SOURCE.sentence_end.pattern,
+                continues.pattern,
+                translate._FULL_STOP.pattern,  # pyright: ignore[reportPrivateUsage]
+                str(translate.MAX_UNIT_CUES),
+                str(cut),
+            )
+        )
+        return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
+
+    def test_the_version_is_the_one_of_the_rule(self) -> None:
+        digest = self.digest()
+        assert self.RULES.get(pipeline.JAPANESE_UNITS) == digest, (
+            f"the unit rule digest is {digest}: add it under a new JAPANESE_UNITS version"
+        )
+
+    def test_the_version_is_in_the_key_of_the_translation_of_a_japanese_project(self) -> None:
+        settings = replace(SETTINGS, source_lang="ja")
+        assert pipeline._units_key(settings) == {"units": pipeline.JAPANESE_UNITS}  # pyright: ignore[reportPrivateUsage]
+        assert pipeline._units_key(SETTINGS) == {}  # pyright: ignore[reportPrivateUsage]
 
 
 class TestMixedTalkUnits:
