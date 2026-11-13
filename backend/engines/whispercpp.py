@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 import unicodedata
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from backend.core import process_guard, vc_runtime
+from backend.core.language_detect import Heard
 from backend.core.model import Segment, Word
 from backend.core.source_langs import is_spaced
 from backend.engines.base import (
+    EngineFailedError,
     EngineOutputError,
+    EngineTimeoutError,
+    EngineUnavailableError,
     MonotonicProgress,
     SubprocessEngine,
     percent_in,
@@ -22,6 +28,7 @@ from backend.manager.profiles import Device
 
 ENGINE_ID = "whispercpp-large-v3-turbo"
 _PROCESSING = re.compile(r"^main: processing ")
+_DETECTED = re.compile(r"auto-detected language: (\w+) \(p = ([0-9.]+)\)")
 
 
 class WhisperCppEngine(SubprocessEngine):
@@ -94,6 +101,49 @@ def _words(tokens: list[dict[str, Any]], spaced: bool = True) -> list[Word]:
         else:
             spans.append([text.strip(), start, end])
     return [Word(text, start, end) for text, start, end in spans]
+
+
+def name_languages(
+    binary: Path, model: Path, wavs: Sequence[Path], *, device: Device, timeout_s: float
+) -> list[Heard]:
+    """The language Whisper names for each wav, from one run that loads the model once
+    (`-dl` stops each file after the language is known, so no text is decoded)."""
+    vc_runtime.require(EngineUnavailableError)
+    command = [str(binary), "-m", str(model), "-l", "auto", "-dl"]
+    if device is Device.CPU:
+        command.append("-ng")
+    for wav in wavs:
+        command += ["-f", str(wav)]
+    flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            creationflags=flags,
+        )
+    except OSError as exc:
+        raise EngineUnavailableError(f"{ENGINE_ID}: cannot start {binary}: {exc}") from exc
+    process_guard.adopt(proc)
+    try:
+        _, err = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        raise EngineTimeoutError(
+            f"{ENGINE_ID} did not name the languages in {timeout_s:g} s"
+        ) from None
+    except BaseException:
+        proc.kill()
+        raise
+    text = err.decode("utf-8", errors="replace")
+    if proc.returncode != 0:
+        raise EngineFailedError(f"{ENGINE_ID} exited with code {proc.returncode}: {text[-300:]}")
+    heard = [Heard(code, float(p)) for code, p in _DETECTED.findall(text)]
+    if len(heard) != len(wavs):
+        raise EngineOutputError(f"{ENGINE_ID} named {len(heard)} languages for {len(wavs)} files")
+    return heard
 
 
 def main(argv: Sequence[str] | None = None) -> int:

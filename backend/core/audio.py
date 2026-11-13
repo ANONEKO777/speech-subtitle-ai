@@ -10,6 +10,8 @@ import sys
 import threading
 import time
 import wave
+from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +26,8 @@ _STAMP_VERSION = 1
 _STDERR_TAIL_CHARS = 1500
 _POLL_S = 0.1
 _PROBE_TIMEOUT_S = 60.0
+_CLIP_TIMEOUT_S = 30.0
+_CLIP_WORKERS = 4
 
 log = logging.getLogger(__name__)
 
@@ -280,3 +284,54 @@ def probe_duration_s(video: Path, tool_dir: Path | None = None) -> float | None:
         return float(proc.stdout.strip()) if proc.returncode == 0 else None
     except (AudioError, ValueError):
         return None
+
+
+def cut_clips(
+    video: Path,
+    starts_s: Sequence[float],
+    length_s: float,
+    out_dir: Path,
+    *,
+    tool_dir: Path | None = None,
+) -> list[Path]:
+    """Cut `length_s` seconds of the first audio track at each start as 16 kHz mono wav files in
+    `out_dir`, a few at a time. A seek before the input reads only the pieces asked for, so the
+    time does not grow with the length of the video."""
+    ffmpeg = find_tool("ffmpeg", tool_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    def cut(index: int) -> Path:
+        target = out_dir / f"clip{index:03d}.wav"
+        proc = _run(
+            [
+                str(ffmpeg),
+                "-y",
+                "-nostdin",
+                "-v",
+                "error",
+                "-ss",
+                f"{starts_s[index]:.2f}",
+                "-t",
+                f"{length_s:g}",
+                "-i",
+                str(video.absolute()),
+                "-map",
+                "0:a:0",
+                "-vn",
+                "-ac",
+                "1",
+                "-ar",
+                str(SAMPLE_RATE),
+                "-c:a",
+                "pcm_s16le",
+                str(target),
+            ],
+            f"ffmpeg clip {index} of {video.name}",
+            timeout_s=_CLIP_TIMEOUT_S,
+        )
+        if proc.returncode != 0:
+            raise _ffmpeg_failure(video, proc)
+        return target
+
+    with ThreadPoolExecutor(_CLIP_WORKERS) as pool:
+        return list(pool.map(cut, range(len(starts_s))))

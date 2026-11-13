@@ -44,6 +44,7 @@ from backend.core.queue_store import QueueStore
 from backend.core.render import BurnBook
 from backend.manager.active import runs_on_cpu
 from backend.manager.context import ManagerContext, build_context
+from backend.manager.detect import Detector, real_detector
 from backend.manager.profiles import QWEN3_8B
 from backend.manager.secrets import LLM_KEY, DpapiSecretStore, SecretError
 from backend.manager.settings import LlmSource, load_settings
@@ -64,6 +65,8 @@ class AppConfig:
     """What sleeps or shuts the machine down. None does nothing, so a test cannot stop the host."""
     countdown_s: float = COUNTDOWN_S
     probe: Probe = probe_duration_s
+    detector: Detector | None = None
+    """Names the language of a video for the import window. None runs Whisper."""
 
 
 def _configured_llm(user_data: Path) -> tuple[str, str | None, str]:
@@ -147,6 +150,7 @@ def create_app(config: AppConfig) -> FastAPI:
     )
     app.add_exception_handler(OSError, locked_path_response)
     app.state.manager = config.manager or build_context(config.user_data)
+    app.state.detector = config.detector or real_detector(app.state.manager, config.user_data)
     app.state.projects = projects_store
     app.state.burns = burns
     app.state.user_data = config.user_data

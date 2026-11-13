@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.api.deps import Context
+from backend.core.audio import AudioError
+from backend.core.language_detect import Detection
 from backend.core.languages import DEFAULT_CODE, LANGUAGES
-from backend.core.source_langs import SOURCES, SourceLanguage
+from backend.core.media import accepted_extensions, is_media
+from backend.core.source_langs import MIXED_SOURCE, SOURCES, SourceLanguage
+from backend.engines.base import EngineError
 from backend.engines.table import missing_files
 from backend.manager.active import runs_on_cpu
+from backend.manager.detect import Undetectable
 
 router = APIRouter(prefix="/api", tags=["languages"])
 
@@ -59,3 +66,55 @@ def list_languages(request: Request, ctx: Context) -> dict[str, Any]:
             for lang in LANGUAGES.values()
         ],
     }
+
+
+class DetectBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    video_path: str = Field(min_length=1)
+
+
+def _detected_json(found: Detection, mixed_reason: str | None) -> dict[str, Any]:
+    """`detected` is what the audio holds and `suggested` what the window may preselect: the
+    same, except that a talk in both languages is suggested as the language that spoke most when
+    this machine cannot process a mixed one (`mixed_unavailable` then says why)."""
+    suggested = found.code
+    mixed_unavailable = None
+    if found.code == MIXED_SOURCE.code and mixed_reason is not None:
+        suggested = max(found.shares, key=lambda item: item[1])[0]
+        mixed_unavailable = mixed_reason
+    return {
+        "detected": found.code,
+        "suggested": suggested,
+        "mixed_unavailable": mixed_unavailable,
+        "confidence": round(found.confidence, 3),
+        "sure": found.sure,
+        "shares": {code: round(value, 3) for code, value in found.shares},
+        "clear": found.clear,
+        "samples": [
+            {
+                "start_s": round(s.start_s, 1),
+                "code": s.heard.code,
+                "probability": s.heard.probability,
+            }
+            for s in found.samples
+        ],
+    }
+
+
+@router.post("/languages/detect")
+def detect_language(body: DetectBody, request: Request, ctx: Context) -> dict[str, Any]:
+    """Name the language of a video from a few short pieces of its audio, so the window can
+    preselect it. It is a guess (the `confidence` is the share of pieces that agree) and a refusal
+    here (503) only means there is no guess, never that the video is bad."""
+    video = Path(body.video_path)
+    if not video.is_absolute() or not video.is_file() or not is_media(video):
+        raise HTTPException(
+            422,
+            f"video_path must be the absolute path of a media file ({accepted_extensions()}): "
+            f"{video}",
+        )
+    try:
+        found = request.app.state.detector(video)
+    except (Undetectable, EngineError, AudioError) as exc:
+        raise HTTPException(503, str(exc)) from exc
+    return _detected_json(found, _unavailable(MIXED_SOURCE, request, ctx))
