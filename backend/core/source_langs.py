@@ -100,6 +100,9 @@ class SourceLanguage:
     talk's as a whole: the files, the summary notes and the checks of the Chinese it is written in."""
     asr_engine: str | None = None
     """The one speech recognition engine that can do this source, when it is not the default."""
+    sentence_continues: re.Pattern[str] | None = None
+    """What a cue starts with when it goes on with the sentence the cue before it ended on, for a
+    language whose speech has no full stops to end a sentence by."""
 
     @property
     def mixed(self) -> bool:
@@ -217,7 +220,15 @@ def _japanese_clean(text: str) -> str:
 
 
 _ENGLISH_SENTENCE_END = re.compile(r"[.?!…][\"')\]”]*\Z")
-_JAPANESE_SENTENCE_END = re.compile(r"[。！？!?…][」』）)\"”]*\Z")
+_JAPANESE_FINAL_FORMS = (
+    "(?:(?:ます|ました|ません|でした|ください|ましょう|でしょう)(?:ね|よ)?|です(?:よ)?)"
+)
+_JAPANESE_SENTENCE_END = re.compile(
+    rf"(?:[。！？!?…][」』）)\"”]*|{_JAPANESE_FINAL_FORMS}[。！？!?]?)\Z"
+)
+_JAPANESE_CONTINUES = re.compile(
+    "(?:が|けど|けれど|ので|から|し|ね[、。]|よ[、。]|で[、は]|て|と[いし]|も(?!う)|ば|ため|こと)"
+)
 
 ENGLISH_SOURCE = SourceLanguage(
     ENGLISH,
@@ -259,6 +270,7 @@ JAPANESE_SOURCE = SourceLanguage(
     romanize_katakana,
     ("Yu Gothic", "Meiryo", "MS Gothic"),
     rejects_bare_punctuation=True,
+    sentence_continues=_JAPANESE_CONTINUES,
 )
 
 MIXED = "ja+en"
