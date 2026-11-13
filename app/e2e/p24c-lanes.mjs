@@ -1,32 +1,35 @@
 // P24c live check of the automatic video language in the real window, driven over CDP only.
 // node e2e/p24c-lanes.mjs <phase> <projects-dir> <clips-dir> <shots-dir> [port]
-// phase: pick (a path typed into the import box: the suggestion, the kept choice, the hint, a failed guess, the
+// phase: player (only the English player after an import: nothing is asked, no band) | pick (a path typed into the import box: the suggestion, the kept choice, the hint, a failed guess, the
 //   queue add dialog, and the toolbar with the note shown) | unavailable (a user data folder without the Qwen3 files)
-// Env: VST_USER_DATA, WEBVIEW2_USER_DATA_FOLDER (disposable folders), P24C_VIDEOS (a folder with the three videos
-//   of the brief), P24C_MEDIA (review PNGs of the private videos go here, outside the repo), P24C_REVIEW_PREFIX.
+// Env: VST_USER_DATA, WEBVIEW2_USER_DATA_FOLDER (disposable folders), P24C_JA_TALK (a long Japanese talk),
+//   P24C_MIXED_TALK (a long talk in Japanese and English, a speaker and an interpreter), P24C_EN_TALK (a long
+//   English talk): a row whose variable is unset is skipped with a message, P24C_MEDIA (review PNGs of those
+//   videos go here, outside the repo), P24C_REVIEW_PREFIX.
 // <projects-dir> holds a finished project of queue-en-45s.mp4 from <clips-dir>, so the one import the lane presses
 // (to measure the English player) plays it at once and no job runs. Every action goes
 // through the DevTools protocol; the native file dialog is not used. Exit 1 on a failed check.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { launch, sleep, strayProcesses } from "./lib.mjs";
 
 const [phase, projects, clips, shots, portArg] = process.argv.slice(2);
-if (!phase || !projects || !clips || !shots) throw new Error("usage: p24c-lanes.mjs <pick|unavailable> <projects> <clips> <shots> [port]");
-const videos = process.env.P24C_VIDEOS ?? "D:/WebProject/speech-subtitle-ai";
+if (!phase || !projects || !clips || !shots) throw new Error("usage: p24c-lanes.mjs <pick|player|unavailable> <projects> <clips> <shots> [port]");
 const media = process.env.P24C_MEDIA ?? shots;
 const prefix = process.env.P24C_REVIEW_PREFIX ?? "P24c-review";
 if (!process.env.VST_USER_DATA || !process.env.WEBVIEW2_USER_DATA_FOLDER) throw new Error("set VST_USER_DATA and WEBVIEW2_USER_DATA_FOLDER to disposable folders");
 
 const VIDEO = {
   en: join(clips, "queue-en-45s.mp4"),
-  enLong: join(videos, "上個月向生產環境提交 2500 個 PR 的方法-lauren @poteto X.mp4"),
-  ja: join(videos, "【CEDEC2026】Perforce P4とAIをつなぐ—エンジニアもデザイナーも使えるAI連携機能の今とこれから—_1080p.mp4"),
-  mixed: join(videos, "The Many Dimensions of Kirby_1080p.mp4"),
+  enLong: process.env.P24C_EN_TALK ?? null,
+  ja: process.env.P24C_JA_TALK ?? null,
+  mixed: process.env.P24C_MIXED_TALK ?? null,
   jaClip: join(clips, "queue-ja-60s.mp4"),
   mixedClip: join(clips, "queue-mixed-90s.mp4"),
+  music: join(clips, "chords-60s.mp4"),
 };
+const skip = (what, variable) => console.log(`SKIP ${what}: set ${variable} to a video path to run it`);
 const tid = (id) => `[data-testid="${id}"]`;
 const results = [];
 const table = [];
@@ -35,10 +38,15 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? "PASS" : "FAIL"} ${name} ${detail}`);
 };
 
+const detectCalls = [];
 const before = strayProcesses();
 const app = await launch({ projects, shots, port: Number(portArg ?? 9460), env: { VST_UPDATE_URL: "http://127.0.0.1:9/none.json" } });
 const p = app.page;
 console.log(`app pid ${app.pid}, cold start ${app.coldStartMs} ms, phase ${phase}`);
+p.on("response", async (r) => {
+  if (!r.url().includes("/api/languages/detect")) return;
+  detectCalls.push({ url: r.url(), status: r.status(), body: await r.json().catch(() => null) });
+});
 const session = await p.context().newCDPSession(p);
 const { windowId } = await session.send("Browser.getWindowForTarget");
 const resize = async (width, height) => {
@@ -79,6 +87,14 @@ const shot = async (dir, name) => {
   await sleep(100);
   await p.screenshot({ path: join(dir, name) });
 };
+
+/** A minute of three sine tones: sound that holds no speech, which Whisper names a language all the same. */
+function makeChords(out) {
+  if (existsSync(out)) return;
+  const tones = [261.6, 329.6, 392];
+  const inputs = tones.flatMap((hz) => ["-f", "lavfi", "-i", `sine=f=${hz}:d=60`]);
+  execFileSync(FFMPEG, ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=320x180:d=60", ...inputs, "-filter_complex", "[1][2][3]amix=inputs=3:normalize=0,volume=0.5[a]", "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", out]);
+}
 
 /** Types a path into the import box and waits for the window to say what it heard (or to say nothing). */
 async function pick(path, { within = 60000 } = {}) {
@@ -130,6 +146,37 @@ const measure = () =>
     return { header: Number(h.getBoundingClientRect().height.toFixed(1)), spread: Math.max(...mids) - Math.min(...mids), box: w(q("video-path")) };
   });
 
+/** The English player after an import, with the box still holding the imported path: nothing is asked and no band opens under the toolbar. */
+async function englishPlayer() {
+  await clear();
+  await p.selectOption(tid("source-lang"), "en");
+  const askedBeforeImport = detectCalls.length;
+  await p.fill(tid("video-path"), VIDEO.en);
+  await p.click(tid("import"));
+  await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
+  await p.evaluate(() => document.querySelector("video")?.pause());
+  await sleep(7000);
+  const inPlayer = await p.evaluate(() => ({
+    bar: document.querySelectorAll(".source-bar").length,
+    note: document.querySelectorAll('[data-testid="detect-note"]').length,
+    picker: document.querySelectorAll('[data-testid="source-lang"]').length,
+  }));
+  check("English player after an import: nothing is asked and no band appears under the toolbar", detectCalls.length === askedBeforeImport && inPlayer.bar === 0 && inPlayer.note === 0 && inPlayer.picker === 0, `${detectCalls.length - askedBeforeImport} requests in 7 s, ${JSON.stringify(inPlayer)}`);
+  for (const [w, h, wantBox] of [[1280, 720, 130.6], [960, 600, 67.2]]) {
+    await resize(w, h);
+    const bare = await measure();
+    const asked = detectCalls.length;
+    await p.fill(tid("video-path"), VIDEO.jaClip);
+    await sleep(7000);
+    const noted = await measure();
+    const band = await p.locator(".source-bar").count();
+    check(`English player ${w}: a path typed in the box asks nothing, and file box and header are as on main`, detectCalls.length === asked && band === 0 && Math.abs(noted.box - wantBox) <= 0.5 && bare.header === noted.header && noted.spread <= 3, `${detectCalls.length - asked} requests, band ${band}, box ${bare.box} -> ${noted.box} (main ${wantBox}), header ${bare.header} -> ${noted.header}, spread ${noted.spread}`);
+    if (w === 1280) await shot(shots, "p24c-en-player-typed-1280.png");
+    await p.fill(tid("video-path"), "");
+    await sleep(300);
+  }
+}
+
 try {
   if (phase === "pick") {
     const SEC = 20;
@@ -147,32 +194,38 @@ try {
     await shot(media, `${prefix}-2-english-960.png`);
     await resize(1280, 720);
 
-    await clear();
-    const enLong = await pick(VIDEO.enLong);
-    row("English talk (38 min)", "en", enLong);
-    check("English talk (38 min): English", enLong.picker === "en" && enLong.detected === "en", `"${enLong.note}"`);
+    if (VIDEO.enLong) {
+      await clear();
+      const enLong = await pick(VIDEO.enLong);
+      row("English talk", "en", enLong);
+      check("English talk: English", enLong.picker === "en" && enLong.detected === "en", `"${enLong.note}"`);
+    } else skip("English talk", "P24C_EN_TALK");
 
-    await clear();
-    await caption("日文演講（59 分鐘）：預選日文");
-    const ja = await pick(VIDEO.ja);
-    row("Japanese talk (59 min)", "ja", ja);
-    check("Japanese talk: preselected 日文, sure", ja.picker === "ja" && ja.detected === "ja" && /^偵測到：日文（信心 \d+%）$/.test(ja.note ?? ""), `picker ${ja.picker}, "${ja.note}"`);
-    check("Japanese talk: the note under the toolbar and the format note both show", (await p.locator(tid("source-note")).count()) === 1, "source-note shown with the detect note");
-    await shot(media, `${prefix}-3-japanese-1280.png`);
-    await resize(960, 600);
-    await shot(media, `${prefix}-4-japanese-960.png`);
-    await resize(1280, 720);
+    if (VIDEO.ja) {
+      await clear();
+      await caption("日文講座：預選日文");
+      const ja = await pick(VIDEO.ja);
+      row("Japanese talk", "ja", ja);
+      check("Japanese talk: preselected 日文, sure", ja.picker === "ja" && ja.detected === "ja" && /^偵測到：日文（信心 \d+%）$/.test(ja.note ?? ""), `picker ${ja.picker}, "${ja.note}"`);
+      check("Japanese talk: the note under the toolbar and the format note both show", (await p.locator(tid("source-note")).count()) === 1, "source-note shown with the detect note");
+      await shot(media, `${prefix}-3-japanese-1280.png`);
+      await resize(960, 600);
+      await shot(media, `${prefix}-4-japanese-960.png`);
+      await resize(1280, 720);
+    } else skip("Japanese talk", "P24C_JA_TALK");
 
-    await clear();
-    await caption("日文接英文的演講（54 分鐘）：預選日文與英文混合");
-    const mixed = await pick(VIDEO.mixed);
-    row("Japanese then English talk (54 min)", "ja+en", mixed);
-    const mixedOk = mixed.picker === "ja+en" && mixed.detected === "ja+en";
-    check("Kirby talk: preselected 日文與英文混合", mixedOk, `picker ${mixed.picker}, "${mixed.note}"`);
-    await shot(media, `${prefix}-5-mixed-1280.png`);
-    await resize(960, 600);
-    await shot(media, `${prefix}-6-mixed-960.png`);
-    await resize(1280, 720);
+    if (VIDEO.mixed) {
+      await clear();
+      await caption("日英混合講座：預選日文與英文混合");
+      const mixed = await pick(VIDEO.mixed);
+      row("Japanese then English talk", "ja+en", mixed);
+      const mixedOk = mixed.picker === "ja+en" && mixed.detected === "ja+en";
+      check("mixed talk: preselected 日文與英文混合", mixedOk, `picker ${mixed.picker}, "${mixed.note}"`);
+      await shot(media, `${prefix}-5-mixed-1280.png`);
+      await resize(960, 600);
+      await shot(media, `${prefix}-6-mixed-960.png`);
+      await resize(1280, 720);
+    } else skip("mixed talk", "P24C_MIXED_TALK");
 
     await clear();
     for (const [key, truth, label] of [["jaClip", "ja", "Japanese clip (60 s)"], ["mixedClip", "ja+en", "mixed clip (90 s)"]]) {
@@ -182,9 +235,10 @@ try {
       await clear();
     }
 
+    const jaAny = VIDEO.ja ?? VIDEO.jaClip;
     await caption("自己選了英文：偵測到日文也不會換掉，只出現提示");
     await p.selectOption(tid("source-lang"), "en");
-    const kept = await pick(VIDEO.ja);
+    const kept = await pick(jaAny);
     check("hand choice kept: still 英文 after a Japanese talk was heard", kept.picker === "en" && kept.detected === "ja", `picker ${kept.picker}, heard ${kept.detected}`);
     check("hint shown with the switch", /聽起來是日文，目前選的是英文/.test(kept.hint ?? "") && kept.switchLabel === "改成日文", `hint "${kept.hint}", button "${kept.switchLabel}"`);
     await shot(media, `${prefix}-7-hint-1280.png`);
@@ -204,6 +258,13 @@ try {
     await p.selectOption(tid("source-lang"), "ja");
     const keptJa = await pick(VIDEO.en);
     check("hand choice 日文 kept for an English clip, with a hint", keptJa.picker === "ja" && /聽起來是英文，目前選的是日文/.test(keptJa.hint ?? ""), `picker ${keptJa.picker}, hint "${keptJa.hint}"`);
+    await p.fill(tid("video-path"), `${VIDEO.en}x`);
+    await sleep(150);
+    check("the note and the hint of the old path go at the first change of the path", (await p.locator(tid("detect-note")).count()) === 0 && (await p.locator(tid("detect-hint")).count()) === 0, "nothing under the toolbar 150 ms after the path changed");
+    await clear();
+    await p.selectOption(tid("source-lang"), "ja+en");
+    const keptMixed = await pick(jaAny);
+    check("hand choice mixed kept for a Japanese video, with no hint to leave it", keptMixed.picker === "ja+en" && keptMixed.detected === "ja" && keptMixed.hint === null, `picker ${keptMixed.picker}, heard ${keptMixed.detected}, hint ${keptMixed.hint}`);
     await clear();
     await p.selectOption(tid("source-lang"), "en");
 
@@ -213,6 +274,17 @@ try {
       const quiet = await read(null);
       check(`failed guess is silent: ${label}`, quiet.note === null && quiet.hint === null && quiet.picker === "en" && quiet.error === null, `note ${quiet.note}, picker ${quiet.picker}, error ${quiet.error}`);
     }
+    await clear();
+
+    makeChords(VIDEO.music);
+    const answered = detectCalls.length;
+    await p.fill(tid("video-path"), VIDEO.music);
+    const waitUntil = Date.now() + 30000;
+    while (detectCalls.length === answered && Date.now() < waitUntil) await sleep(200);
+    await sleep(500);
+    const music = await read(null);
+    const musicAnswer = detectCalls[detectCalls.length - 1];
+    check("music with no speech: asked, no guess, no note, picker untouched", musicAnswer?.status === 200 && musicAnswer.body?.detected === null && music.note === null && music.hint === null && music.picker === "en", `answer ${JSON.stringify({ status: musicAnswer?.status, detected: musicAnswer?.body?.detected, clear: musicAnswer?.body?.clear })}, note ${music.note}, picker ${music.picker}`);
     await clear();
 
     await caption("加入佇列：每個檔案各自偵測");
@@ -260,20 +332,10 @@ try {
     }
     await resize(1280, 720);
 
-    await p.fill(tid("video-path"), VIDEO.en);
-    await p.click(tid("import"));
-    await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
-    await p.evaluate(() => document.querySelector("video")?.pause());
-    for (const [w, h, wantBox] of [[1280, 720, 130.6], [960, 600, 67.2]]) {
-      await resize(w, h);
-      const bare = await measure();
-      await pick(VIDEO.jaClip);
-      const noted = await measure();
-      check(`English player ${w}: file box and header with the note shown`, Math.abs(noted.box - wantBox) <= 0.5 && bare.box === noted.box && bare.header === noted.header && noted.spread <= 3, `box ${bare.box} -> ${noted.box} (main ${wantBox}), header ${bare.header} -> ${noted.header}, spread ${noted.spread}`);
-      if (w === 1280) await shot(shots, "p24c-en-player-note-1280.png");
-      await p.fill(tid("video-path"), "");
-      await sleep(300);
-    }
+    await englishPlayer();
+  } else if (phase === "player") {
+    await resize(1280, 720);
+    await englishPlayer();
   } else if (phase === "unavailable") {
     await resize(1280, 720);
     const optionDisabled = await p.locator(`${tid("source-lang")} option[value="ja+en"]`).evaluate((e) => e.disabled);
