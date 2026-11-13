@@ -9,6 +9,7 @@ import pytest
 from test_pipeline import SETTINGS
 
 from backend.core import pipeline, translate
+from backend.core.languages import get as get_language
 from backend.core.model import Cue, Step
 from backend.core.pipeline import STEPS, Settings, derive_key
 from backend.core.source_langs import ENGLISH_SOURCE, JAPANESE_SOURCE, MIXED_SOURCE
@@ -188,3 +189,20 @@ class TestTermTable:
         for term in JAPANESE_SOURCE.terms:
             for bad in term.avoid:
                 assert not re.search(bad, term.zh), term
+
+
+class TestPromptWording:
+    def test_the_japanese_prompt_forbids_added_content_and_dropped_numbers(self) -> None:
+        text = translate.system_prompt_template(get_language("zh-TW"), JAPANESE_SOURCE)
+        assert "Translate only what the Japanese says" in text
+        assert "51.9% stays 51.9%" in text
+        assert "never drop one" in text
+
+    def test_the_japanese_prompt_names_the_ai_products_in_latin_letters(self) -> None:
+        text = translate.system_prompt_template(get_language("zh-TW"), JAPANESE_SOURCE)
+        for line in ("チャットGPT is ChatGPT", "クロード is Claude", "コパイロット is Copilot"):
+            assert line in text
+
+    def test_the_english_prompt_has_none_of_it(self) -> None:
+        text = translate.system_prompt_template(get_language("zh-TW"), ENGLISH_SOURCE)
+        assert "Translate only what" not in text and "ChatGPT" not in text.split("Rules for")[1]

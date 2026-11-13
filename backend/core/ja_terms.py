@@ -47,7 +47,7 @@ def _idiom(hint: str, pattern: str, zh: str, *avoid: str) -> JaTerm:
 
 
 SOFTWARE_TERMS: tuple[JaTerm, ...] = (
-    JaTerm("ファイル", "檔案", ("文件",)),
+    JaTerm("ファイル", "檔案", ("文件",), ("檔",)),
     JaTerm("フォルダ", "資料夾", ("文件夾",)),
     JaTerm("ブランチ", "分支", ("分枝",)),
     _idiom(
