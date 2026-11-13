@@ -1,5 +1,6 @@
 import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isDetection, preselect } from "./api/detect";
 import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
@@ -27,7 +28,9 @@ import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
+import { DetectNote, hasDetectNote } from "./import/DetectNote";
 import { ImportPanel, SourcePick } from "./import/ImportPanel";
+import { useDetections, useSettledPath } from "./import/useDetections";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
@@ -124,6 +127,9 @@ export function App() {
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
   const [sourceLang, setSourceLang] = useState<SourceLang>(DEFAULT_SOURCE);
+  const [typedPath, setTypedPath] = useState("");
+  const pickedByHand = useRef(false);
+  const preselectedFor = useRef("");
   const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [], unavailable: {} });
   const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
   const [batchRequest, setBatchRequest] = useState(0);
@@ -196,6 +202,7 @@ export function App() {
   const startImport = useCallback(
     async (videoPath: string, prefer: string | null = null, chosen: SourceLang | null = null) => {
       if (!backend) return;
+      pickedByHand.current = false;
       try {
         await allowVideo(videoPath);
         const project = await createProject(backend, videoPath);
@@ -213,6 +220,20 @@ export function App() {
     },
     [backend, show],
   );
+
+  const chooseSource = useCallback((code: SourceLang) => {
+    pickedByHand.current = true;
+    setSourceLang(code);
+  }, []);
+  const importPath = useSettledPath(typedPath, screen.kind === "idle" || screen.kind === "settings");
+  const detections = useDetections(backend, importPath === "" ? [] : [importPath]);
+  const found = importPath === "" ? undefined : detections.get(importPath);
+  useEffect(() => {
+    if (!isDetection(found) || preselectedFor.current === importPath) return;
+    preselectedFor.current = importPath;
+    const code = preselect(found, pickedByHand.current, languageSet.unavailable);
+    if (code !== null) setSourceLang(code);
+  }, [found, importPath, languageSet.unavailable]);
 
   const screenKind = screen.kind;
   const playingId = screen.kind === "playing" ? screen.projectId : null;
@@ -391,20 +412,24 @@ export function App() {
             busy={!backend || screen.kind === "importing"}
             sourceLang={sourceLang}
             unavailable={languageSet.unavailable}
-            onSourceLang={setSourceLang}
+            onSourceLang={chooseSource}
             withPicker={screen.kind !== "playing"}
             onImport={(p) => void startImport(p, null, sourceLang)}
+            onPath={setTypedPath}
           />
           {screen.kind === "playing" && (
             <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
           )}
         </header>
-        {SOURCE_NOTES[sourceLang] && (
+        {(SOURCE_NOTES[sourceLang] || hasDetectNote(found)) && (
           <div className="source-bar">
-            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={setSourceLang} />}
-            <p className="source-note" data-testid="source-note">
-              {SOURCE_NOTES[sourceLang]}
-            </p>
+            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={chooseSource} />}
+            {SOURCE_NOTES[sourceLang] && (
+              <p className="source-note" data-testid="source-note">
+                {SOURCE_NOTES[sourceLang]}
+              </p>
+            )}
+            <DetectNote found={found} picked={sourceLang} unavailable={languageSet.unavailable} onSwitch={chooseSource} />
           </div>
         )}
       </div>

@@ -2462,6 +2462,52 @@ kbd {
   font-size: var(--text-xs);
 }
 
+.source-bar {
+  flex-wrap: wrap;
+}
+
+.detect-note,
+.detect-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.detect-note {
+  color: var(--on-accent-light);
+}
+
+.detect-note .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.detect-hint {
+  color: var(--text);
+}
+
+.detect-hint button,
+.add-detect button {
+  height: 22px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.add-detect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--on-accent-light);
+  font-size: var(--text-xs);
+}
+
+.add-detect .add-detect-hint {
+  color: var(--text);
+}
+
 .source-note {
   margin: 0;
   color: var(--on-accent-light);
