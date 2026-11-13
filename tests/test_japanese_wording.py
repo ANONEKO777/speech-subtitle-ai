@@ -53,6 +53,9 @@ class TestMainlandWordingOfTheJapaneseFlow:
             "我們前往訪問Tokyo的朋友，聊AI",
             "進行訪問Apple時使用了Git",
             "親自訪問OpenAI公司，討論MCP",
+            "前往訪問Zeta，順便聊Git",
+            "他訪問Zeta的總部，談Git",
+            "他訪問Zeta 的節目，談Git",
         ],
     )
     def test_a_visit_to_a_company_a_place_or_a_broadcaster_stays_a_visit(self, visit: str) -> None:

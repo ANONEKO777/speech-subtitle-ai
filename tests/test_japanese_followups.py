@@ -91,7 +91,7 @@ class TestProductNames:
     ) -> None:
         assert said in table_terms_in(text)
         assert term(said).kept_in(right)
-        assert not term(said).kept_in(wrong)
+        assert not term(said).kept_in(f"{right}，{wrong}")
 
     @pytest.mark.parametrize(
         "text",

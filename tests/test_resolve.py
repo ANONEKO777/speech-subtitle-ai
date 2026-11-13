@@ -86,6 +86,17 @@ def test_default_product_names_come_first_and_user_terms_follow(tmp_path: Path) 
     assert "Claude Code" in terms
 
 
+def test_a_user_entry_for_a_perforce_spelling_replaces_the_japanese_default(tmp_path: Path) -> None:
+    install(tmp_path)
+    from backend.core.translate import GlossaryEntry
+
+    mine = GlossaryEntry("PowerForce")
+    settings, _ = resolve(Request(user_data=tmp_path, source_lang="ja", glossary=(mine,)), tmp_path)
+    assert mine in settings.glossary
+    assert GlossaryEntry("PowerForce", "Perforce") not in settings.glossary
+    assert GlossaryEntry("PowerHorse", "Perforce") in settings.glossary
+
+
 def test_the_english_summary_is_opt_in(tmp_path: Path) -> None:
     install(tmp_path)
     assert resolve(Request(user_data=tmp_path), tmp_path)[0].summary_langs == ("zh-TW",)
