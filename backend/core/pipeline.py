@@ -59,7 +59,7 @@ PROJECT_JSON = "project.json"
 MIXED_CUT = "pauses-300-guard-tail-1"
 UNSPACED_CUT = "numbers-whole-1"
 """How cues of an unspaced language (Japanese) are cut. A talk cut by an older rule is cut again."""
-JAPANESE_UNITS = "finals-1"
+JAPANESE_UNITS = "finals-2"
 """How the cues of a Japanese talk are grouped into sentences for translation."""
 
 
