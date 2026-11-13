@@ -8,8 +8,12 @@ interpreter) puts both languages in one 30 s piece and Whisper names only one of
 pieces are what make a Japanese and English talk show both. `scripts/p24c_detect_table.py` measures
 the choices below on real videos; the numbers are in `docs/SPEC.md` section 5.0.
 
-The module only turns the pieces' tags into an answer. Cutting the audio and running Whisper are
-passed in, so a test can give it fake ones.
+Whisper names a language for any sound, so a piece counts only when the voice activity detector
+also finds speech in it: chord music and noise are named English at 0.7 and the detector hears no
+speech in them.
+
+The module only turns the pieces' tags into an answer. Cutting the audio, running Whisper and
+measuring the speech are passed in, so a test can give it fake ones.
 """
 
 from __future__ import annotations
@@ -23,8 +27,13 @@ from backend.core.source_langs import MIXED_SOURCE
 SAMPLE_COUNT = 24
 SAMPLE_S = 5.0
 MIN_PROBABILITY = 0.5
-"""A piece whose language Whisper names with less probability than this holds no speech worth
-counting (music, silence, a few words)."""
+"""A piece whose language Whisper names with less probability than this is left out. This filters
+silence (Whisper names it English at 0.37) and a piece it cannot place, not music or noise."""
+MIN_SPEECH_S = 0.5
+"""A piece counts only when at least this many seconds of it is speech (Silero VAD). Measured on
+5 s pieces that Whisper names with 0.5 or more: chord music and pink noise hold 0 s of speech, ring
+tones at most 0.3 s, and a pause inside a real talk 0 s, while the sparsest spoken piece of a real
+talk held 0.4 s."""
 MIN_PIECES = 3
 """Fewer pieces than this with a clear language is too little to say anything. A 15 s video has
 three."""
@@ -52,10 +61,15 @@ class Heard:
 class Sample:
     start_s: float
     heard: Heard
+    speech_s: float
 
     @property
     def clear(self) -> bool:
-        return self.heard.code in LANGUAGES and self.heard.probability >= MIN_PROBABILITY
+        return (
+            self.heard.code in LANGUAGES
+            and self.heard.probability >= MIN_PROBABILITY
+            and self.speech_s >= MIN_SPEECH_S
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +110,7 @@ def sample_starts(
 def decide(samples: Sequence[Sample]) -> Detection:
     """One language when nearly every clear piece is in it, both when the smaller one holds
     `MIXED_SHARE` or more of at least `MIN_MIXED_PIECES`, and None when fewer than `MIN_PIECES`
-    are clear."""
+    are clear (a piece is clear when it holds speech and Whisper names its language)."""
     clear = [sample.heard.code for sample in samples if sample.clear]
     kept = tuple(samples)
     if len(clear) < MIN_PIECES:
@@ -112,11 +126,18 @@ Cut = Callable[[Sequence[float], float], list[Path]]
 """Cuts the pieces that start at the given seconds and last the given seconds, as wav files."""
 Name = Callable[[Sequence[Path]], list[Heard]]
 """Names the language of each wav file, in order."""
+Measure = Callable[[Sequence[Path]], list[float]]
+"""Measures the seconds of speech in each wav file, in order."""
 
 
-def detect(duration_s: float, cut: Cut, name: Name) -> Detection:
+def detect(duration_s: float, cut: Cut, name: Name, measure: Measure) -> Detection:
     starts = sample_starts(duration_s)
-    heard = name(cut(starts, SAMPLE_S))
-    if len(heard) != len(starts):
-        raise ValueError(f"{len(heard)} languages named for {len(starts)} pieces")
-    return decide([Sample(start, tag) for start, tag in zip(starts, heard, strict=True)])
+    wavs = cut(starts, SAMPLE_S)
+    heard = name(wavs)
+    speech = measure(wavs)
+    if not len(heard) == len(speech) == len(starts):
+        raise ValueError(
+            f"{len(heard)} languages and {len(speech)} speech lengths for {len(starts)} pieces"
+        )
+    pieces = zip(starts, heard, speech, strict=True)
+    return decide([Sample(start, tag, seconds) for start, tag, seconds in pieces])

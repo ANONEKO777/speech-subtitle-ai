@@ -95,6 +95,7 @@ def _detected_json(found: Detection, mixed_reason: str | None) -> dict[str, Any]
                 "start_s": round(s.start_s, 1),
                 "code": s.heard.code,
                 "probability": s.heard.probability,
+                "speech_s": round(s.speech_s, 2),
             }
             for s in found.samples
         ],

@@ -15,6 +15,7 @@ from backend.core.vad import (
     frame_probs,
     plan_chunks,
     speech_runs,
+    speech_seconds,
     split,
 )
 
@@ -290,3 +291,19 @@ def test_a_non_16k_wav_is_rejected(tmp_path: Path) -> None:
     write_wav(bad, np.zeros(1000), rate=44_100)
     with pytest.raises(AudioError, match="16 kHz"):
         frame_probs(bad, model)
+
+
+def test_speech_seconds_counts_the_speech_of_each_wav_and_not_tones_or_noise(
+    tmp_path: Path, silero_model: Path
+) -> None:
+    t = np.arange(SAMPLE_RATE * 5) / SAMPLE_RATE
+    chord = (
+        np.sin(2 * np.pi * 261.6 * t) + np.sin(2 * np.pi * 329.6 * t) + np.sin(2 * np.pi * 392 * t)
+    ) / 4
+    hiss = np.random.default_rng(1).normal(0, 0.1, t.size)
+    chord_wav, hiss_wav = tmp_path / "chord.wav", tmp_path / "hiss.wav"
+    write_wav(chord_wav, chord)
+    write_wav(hiss_wav, hiss)
+    found = speech_seconds([FIXTURE, chord_wav, hiss_wav], silero_model)
+    assert found[0] > 8
+    assert found[1:] == [0.0, 0.0]

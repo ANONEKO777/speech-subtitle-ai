@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import wave
 from bisect import bisect_left
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -63,19 +64,24 @@ class VadParams:
             raise ValueError("durations must not be negative")
 
 
-def frame_probs(wav: Path, model: Path) -> Probs:
+def _require_model(model: Path) -> None:
     if not model.is_file():
         raise FileNotFoundError(
             f"silero-vad model not found: {model}. Run scripts/fetch_silero_vad.py."
         )
-    wav_duration_ms(wav)
+
+
+def _open_session(model: Path) -> Any:
     ort: Any = importlib.import_module("onnxruntime")
     options = ort.SessionOptions()
     options.intra_op_num_threads = 1
     options.inter_op_num_threads = 1
-    session = ort.InferenceSession(
+    return ort.InferenceSession(
         str(model), sess_options=options, providers=["CPUExecutionProvider"]
     )
+
+
+def _frame_probs(session: Any, wav: Path) -> Probs:
     state = np.zeros((2, 1, 128), dtype=np.float32)
     sample_rate = np.array(SAMPLE_RATE, dtype=np.int64)
     context = np.zeros(CONTEXT_SAMPLES, dtype=np.float32)
@@ -100,6 +106,12 @@ def frame_probs(wav: Path, model: Path) -> Probs:
                 probs.append(float(out[0, 0]))
             context = buffer[-CONTEXT_SAMPLES:]
     return np.array(probs, dtype=np.float32)
+
+
+def frame_probs(wav: Path, model: Path) -> Probs:
+    _require_model(model)
+    wav_duration_ms(wav)
+    return _frame_probs(_open_session(model), wav)
 
 
 def speech_runs(probs: Probs, params: VadParams) -> list[SpanMs]:
@@ -227,3 +239,17 @@ def plan_pauses(probs: Probs, total_ms: int, min_silence_ms: int = PAUSE_CUT_MS)
 
 def split_at_pauses(wav: Path, model: Path) -> list[Chunk]:
     return plan_pauses(frame_probs(wav, model), wav_duration_ms(wav))
+
+
+def speech_seconds(wavs: Sequence[Path], model: Path) -> list[float]:
+    """Seconds of speech in each wav, by the same speech runs the pipeline cuts chunks from. The
+    model is loaded once for all of them."""
+    _require_model(model)
+    for wav in wavs:
+        wav_duration_ms(wav)
+    session = _open_session(model)
+    params = VadParams()
+    return [
+        sum(end - start for start, end in speech_runs(_frame_probs(session, wav), params)) / 1000
+        for wav in wavs
+    ]

@@ -12,6 +12,8 @@ from test_source_availability import BIG_GPU, NO_GPU, install_engine
 from backend.core.audio import AudioError
 from backend.core.language_detect import Detection, Heard, Sample, decide
 from backend.engines.base import EngineFailedError
+from backend.engines.table import engine_paths
+from backend.engines.whispercpp import ENGINE_ID
 from backend.main import AppConfig, create_app
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.detect import Detector, Undetectable
@@ -19,7 +21,7 @@ from backend.manager.hardware import Hardware
 
 
 def heard(*tags: str) -> Detection:
-    return decide([Sample(i * 5.0, Heard(tag, 0.95)) for i, tag in enumerate(tags)])
+    return decide([Sample(i * 5.0, Heard(tag, 0.95), 4.0) for i, tag in enumerate(tags)])
 
 
 def open_app(
@@ -57,7 +59,12 @@ def test_a_japanese_talk_is_suggested_as_japanese(tmp_path: Path) -> None:
     assert body["sure"] is True
     assert body["shares"] == {"ja": 1.0, "en": 0.0}
     assert body["clear"] == 24
-    assert body["samples"][0] == {"start_s": 0.0, "code": "ja", "probability": 0.95}
+    assert body["samples"][0] == {
+        "start_s": 0.0,
+        "code": "ja",
+        "probability": 0.95,
+        "speech_s": 4.0,
+    }
 
 
 def test_a_mixed_talk_is_suggested_as_mixed_when_this_machine_can_run_it(tmp_path: Path) -> None:
@@ -134,3 +141,17 @@ def test_the_real_detector_needs_whisper_to_be_installed(tmp_path: Path) -> None
         reply = ask(client, video(tmp_path))
     assert reply.status_code == 503
     assert "not installed" in reply.json()["detail"]
+
+
+def test_the_real_detector_needs_the_voice_activity_model_to_tell_speech_from_music(
+    tmp_path: Path,
+) -> None:
+    client, context = open_app(tmp_path / "data", BIG_GPU, None)
+    found = engine_paths(ENGINE_ID, context.storage, registry=context.registry)
+    for path in (found.binary, found.model):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x")
+    with client:
+        reply = ask(client, video(tmp_path))
+    assert reply.status_code == 503
+    assert "voice activity" in reply.json()["detail"]

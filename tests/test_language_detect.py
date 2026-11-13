@@ -11,6 +11,8 @@ import pytest
 
 from backend.core import audio, language_detect
 from backend.core.language_detect import (
+    MIN_MIXED_PIECES,
+    MIN_SPEECH_S,
     MIXED_SHARE,
     SAMPLE_COUNT,
     SAMPLE_S,
@@ -27,8 +29,11 @@ from backend.manager.profiles import Device
 WAV_15S = Path(__file__).parent / "fixtures" / "en_15s.wav"
 
 
-def samples(*tags: str, p: float = 0.95) -> list[Sample]:
-    return [Sample(i * SAMPLE_S, Heard(tag, p)) for i, tag in enumerate(tags)]
+SPEECH_S = SAMPLE_S - 1
+
+
+def samples(*tags: str, p: float = 0.95, speech_s: float = SPEECH_S) -> list[Sample]:
+    return [Sample(i * SAMPLE_S, Heard(tag, p), speech_s) for i, tag in enumerate(tags)]
 
 
 def mixture(ja: int, en: int, other: int = 0) -> list[Sample]:
@@ -77,6 +82,15 @@ def test_a_talk_that_uses_both_languages_is_mixed_from_the_share_in_the_rule() -
     assert dict(mixed.shares) == {"ja": 0.5, "en": 0.5}
 
 
+def test_a_talk_is_called_mixed_only_from_enough_clear_pieces() -> None:
+    assert MIN_MIXED_PIECES == 12
+    assert decide(mixture(ja=9, en=3)).code == "ja+en"
+    assert decide(mixture(ja=8, en=3)).code == "ja"
+    assert decide(mixture(ja=8, en=2)).code == "ja"
+    assert decide(mixture(ja=6, en=6) + samples("ko") * 12).code == "ja+en"
+    assert decide(mixture(ja=5, en=5) + samples("ko") * 14).code == "ja"
+
+
 def test_a_short_video_is_never_called_mixed() -> None:
     found = decide(mixture(ja=2, en=2))
     assert found.code == "ja"
@@ -85,15 +99,34 @@ def test_a_short_video_is_never_called_mixed() -> None:
 
 
 def test_pieces_without_a_clear_language_are_left_out() -> None:
-    music = [Sample(0, Heard("en", 0.2)), Sample(5, Heard("ja", 0.49))]
-    found = decide(samples(*["ja"] * 10) + music + samples("ko", "zh", "de"))
+    unsure = [Sample(0, Heard("en", 0.2), SPEECH_S), Sample(5, Heard("ja", 0.49), SPEECH_S)]
+    found = decide(samples(*["ja"] * 10) + unsure + samples("ko", "zh", "de"))
     assert found.code == "ja"
     assert found.clear == 10
     assert found.confidence == 1.0
 
 
+def test_a_piece_without_speech_is_left_out_whatever_whisper_names() -> None:
+    assert MIN_SPEECH_S == 0.5
+    music = samples(*["en"] * 24, p=0.75, speech_s=0.0)
+    assert decide(music).code is None
+    assert decide(music).clear == 0
+    assert decide(samples(*["en"] * 24, p=0.75, speech_s=MIN_SPEECH_S - 0.01)).code is None
+    assert decide(samples(*["en"] * 24, p=0.75, speech_s=MIN_SPEECH_S)).code == "en"
+
+
+def test_a_talk_over_music_counts_the_pieces_that_hold_speech() -> None:
+    talk = samples(*["ja"] * 6)
+    music = samples(*["en"] * 18, speech_s=0.0)
+    found = decide(talk + music)
+    assert found.code == "ja"
+    assert found.clear == 6
+    assert found.confidence == 1.0
+    assert decide(talk[:2] + music).code is None
+
+
 def test_too_little_speech_says_nothing() -> None:
-    found = decide(samples("ja", "ja") + [Sample(0, Heard("en", 0.1))])
+    found = decide(samples("ja", "ja") + [Sample(0, Heard("en", 0.1), SPEECH_S)])
     assert found.code is None
     assert not found.sure
     assert found.clear == 2
@@ -111,24 +144,51 @@ def fake_cut(seen: list[tuple[list[float], float]]) -> language_detect.Cut:
     return cut
 
 
-def test_detect_cuts_the_pieces_and_asks_for_their_languages() -> None:
+def speaking(wavs: Sequence[Path]) -> list[float]:
+    return [SPEECH_S] * len(wavs)
+
+
+def test_detect_cuts_the_pieces_and_asks_for_their_languages_and_their_speech() -> None:
     seen: list[tuple[list[float], float]] = []
     asked: list[list[Path]] = []
+    measured: list[list[Path]] = []
 
     def name(wavs: Sequence[Path]) -> list[Heard]:
         asked.append(list(wavs))
         return [Heard("ja" if i % 2 else "en", 0.9) for i in range(len(wavs))]
 
-    found = detect(3000.0, fake_cut(seen), name)
+    def measure(wavs: Sequence[Path]) -> list[float]:
+        measured.append(list(wavs))
+        return speaking(wavs)
+
+    found = detect(3000.0, fake_cut(seen), name, measure)
     assert found.code == "ja+en"
     assert len(asked[0]) == SAMPLE_COUNT
+    assert measured == asked
     assert seen == [(sample_starts(3000.0), SAMPLE_S)]
     assert [s.start_s for s in found.samples] == seen[0][0]
 
 
+def test_music_that_whisper_names_english_is_no_guess() -> None:
+    found = detect(
+        120.0,
+        fake_cut([]),
+        lambda wavs: [Heard("en", 0.74)] * len(wavs),
+        lambda wavs: [0.0] * len(wavs),
+    )
+    assert found.code is None
+    assert found.clear == 0
+
+
+def japanese(wavs: Sequence[Path]) -> list[Heard]:
+    return [Heard("ja", 0.9)] * len(wavs)
+
+
 def test_a_wrong_number_of_answers_is_an_error() -> None:
-    with pytest.raises(ValueError, match="languages named"):
-        detect(3000.0, fake_cut([]), lambda wavs: [Heard("ja", 0.9)])
+    with pytest.raises(ValueError, match="languages and"):
+        detect(3000.0, fake_cut([]), lambda wavs: [Heard("ja", 0.9)], speaking)
+    with pytest.raises(ValueError, match="speech lengths"):
+        detect(3000.0, fake_cut([]), japanese, lambda wavs: [1.0])
 
 
 def fake_whisper(tmp_path: Path, body: str, code: int = 0) -> Path:
