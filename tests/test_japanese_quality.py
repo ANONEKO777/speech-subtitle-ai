@@ -12,14 +12,21 @@ from backend.core import pipeline, translate
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, Step
 from backend.core.pipeline import STEPS, Settings, derive_key
-from backend.core.source_langs import ENGLISH_SOURCE, JAPANESE_SOURCE, MIXED_SOURCE
+from backend.core.source_langs import (
+    ENGLISH_SOURCE,
+    JAPANESE_SOURCE,
+    MIXED_SOURCE,
+    SourceLanguage,
+)
 
 
 def ja(*texts: str) -> list[Cue]:
     return [Cue(i, i * 2000, i * 2000 + 1500, t, lang="ja") for i, t in enumerate(texts, 1)]
 
 
-def spans(cues: list[Cue], source=JAPANESE_SOURCE, limit: int = 6) -> list[tuple[int, int]]:
+def spans(
+    cues: list[Cue], source: SourceLanguage = JAPANESE_SOURCE, limit: int = 6
+) -> list[tuple[int, int]]:
     return [(u.start, u.stop) for u in translate.sentence_units(cues, 0, len(cues), limit, source)]
 
 
@@ -102,7 +109,7 @@ class TestCacheKeys:
         assert keys(SETTINGS) == before
 
 
-def system_text(cues: list[Cue], source=JAPANESE_SOURCE) -> str:
+def system_text(cues: list[Cue], source: SourceLanguage = JAPANESE_SOURCE) -> str:
     batch = translate.Batch((translate.Unit(0, len(cues)),))
     request = translate.build_request(cues, batch, (), 0, source=source)
     return request.messages[0]["content"]
