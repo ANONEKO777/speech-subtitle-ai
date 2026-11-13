@@ -220,7 +220,12 @@ _JAPANESE_TERMS = (
         (_access(f"{_ACCESSED}|資產|專案", f"(?:的|{_ACCESS_ENDS})"), "存取"),
         (f"訪問(?={_ACCESS_COMPOUND})", "存取"),
         (f"{_after(_ACCESSED_BY)}訪問(?= ?[A-Za-z0-9])", "存取"),
-        (f"訪問(?=的?(?:{_ACCESS_OF_SOFTWARE}))|(?<=同時)訪問", _access_in_software),
+        (
+            f"訪問(?=的?(?:{_ACCESS_OF_SOFTWARE}))|(?<=同時)訪問|(?<=進行)訪問|訪問(?= ?[A-Za-z])",
+            _access_in_software,
+        ),
+        ("硬件", "硬體"),
+        ("演示(?!文稿|稿)", "示範"),
         (_creation(_JAPANESE_FOUNDED), "建立"),
     )
     + _SHARED_TERMS
@@ -331,10 +336,13 @@ _SHINJITAI_PAIRS = (
     "携攜会會点點国國学學発發当當万萬与與両兩亜亞悪惡覧覽訪訪設設説說謡謠豊豐賛贊践踐軟軟輸輸辞辭迫迫逓遞進進遊遊運運違違遺遺選選郵郵都都鉱礦録錄"
     "鍵鍵鎮鎮閉閉開開間間関關陥陷陰陰隣鄰雇僱霊靈静靜頭頭顔顏類類験驗鶏雞麦麥"
 )
+VARIANTS_IN_BIG5 = frozenset("万与触")
+"""Characters Big5 has, so they are neither Japanese-only nor Simplified-only by the tests above,
+that Taiwan still writes in another form."""
 SHINJITAI: dict[str, str] = {
     new: old
     for new, old in zip(_SHINJITAI_PAIRS[0::2], _SHINJITAI_PAIRS[1::2], strict=True)
-    if new != old and (new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY)
+    if new != old and (new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY or new in VARIANTS_IN_BIG5)
 }
 """Kanji Japanese writes in its own way, and the Simplified characters that are the same
 character, with the Traditional character Taiwan writes. A model copies them from the Japanese,

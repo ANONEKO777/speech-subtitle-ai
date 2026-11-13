@@ -52,6 +52,7 @@ from backend.core.zh_tw import (
     JAPANESE_ONLY,
     SHINJITAI,
     SIMPLIFIED_ONLY,
+    VARIANTS_IN_BIG5,
     in_big5,
     japanese_only_chars,
     taiwan_terms,
@@ -963,7 +964,7 @@ class TestRepairs:
     def test_every_table_entry_is_a_japanese_form_with_a_big5_traditional_character(self) -> None:
         assert len(SHINJITAI) > 100
         for new, old in SHINJITAI.items():
-            assert new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY, new
+            assert new in JAPANESE_ONLY or new in SIMPLIFIED_ONLY or new in VARIANTS_IN_BIG5, new
             assert in_big5(old) and old not in JAPANESE_ONLY and old not in SIMPLIFIED_ONLY, old
 
     def test_a_name_the_model_keeps_in_kana_is_written_in_letters_after_the_last_attempt(
