@@ -77,6 +77,9 @@ _SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
         GlossaryEntry("パーフォース", "Perforce"),
         GlossaryEntry("パフォッシャ", "Perforce"),
         GlossaryEntry("パフォーシャ", "Perforce"),
+        GlossaryEntry("パワーフォース", "Perforce"),
+        GlossaryEntry("パワフォース", "Perforce"),
+        GlossaryEntry("パワーホース", "Perforce"),
     )
 }
 
@@ -277,9 +280,26 @@ def _marked(cues: Sequence[Cue], source: SourceLanguage) -> str:
     return separator.join(f"{_mark(cue.id)}{source.flat(cue.src)}" for cue in cues)
 
 
-def _terms_in(source: SourceLanguage, text: str) -> list[GlossaryEntry]:
-    """The terms of the source language that `text` has, as glossary lines for the prompt."""
-    return [GlossaryEntry(term.said, term.zh) for term in source.terms if term.in_source(text)]
+def _terms_in(
+    source: SourceLanguage, text: str, glossary: Sequence[GlossaryEntry] = ()
+) -> list[GlossaryEntry]:
+    """The terms of the source language that `text` has, as glossary lines for the prompt. A term
+    the glossary already names in `text` is left out, so the glossary's translation is the only
+    one the model is given."""
+    flat = text.replace("\n", "")
+    named = [
+        (found.start(), found.end())
+        for entry in glossary
+        for found in re.finditer(re.escape(entry.term), flat, re.IGNORECASE)
+    ]
+    return [
+        GlossaryEntry(term.said, term.zh)
+        for term in source.terms
+        if any(
+            not any(start < end and begin < stop for begin, end in named)
+            for start, stop in term.spans(text)
+        )
+    ]
 
 
 def build_request(
@@ -303,7 +323,9 @@ def build_request(
         ],
     }
     spoken = source.prose([cue.src for group in groups for cue in group])
-    named = _terms_in(source, f"{body['context_before']} {spoken} {body['context_after']}")
+    named = _terms_in(
+        source, f"{body['context_before']} {spoken} {body['context_after']}", glossary
+    )
     return BatchRequest(
         tuple(tuple(cue.id for cue in group) for group in groups),
         (
