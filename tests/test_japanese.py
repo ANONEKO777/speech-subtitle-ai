@@ -218,6 +218,25 @@ class TestUnspacedText:
         assert cost("今日は晴れ", 2) < cost("ストリーム", 1)
         assert cost("ストリーム", 1) > 8
 
+    @pytest.mark.parametrize(("before", "after"), [("51.", "9%"), ("1,", "000"), ("2026.", "2")])
+    def test_a_number_is_never_cut_after_its_point_or_comma(self, before: str, after: str) -> None:
+        words = [Word(before, 0, 90), Word(after, 100, 190)]
+        assert unspaced.break_costs(words)[0] >= 50
+
+    def test_a_full_stop_after_a_number_ends_the_sentence_there(self) -> None:
+        words = [Word("で51.", 0, 90), Word("つぎ", 100, 190)]
+        assert unspaced.break_costs(words)[0] < 50
+
+    def test_a_cue_border_never_falls_inside_a_decimal_number(self) -> None:
+        text = "これは数字の話で" * 3 + "総数の51.9%です" + "もう一つの話に" * 4
+        words = [Word(c, i * 120, i * 120 + 110) for i, c in enumerate(text)]
+        merged = merge_words([Segment("", 0, 1, tuple(words))])
+        cues = cues_of(merged)
+        for cue in cues:
+            assert not re.search(r"\d[.,]\Z", cue.src.replace("\n", ""))
+        for before, after in zip(cues, cues[1:], strict=False):
+            assert not (before.src.rstrip()[-1:].isdigit() and after.src[:1].isdigit())
+
     def test_a_line_never_starts_with_a_closing_mark_or_a_small_kana(self) -> None:
         text = "これはとてもよい一日でしたですからこれを、おぼえておきたいのです。"
         words = [Word(c, i * 100, i * 100 + 90) for i, c in enumerate(text)]
