@@ -63,3 +63,38 @@ class TestGlossaryAndChecks:
     def test_a_cue_that_starts_with_punctuation_is_counted(self) -> None:
         counts, _ = check([cue(1, "つづきます", "。接下來")])
         assert counts["zh_cues_starting_with_punctuation"] == 1
+
+
+class TestNumbersInPlaceAndWordsOutsideTheTable:
+    def test_a_number_found_only_in_the_next_cue_is_not_intact_in_its_own_cue(self) -> None:
+        cues = [cue(1, "全体の122秒です", "全體是"), cue(2, "次の話です", "122秒。接下來")]
+        report = numbers(cues)
+        assert report["numbers_intact"] == 1
+        assert report["numbers_intact_in_own_cue"] == 0
+
+    def test_a_number_in_its_own_cue_is_intact_in_place(self) -> None:
+        report = numbers([cue(1, "全体の122秒です", "全體是122秒")])
+        assert report["numbers_intact_in_own_cue"] == 1
+
+    def test_a_cut_number_counts_when_any_cue_of_its_span_has_it(self) -> None:
+        cues = [cue(1, "全体の51.", "全體的51.9%"), cue(2, "9%です", "。")]
+        assert numbers(cues)["numbers_intact_in_own_cue"] == 1
+
+    def test_words_the_table_has_no_line_for_are_counted(self) -> None:
+        counts, _ = check(
+            [
+                cue(1, "ハードウェアです", "這是硬件"),
+                cue(2, "デモをします", "進行演示"),
+                cue(3, "アクセスします", "進行訪問"),
+                cue(4, "数万です", "有數万個"),
+                cue(5, "パワフォースです", "這是PowerForce"),
+                cue(6, "パフォースです", "這是Perforce"),
+                cue(7, "普通です", "一般的字幕"),
+            ]
+        )
+        assert counts["mainland_words_not_in_table_cues"] == 3
+        assert counts["demo_written_yanshi_cues"] == 1
+        assert counts["visit_word_for_access_cues"] == 1
+        assert counts["simplified_char_cues"] == 1
+        assert counts["product_name_wrong_cues"] == 1
+        assert counts["product_name_perforce_cues"] == 1

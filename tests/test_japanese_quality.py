@@ -174,11 +174,11 @@ class TestTermGlossary:
 
 class TestTermTable:
     def test_a_term_is_found_across_a_line_break(self) -> None:
-        term = next(t for t in JAPANESE_SOURCE.terms if t.ja == "ファイル")
+        term = next(t for t in JAPANESE_SOURCE.terms if t.said == "ファイル")
         assert term.in_source("ファイ\nル")
 
     def test_the_wrong_form_fails_and_the_taiwan_form_passes(self) -> None:
-        term = next(t for t in JAPANESE_SOURCE.terms if t.ja == "ファイル")
+        term = next(t for t in JAPANESE_SOURCE.terms if t.said == "ファイル")
         assert term.kept_in("開啟檔案")
         assert not term.kept_in("開啟文件")
         assert not term.kept_in("開啟檔案和文件")

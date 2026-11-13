@@ -33,6 +33,10 @@ class JaTerm:
     def said(self) -> str:
         return self.ja if self.literal else self.hint
 
+    def spans(self, src: str) -> list[tuple[int, int]]:
+        """Where the term is in `src` with its line breaks removed."""
+        return [match.span() for match in self.pattern.finditer(src.replace("\n", ""))]
+
     def in_source(self, src: str) -> bool:
         return self.pattern.search(src.replace("\n", "")) is not None
 
@@ -42,17 +46,27 @@ class JaTerm:
         return right and not any(re.search(bad, zh) for bad in self.avoid)
 
 
-def _idiom(hint: str, pattern: str, zh: str, *avoid: str) -> JaTerm:
-    return JaTerm(pattern, zh, avoid, literal=False, hint=hint)
+def _idiom(hint: str, pattern: str, zh: str, *avoid: str, also: tuple[str, ...] = ()) -> JaTerm:
+    return JaTerm(pattern, zh, avoid, also, literal=False, hint=hint)
 
+
+_KATAKANA = "ァ-ヺーｦ-ﾟ"
+_NOT_INSIDE_A_WORD = rf"(?<![{_KATAKANA}A-Za-z0-9])"
+_NOT_A_COMPOUND = "(?<!電源)(?<!延長)(?<!Studio )(?<!Claude )"
 
 SOFTWARE_TERMS: tuple[JaTerm, ...] = (
-    JaTerm("ファイル", "檔案", ("文件",), ("檔",)),
+    _idiom(
+        "ファイル",
+        r"(?<!プロ)ファイル",
+        "檔案",
+        "(?<!說明)(?<!相關)(?<!技術)(?<!設計)文件",
+        also=("檔",),
+    ),
     JaTerm("フォルダ", "資料夾", ("文件夾",)),
     JaTerm("ブランチ", "分支", ("分枝",)),
     _idiom(
         "ブランチを切る (create a branch)",
-        r"ブランチ[をが]?(?:\d+本)?切",
+        r"ブランチ[をが]?(?:\d+本)?切(?:る|っ|ら|ろ|り(?:出|ま|た|(?=[、。,]|\Z)))",
         "建立分支",
         "切換",
         "切換分支",
@@ -63,46 +77,56 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
         r"デフォルト(?:で|では)?は?無効",
         "預設停用",
         "無效",
+        also=("預設關閉", "預設是關閉", "預設為關閉", "預設不啟用", "預設是停用", "預設為停用"),
     ),
     _idiom(
         "デフォルトで有効 (enabled by default)",
         r"デフォルト(?:で|では)?は?有効",
         "預設啟用",
         "有效",
+        also=("預設開啟", "預設是開啟", "預設為開啟", "預設是啟用", "預設為啟用"),
     ),
-    JaTerm("コードレビュー", "程式碼審查", ("(?<!程式)碼審", "審閱")),
-    _idiom("レビュー", r"(?<!プ)レビュー", "審查", "審閱"),
+    JaTerm("コードレビュー", "程式碼審查", ("(?<!程式)碼審",), ("程式碼審閱", "程式碼檢閱")),
+    _idiom("レビュー", r"(?<!プ)レビュー", "審查", also=("審閱", "檢閱")),
     _idiom(
-        "コード", r"(?<!ソース)(?<!エン)(?<!デ)コード", "程式碼", "代碼", "(?<!程式)(?<!原始)碼"
+        "コード",
+        rf"{_NOT_INSIDE_A_WORD}{_NOT_A_COMPOUND}コード(?!ネーム|レス|進行|譜)",
+        "程式碼",
+        "代碼",
+        "(?<![式始誤條編解密證R ])碼",
     ),
-    JaTerm("ソースコード", "原始碼", ("源碼", "原始程式碼")),
+    JaTerm("ソースコード", "原始碼", ("源碼",), ("原始程式碼",)),
     JaTerm("リポジトリ", "儲存倉", ("倉庫", "儲存庫", "存儲庫")),
     JaTerm("サブミット", "提交", ("送出",)),
     JaTerm("コミット", "提交", ("確認提交",)),
     JaTerm("チェックアウト", "簽出", ("檢查出", "簽出簽出")),
-    JaTerm("チェックリスト", "檢查清單", ("核對清單",), ("檢核表",)),
-    JaTerm("チェンジリスト", "變更清單", ("更改清單", "更改列表")),
-    JaTerm("マージ", "合併", ("融合",)),
+    JaTerm("チェックリスト", "檢查清單", (), ("檢核表", "核對清單")),
+    JaTerm("チェンジリスト", "變更清單", ("更改列表",), ("更改清單",)),
+    _idiom("マージ", r"マージ(?!ン|ャン)", "合併", "融合"),
     JaTerm("ビルド", "建置", ("構建",)),
     JaTerm("スパースストリーム", "稀疏串流", ("稀疏流", "稀疏分支流")),
-    JaTerm("ストリーム", "串流", ("「流」", "流功能", "分支流", "流類型", "(?<!串)流機制")),
-    JaTerm("管理者", "管理員", ("管理者",)),
-    JaTerm("アセット", "資產", ("素材",)),
+    JaTerm(
+        "ストリーム",
+        "串流",
+        ("「流」", "(?<!串)流功能", "分支流", "(?<!串)流類型", "(?<!串)流機制"),
+    ),
+    JaTerm("アセット", "資產", (), ("素材",)),
     JaTerm("バージョン", "版本"),
     JaTerm("ユーザー", "使用者", ("用戶", "用户")),
-    JaTerm("サーバー", "伺服器", ("服務器", "伺服端")),
+    JaTerm("サーバー", "伺服器", ("服務器",)),
     JaTerm("ツール", "工具"),
-    JaTerm("データ", "資料", ("數據",)),
+    _idiom("データ", r"(?<!メタ)(?<!ビッグ)データ", "資料", "數據"),
     JaTerm("メタデータ", "中繼資料", ("元資料", "元數據")),
-    JaTerm("プラグイン", "外掛", ("插件",)),
+    JaTerm("プラグイン", "外掛程式", ("插件",), ("外掛",)),
     JaTerm("ワークフロー", "工作流程", ("工作流(?!程)",), ("作業流程",)),
     JaTerm("プロジェクト", "專案", ("項目",)),
-    _idiom("ロック", r"(?<![ブクフグ])ロック", "鎖定", "上鎖"),
+    _idiom("ロック", r"(?<![ブクフグド])ロック(?!ダウン)", "鎖定", also=("上鎖",)),
     JaTerm("ステータス", "狀態"),
     JaTerm("ブラウザ", "瀏覽器"),
     JaTerm("コマンドライン", "命令列", ("指令行", "命令行")),
     JaTerm("ソフトウェア", "軟體", ("軟件",)),
     JaTerm("ネットワーク", "網路", ("網絡",)),
+    _idiom("アクセス", r"(?<!交通)アクセス", "存取", "訪問"),
     _idiom("チャットGPT", r"チャット(?:GPT|gpt|ｇｐｔ)", "ChatGPT", "聊天 ?GPT", "對話 ?GPT"),
     _idiom("クロード", r"クロード", "Claude", "克勞德"),
     _idiom("コパイロット", r"コパイロット", "Copilot", "副駕駛", "協同駕駛"),
