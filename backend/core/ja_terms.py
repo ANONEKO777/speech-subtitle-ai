@@ -52,7 +52,7 @@ def _idiom(hint: str, pattern: str, zh: str, *avoid: str, also: tuple[str, ...] 
 
 _KATAKANA = "ァ-ヺーｦ-ﾟ"
 _NOT_INSIDE_A_WORD = rf"(?<![{_KATAKANA}A-Za-z0-9])"
-_NOT_A_COMPOUND = "(?<!電源)(?<!延長)(?<!Studio )(?<!Claude )"
+_NOT_A_COMPOUND = "(?<!電源)(?<!延長)(?<!Studio )(?<!studio )(?<!Claude )(?<!VS )"
 
 SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     _idiom(
@@ -117,7 +117,7 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     JaTerm("ツール", "工具"),
     _idiom("データ", r"(?<!メタ)(?<!ビッグ)データ", "資料", "數據"),
     JaTerm("メタデータ", "中繼資料", ("元資料", "元數據")),
-    JaTerm("プラグイン", "外掛程式", ("插件",), ("外掛",)),
+    JaTerm("プラグイン", "外掛", ("插件", "外掛程式")),
     JaTerm("ワークフロー", "工作流程", ("工作流(?!程)",), ("作業流程",)),
     JaTerm("プロジェクト", "專案", ("項目",)),
     _idiom("ロック", r"(?<![ブクフグド])ロック(?!ダウン)", "鎖定", also=("上鎖",)),
@@ -128,7 +128,33 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     JaTerm("ネットワーク", "網路", ("網絡",)),
     _idiom("アクセス", r"(?<!交通)アクセス", "存取", "訪問"),
     _idiom("チャットGPT", r"チャット(?:GPT|gpt|ｇｐｔ)", "ChatGPT", "聊天 ?GPT", "對話 ?GPT"),
+    _idiom(
+        "クロードコード",
+        r"クロード ?コード",
+        "Claude Code",
+        "克勞德",
+        "(?i:Claude) ?(?:程式碼|代碼|碼)",
+        "Cloud Code",
+    ),
     _idiom("クロード", r"クロード", "Claude", "克勞德"),
+    _idiom(
+        "ビジュアルスタジオコード / Visual Studioコード",
+        r"(?:ビジュアル|ヴィジュアル) ?スタジオ ?コード|(?i:visual) ?(?i:studio) ?コード",
+        "Visual Studio Code",
+        "(?i:Visual ?Studio) ?(?:程式碼|代碼|碼)",
+    ),
+    _idiom(
+        "VSコード",
+        r"(?<![A-Za-z])VS ?コード",
+        "VS Code",
+        "VS ?(?:程式碼|代碼|碼)",
+    ),
+    _idiom(
+        "GitHubコパイロット",
+        r"(?:GitHub|ギットハブ) ?コパイロット",
+        "GitHub Copilot",
+        "(?i:GitHub) ?(?:副駕駛|協同駕駛)",
+    ),
     _idiom("コパイロット", r"コパイロット", "Copilot", "副駕駛", "協同駕駛"),
 )
 
@@ -139,3 +165,38 @@ GAME_TERMS: tuple[JaTerm, ...] = (
 )
 
 JA_TERMS: tuple[JaTerm, ...] = SOFTWARE_TERMS + GAME_TERMS
+
+
+@dataclass(frozen=True, slots=True)
+class SourceFix:
+    """A rewrite of the translation that needs what the Japanese said: `wrong` becomes `right`
+    when the sentence has `said` and not `unless`. The model writes the Mainland word for some
+    terms in a way no prompt line stops, and the same Chinese word is right when the Japanese
+    names something else."""
+
+    said: re.Pattern[str]
+    wrong: re.Pattern[str]
+    right: str
+    unless: re.Pattern[str] | None = None
+
+
+SOURCE_FIXES: tuple[SourceFix, ...] = (
+    SourceFix(
+        re.compile("ファイル"),
+        re.compile("(?<!說明)(?<!相關)(?<!技術)(?<!設計)文件(?!夾)"),
+        "檔案",
+        unless=re.compile("ドキュメント|書類|文書|資料|文章"),
+    ),
+    SourceFix(re.compile("チェックアウト"), re.compile("檢查出"), "簽出"),
+)
+
+
+def fix_from_source(zh: str, src: str) -> str:
+    """`zh` with the wrong forms of `SOURCE_FIXES` rewritten, for a translation of `src`. `src` is
+    the whole sentence the translation belongs to, so a word the model put one cue out of place is
+    still mended."""
+    flat = src.replace("\n", "")
+    for fix in SOURCE_FIXES:
+        if fix.said.search(flat) and not (fix.unless and fix.unless.search(flat)):
+            zh = fix.wrong.sub(fix.right, zh)
+    return zh

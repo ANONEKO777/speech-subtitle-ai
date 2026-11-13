@@ -96,6 +96,16 @@ def default_glossary(source: str) -> tuple[GlossaryEntry, ...]:
     return (*DEFAULT_GLOSSARY, *_SOURCE_GLOSSARY.get(source, ()))
 
 
+def glossary_for(source: str, user: Sequence[GlossaryEntry]) -> tuple[GlossaryEntry, ...]:
+    """The glossary of a run: the defaults for `source`, then the user's entries. A user entry for
+    a term the source's own defaults spell out (PowerForce is Perforce) replaces that default, so
+    the user can keep a spelling the talk really uses. The product names every run starts with
+    are not replaced, and English has no source entries, so its glossary is what it was."""
+    written = {entry.term.casefold() for entry in user}
+    own = tuple(e for e in _SOURCE_GLOSSARY.get(source, ()) if e.term.casefold() not in written)
+    return (*DEFAULT_GLOSSARY, *own, *user)
+
+
 @dataclass(frozen=True, slots=True)
 class Unit:
     """Consecutive cues that are one sentence (or a capped piece of one). A unit is translated as
@@ -353,8 +363,12 @@ def _clean(
     en: str,
     source: SourceLanguage,
     glossary: Sequence[GlossaryEntry] = (),
+    sentence: str = "",
 ) -> str:
+    """`sentence` is the source text of the unit the cue is in, for the rewrites that read it."""
     zh = source.clean(lang.clean(lang.terms_from(source.code, zh), en))
+    if source.fix_from_source:
+        zh = source.fix_from_source(zh, sentence or en)
     if source.mends_glossary:
         for entry in glossary:
             if entry.zh:
@@ -426,8 +440,9 @@ def _split_at_markers(
     if zh[: marks[0].start()].strip():
         raise ReplyError(f"entry {unit_id} has text before {_mark(cue_ids[0])}")
     ends = [m.start() for m in marks[1:]] + [len(zh)]
+    sentence = "".join(english[cue_id] for cue_id in cue_ids)
     return {
-        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id], source, glossary)
+        cue_id: _clean(lang, zh[mark.end() : end], english[cue_id], source, glossary, sentence)
         for cue_id, mark, end in zip(cue_ids, marks, ends, strict=True)
     }
 
