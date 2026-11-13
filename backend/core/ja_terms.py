@@ -180,14 +180,32 @@ class SourceFix:
     unless: re.Pattern[str] | None = None
 
 
+_NOT_AFTER = "".join(
+    f"(?<!{word})"
+    for word in (
+        *("說明", "相關", "技術", "設計", "規格", "契約", "合約", "申請", "需求", "使用者"),
+        *("API", "公", "證明", "正式", "官方", "法律"),
+    )
+)
+"""A 文件 after one of these is a document (技術文件, 契約文件, 公文件), not a computer file."""
+_FILE_NOT_DOCUMENT = re.compile(
+    "ドキュメント|ドキュメンテーション|書類|文書|資料|文章|仕様書|設計書|契約書|説明書|報告書|証明書|議事録|論文"
+    "|マニュアル|レポート|規格|(?i:README|PDF)"
+)
+_CHECK_OUT_NOT_DETECT = (
+    "(?<!被)(?<!能)檢查出"
+    "(?!現|來|了|問題|錯誤|異常|漏洞|缺陷|瑕疵|(?i:bug)|不|沒|[一兩二三四五六七八九十幾許多個])"
+)
+"""檢查出 is a check-out unless it reads as "found" (檢查出問題, 檢查出現, 被檢查出)."""
+
 SOURCE_FIXES: tuple[SourceFix, ...] = (
     SourceFix(
         re.compile("ファイル"),
-        re.compile("(?<!說明)(?<!相關)(?<!技術)(?<!設計)文件(?!夾)"),
+        re.compile(f"{_NOT_AFTER}文件(?!夾)"),
         "檔案",
-        unless=re.compile("ドキュメント|書類|文書|資料|文章"),
+        unless=_FILE_NOT_DOCUMENT,
     ),
-    SourceFix(re.compile("チェックアウト"), re.compile("檢查出"), "簽出"),
+    SourceFix(re.compile("チェックアウト"), re.compile(_CHECK_OUT_NOT_DETECT), "簽出"),
 )
 
 

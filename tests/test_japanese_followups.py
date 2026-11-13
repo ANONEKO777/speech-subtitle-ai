@@ -57,10 +57,10 @@ class TestProductNames:
         ("text", "said", "right", "wrong"),
         [
             (
-                "クロードコードで確認します",
+                "夜にクロードコードを動かす",
                 "クロードコード",
-                "用Claude Code確認",
-                "用Claude程式碼確認",
+                "晚上跑Claude Code",
+                "晚上跑Claude程式碼",
             ),
             ("クロード コードを使う", "クロードコード", "Claude Code", "Claude 程式碼"),
             ("クロードコードを使う", "クロードコード", "Claude Code", "克勞德 Code"),
@@ -114,6 +114,11 @@ class TestProductNames:
         lines = named_lines("クロードコードに聞きます")
         assert '- "クロードコード" must be translated as "Claude Code"' in lines
 
+    def test_the_prompt_does_not_tell_the_model_what_to_do_with_the_word_code(self) -> None:
+        text = translate.system_prompt_template(get_language("zh-TW"), JAPANESE_SOURCE)
+        assert "コード of" not in text
+        assert "never translate the コード" not in text
+
     def test_the_prompt_rule_names_the_two_products(self) -> None:
         text = translate.system_prompt_template(get_language("zh-TW"), JAPANESE_SOURCE)
         assert "クロードコード is Claude Code" in text
@@ -149,8 +154,124 @@ class TestFileWordFollowsTheJapanese:
         once = fix_from_source("傳送文件", "ファイルを送ります")
         assert fix_from_source(once, "ファイルを送ります") == once
 
+    @pytest.mark.parametrize(
+        "kept",
+        [
+            "規格文件",
+            "契約文件",
+            "合約文件",
+            "公文件",
+            "證明文件",
+            "正式文件",
+            "官方文件",
+            "法律文件",
+            "申請文件",
+            "需求文件",
+            "使用者文件",
+            "API文件",
+            "技術文件",
+            "文件夾",
+        ],
+    )
+    def test_a_real_document_is_never_rewritten_in_a_unit_that_says_file(self, kept: str) -> None:
+        assert fix_from_source(f"請看{kept}和文件", "ファイルを送ります") == f"請看{kept}和檔案"
+
+    @pytest.mark.parametrize(
+        "document_word",
+        [
+            "ドキュメンテーション",
+            "仕様書",
+            "設計書",
+            "契約書",
+            "説明書",
+            "取扱説明書",
+            "マニュアル",
+            "レポート",
+            "報告書",
+            "規格",
+            "証明書",
+            "公文書",
+            "README",
+            "readme",
+            "PDF",
+            "資料",
+        ],
+    )
+    def test_a_unit_that_names_a_document_in_japanese_keeps_the_word(
+        self, document_word: str
+    ) -> None:
+        src = f"ファイルと{document_word}です"
+        assert fix_from_source("看檔案和文件", src) == "看檔案和文件"
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("文件格式", "檔案格式"),
+            ("傳輸多個文件", "傳輸多個檔案"),
+            ("exe文件", "exe檔案"),
+            ("文件和文件", "檔案和檔案"),
+        ],
+    )
+    def test_a_computer_file_in_a_file_unit_is_still_rewritten(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, "ファイルの話です") == want
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("解除檢查出並解除鎖定", "解除簽出並解除鎖定"),
+            ("目前檢查出的檔案", "目前簽出的檔案"),
+            ("檢查出和提交", "簽出和提交"),
+        ],
+    )
+    def test_a_check_out_is_rewritten_in_a_check_out_unit(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, "チェックアウトします") == want
+
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "檢查出現問題",
+            "沒有檢查出來",
+            "檢查出了三個錯誤",
+            "檢查出問題",
+            "被檢查出漏洞",
+            "能檢查出異常",
+            "檢查出兩個bug",
+            "檢查出Bug",
+            "檢查出許多缺陷",
+        ],
+    )
+    def test_a_check_that_found_something_is_not_a_check_out(self, zh: str) -> None:
+        assert fix_from_source(zh, "チェックアウトします") == zh
+
+    def test_a_mixed_talk_english_cue_with_the_word_is_not_rewritten_by_a_japanese_cue(
+        self,
+    ) -> None:
+        cues = [
+            Cue(1, 0, 1500, "Send the ファイル now.", lang="en"),
+            Cue(2, 2000, 3500, "ファイルを送ります。", lang="ja"),
+        ]
+        answers = iter(["傳送文件。", "傳送文件。"])
+
+        def chat(messages: Sequence[Message], temperature: float) -> str:
+            asked = json.loads(messages[-1]["content"])["translate"]
+            return json.dumps({"translations": [{"id": asked[0]["id"], "zh": next(answers)}]})
+
+        done = translate.run(
+            cues,
+            chat,
+            (),
+            batch_size=1,
+            max_retries=0,
+            sleep=lambda _: None,
+            keep_english=True,
+            source=MIXED_SOURCE,
+        )
+        assert [cue.zh for cue in done] == ["傳送文件。", "傳送檔案。"]
+
     def test_a_checkout_written_as_check_out_is_written_as_checkout(self) -> None:
-        assert fix_from_source("目前的檢查出狀態", "チェックアウト状況です") == "目前的簽出狀態"
+        assert (
+            fix_from_source("書架的檢查出清單", "貸出のチェックアウト一覧です") == "書架的簽出清單"
+        )
         assert fix_from_source("檢查出錯誤", "エラーです") == "檢查出錯誤"
 
     def test_a_cue_the_model_put_in_the_wrong_place_is_mended_by_its_unit(self) -> None:
@@ -223,7 +344,7 @@ class TestPerforceAliasesAreTheUsersToOverride:
 class TestPlugInIsOneWord:
     def test_the_prompt_asks_for_the_short_form(self) -> None:
         text = translate.system_prompt_template(get_language("zh-TW"), JAPANESE_SOURCE)
-        assert re.search(r"a plug-in is 外掛 \(not 插件", text)
+        assert "a plug-in is 外掛 (not 插件, and not 外掛程式)" in text
         assert not re.search(r"plug-in is 外掛程式", text)
 
     def test_the_table_the_prompt_reads_asks_for_the_same_form(self) -> None:
