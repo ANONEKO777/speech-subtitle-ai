@@ -277,6 +277,11 @@ def _marked(cues: Sequence[Cue], source: SourceLanguage) -> str:
     return separator.join(f"{_mark(cue.id)}{source.flat(cue.src)}" for cue in cues)
 
 
+def _terms_in(source: SourceLanguage, text: str) -> list[GlossaryEntry]:
+    """The terms of the source language that `text` has, as glossary lines for the prompt."""
+    return [GlossaryEntry(term.said, term.zh) for term in source.terms if term.in_source(text)]
+
+
 def build_request(
     cues: Sequence[Cue],
     batch: Batch,
@@ -297,10 +302,12 @@ def build_request(
             {"id": group[0].id, source.prompt.key: _marked(group, source)} for group in groups
         ],
     }
+    spoken = source.prose([cue.src for group in groups for cue in group])
+    named = _terms_in(source, f"{body['context_before']} {spoken} {body['context_after']}")
     return BatchRequest(
         tuple(tuple(cue.id for cue in group) for group in groups),
         (
-            {"role": "system", "content": _system_prompt(glossary, lang, source)},
+            {"role": "system", "content": _system_prompt((*glossary, *named), lang, source)},
             {"role": "user", "content": json.dumps(body, ensure_ascii=False)},
         ),
     )

@@ -335,7 +335,9 @@ def _translate_prompt_digest(code: str, source: str) -> str:
     language = get_language(code)
     chosen = get_source(source)
     text = "".join(
-        translate.system_prompt_template(language, member) for member in chosen.members or (chosen,)
+        translate.system_prompt_template(language, member)
+        + (repr(member.terms) if member.terms else "")
+        for member in chosen.members or (chosen,)
     )
     return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
 

@@ -16,6 +16,7 @@ from dataclasses import dataclass, replace
 from types import MappingProxyType
 
 from backend.core import unspaced
+from backend.core.ja_terms import JA_TERMS, JaTerm
 from backend.core.kana import romanize_katakana
 from backend.core.languages import Density, Language
 from backend.core.model import DEFAULT_SOURCE
@@ -100,6 +101,9 @@ class SourceLanguage:
     talk's as a whole: the files, the summary notes and the checks of the Chinese it is written in."""
     asr_engine: str | None = None
     """The one speech recognition engine that can do this source, when it is not the default."""
+    terms: tuple[JaTerm, ...] = ()
+    """The terms of the language with the Taiwan form of each. A request names the ones its text
+    has."""
     sentence_continues: re.Pattern[str] | None = None
     """What a cue starts with when it goes on with the sentence the cue before it ended on, for a
     language whose speech has no full stops to end a sentence by."""
@@ -271,6 +275,7 @@ JAPANESE_SOURCE = SourceLanguage(
     ("Yu Gothic", "Meiryo", "MS Gothic"),
     rejects_bare_punctuation=True,
     sentence_continues=_JAPANESE_CONTINUES,
+    terms=JA_TERMS,
 )
 
 MIXED = "ja+en"

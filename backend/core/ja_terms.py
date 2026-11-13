@@ -20,13 +20,18 @@ class JaTerm:
     also: tuple[str, ...] = ()
     """Other forms Taiwan writes for it, which count as right."""
     literal: bool = True
-    """`ja` is the text itself, not a pattern. Only a literal term goes into the prompt as a line of
-    its own."""
+    """`ja` is the text itself, not a pattern."""
+    hint: str = ""
+    """How the term reads in the prompt when `ja` is a pattern."""
     pattern: re.Pattern[str] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         source = re.escape(self.ja) if self.literal else self.ja
         object.__setattr__(self, "pattern", re.compile(source))
+
+    @property
+    def said(self) -> str:
+        return self.ja if self.literal else self.hint
 
     def in_source(self, src: str) -> bool:
         return self.pattern.search(src.replace("\n", "")) is not None
@@ -37,21 +42,39 @@ class JaTerm:
         return right and not any(re.search(bad, zh) for bad in self.avoid)
 
 
-def _idiom(pattern: str, zh: str, *avoid: str) -> JaTerm:
-    return JaTerm(pattern, zh, avoid, literal=False)
+def _idiom(hint: str, pattern: str, zh: str, *avoid: str) -> JaTerm:
+    return JaTerm(pattern, zh, avoid, literal=False, hint=hint)
 
 
 SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     JaTerm("ファイル", "檔案", ("文件",)),
     JaTerm("フォルダ", "資料夾", ("文件夾",)),
     JaTerm("ブランチ", "分支", ("分枝",)),
-    _idiom(r"ブランチ[をが]?(?:\d+本)?切", "建立分支", "切換", "切換分支"),
+    _idiom(
+        "ブランチを切る (create a branch)",
+        r"ブランチ[をが]?(?:\d+本)?切",
+        "建立分支",
+        "切換",
+        "切換分支",
+    ),
     JaTerm("デフォルト", "預設", ("默認",)),
-    _idiom(r"デフォルト(?:で|では)?は?無効", "預設停用", "無效"),
-    _idiom(r"デフォルト(?:で|では)?は?有効", "預設啟用", "有效"),
+    _idiom(
+        "デフォルトで無効 (disabled by default)",
+        r"デフォルト(?:で|では)?は?無効",
+        "預設停用",
+        "無效",
+    ),
+    _idiom(
+        "デフォルトで有効 (enabled by default)",
+        r"デフォルト(?:で|では)?は?有効",
+        "預設啟用",
+        "有效",
+    ),
     JaTerm("コードレビュー", "程式碼審查", ("(?<!程式)碼審", "審閱")),
-    _idiom(r"(?<!プ)レビュー", "審查", "審閱"),
-    _idiom(r"(?<!ソース)(?<!エン)(?<!デ)コード", "程式碼", "代碼", "(?<!程式)(?<!原始)碼"),
+    _idiom("レビュー", r"(?<!プ)レビュー", "審查", "審閱"),
+    _idiom(
+        "コード", r"(?<!ソース)(?<!エン)(?<!デ)コード", "程式碼", "代碼", "(?<!程式)(?<!原始)碼"
+    ),
     JaTerm("ソースコード", "原始碼", ("源碼", "原始程式碼")),
     JaTerm("リポジトリ", "儲存倉", ("倉庫", "儲存庫", "存儲庫")),
     JaTerm("サブミット", "提交", ("送出",)),
@@ -74,21 +97,21 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     JaTerm("プラグイン", "外掛", ("插件",)),
     JaTerm("ワークフロー", "工作流程", ("工作流(?!程)",), ("作業流程",)),
     JaTerm("プロジェクト", "專案", ("項目",)),
-    _idiom(r"(?<![ブクフグ])ロック", "鎖定", "上鎖"),
+    _idiom("ロック", r"(?<![ブクフグ])ロック", "鎖定", "上鎖"),
     JaTerm("ステータス", "狀態"),
     JaTerm("ブラウザ", "瀏覽器"),
     JaTerm("コマンドライン", "命令列", ("指令行", "命令行")),
     JaTerm("ソフトウェア", "軟體", ("軟件",)),
     JaTerm("ネットワーク", "網路", ("網絡",)),
-    _idiom(r"チャット(?:GPT|gpt|ｇｐｔ)", "ChatGPT", "聊天 ?GPT", "對話 ?GPT"),
-    _idiom(r"クロード", "Claude", "克勞德"),
-    _idiom(r"コパイロット", "Copilot", "副駕駛", "協同駕駛"),
+    _idiom("チャットGPT", r"チャット(?:GPT|gpt|ｇｐｔ)", "ChatGPT", "聊天 ?GPT", "對話 ?GPT"),
+    _idiom("クロード", r"クロード", "Claude", "克勞德"),
+    _idiom("コパイロット", r"コパイロット", "Copilot", "副駕駛", "協同駕駛"),
 )
 
 GAME_TERMS: tuple[JaTerm, ...] = (
     JaTerm("プレイヤー", "玩家", ("玩家者",)),
     JaTerm("カメラ", "攝影機", ("相機",)),
-    _idiom(r"カービ(?:ー|ィ)", "卡比", "柯比", "卡爾比"),
+    _idiom("カービィ", r"カービ(?:ー|ィ)", "卡比", "柯比", "卡爾比"),
 )
 
 JA_TERMS: tuple[JaTerm, ...] = SOFTWARE_TERMS + GAME_TERMS

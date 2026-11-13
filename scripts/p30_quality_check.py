@@ -132,7 +132,7 @@ def glossary(cues: Sequence[Cue]) -> dict[str, tuple[int, int]]:
     for term in JA_TERMS:
         hits = [c for c in cues if term.in_source(c.src)]
         right = sum(1 for c in hits if term.kept_in(c.zh))
-        result[term.ja if term.literal else f"{term.zh}<-{term.ja}"] = (right, len(hits))
+        result[term.said] = (right, len(hits))
     return result
 
 

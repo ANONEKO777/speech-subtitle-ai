@@ -99,3 +99,92 @@ class TestCacheKeys:
         monkeypatch.setattr(pipeline, "UNSPACED_CUT", "other")
         monkeypatch.setattr(pipeline, "JAPANESE_UNITS", "other")
         assert keys(SETTINGS) == before
+
+
+def system_text(cues: list[Cue], source=JAPANESE_SOURCE) -> str:
+    batch = translate.Batch((translate.Unit(0, len(cues)),))
+    request = translate.build_request(cues, batch, (), 0, source=source)
+    return request.messages[0]["content"]
+
+
+class TestTermGlossary:
+    def test_a_request_names_the_terms_its_text_has_with_their_taiwan_form(self) -> None:
+        text = system_text(ja("ファイルを", "ブランチに保存します"))
+        assert '- "ファイル" must be translated as "檔案"' in text
+        assert '- "ブランチ" must be translated as "分支"' in text
+
+    def test_a_request_leaves_out_the_terms_its_text_does_not_have(self) -> None:
+        text = system_text(ja("ファイルを保存します"))
+        assert "ブランチ" not in text.split("Glossary.")[1]
+        assert "プレイヤー" not in text
+
+    def test_an_idiom_is_named_with_its_meaning(self) -> None:
+        text = system_text(ja("新しいブランチを", "切ります"))
+        assert '"ブランチを切る (create a branch)" must be translated as "建立分支"' in text
+        text = system_text(ja("この設定はデフォルトで無効です"))
+        assert '"デフォルトで無効 (disabled by default)" must be translated as "預設停用"' in text
+
+    def test_the_context_around_a_batch_counts(self) -> None:
+        cues = ja("ファイルを", "保存します", "次です")
+        batch = translate.Batch((translate.Unit(1, 3),))
+        request = translate.build_request(cues, batch, (), 1, source=JAPANESE_SOURCE)
+        assert '"ファイル" must be translated' in request.messages[0]["content"]
+
+    @pytest.mark.parametrize(
+        "text", ["ソースコードを読む", "プレビューを見る", "ブロックを置く", "デコードする"]
+    )
+    def test_a_longer_word_does_not_name_a_term_it_only_contains(self, text: str) -> None:
+        prompt = system_text(ja(text)).split("Glossary.")[-1]
+        for word in ("コード", "レビュー", "ロック"):
+            if word in text and word == "コード":
+                assert '"コード" must' not in prompt
+            if word in text and word != "コード":
+                assert f'"{word}" must' not in prompt
+
+    def test_the_source_code_term_is_named_for_source_code(self) -> None:
+        assert '"ソースコード" must be translated as "原始碼"' in system_text(
+            ja("ソースコードを読む")
+        )
+
+    def test_an_english_request_has_no_term_lines(self) -> None:
+        cues = [Cue(1, 0, 1, "Open the file in the branch.")]
+        text = system_text(cues, ENGLISH_SOURCE)
+        assert "must be translated as" not in text
+
+    def test_the_mixed_talk_names_terms_only_in_its_japanese_requests(self) -> None:
+        cues = [
+            Cue(1, 0, 1, "ファイルを開く", lang="ja"),
+            Cue(2, 1, 2, "Open the file.", lang="en"),
+        ]
+        batch = translate.Batch((translate.Unit(1, 2),))
+        english = translate.build_request(cues, batch, (), 0, source=MIXED_SOURCE)
+        assert "must be translated as" not in english.messages[0]["content"]
+        batch = translate.Batch((translate.Unit(0, 1),))
+        japanese = translate.build_request(cues, batch, (), 0, source=MIXED_SOURCE)
+        assert '"ファイル" must be translated as "檔案"' in japanese.messages[0]["content"]
+
+
+class TestTermTable:
+    def test_a_term_is_found_across_a_line_break(self) -> None:
+        term = next(t for t in JAPANESE_SOURCE.terms if t.ja == "ファイル")
+        assert term.in_source("ファイ\nル")
+
+    def test_the_wrong_form_fails_and_the_taiwan_form_passes(self) -> None:
+        term = next(t for t in JAPANESE_SOURCE.terms if t.ja == "ファイル")
+        assert term.kept_in("開啟檔案")
+        assert not term.kept_in("開啟文件")
+        assert not term.kept_in("開啟檔案和文件")
+        assert not term.kept_in("開啟")
+
+    def test_the_names_of_the_ai_tools_are_checked_in_latin_letters(self) -> None:
+        term = next(t for t in JAPANESE_SOURCE.terms if t.zh == "ChatGPT")
+        assert term.in_source("チャットgptを使う")
+        assert term.kept_in("使用 chatgpt")
+        assert not term.kept_in("使用聊天GPT")
+
+    def test_no_table_form_is_one_of_its_own_wrong_forms(self) -> None:
+        import re
+
+        for term in JAPANESE_SOURCE.terms:
+            for bad in term.avoid:
+                assert not re.search(bad, term.zh), term
