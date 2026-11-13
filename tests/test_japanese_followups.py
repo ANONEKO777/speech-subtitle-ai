@@ -188,6 +188,8 @@ class TestFileWordFollowsTheJapanese:
             "マニュアル",
             "レポート",
             "報告書",
+            "議事録",
+            "論文",
             "規格",
             "証明書",
             "公文書",
