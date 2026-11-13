@@ -33,6 +33,7 @@ MAX_UNIT_CUES = 6
 _LONG_EN_CHARS = 25
 GLOSSARY_MARK = "<<GLOSSARY>>"
 _MARKER = re.compile(r"\[\[(\d+)\]\]")
+_FULL_STOP = re.compile(r"[。！？!?…][」』）)\"”]*\Z")
 
 
 class TranslationError(RuntimeError):
@@ -168,7 +169,11 @@ def sentence_units(
     units: list[Unit] = []
     first = start
     for index in range(start, stop):
-        ends = source.of(cues[index].lang).sentence_end.search(cues[index].src.rstrip()) is not None
+        said = source.of(cues[index].lang)
+        text = said.flat(cues[index].src).rstrip()
+        ends = said.sentence_end.search(text) is not None
+        if ends and said.sentence_continues and index + 1 < stop and not _FULL_STOP.search(text):
+            ends = not said.sentence_continues.match(said.flat(cues[index + 1].src))
         switches = index + 1 < stop and cues[index + 1].lang != cues[index].lang
         if ends or switches or index + 1 == stop or index + 1 - first == limit:
             units.append(Unit(first, index + 1))
@@ -272,6 +277,11 @@ def _marked(cues: Sequence[Cue], source: SourceLanguage) -> str:
     return separator.join(f"{_mark(cue.id)}{source.flat(cue.src)}" for cue in cues)
 
 
+def _terms_in(source: SourceLanguage, text: str) -> list[GlossaryEntry]:
+    """The terms of the source language that `text` has, as glossary lines for the prompt."""
+    return [GlossaryEntry(term.said, term.zh) for term in source.terms if term.in_source(text)]
+
+
 def build_request(
     cues: Sequence[Cue],
     batch: Batch,
@@ -292,10 +302,12 @@ def build_request(
             {"id": group[0].id, source.prompt.key: _marked(group, source)} for group in groups
         ],
     }
+    spoken = source.prose([cue.src for group in groups for cue in group])
+    named = _terms_in(source, f"{body['context_before']} {spoken} {body['context_after']}")
     return BatchRequest(
         tuple(tuple(cue.id for cue in group) for group in groups),
         (
-            {"role": "system", "content": _system_prompt(glossary, lang, source)},
+            {"role": "system", "content": _system_prompt((*glossary, *named), lang, source)},
             {"role": "user", "content": json.dumps(body, ensure_ascii=False)},
         ),
     )

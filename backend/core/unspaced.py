@@ -51,6 +51,7 @@ _ENDINGS = (
     "ております",
 )
 _FORBIDDEN = 50.0
+_NUMBER_MARKS = ".,"
 _INSIDE_WORD = 9.0
 
 HIRAGANA = "hiragana"
@@ -119,6 +120,8 @@ def _boundary(before: str, after: str, head: str) -> float:
     """How bad it is to end a line with `before` and start the next with `after`. `head` is
     everything up to and including `before`."""
     if after in _NO_LINE_START or before in OPENERS:
+        return _FORBIDDEN
+    if before in _NUMBER_MARKS and after.isdigit() and head[-2:-1].isdigit():
         return _FORBIDDEN
     if before in SENTENCE_END:
         return 0.0
