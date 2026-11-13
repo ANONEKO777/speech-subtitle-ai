@@ -118,7 +118,7 @@ def numbers(cues: Sequence[Cue]) -> dict[str, int]:
         if first != last:
             split += 1
             split_intact += any(
-                number_found(match.group(), c.zh) for c in cues[first - 1 : last + 2]
+                number_found(match.group(), c.zh) for c in cues[max(0, first - 1) : last + 2]
             )
         else:
             intact += number_found(match.group(), around)
