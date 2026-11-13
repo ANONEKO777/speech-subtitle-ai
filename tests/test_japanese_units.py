@@ -94,13 +94,41 @@ class TestTheUnitRuleVersion:
     """`JAPANESE_UNITS` is in the cache key. Changing the rule of `sentence_units` without a new
     version leaves a project with units cut the old way, so this table pins the version to it."""
 
-    RULES = {"finals-3": "1fc90d3a01009cd8"}
+    RULES = {"finals-3": "95d389826407e889"}
 
-    def test_the_version_is_the_one_of_the_rule(self) -> None:
+    @staticmethod
+    def digest() -> str:
+        """The two patterns, the full-stop pattern, the cap, and how a fixed run of cues is cut,
+        which also covers the language switch and the order of the checks in `sentence_units`."""
         continues = JAPANESE_SOURCE.sentence_continues
         assert continues is not None
-        text = JAPANESE_SOURCE.sentence_end.pattern + chr(10) + continues.pattern
-        digest = hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
+        probe = [
+            Cue(1, 0, 1, "確認します", lang="ja"),
+            Cue(2, 1, 2, "と本棚です", lang="ja"),
+            Cue(3, 2, 3, "確認します。", lang="ja"),
+            Cue(4, 3, 4, "と本棚です", lang="ja"),
+            Cue(5, 4, 5, "Open it", lang="en"),
+            Cue(6, 5, 6, "確認します", lang="ja"),
+            Cue(7, 6, 7, "もちろんです", lang="ja"),
+            *(Cue(8 + i, 7 + i, 8 + i, "そして", lang="ja") for i in range(8)),
+        ]
+        cut = [
+            (u.start, u.stop)
+            for u in translate.sentence_units(probe, 0, len(probe), 6, MIXED_SOURCE)
+        ]
+        text = chr(10).join(
+            (
+                JAPANESE_SOURCE.sentence_end.pattern,
+                continues.pattern,
+                translate._FULL_STOP.pattern,  # pyright: ignore[reportPrivateUsage]
+                str(translate.MAX_UNIT_CUES),
+                str(cut),
+            )
+        )
+        return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
+
+    def test_the_version_is_the_one_of_the_rule(self) -> None:
+        digest = self.digest()
         assert self.RULES.get(pipeline.JAPANESE_UNITS) == digest, (
             f"the unit rule digest is {digest}: add it under a new JAPANESE_UNITS version"
         )
