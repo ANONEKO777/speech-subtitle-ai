@@ -140,3 +140,7 @@ class TestProductNamesAndTheLongPlugInForm:
     def test_the_long_plug_in_form_is_counted(self) -> None:
         counts, _ = check([cue(1, "プラグインです", "外掛程式"), cue(2, "プラグインです", "外掛")])
         assert counts["plugin_written_long_form_cues"] == 1
+
+    def test_a_plug_in_compound_is_not_the_long_form(self) -> None:
+        counts, _ = check([cue(1, "プラグインです", "外掛程式碼與外掛程式庫")])
+        assert counts["plugin_written_long_form_cues"] == 0

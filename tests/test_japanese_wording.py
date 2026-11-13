@@ -80,6 +80,9 @@ class TestMainlandWordingOfTheJapaneseFlow:
             "他訪問Apple的新品發表會",
             "他進行訪問，Appleton先生答應了",
             "我訪問Capital公司",
+            "進行訪問，他聊了RAPID",
+            "他訪問ABCD",
+            "進行訪問，他提到XMCP",
         ):
             assert JAPANESE_SOURCE.clean(kept) == kept
 
@@ -93,3 +96,62 @@ class TestMainlandWordingOfTheJapaneseFlow:
 
         assert "外掛程式" not in JAPANESE_SOURCE.clean(taiwan_terms(said))
         assert "外掛" in JAPANESE_SOURCE.clean(taiwan_terms(said))
+
+    @pytest.mark.parametrize(
+        ("said", "written"),
+        [
+            ("外掛程式管理員", "外掛管理員"),
+            ("「外掛程式」", "「外掛」"),
+            ("WordPress外掛程式很多", "WordPress外掛很多"),
+            ("安裝外掛程式。", "安裝外掛。"),
+            ("外掛程式與外掛程式", "外掛與外掛"),
+            ("插件程式", "外掛"),
+        ],
+    )
+    def test_a_plug_in_that_stands_alone_loses_its_second_word(
+        self, said: str, written: str
+    ) -> None:
+        from backend.core.zh_tw import taiwan_terms
+
+        assert JAPANESE_SOURCE.clean(taiwan_terms(said)) == written
+
+    @pytest.mark.parametrize(
+        "kept",
+        [
+            "外掛程式碼",
+            "外掛程式庫",
+            "外掛程式設計",
+            "外掛程式架構",
+            "外掛程式介面",
+            "外掛程式語言",
+            "外掛程式開發",
+            "這份外掛程式碼很長",
+        ],
+    )
+    def test_a_longer_word_that_starts_with_the_plug_in_keeps_its_program_word(
+        self, kept: str
+    ) -> None:
+        from backend.core.zh_tw import taiwan_terms
+
+        assert JAPANESE_SOURCE.clean(taiwan_terms(kept)) == kept
+
+    @pytest.mark.parametrize("said", ["插件程式碼", "插件程式庫", "插件程式設計"])
+    def test_a_mainland_plug_in_compound_becomes_the_taiwan_compound(self, said: str) -> None:
+        from backend.core.zh_tw import taiwan_terms
+
+        once = JAPANESE_SOURCE.clean(taiwan_terms(said))
+        assert once == said.replace("插件", "外掛")
+        assert JAPANESE_SOURCE.clean(taiwan_terms(once)) == once
+
+    def test_the_plug_in_rule_is_idempotent_with_the_other_rules(self) -> None:
+        from backend.core.zh_tw import taiwan_terms
+
+        said = "外掛程式的外掛程式碼與插件程式管理員，訪問P4伺服器"
+        once = JAPANESE_SOURCE.clean(taiwan_terms(said))
+        assert once == "外掛的外掛程式碼與外掛管理員，存取P4伺服器"
+        assert JAPANESE_SOURCE.clean(taiwan_terms(once)) == once
+
+    def test_the_english_flow_keeps_the_long_plug_in_word(self) -> None:
+        assert (
+            get_language("zh-TW").terms_from("en", "外掛程式與外掛程式碼") == "外掛程式與外掛程式碼"
+        )
