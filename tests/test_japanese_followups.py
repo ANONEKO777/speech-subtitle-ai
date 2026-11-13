@@ -209,7 +209,7 @@ class TestFileWordFollowsTheJapanese:
         ("zh", "want"),
         [
             ("文件格式", "檔案格式"),
-            ("傳輸多個文件", "傳輸多個檔案"),
+            ("搬移三份文件", "搬移三份檔案"),
             ("exe文件", "exe檔案"),
             ("文件和文件", "檔案和檔案"),
         ],
@@ -220,7 +220,7 @@ class TestFileWordFollowsTheJapanese:
     @pytest.mark.parametrize(
         ("zh", "want"),
         [
-            ("解除檢查出並解除鎖定", "解除簽出並解除鎖定"),
+            ("取消檢查出再上鎖", "取消簽出再上鎖"),
             ("目前檢查出的檔案", "目前簽出的檔案"),
             ("檢查出和提交", "簽出和提交"),
         ],
