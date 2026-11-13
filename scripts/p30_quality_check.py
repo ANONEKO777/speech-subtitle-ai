@@ -19,7 +19,12 @@ over the windows of the file's run only. The checks:
 - a Chinese cue that starts with punctuation: the sentence it finishes was put in the cue before.
 - kana left in the Chinese.
 - glossary: for each term of `backend.core.ja_terms`, the cues that have the Japanese term and
-  whose Chinese has the Taiwan form and none of the wrong ones.
+  whose Chinese has the Taiwan form and none of the wrong ones. The translation prompt reads the
+  same table, so this count shows that the model follows the prompt and does not show that the
+  table is right (marked `*` in the printout).
+- words the table does not name: cues with a Mainland word the table has no line for, a simplified
+  character, the product name written as something other than Perforce, and the Japanese word
+  for demo or access written as the Mainland word. These do not depend on the prompt.
 
 Exit code is 0: this reports, the judge is a person.
 """
@@ -39,10 +44,15 @@ from backend.core.ja_terms import JA_TERMS
 from backend.core.model import Cue
 from backend.core.source_langs import JAPANESE_SOURCE
 from backend.core.subtitle_io import parse_subs, read_text_file
+from backend.core.zh_tw import simplified_chars
 
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 _DANGLING_END = re.compile(r"[的和與及在對將把但並而由向從為以之或讓使跟同比被給]\Z")
 _DIGITS = "〇一二三四五六七八九"
+NOT_IN_THE_TABLE = ("硬件", "演示", "訪問", "視頻", "信息", "屏幕", "打印", "文檔")
+"""Mainland words that no line of the table names and that the Taiwan wording step may leave."""
+PRODUCT_WRONG = re.compile(r"Power ?[Ff]orce|PowerHorse|BIFFO|Biffo|Pforce")
+CIRCULAR = frozenset({"glossary_cues_right", "glossary_cues_seen"})
 LENGTH_LIMIT = 2.5
 LOW_RATIO = 0.25
 HIGH_RATIO = 1.3
@@ -100,7 +110,7 @@ def number_found(token: str, zh: str) -> bool:
 
 def numbers(cues: Sequence[Cue]) -> dict[str, int]:
     """Count the numbers of the Japanese read as one stream over each run of consecutive cues."""
-    total = intact = split = split_intact = zh_cut = 0
+    total = intact = split = split_intact = zh_cut = in_place = 0
     for index, cue in enumerate(cues):
         nxt = cues[index + 1] if index + 1 < len(cues) else None
         if nxt is not None and re.search(r"\d[.,]\Z", cue.zh.rstrip()) and nxt.zh[:1].isdigit():
@@ -115,6 +125,7 @@ def numbers(cues: Sequence[Cue]) -> dict[str, int]:
         first, last = owner[match.start()], owner[match.end() - 1]
         around = "".join(c.zh for c in cues[max(0, first - 1) : last + 2])
         total += 1
+        in_place += any(number_found(match.group(), c.zh) for c in cues[first : last + 1])
         if first != last:
             split += 1
             split_intact += any(
@@ -125,6 +136,7 @@ def numbers(cues: Sequence[Cue]) -> dict[str, int]:
     return {
         "numbers": total,
         "numbers_intact": intact + split_intact,
+        "numbers_intact_in_own_cue": in_place,
         "numbers_cut_by_a_cue_border": split,
         "cut_numbers_whole_in_one_zh_cue": split_intact,
         "zh_cues_ending_in_half_a_number": zh_cut,
@@ -138,6 +150,24 @@ def glossary(cues: Sequence[Cue]) -> dict[str, tuple[int, int]]:
         right = sum(1 for c in hits if term.kept_in(c.zh))
         result[term.said] = (right, len(hits))
     return result
+
+
+def not_in_the_table(cues: Sequence[Cue]) -> dict[str, int]:
+    """Counts that read no term of the table, so the prompt cannot have taught the model them."""
+    return {
+        "mainland_words_not_in_table_cues": sum(
+            1 for c in cues if any(word in c.zh for word in NOT_IN_THE_TABLE)
+        ),
+        "simplified_char_cues": sum(1 for c in cues if simplified_chars(c.zh) or "万" in c.zh),
+        "visit_word_for_access_cues": sum(
+            1 for c in cues if "アクセス" in c.src.replace("\n", "") and "訪問" in c.zh
+        ),
+        "demo_written_yanshi_cues": sum(
+            1 for c in cues if "デモ" in c.src.replace("\n", "") and "演示" in c.zh
+        ),
+        "product_name_wrong_cues": sum(1 for c in cues if PRODUCT_WRONG.search(c.zh)),
+        "product_name_perforce_cues": sum(1 for c in cues if "Perforce" in c.zh),
+    }
 
 
 def check(cues: Sequence[Cue]) -> tuple[dict[str, float], dict[str, str]]:
@@ -170,6 +200,7 @@ def check(cues: Sequence[Cue]) -> tuple[dict[str, float], dict[str, str]]:
             1 for c in ja if re.match(r"[，。、；：！？]", c.zh.lstrip())
         ),
         "length_ratio_mean": round(sum(ratios) / max(len(ratios), 1), 3),
+        **not_in_the_table(ja),
         "kana_left_cues": sum(1 for c in ja if JAPANESE_SOURCE.problem(c.zh)),
         "glossary_cues_right": right,
         "glossary_cues_seen": seen,
@@ -200,7 +231,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     names = list(counts)
     print(f"{'check':<36}" + "".join(f"{n[:22]:>24}" for n in names))
     for key in counts[names[0]]:
-        print(f"{key:<36}" + "".join(f"{counts[n][key]!s:>24}" for n in names))
+        label = f"{key}{'*' if key in CIRCULAR else ''}"
+        print(f"{label:<36}" + "".join(f"{counts[n][key]!s:>24}" for n in names))
+    print("* circular: the prompt and the check read the same table")
     print("glossary (cues right / cues with the term)")
     for term in sorted({t for n in names for t in terms_seen[n]}):
         print(f"{term:<36}" + "".join(f"{terms_seen[n].get(term, '-'):>24}" for n in names))
