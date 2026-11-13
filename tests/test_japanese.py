@@ -418,8 +418,13 @@ class TestTaiwanTerms:
     @pytest.mark.parametrize(
         ("mainland", "taiwan"),
         [
-            ("針對P4的倉庫進行審查", "針對P4的儲存庫進行審查"),
-            ("大規模倉庫", "大規模儲存庫"),
+            ("針對P4的倉庫進行審查", "針對P4的儲存倉進行審查"),
+            ("大規模倉庫", "大規模儲存倉"),
+            ("針對P4的儲存庫進行審查", "針對P4的儲存倉進行審查"),
+            ("單一倉庫和單一儲存庫", "單一儲存倉和單一儲存倉"),
+            ("技能儲存庫與團隊倉庫", "技能儲存倉與團隊儲存倉"),
+            ("把貨放進儲存庫", "把貨放進儲存庫"),
+            ("儲存庫存的物流倉庫", "儲存庫存的物流倉庫"),
             ("與資產流水線整合", "與資產管線整合"),
             ("物流倉庫的貨物", "物流倉庫的貨物"),
             ("汽車生產流水線", "汽車生產流水線"),
@@ -437,6 +442,11 @@ class TestTaiwanTerms:
         said = "元數據、源碼與運營"
         cleaned = JAPANESE_SOURCE.clean(ZH_TW.clean(said, "メタデータ"))
         assert cleaned == "中繼資料、原始碼與營運"
+
+    def test_a_japanese_translation_writes_a_code_repository_as_chucang(self) -> None:
+        said = "把程式碼放進這個倉庫，再複製那個儲存庫。"
+        cleaned = JAPANESE_SOURCE.clean(ZH_TW.clean(said, "リポジトリ"))
+        assert cleaned == "把程式碼放進這個儲存倉，再複製那個儲存倉。"
 
     def test_english_translations_keep_their_warehouse(self) -> None:
         said = "我們把資料放進倉庫，再走流水線。"

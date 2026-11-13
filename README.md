@@ -155,7 +155,7 @@ npm --prefix app ci                       # 前端相依套件
 cd app; npx tauri build --no-bundle; cd ..   # 產生 app/src-tauri/target/release/video-subtitle-translator.exe
 ```
 
-語音與語言模型及其執行環境不在儲存庫裡。執行 `app/src-tauri/target/release/video-subtitle-translator.exe`。沒有安裝任何模型時，設定精靈會提議從它們的公開來源下載你的硬體需要的那些。這需要網路，預設設定檔約要 12 GB 的磁碟空間。你可以略過，之後再到設定頁下載。
+語音與語言模型及其執行環境不在儲存倉裡。執行 `app/src-tauri/target/release/video-subtitle-translator.exe`。沒有安裝任何模型時，設定精靈會提議從它們的公開來源下載你的硬體需要的那些。這需要網路，預設設定檔約要 12 GB 的磁碟空間。你可以略過，之後再到設定頁下載。
 
 檔案會放在 `%LOCALAPPDATA%\video-subtitle-translator`，要換資料夾就設定 `VST_USER_DATA`。視窗會用 `.venv` 啟動 Python 後端，關閉視窗時一併結束。
 
@@ -233,7 +233,7 @@ uv run python -m backend.cli talk.mp4 --source-lang ja+en
 
 ## 素材來源
 
-截圖與示範影片使用 NASA 局長 Bill Nelson 的「State of NASA」演說片段，演說日期是 2023 年 3 月 9 日（[NASA Image and Video Library](https://images.nasa.gov/details/2023%20%E2%80%98State%20of%20NASA%E2%80%99%20Address%20from%20Administrator%20Bill%20Nelson)）。片段取自原片的 1:14 到 7:07。NASA 的媒體在美國一般不受著作權保護，仍請參考 [NASA 的媒體使用規範](https://www.nasa.gov/nasa-brand-center/images-and-media/)，NASA 不為本專案背書。影片本身不在這個儲存庫裡。圖中的字幕與摘要由本程式產生。
+截圖與示範影片使用 NASA 局長 Bill Nelson 的「State of NASA」演說片段，演說日期是 2023 年 3 月 9 日（[NASA Image and Video Library](https://images.nasa.gov/details/2023%20%E2%80%98State%20of%20NASA%E2%80%99%20Address%20from%20Administrator%20Bill%20Nelson)）。片段取自原片的 1:14 到 7:07。NASA 的媒體在美國一般不受著作權保護，仍請參考 [NASA 的媒體使用規範](https://www.nasa.gov/nasa-brand-center/images-and-media/)，NASA 不為本專案背書。影片本身不在這個儲存倉裡。圖中的字幕與摘要由本程式產生。
 
 ## 授權
 

@@ -36,7 +36,7 @@ _NOT_PROCEDURE = _not_after(_PROCEDURE_HEAD)
 
 
 _ACCESSED = (
-    "權限|控制|令牌|權杖|資料庫|資料|檔案|伺服器|端點|API|URL|網址|記憶體|資源|儲存庫|程式碼|金鑰|"
+    "權限|控制|令牌|權杖|資料庫|資料|檔案|伺服器|端點|API|URL|網址|記憶體|資源|儲存庫|儲存倉|程式碼|金鑰|"
     "憑證|日誌|紀錄|目錄|帳號|帳戶|主機|裝置|硬體|系統|工具|介面"
 )
 _ACCESS_OF = "你的|我的|其|該|它的|它們的|這些|所有|整個|私有|公開|遠端|本機|本地|外部|內部|敏感"
@@ -83,16 +83,21 @@ def _cue_of(match: re.Match[str]) -> str:
 
 
 def _repository(match: re.Match[str]) -> str:
-    """儲存庫 when the cue the word is in talks about code and not about goods."""
+    """儲存倉 when the cue the word is in talks about code and not about goods."""
     cue = _cue_of(match)
     if _WAREHOUSE.search(cue) or not _CODE_REPOSITORY.search(cue):
         return match.group()
-    return "儲存庫"
+    return "儲存倉"
 
 
-def _monorepo(match: re.Match[str]) -> str:
-    """單一儲存倉 for a monorepo, unless the cue is about goods."""
-    return match.group() if _WAREHOUSE.search(_cue_of(match)) else "單一儲存倉"
+def _unless_goods(taiwan: str) -> Callable[[re.Match[str]], str]:
+    """`taiwan` for a word that is a code repository on its own (單一倉庫, 儲存庫), unless its cue
+    is about goods."""
+
+    def replace(match: re.Match[str]) -> str:
+        return match.group() if _WAREHOUSE.search(_cue_of(match)) else taiwan
+
+    return replace
 
 
 def _after(words: str) -> str:
@@ -166,7 +171,8 @@ _ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str
             f"|導入(?={_IMPORT_PAIR})",
             "匯入",
         ),
-        ("單一(?:倉庫|儲存庫)", _monorepo),
+        ("單一(?:倉庫|儲存庫)", _unless_goods("單一儲存倉")),
+        ("儲存庫", _unless_goods("儲存倉")),
         ("倉庫", _repository),
     )
 )
@@ -175,8 +181,8 @@ _ENGLISH_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str
 _NOT_FACTORY_LINE = _not_after("生產|裝配|組裝|製造|工廠|工業|汽車")
 _JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], str]], ...] = (
     (
-        re.compile("倉庫"),
-        lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存庫",
+        re.compile("倉庫|儲存庫"),
+        lambda m: m.group() if _WAREHOUSE.search(m.string) else "儲存倉",
     ),
     (re.compile(f"{_NOT_FACTORY_LINE}流水線"), "管線"),
 )
@@ -184,8 +190,9 @@ _JAPANESE_TERMS: tuple[tuple[re.Pattern[str], str | Callable[[re.Match[str]], st
 
 def taiwan_terms_from_japanese(text: str) -> str:
     """Taiwan wording for words a Japanese talk gives that an English one does not: a code
-    repository (リポジトリ) comes out as 倉庫 and a build pipeline (パイプライン) as 流水線. A
-    text that talks about goods keeps its warehouse, and one about a factory its assembly line.
+    repository (リポジトリ) comes out as 倉庫 or 儲存庫, and Taiwan writes 儲存倉, and a build
+    pipeline (パイプライン) comes out as 流水線. A text that talks about goods keeps its warehouse,
+    and one about a factory its assembly line.
     Neither is in `taiwan_terms`, so the output of an English talk keeps them."""
     for pattern, taiwan in _JAPANESE_TERMS:
         text = pattern.sub(taiwan, text)
