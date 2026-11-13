@@ -212,6 +212,9 @@ class TestWrongFormLists:
         assert term("ファイル").kept_in("開啟檔案並閱讀說明文件")
         assert not term("ファイル").kept_in("開啟檔案和文件")
 
+    def test_a_file_written_with_the_short_form_is_right(self) -> None:
+        assert term("ファイル").kept_in("腳本檔和設定檔")
+
     def test_no_wrong_form_matches_the_taiwan_form_of_any_term(self) -> None:
         for one in JAPANESE_SOURCE.terms:
             for bad in one.avoid:
