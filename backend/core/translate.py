@@ -80,6 +80,9 @@ _SOURCE_GLOSSARY: dict[str, tuple[GlossaryEntry, ...]] = {
         GlossaryEntry("パワーフォース", "Perforce"),
         GlossaryEntry("パワフォース", "Perforce"),
         GlossaryEntry("パワーホース", "Perforce"),
+        GlossaryEntry("PowerForce", "Perforce"),
+        GlossaryEntry("Powerforce", "Perforce"),
+        GlossaryEntry("PowerHorse", "Perforce"),
     )
 }
 

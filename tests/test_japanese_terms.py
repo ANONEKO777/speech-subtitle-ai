@@ -263,7 +263,16 @@ class TestUserGlossaryOverridesTheTable:
 
 class TestPerforceAliases:
     @pytest.mark.parametrize(
-        "alias", ["パフォース", "パワーフォース", "パワフォース", "パワーホース"]
+        "alias",
+        [
+            "パフォース",
+            "パワーフォース",
+            "パワフォース",
+            "パワーホース",
+            "PowerForce",
+            "Powerforce",
+            "PowerHorse",
+        ],
     )
     def test_each_garbled_product_name_is_a_glossary_entry(self, alias: str) -> None:
         for source in ("ja", "ja+en"):
@@ -276,9 +285,10 @@ class TestPerforceAliases:
         for alias in ("パワーフォース", "パワフォース", "パワーホース"):
             assert alias in text
 
-    def test_a_copied_alias_is_mended_to_the_product_name(self) -> None:
+    @pytest.mark.parametrize("copied", ["パワフォース", "PowerForce", "Powerforce", "PowerHorse"])
+    def test_a_copied_alias_is_mended_to_the_product_name(self, copied: str) -> None:
         cues = [Cue(1, 0, 1000, "パワフォースのサーバーです", lang="ja")]
-        reply = json.dumps({"translations": [{"id": 1, "zh": "這是パワフォース的伺服器。"}]})
+        reply = json.dumps({"translations": [{"id": 1, "zh": f"這是{copied}的伺服器。"}]})
         done = translate.run(
             cues,
             lambda messages, temperature: reply,
@@ -289,7 +299,7 @@ class TestPerforceAliases:
             keep_english=True,
             source=JAPANESE_SOURCE,
         )
-        assert "Perforce" in done[0].zh and "パワフォース" not in done[0].zh
+        assert "Perforce" in done[0].zh and copied not in done[0].zh
 
 
 class TestTermTableIsInTheCacheKey:
