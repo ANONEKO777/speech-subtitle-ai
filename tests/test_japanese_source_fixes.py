@@ -45,11 +45,12 @@ class TestStreamIsNotSmooth:
         ],
     )
     def test_a_unit_that_says_smooth_or_flow_keeps_its_word(self, src: str) -> None:
-        zh = "流暢地運作，流動情況，流暢度"
+        zh = "與先前的流暢度不同，與流動不同"
+        assert fix_from_source(zh, "ストリームです") != zh
         assert fix_from_source(zh, src) == zh
 
     def test_a_unit_without_the_stream_word_is_never_touched(self) -> None:
-        zh = "流暢的操作，流動情況"
+        zh = "與先前的流暢度不同，與流動不同"
         assert fix_from_source(zh, "操作がスムーズです") == zh
         assert fix_from_source(zh, "お願いします") == zh
 
