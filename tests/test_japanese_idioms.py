@@ -48,6 +48,7 @@ class TestWideEntrance:
             "好上手也耐玩",
             "容易上手的設計",
             "易於入門",
+            "門檻低的主題公園",
         ],
     )
     def test_a_natural_taiwan_phrase_is_right(self, zh: str) -> None:
@@ -96,9 +97,24 @@ class TestWideEntranceAndDeep:
     def test_a_natural_phrase_is_right(self, zh: str) -> None:
         assert term(EASY_AND_DEEP).kept_in(zh)
 
-    @pytest.mark.parametrize("zh", ["就是入口低且深不可測，容易入門", "廣泛且深奧，容易入門"])
-    def test_a_literal_phrase_is_wrong(self, zh: str) -> None:
-        assert not term(EASY_AND_DEEP).kept_in(zh)
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "就是入口低且深不可測",
+            "入口門檻低而深",
+            "入口寬又深",
+            "入口廣又深",
+            "廣開入口又深",
+            "開闊的入口",
+            "寬廣入口",
+            "廣泛且深奧",
+            "廣泛而深奧",
+            "廣泛深奧",
+        ],
+    )
+    def test_a_literal_phrase_is_wrong_even_beside_the_right_one(self, zh: str) -> None:
+        assert term(EASY_AND_DEEP).kept_in("容易入門又深奧")
+        assert not term(EASY_AND_DEEP).kept_in(f"容易入門又深奧，{zh}")
 
 
 class TestCourseClearGames:

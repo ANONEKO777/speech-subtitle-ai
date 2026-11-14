@@ -237,7 +237,7 @@ _STREAM_NOT_SMOOTH = re.compile("スムーズ|スムース|流暢|滑らか|な�
 _STREAM_WRONG = re.compile("流暢度?|流動|流串|(?<!串)流(?=功能|類型|機制)")
 """What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing), 流串, or a bare 流 as a
 noun's first word (流功能)."""
-_SWITCH_BRANCH = re.compile("切り?替|切替|スイッチ")
+_SWITCH_BRANCH = re.compile("切り?替|スイッチ")
 
 SOURCE_FIXES: tuple[SourceFix, ...] = (
     SourceFix(
@@ -256,7 +256,7 @@ SOURCE_FIXES: tuple[SourceFix, ...] = (
     ),
     SourceFix(
         re.compile(_CREATE_BRANCH),
-        re.compile(r"切換(?=(?:一個|\d+個|[一二兩三四五六七八九十]+個|新的)?分支)"),
+        re.compile(r"切換(?=(?:\d+個|[一二兩三四五六七八九十]+個|新的)?分支)"),
         "建立",
         unless=_SWITCH_BRANCH,
     ),

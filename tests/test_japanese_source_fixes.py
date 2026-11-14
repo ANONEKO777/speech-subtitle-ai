@@ -57,6 +57,14 @@ class TestStreamIsNotSmooth:
         once = fix_from_source("與先前的流暢度不同", self.STREAM)
         assert fix_from_source(once, self.STREAM) == once
 
+    @pytest.mark.parametrize("zh", ["透過串流功能", "串流類型與串流機制", "分支串流"])
+    def test_a_stream_already_written_with_the_right_word_is_unchanged(self, zh: str) -> None:
+        assert fix_from_source(zh, self.STREAM) == zh
+
+    def test_a_workflow_in_the_unit_does_not_hide_the_stream(self) -> None:
+        src = "ワークフローのストリームです"
+        assert fix_from_source("流暢", src) == "串流"
+
     def test_a_translation_that_is_right_is_unchanged(self) -> None:
         assert fix_from_source("與先前的串流不同", self.STREAM) == "與先前的串流不同"
 
