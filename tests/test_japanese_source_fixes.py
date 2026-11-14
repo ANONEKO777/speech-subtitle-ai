@@ -433,14 +433,14 @@ WRONG_AND_RIGHT_TEXT = [
 
 
 class TestEveryRewriteLeavesItsOwnResultAlone:
-    @pytest.mark.parametrize("zh", RIGHT_IN_CONTEXT)
-    def test_correct_chinese_with_the_right_word_in_it_is_unchanged(self, zh: str) -> None:
-        assert fix_from_source(zh, EVERYTHING) == zh
+    def test_correct_chinese_with_the_right_word_in_it_is_unchanged(self) -> None:
+        changed = [zh for zh in RIGHT_IN_CONTEXT if fix_from_source(zh, EVERYTHING) != zh]
+        assert changed == []
 
-    @pytest.mark.parametrize("zh", WRONG_AND_RIGHT_TEXT)
-    def test_a_rewritten_text_is_not_rewritten_again(self, zh: str) -> None:
-        once = fix_from_source(zh, EVERYTHING)
-        assert fix_from_source(once, EVERYTHING) == once
+    def test_a_rewritten_text_is_not_rewritten_again(self) -> None:
+        for zh in WRONG_AND_RIGHT_TEXT:
+            once = fix_from_source(zh, EVERYTHING)
+            assert fix_from_source(once, EVERYTHING) == once, zh
 
     @pytest.mark.parametrize("fix", SOURCE_FIXES, ids=lambda fix: fix.right)
     def test_no_rewrite_matches_inside_its_own_right_word(self, fix: SourceFix) -> None:
