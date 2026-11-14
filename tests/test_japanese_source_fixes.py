@@ -543,7 +543,17 @@ class TestStreamGuard:
 
     @pytest.mark.parametrize(
         "zh",
-        ["串流動作", "串流動態", "串流動畫", "串流動向", "串流暢通", "串流串接", "稀疏串流動作"],
+        [
+            "串流動作",
+            "串流動態",
+            "串流動畫",
+            "串流動向",
+            "串流暢通",
+            "串流串接",
+            "稀疏串流動作",
+            "串流串起來",
+            "與串流串流",
+        ],
     )
     def test_a_right_stream_with_more_after_it_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, "スパースストリームとストリームです") == zh
