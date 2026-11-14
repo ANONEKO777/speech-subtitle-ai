@@ -9,6 +9,7 @@ so each word is spelled once.
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass, field
 
 
@@ -54,6 +55,9 @@ _KATAKANA = "ァ-ヺーｦ-ﾟ"
 _NOT_INSIDE_A_WORD = rf"(?<![{_KATAKANA}A-Za-z0-9])"
 _CREATE_BRANCH = r"ブランチ[をが]?(?:\d+本)?切(?:る|っ|ら|ろ|り(?:出|ま|た|(?=[、。,]|\Z)))"
 """ブランチを切る, in the forms that create a branch (切り替え is a switch and does not match)."""
+_NOT_A_BUILDING = "(?!店|敷地|土地|物件|住宅|ビル|建物|家|間取|道路)"
+"""間口が広い店 and 間口が広い敷地 are about a frontage, not a game or a product that is easy to get
+into. A frontage said as a predicate (この店は間口が広い) cannot be told apart and still matches."""
 _NOT_A_COMPOUND = "(?<!電源)(?<!延長)(?<!Studio )(?<!studio )(?<!Claude )(?<!VS )"
 
 SOFTWARE_TERMS: tuple[JaTerm, ...] = (
@@ -99,7 +103,7 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     _idiom("レビュー", r"(?<!プ)レビュー", "審查", also=("審閱", "檢閱")),
     _idiom(
         "間口が広く奥深い (easy to get into and deep)",
-        r"(?:間口|マグチ)(?:が|の|は)?広く奥深",
+        r"(?:間口|マグチ)(?:が|の|は)?広くて?[、,]?奥深",
         "容易入門又深奧",
         "入口(?:低|門檻|寬|廣)",
         "(?:廣開|開闊的|寬廣的?)入口",
@@ -108,7 +112,7 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     ),
     _idiom(
         "間口が広い (easy to get into)",
-        r"(?:間口|マグチ)(?:が|の|は)?広",
+        rf"(?:間口|マグチ)(?:が|の|は)?広(?:く|い|かっ){_NOT_A_BUILDING}",
         "容易入門",
         "入口(?:低|門檻|寬|廣)",
         "(?:廣開|開闊的|寬廣的?)入口",
@@ -211,6 +215,9 @@ class SourceFix:
     wrong: re.Pattern[str]
     right: str
     unless: re.Pattern[str] | None = None
+    term: str = ""
+    """The Japanese term whose glossary entry switches the rewrite off: a user who wrote their own
+    translation for it chose that word."""
 
 
 _NOT_AFTER = "".join(
@@ -231,13 +238,38 @@ _CHECK_OUT_NOT_DETECT = (
 )
 """檢查出 is a check-out unless it reads as "found" (檢查出問題, 檢查出現, 被檢查出)."""
 
-_STREAM_NOT_SMOOTH = re.compile("スムーズ|スムース|流暢|滑らか|なめらか|流れ|(?<!ワーク)フロー")
-"""ストリーム is a stream (串流). A sentence that also says smooth or flow may mean 流暢 or 流動.
-ワークフロー is a workflow and says neither."""
-_STREAM_WRONG = re.compile("流暢度?|流動|流串|(?<!串)流(?=功能|類型|機制)")
-"""What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing), 流串, or a bare 流 as a
-noun's first word (流功能)."""
-_SWITCH_BRANCH = re.compile("切り?替|スイッチ")
+_STREAM_NOT_SMOOTH = re.compile(
+    "スムーズ|スムース|流暢|滑らか|なめらか|流れ|流[すしさ]|円滑|快適|軽快|サクサク|使いやすい|安定(?!度)"
+    "|(?<![音娯快])楽(?![しむ器曲譜団園天])|(?<!ワーク)フロー"
+    "|メインストリーム|ダウンストリーム|アップストリーム|ストリームライン"
+)
+"""ストリーム is a stream (串流). A sentence that also says smooth, easy or flow may mean 流暢 or
+流動. ワークフロー is a workflow and says neither. The loanwords with ストリーム inside (主流,
+下流, 上流, a streamlined thing) are not a version-control stream."""
+_FLOW_WORDS = "流暢度?(?!地)|流動(?![性作態畫向])"
+_STREAM_WRONG = re.compile(
+    f"(?<=[的與和及跟或之])(?:{_FLOW_WORDS})"
+    rf"|^(?:{_FLOW_WORDS})(?=$|[，。、,；！？\s或與和及跟])"
+    f"|(?<!串)流串"
+    f"|(?<!串)(?<![主上下分合對逆水氣電暖寒潮洪河溪外內回交熱激])流(?=功能|類型|機制)"
+)
+"""What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing) as a noun, after 的,
+與, 和, 及, 跟, 或 or 之 or at the start of a cue, where its noun is not in the text (更流暢 and
+流暢地 are an adjective and stay), 流串, or a bare 流 as a noun's first word (流功能; 主流功能 and
+分流功能 are other words). 串流動作 has a right 串流 in it."""
+_SWITCH_BRANCH = re.compile(
+    "切り?替|スイッチ|チェックアウト|移動|移[るりっ]|変更|変え|戻[るりっ]|行[くきっ]"
+)
+"""ブランチを切る with one of these in the unit is a switch as well as a creation, so a 切換分支
+may be right."""
+_LATIN_EDGE = r"A-Za-z0-9_./\\`-"
+_LATIN_WORKFLOW = re.compile(
+    rf"\s?(?<![{_LATIN_EDGE}])(?<![A-Za-z0-9]\s)(?:w|^W)orkflows?(?![{_LATIN_EDGE}])(?!\s[A-Za-z0-9])\s?"
+    r"(?!(?:[^`]*`[^`]*`)*[^`]*`[^`]*\Z)"
+)
+"""A lone English workflow or workflows in running text. The ones in a file name (workflow.yml), a
+path (.github/workflows), a variable (GITHUB_WORKFLOW), a code span, or a product or title
+(Windows Workflow Foundation, GitHub Workflows) are not."""
 
 SOURCE_FIXES: tuple[SourceFix, ...] = (
     SourceFix(
@@ -245,30 +277,47 @@ SOURCE_FIXES: tuple[SourceFix, ...] = (
         re.compile(f"{_NOT_AFTER}文件(?!夾)"),
         "檔案",
         unless=_FILE_NOT_DOCUMENT,
+        term="ファイル",
     ),
-    SourceFix(re.compile("チェックアウト"), re.compile(_CHECK_OUT_NOT_DETECT), "簽出"),
-    SourceFix(re.compile("ストリーム"), _STREAM_WRONG, "串流", unless=_STREAM_NOT_SMOOTH),
-    SourceFix(re.compile("スパースストリーム"), re.compile("稀疏流(?!程)"), "稀疏串流"),
     SourceFix(
-        re.compile("ワークフロー"),
-        re.compile(r"\s?(?<![A-Za-z])(?i:workflows?)(?![A-Za-z])\s?"),
-        "工作流程",
+        re.compile("チェックアウト"),
+        re.compile(_CHECK_OUT_NOT_DETECT),
+        "簽出",
+        term="チェックアウト",
     ),
+    SourceFix(
+        re.compile("ストリーム"),
+        _STREAM_WRONG,
+        "串流",
+        unless=_STREAM_NOT_SMOOTH,
+        term="ストリーム",
+    ),
+    SourceFix(
+        re.compile("スパースストリーム"),
+        re.compile("稀疏流(?![程動])"),
+        "稀疏串流",
+        term="スパースストリーム",
+    ),
+    SourceFix(re.compile("ワークフロー"), _LATIN_WORKFLOW, "工作流程", term="ワークフロー"),
     SourceFix(
         re.compile(_CREATE_BRANCH),
         re.compile(r"切換(?=(?:\d+個|[一二兩三四五六七八九十]+個|新的)?分支)"),
         "建立",
         unless=_SWITCH_BRANCH,
+        term="ブランチを切る",
     ),
 )
 
 
-def fix_from_source(zh: str, src: str) -> str:
+def fix_from_source(zh: str, src: str, own_terms: Collection[str] = ()) -> str:
     """`zh` with the wrong forms of `SOURCE_FIXES` rewritten, for a translation of `src`. `src` is
     the whole sentence the translation belongs to, so a word the model put one cue out of place is
-    still mended."""
+    still mended. A term in `own_terms` (the glossary's) keeps the user's word: its rewrite
+    is off."""
     flat = src.replace("\n", "")
     for fix in SOURCE_FIXES:
+        if fix.term in own_terms:
+            continue
         if fix.said.search(flat) and not (fix.unless and fix.unless.search(flat)):
             zh = fix.wrong.sub(fix.right, zh)
     return zh

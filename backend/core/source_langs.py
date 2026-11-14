@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, replace
 from types import MappingProxyType
 
@@ -107,9 +107,10 @@ class SourceLanguage:
     sentence_continues: re.Pattern[str] | None = None
     """What a cue starts with when it goes on with the sentence the cue before it ended on, for a
     language whose speech has no full stops to end a sentence by."""
-    fix_from_source: Callable[[str, str], str] | None = None
+    fix_from_source: Callable[[str, str, Collection[str]], str] | None = None
     """Rewrites a translation given the source text of the whole sentence it belongs to, for the
-    words only the source can tell apart."""
+    words only the source can tell apart. The third argument is the terms of the glossary, whose own
+    translations the rewrite leaves alone."""
 
     @property
     def mixed(self) -> bool:

@@ -368,7 +368,7 @@ def _clean(
     """`sentence` is the source text of the unit the cue is in, for the rewrites that read it."""
     zh = source.clean(lang.clean(lang.terms_from(source.code, zh), en))
     if source.fix_from_source:
-        zh = source.fix_from_source(zh, sentence or en)
+        zh = source.fix_from_source(zh, sentence or en, {entry.term for entry in glossary})
     if source.mends_glossary:
         for entry in glossary:
             if entry.zh:

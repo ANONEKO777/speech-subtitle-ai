@@ -19,7 +19,10 @@ class TestWideEntrance:
     @pytest.mark.parametrize(
         "text",
         [
-            "間口が広い店です",
+            "間口が広いゲームです",
+            "間口が広くなりました",
+            "間口が広かったです",
+            "間口の広いテーマパークです",
             "間口が広く奥深い趣味です",
             "間口の広い設計にしました",
             "間口は広いままです",
@@ -30,7 +33,27 @@ class TestWideEntrance:
     def test_the_idiom_names_the_term(self, text: str) -> None:
         assert EASY_TO_GET_INTO in table_terms_in(text)
 
-    @pytest.mark.parametrize("text", ["間口を測ります", "入口が広い", "間口の狭い家です"])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "間口を測ります",
+            "入口が広い",
+            "間口の狭い家です",
+            "間口が広がります",
+            "間口を広げます",
+            "間口の広い店舗です",
+            "間口が広い敷地です",
+            "間口が広い店です",
+            "間口が広い住宅です",
+            "間口が広い土地です",
+            "間口が広い物件です",
+            "間口が広いビルです",
+            "間口が広い建物です",
+            "間口が広い家です",
+            "間口が広い間取りです",
+            "間口が広い道路です",
+        ],
+    )
     def test_other_words_do_not(self, text: str) -> None:
         assert EASY_TO_GET_INTO not in table_terms_in(text)
 
@@ -86,7 +109,16 @@ class TestWideEntranceAndDeep:
         assert f'- "{EASY_AND_DEEP}" must be translated as "容易入門又深奧"' in lines
         assert f'- "{EASY_TO_GET_INTO}" must be translated as "容易入門"' in lines
 
-    @pytest.mark.parametrize("text", ["間口が広く奥深い", "マグチが広く奥深い", "間口の広く奥深い"])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "間口が広く奥深い",
+            "マグチが広く奥深い",
+            "間口の広く奥深い",
+            "間口が広くて奥深い",
+            "間口が広くて、奥深い",
+        ],
+    )
     def test_the_pair_names_the_longer_term(self, text: str) -> None:
         assert EASY_AND_DEEP in table_terms_in(text)
 
