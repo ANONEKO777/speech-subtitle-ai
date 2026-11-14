@@ -112,9 +112,58 @@ class TestAStreamNounStandsAfterAParticleOrAlone:
         assert fix_from_source(f"流暢{after}運作", self.SRC) == f"流暢{after}運作"
         assert fix_from_source(f"流動{after}運作", self.SRC) == f"流動{after}運作"
 
-    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪回交熱激"))
+    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪回交熱激金物人"))
     def test_each_word_that_ends_in_flow_is_not_a_stream(self, word: str) -> None:
         assert fix_from_source(f"{word}流功能", self.SRC) == f"{word}流功能"
+        assert fix_from_source(f"{word}流串起來", self.SRC) == f"{word}流串起來"
+
+    @pytest.mark.parametrize(
+        "word",
+        [
+            "現金流",
+            "資金流",
+            "物流",
+            "人流",
+            "氣流",
+            "電流",
+            "水流",
+            "暖流",
+            "逆流",
+            "分流",
+            "主流",
+            "合流",
+        ],
+    )
+    @pytest.mark.parametrize("after", ["功能", "類型", "機制"])
+    def test_a_common_word_that_ends_in_flow_stays_before_a_noun(
+        self, word: str, after: str
+    ) -> None:
+        for before in ("", "的", "與", "新"):
+            assert fix_from_source(f"{before}{word}{after}", self.SRC) == f"{before}{word}{after}"
+
+    def test_a_cash_flow_feature_is_not_a_stream_feature(self) -> None:
+        assert fix_from_source("現金流功能", "配信ストリームの機能です") == "現金流功能"
+        assert (
+            fix_from_source("資金流類型與物流機制", "配信ストリームの機能です")
+            == "資金流類型與物流機制"
+        )
+
+    @pytest.mark.parametrize("after", list("接聯連"))
+    def test_a_flow_word_with_a_chain_after_it_is_not_a_misspelt_stream(self, after: str) -> None:
+        assert fix_from_source(f"與公告的流串{after}起來", self.SRC) == f"與公告的流串{after}起來"
+        assert fix_from_source("與公告的流串或別的選項", self.SRC) == "與公告的串流或別的選項"
+
+    @pytest.mark.parametrize("after", list("性作態畫向量速"))
+    def test_a_flowing_word_that_goes_on_is_another_word(self, after: str) -> None:
+        zh = f"與公告的流動{after}不同"
+        assert fix_from_source(zh, self.SRC) == zh
+        assert fix_from_source(f"流動{after}", self.SRC) == f"流動{after}"
+
+    @pytest.mark.parametrize("after", list("地性"))
+    def test_a_smooth_word_that_goes_on_is_another_word(self, after: str) -> None:
+        zh = f"與公告的流暢{after}不同"
+        assert fix_from_source(zh, self.SRC) == zh
+        assert fix_from_source(f"流暢度{after}", self.SRC) == f"流暢度{after}"
 
     @pytest.mark.parametrize("word", ["音楽", "娯楽", "快楽"])
     def test_a_word_with_music_or_pleasure_in_it_is_not_easy(self, word: str) -> None:
@@ -157,6 +206,26 @@ class TestSparseStream:
     @pytest.mark.parametrize("zh", ["稀疏流程很快", "稀疏串流很快", "稀疏流動作", "稀疏流動態"])
     def test_a_longer_word_or_the_right_word_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, self.SPARSE) == zh
+
+    @pytest.mark.parametrize("after", list("程動暢量向性速派行通水氓"))
+    def test_a_sparse_flow_word_that_goes_on_is_another_word(self, after: str) -> None:
+        for zh in (f"稀疏流{after}", f"這是稀疏流{after}很好", f"與稀疏流{after}"):
+            assert fix_from_source(zh, self.SPARSE) == zh
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("稀疏流暢", "稀疏流暢"),
+            ("稀疏流量", "稀疏流量"),
+            ("稀疏流向", "稀疏流向"),
+            ("稀疏流與稀疏流", "稀疏串流與稀疏串流"),
+            ("稀疏流，稀疏流。", "稀疏串流，稀疏串流。"),
+        ],
+    )
+    def test_the_flow_words_of_a_sparse_unit_are_not_split_by_the_rewrite(
+        self, zh: str, want: str
+    ) -> None:
+        assert fix_from_source(zh, self.SPARSE) == want
 
     def test_the_plain_stream_word_does_not_name_the_rule(self) -> None:
         assert fix_from_source("稀疏流", "ストリームの話です") == "稀疏流"
