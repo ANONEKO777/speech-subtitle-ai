@@ -263,11 +263,30 @@ _STREAM_WRONG = re.compile(
 與, 和, 及, 跟, 或 or 之 or at the start of a cue, where its noun is not in the text (更流暢 and
 流暢地 are an adjective and stay), 流串, or a bare 流 as a noun's first word (流功能; 主流功能 and
 分流功能 are other words). 串流動作 has a right 串流 in it."""
-_SWITCH_BRANCH = re.compile(
-    "切り?替|スイッチ|チェックアウト|移動|移[るりっ]|変更|変え|戻[るりっ]|行[くきっ]"
+_SWITCH_BRANCH_WORDS = (
+    "切り?[替換]",
+    "切りかえ",
+    "乗り?換",
+    "乗りかえ",
+    "スイッチ",
+    "チェックアウト",
+    "移動",
+    "移[るりっすし]",
+    "移行",
+    "遷移",
+    "変更",
+    "変え",
+    "戻[るりっすし]",
+    "行[くきっ]",
+    "入[るりっ]",
+    "使い分け",
+    "入れ替",
+    "(?:その|別の|他の|元の)ブランチ",
+    "ブランチ間",
 )
+_SWITCH_BRANCH = re.compile("|".join(_SWITCH_BRANCH_WORDS))
 """ブランチを切る with one of these in the unit is a switch as well as a creation, so a 切換分支
-may be right."""
+may be right. Any other way to say "move to another branch" is a miss of the rewrite, not damage."""
 _LATIN_EDGE = r"A-Za-z0-9_./\\`-"
 _LATIN_WORKFLOW = re.compile(
     rf"\s?(?<![{_LATIN_EDGE}])(?<![A-Za-z0-9]\s)(?:w|^W)orkflows?(?![{_LATIN_EDGE}])(?!\s[A-Za-z0-9])\s?"
