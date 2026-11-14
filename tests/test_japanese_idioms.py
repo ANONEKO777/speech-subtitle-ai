@@ -23,6 +23,7 @@ class TestWideEntrance:
             "間口が広く奥深い遊びです",
             "間口の広い設計にしました",
             "間口は広いままです",
+            "間口広いです",
             "マグチが広く奥深い遊びです",
         ],
     )
@@ -152,3 +153,14 @@ class TestShelve:
 
     def test_the_word_is_not_the_shell_of_a_computer(self) -> None:
         assert "シェルブ" not in table_terms_in("シェルを開きます")
+
+
+class TestWorkflowTerm:
+    @pytest.mark.parametrize(
+        "zh", ["不同分支的 workflows", "工作流程 workflow", "Work Flow 的設計"]
+    )
+    def test_a_workflow_in_latin_letters_is_wrong(self, zh: str) -> None:
+        assert not term("ワークフロー").kept_in(f"工作流程，{zh}")
+
+    def test_the_chinese_word_is_right(self) -> None:
+        assert term("ワークフロー").kept_in("不同分支的工作流程")

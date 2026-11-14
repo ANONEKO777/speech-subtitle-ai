@@ -151,7 +151,7 @@ SOFTWARE_TERMS: tuple[JaTerm, ...] = (
     _idiom("データ", r"(?<!メタ)(?<!ビッグ)データ", "資料", "數據"),
     JaTerm("メタデータ", "中繼資料", ("元資料", "元數據")),
     JaTerm("プラグイン", "外掛", ("插件", "外掛程式")),
-    JaTerm("ワークフロー", "工作流程", ("工作流(?!程)",), ("作業流程",)),
+    JaTerm("ワークフロー", "工作流程", ("工作流(?!程)", "(?i:work ?flows?)"), ("作業流程",)),
     JaTerm("プロジェクト", "專案", ("項目",)),
     _idiom("ロック", r"(?<![ブクフグド])ロック(?!ダウン)", "鎖定", also=("上鎖",)),
     JaTerm("ステータス", "狀態"),
@@ -234,9 +234,9 @@ _CHECK_OUT_NOT_DETECT = (
 _STREAM_NOT_SMOOTH = re.compile("スムーズ|スムース|流暢|滑らか|なめらか|流れ|(?<!ワーク)フロー")
 """ストリーム is a stream (串流). A sentence that also says smooth or flow may mean 流暢 or 流動.
 ワークフロー is a workflow and says neither."""
-_STREAM_WRONG = re.compile("流暢度?|流動|(?<!串)流(?=功能|類型|機制)")
-"""What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing), or a bare 流 as a noun's
-first word (流功能)."""
+_STREAM_WRONG = re.compile("流暢度?|流動|流串|(?<!串)流(?=功能|類型|機制)")
+"""What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing), 流串, or a bare 流 as a
+noun's first word (流功能)."""
 _SWITCH_BRANCH = re.compile("切り?替|切替|スイッチ")
 
 SOURCE_FIXES: tuple[SourceFix, ...] = (
@@ -248,6 +248,12 @@ SOURCE_FIXES: tuple[SourceFix, ...] = (
     ),
     SourceFix(re.compile("チェックアウト"), re.compile(_CHECK_OUT_NOT_DETECT), "簽出"),
     SourceFix(re.compile("ストリーム"), _STREAM_WRONG, "串流", unless=_STREAM_NOT_SMOOTH),
+    SourceFix(re.compile("スパースストリーム"), re.compile("稀疏流(?!程)"), "稀疏串流"),
+    SourceFix(
+        re.compile("ワークフロー"),
+        re.compile(r"\s?(?<![A-Za-z])(?i:workflows?)(?![A-Za-z])\s?"),
+        "工作流程",
+    ),
     SourceFix(
         re.compile(_CREATE_BRANCH),
         re.compile(r"切換(?=(?:一個|\d+個|[一二兩三四五六七八九十]+個|新的)?分支)"),

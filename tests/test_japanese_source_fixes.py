@@ -21,6 +21,9 @@ class TestStreamIsNotSmooth:
             ("與先前的流暢度不同", "與先前的串流不同"),
             ("如前所述的流動或全部分支", "如前所述的串流或全部分支"),
             ("流暢、流動和流暢度", "串流、串流和串流"),
+            ("與先述的流串或全部分支", "與先述的串流或全部分支"),
+            ("透過流功能", "透過串流功能"),
+            ("這種流類型與流機制", "這種串流類型與串流機制"),
         ],
     )
     def test_a_stream_written_as_smooth_or_flowing_is_a_stream(self, zh: str, want: str) -> None:
@@ -70,6 +73,55 @@ class TestStreamIsNotSmooth:
     def test_the_english_cues_of_a_mixed_talk_are_not_rewritten(self) -> None:
         cues = cues_of("The stream is smooth.", lang="en")
         assert translated(cues, ["串流很流暢。"], source=MIXED_SOURCE) == ["串流很流暢。"]
+
+
+class TestSparseStream:
+    SPARSE = "スパースストリームの話です"
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("這就是稀疏流", "這就是稀疏串流"),
+            ("稀疏流和稀疏流", "稀疏串流和稀疏串流"),
+            ("稀疏流功能", "稀疏串流功能"),
+        ],
+    )
+    def test_a_sparse_stream_is_a_sparse_stream(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, self.SPARSE) == want
+
+    @pytest.mark.parametrize("zh", ["稀疏流程很快", "稀疏串流很快"])
+    def test_a_longer_word_or_the_right_word_is_unchanged(self, zh: str) -> None:
+        assert fix_from_source(zh, self.SPARSE) == zh
+
+    def test_the_plain_stream_word_does_not_name_the_rule(self) -> None:
+        assert fix_from_source("稀疏流", "ストリームの話です") == "稀疏流"
+
+    def test_a_unit_that_says_smooth_still_mends_it(self) -> None:
+        assert fix_from_source("稀疏流很順", "スパースストリームがスムーズです") == "稀疏串流很順"
+
+
+class TestWorkflowStaysChinese:
+    WORKFLOW = "ワークフローの話です"
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("不同分支的 workflows。", "不同分支的工作流程。"),
+            ("最佳化遊戲開發的 workflow。", "最佳化遊戲開發的工作流程。"),
+            ("Workflow 很重要", "工作流程很重要"),
+            ("WORKFLOWS", "工作流程"),
+            ("每個workflow", "每個工作流程"),
+        ],
+    )
+    def test_a_workflow_written_in_latin_is_written_in_chinese(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == want
+
+    @pytest.mark.parametrize("zh", ["GitHubWorkflows", "workflowy", "myworkflow"])
+    def test_a_longer_latin_word_is_unchanged(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    def test_without_the_japanese_word_a_latin_workflow_stays(self) -> None:
+        assert fix_from_source("GitHub workflow", "GitHubのworkflowです") == "GitHub workflow"
 
 
 class TestBranchIsCreatedNotSwitched:
