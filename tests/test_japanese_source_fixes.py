@@ -45,12 +45,12 @@ class TestStreamIsNotSmooth:
         ],
     )
     def test_a_unit_that_says_smooth_or_flow_keeps_its_word(self, src: str) -> None:
-        zh = "與先前的流暢度不同，與流動不同"
+        zh = "與公告的流暢度不同，與流動不同"
         assert fix_from_source(zh, "ストリームです") != zh
         assert fix_from_source(zh, src) == zh
 
     def test_a_unit_without_the_stream_word_is_never_touched(self) -> None:
-        zh = "與先前的流暢度不同，與流動不同"
+        zh = "與公告的流暢度不同，與流動不同"
         assert fix_from_source(zh, "操作がスムーズです") == zh
         assert fix_from_source(zh, "お願いします") == zh
 
@@ -119,25 +119,25 @@ class TestAStreamNounStandsAfterAParticleOrAlone:
     @pytest.mark.parametrize("word", ["音楽", "娯楽", "快楽"])
     def test_a_word_with_music_or_pleasure_in_it_is_not_easy(self, word: str) -> None:
         assert (
-            fix_from_source("與先前的流暢度不同", f"{word}のストリームです") == "與先前的串流不同"
+            fix_from_source("與公告的流暢度不同", f"{word}のストリームです") == "與公告的串流不同"
         )
 
     @pytest.mark.parametrize("after", list("しむ器曲譜団園天"))
     def test_a_word_that_starts_with_the_easy_character_is_not_easy(self, after: str) -> None:
         src = f"ストリームの楽{after}です"
-        assert fix_from_source("與先前的流暢度不同", src) == "與先前的串流不同"
+        assert fix_from_source("與公告的流暢度不同", src) == "與公告的串流不同"
 
     @pytest.mark.parametrize(
         "src", ["ストリームは楽です", "ストリームが楽に動きます", "楽なストリーム"]
     )
     def test_the_easy_word_keeps_the_smooth_word(self, src: str) -> None:
-        assert fix_from_source("與先前的流暢度不同", src) == "與先前的流暢度不同"
+        assert fix_from_source("與公告的流暢度不同", src) == "與公告的流暢度不同"
 
     @pytest.mark.parametrize(
         "src", ["ストリームが流します", "ストリームを流す", "ストリームへ流さない"]
     )
     def test_sending_changes_down_a_stream_keeps_the_flow_word(self, src: str) -> None:
-        assert fix_from_source("與先前的流動不同", src) == "與先前的流動不同"
+        assert fix_from_source("與公告的流動不同", src) == "與公告的流動不同"
 
 
 class TestSparseStream:
@@ -336,7 +336,7 @@ class TestStreamGuard:
         ],
     )
     def test_a_unit_about_smoothness_or_a_loanword_keeps_its_words(self, src: str) -> None:
-        zh = "與先前的流暢度不同，與流動，主流功能，下流機制，上流功能"
+        zh = "與公告的流暢度不同，與流動，主流功能，下流機制，上流功能"
         assert fix_from_source(zh, src) == zh
 
     @pytest.mark.parametrize(
@@ -349,11 +349,11 @@ class TestStreamGuard:
         ],
     )
     def test_an_easy_word_far_from_the_stream_word_does_not_block(self, src: str) -> None:
-        assert fix_from_source("與先前的流暢度不同", src) == "與先前的串流不同"
+        assert fix_from_source("與公告的流暢度不同", src) == "與公告的串流不同"
 
-    @pytest.mark.parametrize("src", ["先ほどのストリームは安定度に応じて", "音楽のストリームです"])
+    @pytest.mark.parametrize("src", ["このストリームは安定度で決めます", "音楽のストリームです"])
     def test_a_word_that_only_looks_like_a_guard_does_not_block(self, src: str) -> None:
-        assert fix_from_source("與先前的流暢度不同", src) == "與先前的串流不同"
+        assert fix_from_source("與公告的流暢度不同", src) == "與公告的串流不同"
 
     @pytest.mark.parametrize(
         "zh", ["主流功能", "下流機制", "上流功能", "分流功能", "合流類型", "對流機制"]
