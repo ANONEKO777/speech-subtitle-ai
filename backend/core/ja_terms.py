@@ -231,6 +231,14 @@ _CHECK_OUT_NOT_DETECT = (
 )
 """檢查出 is a check-out unless it reads as "found" (檢查出問題, 檢查出現, 被檢查出)."""
 
+_STREAM_NOT_SMOOTH = re.compile("スムーズ|スムース|流暢|滑らか|なめらか|流れ|(?<!ワーク)フロー")
+"""ストリーム is a stream (串流). A sentence that also says smooth or flow may mean 流暢 or 流動.
+ワークフロー is a workflow and says neither."""
+_STREAM_WRONG = re.compile("流暢度?|流動|(?<!串)流(?=功能|類型|機制)")
+"""What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing), or a bare 流 as a noun's
+first word (流功能)."""
+_SWITCH_BRANCH = re.compile("切り?替|切替|スイッチ")
+
 SOURCE_FIXES: tuple[SourceFix, ...] = (
     SourceFix(
         re.compile("ファイル"),
@@ -239,6 +247,13 @@ SOURCE_FIXES: tuple[SourceFix, ...] = (
         unless=_FILE_NOT_DOCUMENT,
     ),
     SourceFix(re.compile("チェックアウト"), re.compile(_CHECK_OUT_NOT_DETECT), "簽出"),
+    SourceFix(re.compile("ストリーム"), _STREAM_WRONG, "串流", unless=_STREAM_NOT_SMOOTH),
+    SourceFix(
+        re.compile(_CREATE_BRANCH),
+        re.compile(r"切換(?=(?:一個|\d+個|[一二兩三四五六七八九十]+個|新的)?分支)"),
+        "建立",
+        unless=_SWITCH_BRANCH,
+    ),
 )
 
 

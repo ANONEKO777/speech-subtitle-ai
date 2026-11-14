@@ -23,6 +23,7 @@ from pathlib import Path
 
 from backend.core import cue_edits, summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
+from backend.core.ja_terms import SOURCE_FIXES
 from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
 from backend.core.languages import get as get_language
 from backend.core.model import (
@@ -337,6 +338,7 @@ def _translate_prompt_digest(code: str, source: str) -> str:
     text = "".join(
         translate.system_prompt_template(language, member)
         + (repr(member.terms) if member.terms else "")
+        + (repr(SOURCE_FIXES) if member.fix_from_source else "")
         for member in chosen.members or (chosen,)
     )
     return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
