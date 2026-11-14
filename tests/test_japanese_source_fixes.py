@@ -290,6 +290,59 @@ class TestWorkflowStaysChinese:
     def test_a_longer_latin_word_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, self.WORKFLOW) == zh
 
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "Git workflow 的設定",
+            "用 Git workflows 管理",
+            "Python 3 workflow",
+            "Step 2 workflows",
+            "建立 workflow Engine",
+            "workflow 2 版",
+            "workflow Studio 很好用",
+        ],
+    )
+    def test_a_latin_word_or_number_beside_it_makes_it_a_name(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["workflow-run", "my-workflow", "a-workflow-b", "workflows-"])
+    def test_a_hyphen_beside_it_makes_it_a_name(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["`workflow", "看 `workflows 設定", "`workflow 很好"])
+    def test_a_lone_backtick_before_it_makes_it_code(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["workflow` 設定", "看 workflows` 的"])
+    def test_a_lone_backtick_after_it_makes_it_code(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    def test_only_the_word_outside_a_code_span_is_rewritten(self) -> None:
+        zh = "`執行 workflow 指令` 和 workflow，再 `看 workflows 與 a` 還有 workflows"
+        want = "`執行 workflow 指令` 和工作流程，再 `看 workflows 與 a` 還有工作流程"
+        assert fix_from_source(zh, self.WORKFLOW) == want
+
+    @pytest.mark.parametrize(
+        "zh", ["我們的 Workflow 設定", "建立 Workflows 並執行", "看 Workflow", "很好的Workflow"]
+    )
+    def test_a_capital_in_running_text_is_a_title(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("Workflow", "工作流程"),
+            ("Workflows 很多", "工作流程很多"),
+            ("Workflow 與 workflow", "工作流程與工作流程"),
+        ],
+    )
+    def test_a_capital_that_starts_the_cue_is_a_sentence_start(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == want
+
+    @pytest.mark.parametrize("zh", ["GITworkflow", "workflowAPI", "ABworkflows", "workflowsX"])
+    def test_a_capital_letter_beside_it_makes_it_a_longer_word(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
     def test_without_the_japanese_word_a_latin_workflow_stays(self) -> None:
         assert fix_from_source("GitHub workflow", "GitHubのworkflowです") == "GitHub workflow"
 

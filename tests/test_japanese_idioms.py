@@ -117,6 +117,7 @@ class TestWideEntranceAndDeep:
             "間口の広く奥深い",
             "間口が広くて奥深い",
             "間口が広くて、奥深い",
+            "間口が広くて,奥深い",
         ],
     )
     def test_the_pair_names_the_longer_term(self, text: str) -> None:
