@@ -238,20 +238,23 @@ _CHECK_OUT_NOT_DETECT = (
 )
 """檢查出 is a check-out unless it reads as "found" (檢查出問題, 檢查出現, 被檢查出)."""
 
+_EASY_WORDS = "流[すしさ]|円滑|快適|軽快|サクサク|使いやすい|安定(?![度性])|(?<![音娯快])楽(?![しむ器曲譜団園天])"
 _STREAM_NOT_SMOOTH = re.compile(
-    "スムーズ|スムース|流暢|滑らか|なめらか|流れ|流[すしさ]|円滑|快適|軽快|サクサク|使いやすい|安定(?!度)"
-    "|(?<![音娯快])楽(?![しむ器曲譜団園天])|(?<!ワーク)フロー"
+    "スムーズ|スムース|流暢|滑らか|なめらか|流れ|(?<!ワーク)フロー"
     "|メインストリーム|ダウンストリーム|アップストリーム|ストリームライン"
+    rf"|ストリーム.{{0,12}}(?:{_EASY_WORDS})|(?:{_EASY_WORDS}).{{0,12}}ストリーム"
 )
-"""ストリーム is a stream (串流). A sentence that also says smooth, easy or flow may mean 流暢 or
-流動. ワークフロー is a workflow and says neither. The loanwords with ストリーム inside (主流,
-下流, 上流, a streamlined thing) are not a version-control stream."""
+"""ストリーム is a stream (串流). A sentence that also says smooth or flow may mean 流暢 or 流動.
+ワークフロー is a workflow and says neither. The loanwords with ストリーム inside (主流, 下流,
+上流, a streamlined thing) are not a version-control stream. A word for easy, comfortable or
+sending (円滑, 楽, 流す) counts only within 12 characters of ストリーム: a long sentence has
+other things to call easy."""
 _FLOW_WORDS = "流暢度?(?!地)|流動(?![性作態畫向])"
 _STREAM_WRONG = re.compile(
     f"(?<=[的與和及跟或之])(?:{_FLOW_WORDS})"
     rf"|^(?:{_FLOW_WORDS})(?=$|[，。、,；！？\s或與和及跟])"
     f"|(?<!串)流串"
-    f"|(?<!串)(?<![主上下分合對逆水氣電暖寒潮洪河溪外內回交熱激])流(?=功能|類型|機制)"
+    f"|(?<!串)(?<![主上下分合對逆水氣電暖寒潮洪河溪回交熱激])流(?=功能|類型|機制)"
 )
 """What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing) as a noun, after 的,
 與, 和, 及, 跟, 或 or 之 or at the start of a cue, where its noun is not in the text (更流暢 and

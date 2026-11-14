@@ -111,7 +111,7 @@ class TestAStreamNounStandsAfterAParticleOrAlone:
         assert fix_from_source(f"流暢{after}運作", self.SRC) == f"流暢{after}運作"
         assert fix_from_source(f"流動{after}運作", self.SRC) == f"流動{after}運作"
 
-    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪外內回交熱激"))
+    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪回交熱激"))
     def test_each_word_that_ends_in_flow_is_not_a_stream(self, word: str) -> None:
         assert fix_from_source(f"{word}流功能", self.SRC) == f"{word}流功能"
 
@@ -338,6 +338,18 @@ class TestStreamGuard:
         zh = "與先前的流暢度不同，與流動，主流功能，下流機制，上流功能"
         assert fix_from_source(zh, src) == zh
 
+    @pytest.mark.parametrize(
+        "src",
+        [
+            "快適な環境をつくるために、これからいろいろな機能を紹介します。ストリームの話です",
+            "ストリームの話です。これからいろいろな機能を紹介します。サクサク動きます",
+            "安定性を高める機能が、さらに便利になる形で提供されていて、ストリーム機能と呼びます",
+            "ストリームの安定性を見ます",
+        ],
+    )
+    def test_an_easy_word_far_from_the_stream_word_does_not_block(self, src: str) -> None:
+        assert fix_from_source("與先前的流暢度不同", src) == "與先前的串流不同"
+
     @pytest.mark.parametrize("src", ["先ほどのストリームは安定度に応じて", "音楽のストリームです"])
     def test_a_word_that_only_looks_like_a_guard_does_not_block(self, src: str) -> None:
         assert fix_from_source("與先前的流暢度不同", src) == "與先前的串流不同"
@@ -354,6 +366,8 @@ class TestStreamGuard:
             ("分支流功能", "分支串流功能"),
             ("父流類型", "父串流類型"),
             ("藉由流機制", "藉由串流機制"),
+            ("另外流功能中", "另外串流功能中"),
+            ("除此之外流類型", "除此之外串流類型"),
         ],
     )
     def test_a_bare_stream_noun_is_mended(self, zh: str, want: str) -> None:
