@@ -144,3 +144,56 @@ class TestProductNamesAndTheLongPlugInForm:
     def test_a_plug_in_compound_is_not_the_long_form(self) -> None:
         counts, _ = check([cue(1, "プラグインです", "外掛程式碼與外掛程式庫")])
         assert counts["plugin_written_long_form_cues"] == 0
+
+
+class TestIdiomsTheTableDoesNotCount:
+    @pytest.mark.parametrize(
+        "zh", ["就是入口低", "入口門檻低的模式", "廣開入口", "寬廣的入口", "開闊的入口", "入口寬"]
+    )
+    def test_a_wide_entrance_is_counted(self, zh: str) -> None:
+        counts, _ = check([cue(1, "間口が広いです", zh)])
+        assert counts["wide_entrance_written_literally_cues"] == 1
+
+    def test_an_easy_to_get_into_phrase_and_other_words_are_not(self) -> None:
+        counts, _ = check(
+            [
+                cue(1, "間口が広いです", "容易入門"),
+                cue(2, "マグチが広いです", "入門簡單"),
+                cue(3, "入口です", "入口低"),
+            ]
+        )
+        assert counts["wide_entrance_written_literally_cues"] == 0
+
+    @pytest.mark.parametrize("zh", ["如前所述的流暢", "流暢度不同", "流動或是", "與先述的流串"])
+    def test_a_stream_written_smooth_is_counted(self, zh: str) -> None:
+        counts, _ = check([cue(1, "先ほどのストリームです", zh)])
+        assert counts["stream_written_smooth_or_flowing_cues"] == 1
+
+    def test_smooth_where_the_japanese_has_no_stream_is_not_counted(self) -> None:
+        counts, _ = check([cue(1, "スムーズです", "很流暢"), cue(2, "ストリームです", "串流")])
+        assert counts["stream_written_smooth_or_flowing_cues"] == 0
+
+    def test_a_latin_workflow_is_counted_only_beside_the_japanese_word(self) -> None:
+        counts, _ = check(
+            [
+                cue(1, "ワークフローです", "不同分支的 workflows"),
+                cue(2, "ワークフローです", "工作流程"),
+                cue(3, "ジョブです", "GitHub workflow"),
+                cue(4, "ワークフローです", "myworkflow"),
+                cue(5, "ワークフローです", "workflowy"),
+            ]
+        )
+        assert counts["workflow_written_in_latin_cues"] == 1
+
+    def test_a_shell_is_counted_only_where_the_japanese_has_no_shell(self) -> None:
+        counts, _ = check(
+            [
+                cue(1, "サブミットが通ります", "在Shell上提交"),
+                cue(2, "シェルを開きます", "開啟 shell"),
+                cue(3, "サブミットです", "擱置"),
+                cue(4, "シェルブです", "Shelve"),
+                cue(5, "ですね", "Bash shell"),
+                cue(6, "ですね", "ShellCheck and shellfish"),
+            ]
+        )
+        assert counts["shell_with_no_shell_in_the_japanese_cues"] == 2

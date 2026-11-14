@@ -25,8 +25,11 @@ over the windows of the file's run only. The checks:
 - words the table does not name: cues with a Mainland word the table has no line for, a simplified
   character, the product name written as something other than Perforce, a product that stays in
   Latin letters written with a Chinese word in it (Claude Code as Claude程式碼), the plug-in
-  written 外掛程式 where the prompt asks for 外掛, and the Japanese word for demo or access written
-  as the Mainland word. These do not depend on the prompt.
+  written 外掛程式 where the prompt asks for 外掛, the Japanese word for demo or access written
+  as the Mainland word, 間口が広い written as a wide entrance (入口低, 廣開入口), ストリーム written
+  as smooth or flowing (流暢, 流動, 流串), ワークフロー left as the Latin word, and a Latin Shell
+  where the Japanese has no シェル (the Perforce word シェルブ read as a shell).
+  These do not depend on the prompt.
 
 Run it from the checkout it checks, or with `PYTHONPATH` set to it: it imports `backend.core` from
 whichever checkout Python finds first, and an editable install of another checkout answers silently.
@@ -65,6 +68,12 @@ PRODUCT_TRANSLATED = re.compile(
 written Claude程式碼, Copilot written 副駕駛). The patterns do not come from the term table."""
 CLOUD_FOR_CLAUDE = re.compile(r"(?<![A-Za-z])Cloud(?![A-Za-z])")
 PLUGIN_LONG_FORM = re.compile("外掛程式(?!碼|庫|設計|架構|介面|語言|開發)")
+WIDE_ENTRANCE_SAID = re.compile("(?:間口|マグチ)(?:が|の|は)?広")
+WIDE_ENTRANCE_LITERAL = re.compile("入口(?:低|門檻|寬|廣)|廣開入口|開闊的入口|寬廣的?入口")
+STREAM_SAID = re.compile("ストリーム")
+STREAM_SMOOTH = re.compile("流暢度?|流動|流串")
+WORKFLOW_LATIN = re.compile(r"(?<![A-Za-z])(?i:work ?flows?)(?![A-Za-z])")
+SHELL = re.compile(r"(?<![A-Za-z])(?i:shell)(?![A-Za-z])")
 CIRCULAR = frozenset({"glossary_cues_right", "glossary_cues_seen"})
 LENGTH_LIMIT = 2.5
 LOW_RATIO = 0.25
@@ -187,6 +196,25 @@ def not_in_the_table(cues: Sequence[Cue]) -> dict[str, int]:
         ),
         "plugin_written_long_form_cues": sum(1 for c in cues if PLUGIN_LONG_FORM.search(c.zh)),
         "product_name_perforce_cues": sum(1 for c in cues if "Perforce" in c.zh),
+        "wide_entrance_written_literally_cues": sum(
+            1
+            for c in cues
+            if WIDE_ENTRANCE_SAID.search(c.src.replace("\n", ""))
+            and WIDE_ENTRANCE_LITERAL.search(c.zh)
+        ),
+        "stream_written_smooth_or_flowing_cues": sum(
+            1
+            for c in cues
+            if STREAM_SAID.search(c.src.replace("\n", "")) and STREAM_SMOOTH.search(c.zh)
+        ),
+        "workflow_written_in_latin_cues": sum(
+            1
+            for c in cues
+            if "ワークフロー" in c.src.replace("\n", "") and WORKFLOW_LATIN.search(c.zh)
+        ),
+        "shell_with_no_shell_in_the_japanese_cues": sum(
+            1 for c in cues if "シェル" not in c.src.replace("\n", "") and SHELL.search(c.zh)
+        ),
     }
 
 
