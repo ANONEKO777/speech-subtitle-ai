@@ -20,7 +20,7 @@ class TestWideEntrance:
         "text",
         [
             "間口が広い店です",
-            "間口が広く奥深い遊びです",
+            "間口が広く奥深い趣味です",
             "間口の広い設計にしました",
             "間口は広いままです",
             "間口広いです",
@@ -48,7 +48,7 @@ class TestWideEntrance:
             "好上手也耐玩",
             "容易上手的設計",
             "易於入門",
-            "門檻低的主題公園",
+            "門檻低的書店",
         ],
     )
     def test_a_natural_taiwan_phrase_is_right(self, zh: str) -> None:
@@ -57,13 +57,13 @@ class TestWideEntrance:
     @pytest.mark.parametrize(
         "zh",
         [
-            "就是入口低且深不可測，容易入門",
-            "入口門檻低的主題公園，容易入門",
+            "就是入口低又耐玩，容易入門",
+            "入口門檻低的書店，容易入門",
             "廣開入口的模式，容易入門",
             "寬廣的入口，容易入門",
             "開闊的入口，容易入門",
             "入口寬，容易入門",
-            "廣泛且深奧的遊戲，容易入門",
+            "廣泛且深奧的課程，容易入門",
             "廣泛而深奧，容易入門",
             "廣泛深奧，容易入門",
         ],
@@ -82,7 +82,7 @@ class TestWideEntrance:
 
 class TestWideEntranceAndDeep:
     def test_the_two_idioms_are_two_lines_and_a_request_has_both(self) -> None:
-        lines = named_lines("間口が広く奥深い遊びです")
+        lines = named_lines("間口が広く奥深い趣味です")
         assert f'- "{EASY_AND_DEEP}" must be translated as "容易入門又深奧"' in lines
         assert f'- "{EASY_TO_GET_INTO}" must be translated as "容易入門"' in lines
 
@@ -100,7 +100,7 @@ class TestWideEntranceAndDeep:
     @pytest.mark.parametrize(
         "zh",
         [
-            "就是入口低且深不可測",
+            "就是入口低又耐玩",
             "入口門檻低而深",
             "入口寬又深",
             "入口廣又深",
@@ -119,7 +119,7 @@ class TestWideEntranceAndDeep:
 
 class TestCourseClearGames:
     @pytest.mark.parametrize(
-        "text", ["コースクリア型のゲームです", "ステージクリア式の遊び", "ステージクリア型"]
+        "text", ["ステージクリア型の遊びです", "ステージクリア式の遊び", "ステージクリア型"]
     )
     def test_a_game_of_stages_names_the_term(self, text: str) -> None:
         assert STAGES in table_terms_in(text)
@@ -141,7 +141,7 @@ class TestCourseClearGames:
         assert term(STAGES).kept_in(zh)
 
     @pytest.mark.parametrize(
-        "zh", ["賽道清除類的遊戲，關卡制", "關卡清除類，關卡制", "賽程清除，關卡制"]
+        "zh", ["賽道清除類的比賽，關卡制", "關卡清除類，關卡制", "賽程清除，關卡制"]
     )
     def test_a_literal_form_is_wrong(self, zh: str) -> None:
         assert not term(STAGES).kept_in(zh)
@@ -149,7 +149,7 @@ class TestCourseClearGames:
 
 class TestShelve:
     @pytest.mark.parametrize(
-        "text", ["変更をシェルブします", "シェルブの際に確認", "シェルブしてから出します"]
+        "text", ["変更をシェルブします", "シェルブする時に確認", "シェルブしてから出します"]
     )
     def test_the_perforce_word_names_the_term(self, text: str) -> None:
         assert "シェルブ" in table_terms_in(text)
@@ -173,10 +173,10 @@ class TestShelve:
 
 class TestWorkflowTerm:
     @pytest.mark.parametrize(
-        "zh", ["不同分支的 workflows", "工作流程 workflow", "Work Flow 的設計"]
+        "zh", ["不同店家的 workflows", "工作流程 workflow", "Work Flow 的設計"]
     )
     def test_a_workflow_in_latin_letters_is_wrong(self, zh: str) -> None:
         assert not term("ワークフロー").kept_in(f"工作流程，{zh}")
 
     def test_the_chinese_word_is_right(self) -> None:
-        assert term("ワークフロー").kept_in("不同分支的工作流程")
+        assert term("ワークフロー").kept_in("不同店家的工作流程")

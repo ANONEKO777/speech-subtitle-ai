@@ -12,17 +12,17 @@ from backend.core.source_langs import MIXED_SOURCE
 
 
 class TestStreamIsNotSmooth:
-    STREAM = "分岐の話です。先ほどのストリームであったり"
+    STREAM = "配信の話です。新しい配信ストリームの設定"
 
     @pytest.mark.parametrize(
         ("zh", "want"),
         [
-            ("如前所述的流暢或是全部分支", "如前所述的串流或是全部分支"),
-            ("與先前的流暢度不同", "與先前的串流不同"),
-            ("如前所述的流動或全部分支", "如前所述的串流或全部分支"),
+            ("上面說的流暢或是別的選項", "上面說的串流或是別的選項"),
+            ("與公告的流暢度不同", "與公告的串流不同"),
+            ("上面說的流動或別的選項", "上面說的串流或別的選項"),
             ("流暢、流動和流暢度", "串流、串流和串流"),
-            ("與先述的流串或全部分支", "與先述的串流或全部分支"),
-            ("透過流功能", "透過串流功能"),
+            ("與公告的流串或別的選項", "與公告的串流或別的選項"),
+            ("藉由流功能", "藉由串流功能"),
             ("這種流類型與流機制", "這種串流類型與串流機制"),
         ],
     )
@@ -54,10 +54,10 @@ class TestStreamIsNotSmooth:
         assert fix_from_source("流暢的分支", "分岐のスト\nリームです") == "串流的分支"
 
     def test_the_rewrite_is_idempotent(self) -> None:
-        once = fix_from_source("與先前的流暢度不同", self.STREAM)
+        once = fix_from_source("與公告的流暢度不同", self.STREAM)
         assert fix_from_source(once, self.STREAM) == once
 
-    @pytest.mark.parametrize("zh", ["透過串流功能", "串流類型與串流機制", "分支串流"])
+    @pytest.mark.parametrize("zh", ["藉由串流功能", "串流類型與串流機制", "分支串流"])
     def test_a_stream_already_written_with_the_right_word_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, self.STREAM) == zh
 
@@ -66,12 +66,12 @@ class TestStreamIsNotSmooth:
         assert fix_from_source("流暢", src) == "串流"
 
     def test_a_translation_that_is_right_is_unchanged(self) -> None:
-        assert fix_from_source("與先前的串流不同", self.STREAM) == "與先前的串流不同"
+        assert fix_from_source("與公告的串流不同", self.STREAM) == "與公告的串流不同"
 
     def test_a_cue_the_model_put_the_word_in_is_mended_by_its_unit(self) -> None:
-        cues = cues_of("先ほどの", "ストリームであったり", "全部のブランチに")
-        zh = "[[1]]如前所述[[2]]的流暢[[3]]或是全部分支。"
-        assert translated(cues, [zh]) == ["如前所述", "的串流", "或是全部分支。"]
+        cues = cues_of("新しい", "配信ストリームの", "設定を見ます")
+        zh = "[[1]]上面說的[[2]]流暢[[3]]或是別的選項。"
+        assert translated(cues, [zh]) == ["上面說的", "串流", "或是別的選項。"]
 
     def test_a_unit_that_says_smooth_in_another_cue_keeps_the_word(self) -> None:
         cues = cues_of("ストリームが", "スムーズに", "動きます")
@@ -114,8 +114,8 @@ class TestWorkflowStaysChinese:
     @pytest.mark.parametrize(
         ("zh", "want"),
         [
-            ("不同分支的 workflows。", "不同分支的工作流程。"),
-            ("最佳化遊戲開發的 workflow。", "最佳化遊戲開發的工作流程。"),
+            ("不同店家的 workflows。", "不同店家的工作流程。"),
+            ("最佳化出貨的 workflow。", "最佳化出貨的工作流程。"),
             ("Workflow 很重要", "工作流程很重要"),
             ("WORKFLOWS", "工作流程"),
             ("每個workflow", "每個工作流程"),
@@ -133,12 +133,12 @@ class TestWorkflowStaysChinese:
 
 
 class TestBranchIsCreatedNotSwitched:
-    CREATE = "ブランチを1本切るだけです"
+    CREATE = "新しいブランチを3本切ります"
 
     @pytest.mark.parametrize(
         ("zh", "want"),
         [
-            ("只要切換一個分支就好", "只要建立一個分支就好"),
+            ("只要切換一個分支", "只要建立一個分支"),
             ("只要切換1個分支就好", "只要建立1個分支就好"),
             ("只要切換兩個分支", "只要建立兩個分支"),
             ("切換分支時", "建立分支時"),
@@ -164,7 +164,7 @@ class TestBranchIsCreatedNotSwitched:
     def test_a_unit_without_a_branch_made_is_never_touched(self, src: str) -> None:
         assert fix_from_source("切換分支", src) == "切換分支"
 
-    @pytest.mark.parametrize("zh", ["切換到稀疏串流", "切換環境", "切換模式與分支名稱"])
+    @pytest.mark.parametrize("zh", ["切換到舊的串流", "切換環境", "切換模式與分支名稱"])
     def test_a_switch_of_something_else_stays(self, zh: str) -> None:
         assert fix_from_source(zh, self.CREATE) == zh
 

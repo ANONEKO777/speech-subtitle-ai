@@ -164,9 +164,9 @@ class TestIdiomsTheTableDoesNotCount:
         )
         assert counts["wide_entrance_written_literally_cues"] == 0
 
-    @pytest.mark.parametrize("zh", ["如前所述的流暢", "流暢度不同", "流動或是", "與先述的流串"])
+    @pytest.mark.parametrize("zh", ["上面說的流暢", "流暢度不同", "流動或是", "與公告的流串"])
     def test_a_stream_written_smooth_is_counted(self, zh: str) -> None:
-        counts, _ = check([cue(1, "先ほどのストリームです", zh)])
+        counts, _ = check([cue(1, "配信ストリームです", zh)])
         assert counts["stream_written_smooth_or_flowing_cues"] == 1
 
     def test_smooth_where_the_japanese_has_no_stream_is_not_counted(self) -> None:
@@ -176,7 +176,7 @@ class TestIdiomsTheTableDoesNotCount:
     def test_a_latin_workflow_is_counted_only_beside_the_japanese_word(self) -> None:
         counts, _ = check(
             [
-                cue(1, "ワークフローです", "不同分支的 workflows"),
+                cue(1, "ワークフローです", "不同店家的 workflows"),
                 cue(2, "ワークフローです", "工作流程"),
                 cue(3, "ジョブです", "GitHub workflow"),
                 cue(4, "ワークフローです", "myworkflow"),
@@ -188,7 +188,7 @@ class TestIdiomsTheTableDoesNotCount:
     def test_a_shell_is_counted_only_where_the_japanese_has_no_shell(self) -> None:
         counts, _ = check(
             [
-                cue(1, "サブミットが通ります", "在Shell上提交"),
+                cue(1, "承認が通ります", "在Shell上提交"),
                 cue(2, "シェルを開きます", "開啟 shell"),
                 cue(3, "サブミットです", "擱置"),
                 cue(4, "シェルブです", "Shelve"),
