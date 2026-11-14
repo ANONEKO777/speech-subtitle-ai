@@ -252,22 +252,43 @@ _STREAM_NOT_SMOOTH = re.compile(
 上流, a streamlined thing) are not a version-control stream. A word for easy, comfortable or
 sending (円滑, 楽, 流す) counts only within 12 characters of ストリーム: a long sentence has
 other things to call easy."""
-_FLOW_WORDS = "流暢度?(?!地)|流動(?![性作態畫向])"
+_FLOW_WORDS = "流暢度?(?![地性])|流動(?![性作態畫向量速])"
+_FLOW_WORD_ENDS = "主上下分合對逆水氣電暖寒潮洪河溪回交熱激金物人"
 _STREAM_WRONG = re.compile(
     f"(?<=[的與和及跟或之])(?:{_FLOW_WORDS})"
     rf"|^(?:{_FLOW_WORDS})(?=$|[，。、,；！？\s或與和及跟])"
-    f"|(?<!串)流串"
-    f"|(?<!串)(?<![主上下分合對逆水氣電暖寒潮洪河溪回交熱激])流(?=功能|類型|機制)"
+    f"|(?<!串)(?<![{_FLOW_WORD_ENDS}])流串(?![接聯連])"
+    f"|(?<!串)(?<![{_FLOW_WORD_ENDS}])流(?=功能|類型|機制)"
 )
 """What the model writes for ストリーム: 流暢 and 流動 (smooth, flowing) as a noun, after 的,
 與, 和, 及, 跟, 或 or 之 or at the start of a cue, where its noun is not in the text (更流暢 and
-流暢地 are an adjective and stay), 流串, or a bare 流 as a noun's first word (流功能; 主流功能 and
-分流功能 are other words). 串流動作 has a right 串流 in it."""
-_SWITCH_BRANCH = re.compile(
-    "切り?替|スイッチ|チェックアウト|移動|移[るりっ]|変更|変え|戻[るりっ]|行[くきっ]"
+流暢地 are an adjective and stay), 流串, or a bare 流 as a noun's first word (流功能). A 流 that
+ends a word of its own (主流, 分流, 現金流, 物流, 人流) is not a stream, and 流暢 and 流動 followed
+by a character that makes a longer word (流暢性, 流動量) stay. 串流動作 has a right 串流 in it."""
+_SWITCH_BRANCH_WORDS = (
+    "切り?[替換]",
+    "切りかえ",
+    "乗り?換",
+    "乗りかえ",
+    "スイッチ",
+    "チェックアウト",
+    "移動",
+    "移[るりっすし]",
+    "移行",
+    "遷移",
+    "変更",
+    "変え",
+    "戻[るりっすし]",
+    "行[くきっ]",
+    "入[るりっ]",
+    "使い分け",
+    "入れ替",
+    "(?:その|別の|他の|元の)ブランチ",
+    "ブランチ間",
 )
+_SWITCH_BRANCH = re.compile("|".join(_SWITCH_BRANCH_WORDS))
 """ブランチを切る with one of these in the unit is a switch as well as a creation, so a 切換分支
-may be right."""
+may be right. Any other way to say "move to another branch" is a miss of the rewrite, not damage."""
 _LATIN_EDGE = r"A-Za-z0-9_./\\`-"
 _LATIN_WORKFLOW = re.compile(
     rf"\s?(?<![{_LATIN_EDGE}])(?<![A-Za-z0-9]\s)(?:w|^W)orkflows?(?![{_LATIN_EDGE}])(?!\s[A-Za-z0-9])\s?"
@@ -300,7 +321,7 @@ SOURCE_FIXES: tuple[SourceFix, ...] = (
     ),
     SourceFix(
         re.compile("スパースストリーム"),
-        re.compile("稀疏流(?![程動])"),
+        re.compile("稀疏流(?![程動暢量向性速派行通水氓])"),
         "稀疏串流",
         term="スパースストリーム",
     ),

@@ -112,9 +112,58 @@ class TestAStreamNounStandsAfterAParticleOrAlone:
         assert fix_from_source(f"流暢{after}運作", self.SRC) == f"流暢{after}運作"
         assert fix_from_source(f"流動{after}運作", self.SRC) == f"流動{after}運作"
 
-    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪回交熱激"))
+    @pytest.mark.parametrize("word", list("主上下分合對逆水氣電暖寒潮洪河溪回交熱激金物人"))
     def test_each_word_that_ends_in_flow_is_not_a_stream(self, word: str) -> None:
         assert fix_from_source(f"{word}流功能", self.SRC) == f"{word}流功能"
+        assert fix_from_source(f"{word}流串起來", self.SRC) == f"{word}流串起來"
+
+    @pytest.mark.parametrize(
+        "word",
+        [
+            "現金流",
+            "資金流",
+            "物流",
+            "人流",
+            "氣流",
+            "電流",
+            "水流",
+            "暖流",
+            "逆流",
+            "分流",
+            "主流",
+            "合流",
+        ],
+    )
+    @pytest.mark.parametrize("after", ["功能", "類型", "機制"])
+    def test_a_common_word_that_ends_in_flow_stays_before_a_noun(
+        self, word: str, after: str
+    ) -> None:
+        for before in ("", "的", "與", "新"):
+            assert fix_from_source(f"{before}{word}{after}", self.SRC) == f"{before}{word}{after}"
+
+    def test_a_cash_flow_feature_is_not_a_stream_feature(self) -> None:
+        assert fix_from_source("現金流功能", "配信ストリームの機能です") == "現金流功能"
+        assert (
+            fix_from_source("資金流類型與物流機制", "配信ストリームの機能です")
+            == "資金流類型與物流機制"
+        )
+
+    @pytest.mark.parametrize("after", list("接聯連"))
+    def test_a_flow_word_with_a_chain_after_it_is_not_a_misspelt_stream(self, after: str) -> None:
+        assert fix_from_source(f"與公告的流串{after}起來", self.SRC) == f"與公告的流串{after}起來"
+        assert fix_from_source("與公告的流串或別的選項", self.SRC) == "與公告的串流或別的選項"
+
+    @pytest.mark.parametrize("after", list("性作態畫向量速"))
+    def test_a_flowing_word_that_goes_on_is_another_word(self, after: str) -> None:
+        zh = f"與公告的流動{after}不同"
+        assert fix_from_source(zh, self.SRC) == zh
+        assert fix_from_source(f"流動{after}", self.SRC) == f"流動{after}"
+
+    @pytest.mark.parametrize("after", list("地性"))
+    def test_a_smooth_word_that_goes_on_is_another_word(self, after: str) -> None:
+        zh = f"與公告的流暢{after}不同"
+        assert fix_from_source(zh, self.SRC) == zh
+        assert fix_from_source(f"流暢度{after}", self.SRC) == f"流暢度{after}"
 
     @pytest.mark.parametrize("word", ["音楽", "娯楽", "快楽"])
     def test_a_word_with_music_or_pleasure_in_it_is_not_easy(self, word: str) -> None:
@@ -157,6 +206,26 @@ class TestSparseStream:
     @pytest.mark.parametrize("zh", ["稀疏流程很快", "稀疏串流很快", "稀疏流動作", "稀疏流動態"])
     def test_a_longer_word_or_the_right_word_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, self.SPARSE) == zh
+
+    @pytest.mark.parametrize("after", list("程動暢量向性速派行通水氓"))
+    def test_a_sparse_flow_word_that_goes_on_is_another_word(self, after: str) -> None:
+        for zh in (f"稀疏流{after}", f"這是稀疏流{after}很好", f"與稀疏流{after}"):
+            assert fix_from_source(zh, self.SPARSE) == zh
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("稀疏流暢", "稀疏流暢"),
+            ("稀疏流量", "稀疏流量"),
+            ("稀疏流向", "稀疏流向"),
+            ("稀疏流與稀疏流", "稀疏串流與稀疏串流"),
+            ("稀疏流，稀疏流。", "稀疏串流，稀疏串流。"),
+        ],
+    )
+    def test_the_flow_words_of_a_sparse_unit_are_not_split_by_the_rewrite(
+        self, zh: str, want: str
+    ) -> None:
+        assert fix_from_source(zh, self.SPARSE) == want
 
     def test_the_plain_stream_word_does_not_name_the_rule(self) -> None:
         assert fix_from_source("稀疏流", "ストリームの話です") == "稀疏流"
@@ -221,8 +290,103 @@ class TestWorkflowStaysChinese:
     def test_a_longer_latin_word_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, self.WORKFLOW) == zh
 
+    @pytest.mark.parametrize(
+        "zh",
+        [
+            "Git workflow 的設定",
+            "用 Git workflows 管理",
+            "Python 3 workflow",
+            "Step 2 workflows",
+            "建立 workflow Engine",
+            "workflow 2 版",
+            "workflow Studio 很好用",
+        ],
+    )
+    def test_a_latin_word_or_number_beside_it_makes_it_a_name(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["workflow-run", "my-workflow", "a-workflow-b", "workflows-"])
+    def test_a_hyphen_beside_it_makes_it_a_name(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["`workflow", "看 `workflows 設定", "`workflow 很好"])
+    def test_a_lone_backtick_before_it_makes_it_code(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize("zh", ["workflow` 設定", "看 workflows` 的"])
+    def test_a_lone_backtick_after_it_makes_it_code(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    def test_only_the_word_outside_a_code_span_is_rewritten(self) -> None:
+        zh = "`執行 workflow 指令` 和 workflow，再 `看 workflows 與 a` 還有 workflows"
+        want = "`執行 workflow 指令` 和工作流程，再 `看 workflows 與 a` 還有工作流程"
+        assert fix_from_source(zh, self.WORKFLOW) == want
+
+    @pytest.mark.parametrize(
+        "zh", ["我們的 Workflow 設定", "建立 Workflows 並執行", "看 Workflow", "很好的Workflow"]
+    )
+    def test_a_capital_in_running_text_is_a_title(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
+    @pytest.mark.parametrize(
+        ("zh", "want"),
+        [
+            ("Workflow", "工作流程"),
+            ("Workflows 很多", "工作流程很多"),
+            ("Workflow 與 workflow", "工作流程與工作流程"),
+        ],
+    )
+    def test_a_capital_that_starts_the_cue_is_a_sentence_start(self, zh: str, want: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == want
+
+    @pytest.mark.parametrize("zh", ["GITworkflow", "workflowAPI", "ABworkflows", "workflowsX"])
+    def test_a_capital_letter_beside_it_makes_it_a_longer_word(self, zh: str) -> None:
+        assert fix_from_source(zh, self.WORKFLOW) == zh
+
     def test_without_the_japanese_word_a_latin_workflow_stays(self) -> None:
         assert fix_from_source("GitHub workflow", "GitHubのworkflowです") == "GitHub workflow"
+
+
+SWITCH_SENTENCES = {
+    "切り替え": "ブランチを切ってから切り替えます",
+    "切替": "ブランチを切って切替えます",
+    "切り換え": "ブランチを切ってから切り換えます",
+    "切換え": "ブランチを切って切換えます",
+    "切りかえ": "ブランチを切って切りかえます",
+    "乗り換え": "ブランチを切って乗り換えます",
+    "乗換": "ブランチを切って乗換えます",
+    "乗りかえ": "ブランチを切って乗りかえます",
+    "スイッチ": "ブランチを切ってスイッチします",
+    "チェックアウト": "ブランチを切ってチェックアウトします",
+    "移動": "ブランチを切って、そこに移動します",
+    "移る": "ブランチを切って別の枝に移る",
+    "移り": "ブランチを切って別の枝に移ります",
+    "移っ": "ブランチを切って別の枝に移ったあと",
+    "移す": "ブランチを切って作業を移す",
+    "移し": "ブランチを切って作業を移します",
+    "移行": "ブランチを切って移行を始めます",
+    "遷移": "ブランチを切って遷移を確かめます",
+    "変更": "ブランチを切ってから設定を変更します",
+    "変え": "ブランチを切って作業を変えます",
+    "戻る": "ブランチを切ったあと元に戻る",
+    "戻り": "ブランチを切ったあと元に戻ります",
+    "戻っ": "ブランチを切ったあと元に戻ったら",
+    "戻す": "ブランチを切って設定を戻す",
+    "戻し": "ブランチを切って設定を戻します",
+    "行く": "ブランチを切ってそっちへ行く",
+    "行き": "ブランチを切ってそっちへ行きます",
+    "行っ": "ブランチを切ってそっちへ行ったら",
+    "入る": "ブランチを切って作業に入る",
+    "入り": "ブランチを切って作業に入ります",
+    "入っ": "ブランチを切って作業に入ったら",
+    "使い分け": "ブランチを切って使い分けます",
+    "入れ替え": "ブランチを切って入れ替えます",
+    "そのブランチ": "ブランチを切って、そのブランチで作業します",
+    "別のブランチ": "ブランチを切って、別のブランチで試します",
+    "他のブランチ": "ブランチを切って、他のブランチを見ます",
+    "元のブランチ": "ブランチを切って、元のブランチと比べます",
+    "ブランチ間": "ブランチを切って、ブランチ間の差を見ます",
+}
 
 
 class TestBranchIsCreatedNotSwitched:
@@ -253,25 +417,21 @@ class TestBranchIsCreatedNotSwitched:
     def test_a_unit_that_also_switches_keeps_its_word(self, src: str) -> None:
         assert fix_from_source("切換分支", src) == "切換分支"
 
-    @pytest.mark.parametrize(
-        "src",
-        [
-            "ブランチを切ってチェックアウトします",
-            "ブランチを切って、そこに移動します",
-            "ブランチを切って別のブランチに移ります",
-            "ブランチを切ってから設定を変更します",
-            "ブランチを切って作業を変えます",
-            "ブランチを切ったあと元に戻ります",
-            "ブランチを切ってそっちへ行きます",
-            "ブランチを切って切替えます",
-            "ブランチを切ってからブランチを切り替えます",
-        ],
-    )
+    @pytest.mark.parametrize("src", list(SWITCH_SENTENCES.values()), ids=list(SWITCH_SENTENCES))
     def test_a_unit_with_a_switching_word_keeps_the_switch(self, src: str) -> None:
         assert fix_from_source("建立分支並切換分支", src) == "建立分支並切換分支"
 
     @pytest.mark.parametrize(
-        "src", ["ブランチを切ります", "新しいブランチを切って作業します", "ブランチを2本切ります"]
+        "src",
+        [
+            "ブランチを切ります",
+            "新しいブランチを切って作業します",
+            "ブランチを2本切ります",
+            "ブランチを切って機能を入れます",
+            "ブランチを切って入力します",
+            "ブランチを切ってからテストを書きます",
+            "ブランチを切って作業に取りかかります",
+        ],
     )
     def test_a_unit_that_only_creates_still_mends_a_switch(self, src: str) -> None:
         assert fix_from_source("建立分支並切換分支", src) == "建立分支並建立分支"
@@ -383,7 +543,17 @@ class TestStreamGuard:
 
     @pytest.mark.parametrize(
         "zh",
-        ["串流動作", "串流動態", "串流動畫", "串流動向", "串流暢通", "串流串接", "稀疏串流動作"],
+        [
+            "串流動作",
+            "串流動態",
+            "串流動畫",
+            "串流動向",
+            "串流暢通",
+            "串流串接",
+            "稀疏串流動作",
+            "串流串起來",
+            "與串流串流",
+        ],
     )
     def test_a_right_stream_with_more_after_it_is_unchanged(self, zh: str) -> None:
         assert fix_from_source(zh, "スパースストリームとストリームです") == zh
