@@ -9,13 +9,18 @@ exists, OUT/back/<route>.<target>.json. Writes:
   Japanese, a script problem (the registry check of the target language with the script required,
   and no kana), a marker `[[n]]` left in, units whose Arabic digits are missing from the output;
   the ratio of output characters to Japanese characters (median, 90th percentile); display columns
-  per second against the 14 columns a second the Japanese rule allows (7 full-width characters) and
-  the 17 of a Latin-script subtitle; cues over two lines of 40 columns; the units that say Perforce
-  and the ones whose output says it; and, from the back-translation, the mean Dice overlap of the
+  per second against 14 (the Japanese rule of 7 full-width characters, used for the Chinese and
+  Korean outputs) or 17 (a Latin-script subtitle, used for the rest); cues over two lines of 40
+  columns; the units that say Perforce and the ones whose output says it; and, from the
+  back-translation of the sentences without kana, the mean Dice overlap of the
   character bigrams and the mean 0 to 5 score the same model gave.
+- `routes.tsv`: per target, the routes side by side on the back-translated sentences that every
+  route translated without kana, and how often each route scored higher than another.
 - `problems.tsv`: each failing cue as route, target, talk, cue id, problem (no talk text).
 - `terms.tsv`: the output of each route for the units that hold a katakana term (Perforce,
   shelve, stream, branch, workflow), to read how each language writes it.
+- `style.tsv`: for each language with a register, how many cues carry a formal form and how many an
+  informal one (Korean endings, du and Sie, vous and tu, and the like).
 """
 
 from __future__ import annotations
@@ -97,8 +102,10 @@ def check(out: Path) -> list[dict[str, object]]:
         for talk, (path, _) in TALKS.items()
     }
     units = {talk: sampled(out, talk)[1] for talk in TALKS}
-    back = {p.stem: cast("list[dict[str, object]]", json.loads(p.read_text(encoding="utf-8")))
-            for p in (out / "back").glob("*.json")}  # fmt: skip
+    back = {
+        p.stem: cast("list[dict[str, object]]", json.loads(p.read_text(encoding="utf-8")))
+        for p in (out / "back").glob("*.json")
+    }
     problems: list[str] = []
     rows: list[dict[str, object]] = []
     keys = sorted({(r, t) for _, r, t in runs}, key=lambda k: (k[1] != "en", k[1], k[0]))
@@ -153,22 +160,15 @@ def check(out: Path) -> list[dict[str, object]]:
         row: dict[str, object] = {"route": route, "target": code, **count}
         row["ratio_med"] = round(statistics.median(stats["ratio"]), 2) if stats["ratio"] else 0
         row["ratio_p90"] = round(percentile(stats["ratio"], 0.9), 2)
-        limit = JA_COLUMNS_PER_SECOND if code in ("zh-CN", "zh-TW", "ko", "th", "ru") else LATIN_CPS
+        limit = JA_COLUMNS_PER_SECOND if code in ("zh-CN", "zh-TW", "ko") else LATIN_CPS
         row["cps_med"] = round(statistics.median(stats["cps"]), 1) if stats["cps"] else 0
         row["cps_over"] = sum(v > limit for v in stats["cps"])
         row["cps_limit"] = limit
         row["over_two_lines"] = sum(v > 2 * LINE_COLUMNS for v in stats["columns"])
-        rows_back = back.get(f"{route}.{code}", [])
-        row["back_dice"] = (
-            round(statistics.mean(cast("float", r["dice"]) for r in rows_back), 3)
-            if rows_back
-            else ""
-        )
-        row["back_judge"] = (
-            round(statistics.mean(cast("int", r["judge"]) for r in rows_back), 2)
-            if rows_back
-            else ""
-        )
+        rows_back = translated_rows(back.get(f"{route}.{code}", []))
+        row["back_n"] = len(rows_back)
+        row["back_dice"] = mean_of(rows_back, "dice", 3)
+        row["back_judge"] = mean_of(rows_back, "judge", 2)
         row["judge_ge4"] = sum(cast("int", r["judge"]) >= 4 for r in rows_back) if rows_back else ""
         rows.append(row)
     folder = out / "checks"
@@ -178,7 +178,73 @@ def check(out: Path) -> list[dict[str, object]]:
     )
     write_tsv(folder / "summary.tsv", rows)
     write_terms(out, runs, units, sources, folder / "terms.tsv")
+    write_style(runs, units, folder / "style.tsv")
+    write_routes(back, folder / "routes.tsv")
     return rows
+
+
+def translated_rows(rows: Sequence[dict[str, object]]) -> list[dict[str, object]]:
+    """The back-translated sentences whose output holds no kana. A sentence the model left in
+    Japanese back-translates to itself and would score as a perfect translation."""
+    return [r for r in rows if not _KANA.search(cast("str", r["text"]))]
+
+
+def mean_of(rows: Sequence[dict[str, object]], key: str, digits: int) -> float | str:
+    return round(statistics.mean(cast("float", r[key]) for r in rows), digits) if rows else ""
+
+
+ROUTE_COLUMNS = (
+    "target n dice_direct dice_via_en dice_via_zh judge_direct judge_via_en judge_via_zh "
+    "direct_over_en en_over_direct direct_over_zh zh_over_direct en_over_zh zh_over_en"
+).split()
+ROUTE_PAIRS = (
+    ("direct", "via-en"),
+    ("via-en", "direct"),
+    ("direct", "via-zh"),
+    ("via-zh", "direct"),
+    ("via-en", "via-zh"),
+    ("via-zh", "via-en"),
+)
+
+
+def routes_row(code: str, by_route: dict[str, dict[int, dict[str, object]]]) -> list[object] | None:
+    have = [r for r in ROUTES if by_route[r]]
+    if len(have) < 2:
+        return None
+    common = set(by_route[have[0]]).intersection(*(set(by_route[r]) for r in have[1:]))
+    shared = [
+        i
+        for i in sorted(common)
+        if not any(_KANA.search(cast("str", by_route[r][i]["text"])) for r in have)
+    ]
+
+    def mean_for(route: str, key: str) -> float | str:
+        return mean_of([by_route[route][i] for i in shared], key, 3) if route in have else ""
+
+    def beats(a: str, b: str) -> int | str:
+        if a not in have or b not in have:
+            return ""
+        return sum(
+            cast("int", by_route[a][i]["judge"]) > cast("int", by_route[b][i]["judge"])
+            for i in shared
+        )
+
+    cells: list[object] = [code, len(shared)]
+    cells += [mean_for(r, "dice") for r in ROUTES] + [mean_for(r, "judge") for r in ROUTES]
+    return cells + [beats(a, b) for a, b in ROUTE_PAIRS]
+
+
+def write_routes(back: dict[str, list[dict[str, object]]], path: Path) -> None:
+    """Per target, the routes side by side on the sentences all its routes translated without
+    kana: mean Dice and mean 0 to 5 score, and how often one route scored higher than another."""
+    lines = ["\t".join(ROUTE_COLUMNS)]
+    for code in sorted({k.partition(".")[2] for k in back}):
+        by_route = {
+            r: {cast("int", x["id"]): x for x in back.get(f"{r}.{code}", [])} for r in ROUTES
+        }
+        if (cells := routes_row(code, by_route)) is not None:
+            lines.append("\t".join(str(c) for c in cells))
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_tsv(path: Path, rows: Sequence[dict[str, object]]) -> None:
@@ -207,6 +273,60 @@ def write_terms(
                         said = {c.id: c.zh for c in cues}
                         text = " ".join(said[i] for i in ids)
                         lines.append(f"{term}\t{talk}\t{ids[0]}\t{route}\t{code}\t{text}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+STYLE: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
+    "ko": (
+        re.compile(r"(?:니다|세요|어요|아요|해요|예요|이에요|죠|네요|까요|요)[.?!]?\Z"),
+        re.compile(r"(?<!니)(?:다|는가|니|냐|자)[.?!]?\Z"),
+    ),
+    "de": (
+        re.compile(r"\b(?:Sie|Ihnen|Ihr|Ihre|Ihren)\b"),
+        re.compile(r"\b(?:du|dir|dich|dein\w*)\b"),
+    ),
+    "fr": (
+        re.compile(r"\b(?:vous|votre|vos)\b", re.I),
+        re.compile(r"\b(?:tu|ton|ta|tes|toi)\b", re.I),
+    ),
+    "es": (
+        re.compile(r"\b(?:usted|ustedes)\b", re.I),
+        re.compile(r"\b(?:tú|vosotros|vuestro\w*)\b", re.I),
+    ),
+    "pt": (re.compile(r"\b(?:você|vocês)\b", re.I), re.compile(r"\b(?:tu|teu|tua)\b", re.I)),
+    "it": (re.compile(r"\b(?:Lei|Loro)\b"), re.compile(r"\b(?:tu|ti|tuo|tua)\b", re.I)),
+    "ru": (
+        re.compile(r"\b(?:вы|вас|вам|ваш\w*)\b", re.I),
+        re.compile(r"\b(?:ты|тебя|тебе|твой|твоя)\b", re.I),
+    ),
+    "id": (re.compile(r"\b(?:Anda|Bapak|Ibu)\b"), re.compile(r"\b(?:kamu|kau|kalian)\b", re.I)),
+    "vi": (re.compile(r"\b(?:quý vị|quý khách)\b", re.I), re.compile(r"\b(?:các bạn|bạn)\b", re.I)),
+    "th": (re.compile(r"(?:ครับ|ค่ะ|คะ)"), re.compile(r"(?:นะ|ล่ะ|เหรอ)\Z")),
+}
+"""Per language: how a formal or polite form shows, and how an informal one shows. The counts only
+say whether one register runs through the talk; they cannot say it is the right one."""
+
+
+def write_style(
+    runs: dict[tuple[str, str, str], list[Cue]], units: dict[str, list[list[int]]], path: Path
+) -> None:
+    lines = ["route\ttarget\tformal\tinformal\tthai_cues_with_space\tcues"]
+    totals: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0, 0, 0])
+    for (talk, route, code), cues in runs.items():
+        if code not in STYLE:
+            continue
+        formal, informal = STYLE[code]
+        said = {c.id: c.zh for c in cues}
+        for ids in units[talk]:
+            for i in ids:
+                text = said[i].strip()
+                bucket = totals[(route, code)]
+                bucket[0] += bool(formal.search(text))
+                bucket[1] += bool(informal.search(text))
+                bucket[2] += " " in text
+                bucket[3] += 1
+    for (route, code), (a, b, c, d) in sorted(totals.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+        lines.append(f"{route}\t{code}\t{a}\t{b}\t{c if code == 'th' else ''}\t{d}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

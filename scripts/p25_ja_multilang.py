@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import random
 import re
 import time
@@ -60,6 +61,8 @@ from backend.llm.local_server import NO_THINK, LlamaServer
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = Path("D:/WebProject/speech-subtitle-ai")
 SERVER = "runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
+SERVER_ENV = "P25_LLAMA_SERVER"
+"""A path in this variable replaces the server program, for a wrapper that adds `-t 2`."""
 MODEL = "models/llm/Qwen3-8B-Q4_K_M.gguf"
 
 TALKS: dict[str, tuple[Path, str]] = {
@@ -204,8 +207,16 @@ def english_target() -> Language:
         you_know=", or written with a short natural equivalent",
         filler_cue="Um, ",
     )
-    return replace(LANGUAGES["es"], code="en", name="English", native="English", file_code="en",
-                   prompt=prompt, check=_check_english, density=LOOSE)  # fmt: skip
+    return replace(
+        LANGUAGES["es"],
+        code="en",
+        name="English",
+        native="English",
+        file_code="en",
+        prompt=prompt,
+        check=_check_english,
+        density=LOOSE,
+    )
 
 
 def target(code: str) -> Language:
@@ -328,23 +339,31 @@ class Runner:
         names = translate.glossary_for(code, ())
         english = self.cached(
             folder / "ja-en.full.json",
-            lambda: translate_cues(self.chat, cues, everything, lang=english_target(),
-                                   source=generic, glossary=names),
+            lambda: translate_cues(
+                self.chat, cues, everything, lang=english_target(), source=generic, glossary=names
+            ),
             f"{talk}/ja-en.full",
-        )  # fmt: skip
-        zh = self.cached(
-            folder / "ja-zh-TW.full.json",
-            lambda: translate_cues(self.chat, cues, everything, lang=translate.DEFAULT,
-                                   source=source, glossary=names),
-            f"{talk}/ja-zh-TW.full",
-        )  # fmt: skip
+        )
         write_text_file(folder / "direct.en.json", render_subs(restrict(english, selected)))
-        write_text_file(folder / "direct.zh-TW.json", render_subs(restrict(zh, selected)))
         steps = {
             "direct": (cues, generic, names),
             "via-en": (pivot_cues(cues, english, "en"), ENGLISH_SOURCE, keep_only(names)),
-            "via-zh": (pivot_cues(cues, zh, "zh-TW"), ZH_SOURCE, keep_only(names)),
         }
+        if "via-zh" in routes:
+            zh = self.cached(
+                folder / "ja-zh-TW.full.json",
+                lambda: translate_cues(
+                    self.chat,
+                    cues,
+                    everything,
+                    lang=translate.DEFAULT,
+                    source=source,
+                    glossary=names,
+                ),
+                f"{talk}/ja-zh-TW.full",
+            )
+            write_text_file(folder / "direct.zh-TW.json", render_subs(restrict(zh, selected)))
+            steps["via-zh"] = (pivot_cues(cues, zh, "zh-TW"), ZH_SOURCE, keep_only(names))
         for route in routes:
             start, step_source, step_names = steps[route]
             for code_to in targets:
@@ -364,7 +383,7 @@ class Runner:
                 )
 
 
-BACK_BATCH = 10
+BACK_BATCH = 5
 _BACK_SYSTEM = (
     'You translate subtitles from {name} into Japanese. You receive one JSON object {{"translate": '
     '[{{"id": n, "text": "..."}}]}}. Reply with one JSON object and nothing else: '
@@ -490,7 +509,10 @@ def back_translate(out: Path, chat: ChatFn) -> None:
 
 def serve(out: Path, work: Callable[[ChatFn], None]) -> None:
     with LlamaServer(
-        ASSETS / SERVER, ASSETS / MODEL, log_path=out / "llama-server.log", ctx=8192
+        Path(os.environ.get(SERVER_ENV) or ASSETS / SERVER),
+        ASSETS / MODEL,
+        log_path=out / f"llama-server-{os.getpid()}.log",
+        ctx=8192,
     ) as running:
         config = LlmConfig(running.base_url, "local", extra_body={**NO_THINK, "seed": LLM_SEED})
         work(json_chat(config))
