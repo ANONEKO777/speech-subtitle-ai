@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from backend.core import translate
 from backend.core.model import Cue
 from backend.core.source_langs import JAPANESE_SOURCE
-from scripts.p25_check import columns, problem_of
+from backend.core.subtitle_io import render_subs, write_text_file
+from scripts import p25_check
+from scripts.p25_check import check, columns, percentile, problem_of
 from scripts.p25_ja_multilang import (
     GENERIC_JA,
     TARGETS,
@@ -82,6 +87,19 @@ class TestChecks:
 
     def test_full_width_characters_count_two_columns(self) -> None:
         assert columns("ab한") == 4
+        assert columns("ＡＢ") == 4
+
+    def test_kana_in_a_latin_cue_is_a_problem_of_its_own(self) -> None:
+        assert problem_of("es", "Hola こ mundo") == "kana left in"
+
+    def test_the_source_check_of_the_harness_names_kana(self) -> None:
+        assert GENERIC_JA.problem("これは") is not None
+        assert GENERIC_JA.problem("this") is None
+
+    def test_a_percentile_picks_the_value_at_its_rank(self) -> None:
+        assert percentile([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], 0.9) == 10.0
+        assert percentile([4.0, 1.0, 3.0, 2.0], 0.5) == 3.0
+        assert percentile([], 0.9) == 0.0
 
 
 class TestDice:
@@ -91,3 +109,103 @@ class TestDice:
 
     def test_punctuation_and_width_do_not_change_the_score(self) -> None:
         assert dice("ＡＢＣ、定義", "abc定義") == 1.0
+
+    def test_a_repeated_bigram_counts_every_time_it_repeats(self) -> None:
+        assert dice("aaaa", "aa") == 0.5
+
+
+def _cue(i: int, seconds: float, text: str = "") -> Cue:
+    return Cue(i, 0, int(seconds * 1000), "あ" * 10, text, lang="ja")
+
+
+def _latin(width: int) -> str:
+    return ("hola " * width)[: width - 1] + "a"
+
+
+def _write_cues(path: Path, cues: list[Cue]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_text_file(path, render_subs(cues))
+
+
+def _write_back(path: Path, rows: list[tuple[str, float, int]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    items = [
+        {"id": i, "text": text, "dice": dice_value, "judge": judge}
+        for i, (text, dice_value, judge) in enumerate(rows, 1)
+    ]
+    path.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+
+
+@pytest.fixture
+def evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    source = tmp_path / "source.json"
+    _write_cues(source, [_cue(i, 1) for i in range(1, 6)])
+    monkeypatch.setattr(p25_check, "TALKS", {"full": (source, "ja")})
+    out = tmp_path / "out"
+    out.mkdir()
+    units = [{"ids": [i], "back": False} for i in range(1, 6)]
+    (out / "units.json").write_text(json.dumps({"full": units}), encoding="utf-8")
+    spanish = [(10.0, 80), (10.0, 81), (10.0, 160), (1.0, 17), (1.0, 18)]
+    _write_cues(
+        out / "runs/full/direct.es.json",
+        [_cue(i, sec, _latin(n)) for i, (sec, n) in enumerate(spanish, 1)],
+    )
+    korean = [(10.0, 41), (1.0, 8), (1.0, 7), (10.0, 2), (10.0, 2)]
+    _write_cues(
+        out / "runs/full/direct.ko.json",
+        [_cue(i, sec, "한" * n) for i, (sec, n) in enumerate(korean, 1)],
+    )
+    _write_back(
+        out / "back/direct.es.json", [("hola", 0.5, 5), ("adios", 0.3, 3), ("ひらがな", 1.0, 5)]
+    )
+    _write_back(out / "back/via-en.es.json", [("ひ", 0.2, 4), ("hi", 0.1, 4), ("hi", 0.4, 4)])
+    return out
+
+
+def _row(rows: list[dict[str, object]], route: str, code: str) -> dict[str, object]:
+    return next(r for r in rows if r["route"] == route and r["target"] == code)
+
+
+class TestCheckTable:
+    def test_a_cue_is_over_two_lines_only_above_eighty_columns(self, evidence: Path) -> None:
+        rows = check(evidence)
+        assert _row(rows, "direct", "es")["over_two_lines"] == 2
+        assert _row(rows, "direct", "ko")["over_two_lines"] == 1
+
+    def test_the_rate_limit_is_fourteen_for_korean_and_seventeen_for_latin(
+        self, evidence: Path
+    ) -> None:
+        rows = check(evidence)
+        assert _row(rows, "direct", "es")["cps_limit"] == 17.0
+        assert _row(rows, "direct", "es")["cps_over"] == 1
+        assert _row(rows, "direct", "ko")["cps_limit"] == 14.0
+        assert _row(rows, "direct", "ko")["cps_over"] == 1
+
+    def test_the_length_ratio_columns_use_the_median_and_the_ninetieth_percentile(
+        self, evidence: Path
+    ) -> None:
+        row = _row(check(evidence), "direct", "es")
+        assert (row["ratio_med"], row["ratio_p90"]) == (8.0, 16.0)
+
+    def test_back_translation_means_skip_kana_and_read_the_dice_column(
+        self, evidence: Path
+    ) -> None:
+        row = _row(check(evidence), "direct", "es")
+        assert (row["back_n"], row["back_dice"], row["back_judge"], row["judge_ge4"]) == (
+            2,
+            0.4,
+            4,
+            1,
+        )
+
+    def test_the_route_row_keeps_the_sentences_every_route_translated_without_kana(
+        self, evidence: Path
+    ) -> None:
+        check(evidence)
+        _, row = (evidence / "checks/routes.tsv").read_text(encoding="utf-8").splitlines()
+        cells = row.split("	")
+        assert cells[:2] == ["es", "1"]
+        assert [float(c) for c in cells[2:4]] == [0.3, 0.1]
+        assert cells[4] == ""
+        assert [float(c) for c in cells[5:7]] == [3, 4]
+        assert cells[8:10] == ["0", "1"]
