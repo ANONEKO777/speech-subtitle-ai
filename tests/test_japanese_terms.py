@@ -181,11 +181,11 @@ class TestHomingTerm:
         "text",
         [
             "近い敵をフォーミングで狙います",
-            "強いホーミングで補います",
-            "フォーミング性能を上げる",
-            "二段階フォーミングにする",
+            "弾が曲がるホーミングを足す",
+            "フォーミングの精度を上げる",
+            "三つ目のフォーミングを足す",
             "ホーミングミサイルを撃つ",
-            "ちゃんと外れるフォーミングにします",
+            "遠いと切れるフォーミングです",
         ],
     )
     def test_homing_and_its_garble_name_the_term(self, text: str) -> None:
@@ -207,7 +207,7 @@ class TestHomingTerm:
         assert homing().said not in table_terms_in(text)
 
     def test_the_prompt_for_a_garbled_unit_says_what_to_write(self) -> None:
-        lines = named_lines("敵が空中にいても、フォーミングして当たります")
+        lines = named_lines("遠い的にもフォーミングが働きます")
         assert [line for line in lines if '"自動鎖定"' in line and "ホーミング" in line]
 
     def test_the_prompt_for_an_unrelated_unit_does_not_say_it(self) -> None:
@@ -228,14 +228,14 @@ class TestHomingTerm:
         assert not homing().kept_in(f"自動鎖定與{wrong}")
 
     def test_the_prompt_line_names_both_spellings_and_the_garble(self) -> None:
-        (line,) = named_lines("フォーミングを二段階にします")
+        (line,) = named_lines("フォーミングを三つに増やします")
         assert line.startswith('- "フォーミング / ホーミング')
         assert "speech recognition" in line
 
     def test_the_check_counts_a_right_and_a_wrong_cue(self) -> None:
         cues = [
-            Cue(1, 0, 1000, "強いフォーミングで補います", "以強力的自動鎖定補足", lang="ja"),
-            Cue(2, 0, 1000, "フォーミング性能を高くします", "將成型效能提高", lang="ja"),
+            Cue(1, 0, 1000, "弾が曲がるフォーミングを足す", "加上會轉彎的自動鎖定", lang="ja"),
+            Cue(2, 0, 1000, "フォーミングの力を強めます", "讓成型的力道變大", lang="ja"),
         ]
         assert table_score(cues)[homing().said] == (1, 2)
 
