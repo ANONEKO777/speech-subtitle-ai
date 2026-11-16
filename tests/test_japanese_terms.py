@@ -206,6 +206,14 @@ class TestHomingTerm:
     def test_a_longer_word_or_another_word_does_not_name_the_term(self, text: str) -> None:
         assert homing().said not in table_terms_in(text)
 
+    @pytest.mark.parametrize(
+        "text", ["XYZフォーミングを足す", "v2フォーミングを足す", "3フォーミングを足す"]
+    )
+    def test_a_latin_letter_or_a_digit_before_the_word_does_not_name_the_term(
+        self, text: str
+    ) -> None:
+        assert homing().said not in table_terms_in(text)
+
     def test_the_prompt_for_a_garbled_unit_says_what_to_write(self) -> None:
         lines = named_lines("遠い的にもフォーミングが働きます")
         assert [line for line in lines if '"自動鎖定"' in line and "ホーミング" in line]
