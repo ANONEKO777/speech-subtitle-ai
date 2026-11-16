@@ -199,6 +199,17 @@ GAME_TERMS: tuple[JaTerm, ...] = (
     JaTerm("プレイヤー", "玩家", ("玩家者",)),
     JaTerm("カメラ", "攝影機", ("相機",)),
     _idiom("カービィ", r"カービ(?:ー|ィ)", "卡比", "柯比", "卡爾比"),
+    _idiom(
+        "フォーミング / ホーミング (homing: a shot that locks on to a target; "
+        "speech recognition hears ホーミング as フォーミング in a talk about aiming)",
+        rf"{_NOT_INSIDE_A_WORD}(?:フォ|ホ)ーミング",
+        "自動鎖定",
+        "組裝",
+        "成型",
+        "形成",
+        "形狀",
+        also=("自動追蹤", "追蹤", "自動瞄準"),
+    ),
 )
 
 JA_TERMS: tuple[JaTerm, ...] = SOFTWARE_TERMS + GAME_TERMS

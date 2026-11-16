@@ -170,6 +170,71 @@ class TestWordsInsideLongerWords:
         assert name in table_terms_in(text)
 
 
+def homing() -> JaTerm:
+    return next(t for t in JAPANESE_SOURCE.terms if t.zh == "自動鎖定")
+
+
+class TestHomingTerm:
+    """P35: speech recognition hears ホーミング as フォーミング. The sentences are invented."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "近い敵をフォーミングで狙います",
+            "強いホーミングで補います",
+            "フォーミング性能を上げる",
+            "二段階フォーミングにする",
+            "ホーミングミサイルを撃つ",
+            "ちゃんと外れるフォーミングにします",
+        ],
+    )
+    def test_homing_and_its_garble_name_the_term(self, text: str) -> None:
+        assert homing().said in table_terms_in(text)
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "トランスフォーミングします",
+            "パフォーミングアートの話",
+            "リフォーミングの相談",
+            "ウォーミングアップをする",
+            "ホームページを見る",
+            "フォームに入力する",
+        ],
+    )
+    def test_a_longer_word_or_another_word_does_not_name_the_term(self, text: str) -> None:
+        assert homing().said not in table_terms_in(text)
+
+    def test_the_prompt_for_a_garbled_unit_says_what_to_write(self) -> None:
+        lines = named_lines("敵が空中にいても、フォーミングして当たります")
+        assert [line for line in lines if '"自動鎖定"' in line and "ホーミング" in line]
+
+    def test_the_prompt_for_an_unrelated_unit_does_not_say_it(self) -> None:
+        assert not any("自動鎖定" in line for line in named_lines("フォームに入力して送信します"))
+
+    def test_a_user_term_for_the_word_replaces_the_line(self) -> None:
+        user = (translate.GlossaryEntry("フォーミング", "追尾"),)
+        lines = named_lines("フォーミングを使います", user)
+        assert not any("自動鎖定" in line for line in lines)
+
+    @pytest.mark.parametrize("zh", ["自動鎖定", "強力的自動鎖定", "追蹤", "自動追蹤", "自動瞄準"])
+    def test_a_taiwan_form_is_right(self, zh: str) -> None:
+        assert homing().kept_in(zh)
+
+    @pytest.mark.parametrize(
+        "zh", ["組裝高度", "成型效能", "形成目標", "形狀控制", "自動鎖定的形成", "組裝與自動鎖定"]
+    )
+    def test_the_garbled_renderings_are_wrong(self, zh: str) -> None:
+        assert not homing().kept_in(zh)
+
+    def test_the_check_counts_a_right_and_a_wrong_cue(self) -> None:
+        cues = [
+            Cue(1, 0, 1000, "強いフォーミングで補います", "以強力的自動鎖定補足", lang="ja"),
+            Cue(2, 0, 1000, "フォーミング性能を高くします", "將成型效能提高", lang="ja"),
+        ]
+        assert table_score(cues)[homing().said] == (1, 2)
+
+
 class TestWrongFormLists:
     @pytest.mark.parametrize("zh", ["新的串流功能", "串流類型", "串流機制", "稀疏串流"])
     def test_a_stream_word_with_the_right_form_in_it_is_right(self, zh: str) -> None:
@@ -327,6 +392,14 @@ class TestTermTableIsInTheCacheKey:
     ) -> None:
         table = JAPANESE_SOURCE.terms
         assert self.digest(table, monkeypatch) != self.digest(table[1:], monkeypatch)
+
+    def test_the_homing_line_is_in_the_translate_digest(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        table = JAPANESE_SOURCE.terms
+        without = tuple(t for t in table if t.zh != "自動鎖定")
+        assert len(without) == len(table) - 1
+        assert self.digest(table, monkeypatch) != self.digest(without, monkeypatch)
 
     def test_the_same_table_gives_the_same_digest(self, monkeypatch: pytest.MonkeyPatch) -> None:
         table = JAPANESE_SOURCE.terms
