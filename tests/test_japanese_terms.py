@@ -198,6 +198,7 @@ class TestHomingTerm:
             "パフォーミングアートの話",
             "リフォーミングの相談",
             "ウォーミングアップをする",
+            "ホミングする",
             "ホームページを見る",
             "フォームに入力する",
         ],
@@ -221,11 +222,15 @@ class TestHomingTerm:
     def test_a_taiwan_form_is_right(self, zh: str) -> None:
         assert homing().kept_in(zh)
 
-    @pytest.mark.parametrize(
-        "zh", ["組裝高度", "成型效能", "形成目標", "形狀控制", "自動鎖定的形成", "組裝與自動鎖定"]
-    )
-    def test_the_garbled_renderings_are_wrong(self, zh: str) -> None:
-        assert not homing().kept_in(zh)
+    @pytest.mark.parametrize("wrong", ["組裝", "成型", "形成", "形狀"])
+    def test_a_garbled_rendering_is_wrong_even_beside_the_right_form(self, wrong: str) -> None:
+        assert not homing().kept_in(wrong)
+        assert not homing().kept_in(f"自動鎖定與{wrong}")
+
+    def test_the_prompt_line_names_both_spellings_and_the_garble(self) -> None:
+        (line,) = named_lines("フォーミングを二段階にします")
+        assert line.startswith('- "フォーミング / ホーミング')
+        assert "speech recognition" in line
 
     def test_the_check_counts_a_right_and_a_wrong_cue(self) -> None:
         cues = [
