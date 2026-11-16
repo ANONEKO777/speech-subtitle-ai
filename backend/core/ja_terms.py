@@ -201,7 +201,8 @@ GAME_TERMS: tuple[JaTerm, ...] = (
     _idiom("カービィ", r"カービ(?:ー|ィ)", "卡比", "柯比", "卡爾比"),
     _idiom(
         "フォーミング / ホーミング (homing: a shot that locks on to a target; "
-        "speech recognition hears ホーミング as フォーミング in a talk about aiming)",
+        "speech recognition hears ホーミング as フォーミング in a talk about aiming; "
+        "ホーミング対象 is the target it locks on to, ホーミング性能 is how strongly it locks on)",
         rf"{_NOT_INSIDE_A_WORD}(?:フォ|ホ)ーミング",
         "自動鎖定",
         "組裝",
