@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { EXPERIMENTAL, type Target } from "../api/targets";
 import { shortName } from "../export/exports";
 
@@ -22,6 +22,17 @@ export function choiceSummary(targets: readonly Target[], value: readonly string
 export function TargetChoice({ targets, value, onChange, label, testid }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<CSSProperties>({});
+  /** The list is placed against the window, so the scrolling list of rows around it cannot cut it off. It opens upward when there is no room below. */
+  const openList = () => {
+    const box = root.current?.getBoundingClientRect();
+    if (box) {
+      const below = window.innerHeight - box.bottom;
+      const room = 28 * targets.length + 16;
+      setPlace({ right: window.innerWidth - box.right, ...(below < room && box.top > room ? { bottom: window.innerHeight - box.top + 4 } : { top: box.bottom + 4 }) });
+    }
+    setOpen((v) => !v);
+  };
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
@@ -57,13 +68,13 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
         aria-haspopup="true"
         aria-expanded={open}
         disabled={!several}
-        onClick={() => setOpen((v) => !v)}
+        onClick={openList}
       >
         <span>{choiceSummary(targets, value)}</span>
         {several && <ChevronDown className="icon chevron" aria-hidden />}
       </button>
       {open && (
-        <div className="target-choice-list" role="group" aria-label={label} data-testid={`${testid}-list`}>
+        <div className="target-choice-list" style={place} role="group" aria-label={label} data-testid={`${testid}-list`}>
           {targets.map((t) => (
             <label key={t.code}>
               <input
