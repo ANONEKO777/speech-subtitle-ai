@@ -69,8 +69,11 @@ const check = (name, ok, detail) => {
 // the side panel head is 17.5 px too narrow for its tabs and the export button on main (padding only, the label stays); the queue badge must not add to it
 const EXPORT_CUT = 18;
 const BOX = { 1280: 130, 960: 66 };
-// P26b added the subtitle language picker to the toolbar, about 100 px
-const BOX_HOME = { en: { 1280: 620, 960: 490 }, ja: { 1280: 620, 960: 490 }, "ja+en": { 1280: 600, 960: 420 } };
+// P26b added the subtitle language picker to the toolbar. Measured on the P26b fix build with an empty queue (a queue item takes 36 px more):
+// English and Japanese 656.2 px at 1280 and 500.8 at 960, mixed 634.2 and 478.9. Main measured 789.1, 600.8 and 725.1.
+// Each minimum is the measurement minus 10 px.
+const CHIP_BOX = 36;
+const BOX_HOME = { en: { 1280: 646, 960: 490 }, ja: { 1280: 646, 960: 490 }, "ja+en": { 1280: 624, 960: 468 } };
 const waitPlayer = async () => {
   await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
   await p.evaluate(() => document.querySelector("video")?.pause());
@@ -89,7 +92,8 @@ for (const lang of ["en", "ja", "ja+en"]) {
     const m = await measure();
     out.rows[`home-${lang}-${w}`] = m;
     check(`home ${names[lang]} ${w} one row`, m.header < 52 && m.spread <= 3, `header ${m.header} px, spread ${m.spread}`);
-    check(`home ${names[lang]} ${w} file box`, m.box >= BOX_HOME[lang][w], `video-path ${m.box} px, needs ${BOX_HOME[lang][w]}`);
+    const needBox = BOX_HOME[lang][w] - (m.chip ? CHIP_BOX : 0);
+    check(`home ${names[lang]} ${w} file box`, m.box >= needBox, `video-path ${m.box} px, needs ${needBox}${m.chip ? ` (${BOX_HOME[lang][w]} less ${CHIP_BOX} for the chip)` : ""}`);
     if (lang === "ja+en") check(`home mixed ${w} picker`, m.picker === 128, `picker ${m.picker} px`);
     if (m.chip) check(`home ${names[lang]} ${w} chip`, m.chipCut === 0 && !!m.chipTitle && /^\d+\/\d+$/.test(m.chipText ?? ""), `chip ${m.chipText}, title "${m.chipTitle}", ${m.chipCut} px cut`);
   }

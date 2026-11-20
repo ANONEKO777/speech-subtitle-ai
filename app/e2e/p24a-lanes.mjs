@@ -166,8 +166,10 @@ const fileBoxChecks = async (label, min) => {
   return out;
 };
 const PLAYER_BOX = { 1280: 130, 960: 66 };
-// P26b added the subtitle language picker (92 px and a gap) to the toolbar: English measures 631 and 501 px now
-const HOME_BOX = { 1280: 620, 960: 490 };
+// P26b added the subtitle language picker to the toolbar (a "字幕" label, 92 px select, one gap). Measured on the P26b fix build with an empty queue:
+// English and Japanese 656.2 px at 1280 and 500.8 at 960, mixed (a plain-text target, no select) 634.2 and 478.9. Main measured 789.1, 600.8 and 725.1.
+// Each minimum is the measurement minus 10 px, so a further loss of more than 10 px fails.
+const HOME_BOX = { 1280: 646, 960: 490 };
 /** The language codes the target control of add-dialog row `i` offers: opens it, reads the checkboxes, closes it. */
 async function targetOptions(p, i) {
   const button = p.locator('[data-testid="add-row-lang"]').nth(i);
@@ -177,7 +179,7 @@ async function targetOptions(p, i) {
   return codes;
 }
 
-const HOME_BOX_MIXED = { 1280: 600, 960: 420 };
+const HOME_BOX_MIXED = { 1280: 624, 960: 468 };
 const MIXED_NOTE = "日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。";
 
 const folderOf = (needle) => {
@@ -524,7 +526,7 @@ async function homeChecks() {
   await p.selectOption(tid("source-lang"), "ja");
   await sleep(300);
   const noteText = await p.textContent(tid("source-note"));
-  note("note for Japanese", noteText.includes("日文") && noteText.includes("繁體中文"), `"${noteText}"`);
+  note("note for Japanese", noteText.includes("日文") && noteText.includes("字幕語言") && noteText.includes("不會重跑語音辨識"), `"${noteText}"`);
   await oneRow("home, Japanese note");
   await review("home-japanese-1280", "首頁：選日文，顯示一行說明");
   await resize(960, 600);
@@ -879,7 +881,7 @@ try {
     await review("ja-nofont-burn-error", "沒有日文字型：燒入字幕的錯誤訊息");
     note("missing font message in the burn card", burnText.includes("這台電腦沒有可以顯示日文字幕的字型"), `burn card "${burnText.replace(/\s+/g, " ")}"`);
   } else if (phase === "layout") {
-    const demo = join(process.env.P24A_ROOT ?? "D:/WebProject/speech-subtitle-ai", "一個人指揮50多個Agent-lauren @poteto X.mp4");
+    const demo = process.env.P24A_DEMO ?? join(process.env.P24A_ROOT ?? "D:/WebProject/speech-subtitle-ai", "一個人指揮50多個Agent-lauren @poteto X.mp4");
     const waitPlayer = async () => {
       await until("player", async () => (await p.locator(`${tid("cue-list")} li`).count()) > 0 && (await p.locator(tid("importing")).count()) === 0, 10 * 60 * 1000, 500);
       await p.evaluate(() => document.querySelector("video")?.pause());
@@ -938,7 +940,7 @@ try {
     note("Japanese import starts with source_lang ja", jaBody !== undefined && JSON.parse(jaBody).source_lang === "ja", `POST /jobs body ${jaBody}`);
     await heightIs("player, Japanese", 50, 52);
     const bar = await p.evaluate(() => ({ value: document.querySelector('.source-bar [data-testid="source-lang"]')?.value ?? null, note: document.querySelector('[data-testid="source-note"]')?.textContent ?? null }));
-    note("Japanese player: picker and note sit under the toolbar", bar.value === "ja" && (bar.note ?? "").includes("繁體中文") && (await inHeader(tid("source-lang"))) === 0, `picker ${bar.value}, note "${bar.note}"`);
+    note("Japanese player: picker and note sit under the toolbar", bar.value === "ja" && (bar.note ?? "").includes("不會重跑語音辨識") && (await inHeader(tid("source-lang"))) === 0, `picker ${bar.value}, note "${bar.note}"`);
     await fileBoxChecks("player, Japanese", PLAYER_BOX);
     await review("player-ja-1280", "日文播放器：工具列一排，影片語言與說明在工具列下面");
     await resize(960, 600);

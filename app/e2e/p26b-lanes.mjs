@@ -2,6 +2,7 @@
 // node e2e/p26b-lanes.mjs <phase> <projects-dir> <video-dir> <shots-dir> [port]
 // phase: view   (no model: the finished seed project, the pickers, the failed cues, exports, a burned still, widths)
 //        add    (the real LLM: add Simplified Chinese to the seed project from the player menu)
+//        busy   (the real LLM: the add-language button is disabled while the queue translates the open project)
 //        queue  (the real LLM: a project with one language gets English from the import box, then Simplified Chinese
 //                and Korean from the queue, the video is taken away so Korean fails, then it is put back and retried)
 //        nofont (Malgun Gothic hidden from the backend: the burn refusal names the language)
@@ -131,8 +132,8 @@ try {
     const en = await optionsOf(tid("target-lang"));
     note("English speech offers its list without English", en.length > 8 && !en.some((o) => o.startsWith("en:")) && en.some((o) => o.startsWith("ko:") && o.includes("實驗性")), `${en.length} options: ${en.map((o) => o.split(":")[0]).join(",")}`);
     await p.selectOption(tid("source-lang"), "ja+en").catch(() => undefined);
-    const mixed = await optionsOf(tid("target-lang"));
-    note("mixed Japanese and English offers Traditional Chinese only", mixed.join("|") === "zh-TW:繁體中文" && (await p.locator(tid("target-lang")).isDisabled()), mixed.join("|"));
+    const mixed = await p.$eval(tid("target-lang"), (e) => ({ tag: e.tagName, text: e.textContent, selects: e.querySelectorAll("select").length }));
+    note("mixed Japanese and English offers Traditional Chinese only, as plain text with nothing to pick", mixed.tag === "SPAN" && mixed.selects === 0 && mixed.text.includes("繁體中文"), JSON.stringify(mixed));
     await p.selectOption(tid("source-lang"), "ja");
     await shot("home-ja-1280", "Home, Japanese video: the subtitle language picker beside the video language picker, the note about adding languages");
     await p.selectOption(tid("target-lang"), "ko");
@@ -149,7 +150,7 @@ try {
     await importPath(seedVideo, "ja", "zh-TW");
     await waitPlayer(60000);
     const langs = await optionsOf(tid("lang-select"));
-    note("the project holds three targets, Korean labelled", langs.join("|") === "zh-TW:繁體中文|en:English|ko:한국어（實驗性）" || langs.length === 3, langs.join("|"));
+    note("the project holds three targets, Korean labelled", [...langs].sort().join("|") === ["zh-TW:繁體中文", "en:English", "ko:한국어（實驗性）"].sort().join("|"), langs.join("|"));
     await shot("player-zh-TW-1280", "Player, Japanese talk in Traditional Chinese: language select with three targets, add-language button");
     await p.click(tid("add-target"));
     const addable = await p.$$eval('[data-testid^="add-target-"]:not([data-testid="add-target-list"]):not([data-testid="add-target-hint"])', (e) => e.map((x) => x.dataset.testid.replace("add-target-", "")));
@@ -186,18 +187,18 @@ try {
     const six = (await cueTexts()).find((c) => c.n === "cue-6");
     note("English: cue 6 is empty and says so", enNote === "1" && six.failed === "empty" && six.zh === "（沒有翻譯）", `${enNote} ${JSON.stringify(six)}`);
     await shot("player-en-empty-cue", "Player, English: cue 6 has no translation and is marked");
-    const alt = await p.evaluate(() => document.querySelector("video") !== null);
     // subtitle line under the video follows the language
     await p.evaluate(() => (document.querySelector("video").currentTime = 4.9));
     await sleep(500);
     const line = await p.evaluate(() => [...document.querySelectorAll('[data-testid="subtitle"] p')].map((e) => `${e.dataset.lang}:${e.lang}:${e.textContent}`));
-    note("the subtitle under the video is in the language shown, with its language tag", line.some((l) => l.startsWith("zh:en:")) && alt, line.join(" | "));
+    note("the subtitle under the video is in the language shown, with its language tag", line.some((l) => l.startsWith("zh:en:") && l.length > "zh:en:".length), line.join(" | "));
     // fill the empty cue: the failure ends
     await p.dblclick(`${tid("cue-6")} button`);
     await p.fill(tid("edit-text"), "On a rainy day the venue moves to the gym.");
     await p.keyboard.press("Enter");
     await until("failure ended", async () => (await p.locator(tid("failed-note")).count()) === 0, 8000);
-    note("filling the empty cue ends its failure", true, "the note is gone");
+    const filled = (await cueTexts()).find((c) => c.n === "cue-6");
+    note("filling the empty cue ends its failure", filled.failed === null && filled.zh === "On a rainy day the venue moves to the gym.", JSON.stringify(filled));
     await p.selectOption(tid("lang-select"), "ko");
     await sleep(500);
 
@@ -261,7 +262,8 @@ try {
     await p.click(tid("export-menu"));
     await p.click(tid("export-srt-zh"));
     await until("zh-CN srt", () => existsSync(join(exportDir, "talk-demo-ja.zh-CN.srt")), 10000);
-    note("Simplified Chinese SRT is saved as <video>.zh-CN.srt", true, "talk-demo-ja.zh-CN.srt");
+    const zhSrt = readFileSync(join(exportDir, "talk-demo-ja.zh-CN.srt"), "utf8");
+    note("Simplified Chinese SRT is saved as <video>.zh-CN.srt, with Chinese text and no kana", /[一-鿿]/.test(zhSrt) && !/[぀-ヿ]/.test(zhSrt), `talk-demo-ja.zh-CN.srt, ${zhSrt.length} characters`);
   } else if (phase === "queue") {
     await p.waitForSelector(tid("ready"));
     // the import box adds English to a project that has Traditional Chinese
@@ -277,9 +279,12 @@ try {
     // queue Simplified Chinese and Korean for the same video, from the add dialog
     const emit = (event, payload) => p.evaluate(([e, pl]) => window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: e, payload: pl }), [event, payload]);
     // a drop of one file imports it, so two are dropped and the first row is the one kept
+    const toolbarTarget = await p.inputValue(tid("target-lang"));
     await emit("tauri://drag-enter", { paths: [], position: { x: 10, y: 10 } });
     await emit("tauri://drag-drop", { paths: [seedVideoB, seedVideo], position: { x: 10, y: 10 } });
     await until("rows", async () => (await p.locator(tid("add-row")).count()) === 2, 10000);
+    const startCodes = await p.getAttribute(tid("add-default-lang"), "data-codes");
+    note("the add dialog starts from the language the toolbar shows", startCodes === toolbarTarget, `toolbar ${toolbarTarget}, dialog ${startCodes}`);
     await p.locator('[data-testid="add-row"] button[aria-label="移除"]').nth(1).click();
     await until("one row", async () => (await p.locator(tid("add-row")).count()) === 1, 5000);
     await p.selectOption(tid("add-row-source"), "ja");
@@ -300,7 +305,7 @@ try {
     note("one request item lists both targets", JSON.stringify(body.items[0].target_langs) === '["zh-CN","ko"]' && body.items[0].source_lang === "ja", sent[0]);
     // take the video away once the first target runs, so the second cannot start
     await until("two rows", async () => (await p.locator("li.batch-row").count()) === 2, 20000);
-    await until("first running", async () => (await p.locator('li.batch-row[data-state="running"]').count()) === 1, 60000, 300);
+    await until("first at its translate step", async () => /^翻譯/.test((await p.locator('li.batch-row[data-state="running"] [data-testid^="qstep-"]').first().textContent({ timeout: 1000 }).catch(() => "")) ?? ""), 60000, 100);
     const away = `${seedVideoB}.away`;
     renameSync(seedVideoB, away);
     await shot("queue-first-target-running", "Queue: two targets of one video, the first is running");
@@ -322,7 +327,42 @@ try {
     const ko = JSON.parse(readFileSync(join(folder, "subs.ko.json"), "utf8")).cues;
     note("the retried Korean target holds real Korean text", ko.length === 8 && ko.filter((c) => /[가-힣]/.test(c.zh)).length >= 6, ko.map((c) => c.zh).join(" / "));
     const fails = existsSync(join(folder, "failures.ko.json")) ? readFileSync(join(folder, "failures.ko.json"), "utf8") : "none";
-    note("failures.ko.json says what the model could not do, or is absent", true, fails.replace(/\s+/g, " "));
+    const failedIds = fails === "none" ? [] : JSON.parse(fails).failed;
+    note("failures.ko.json is absent or lists the failed cue ids as integers", Array.isArray(failedIds) && failedIds.every(Number.isInteger), fails.replace(/\s+/g, " "));
+  } else if (phase === "busy") {
+    await p.waitForSelector(tid("ready"));
+    await importPath(seedVideoB, "ja", "zh-TW");
+    await waitPlayer(60000);
+    const button = () => p.$eval(tid("add-target"), (e) => ({ disabled: e.disabled, title: e.title }));
+    const idle = await button();
+    note("with no job on the project the add-language button works", !idle.disabled && idle.title.includes("只重新翻譯"), JSON.stringify(idle));
+    const emit = (event, payload) => p.evaluate(([e, pl]) => window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: e, payload: pl }), [event, payload]);
+    await emit("tauri://drag-enter", { paths: [], position: { x: 10, y: 10 } });
+    await emit("tauri://drag-drop", { paths: [seedVideoB, seedVideo], position: { x: 10, y: 10 } });
+    await until("rows", async () => (await p.locator(tid("add-row")).count()) === 2, 10000);
+    await p.locator('[data-testid="add-row"] button[aria-label="移除"]').nth(1).click();
+    await until("one row", async () => (await p.locator(tid("add-row")).count()) === 1, 5000);
+    await p.selectOption(tid("add-row-source"), "ja");
+    await p.click(tid("add-row-lang"));
+    await p.click(tid("add-row-lang-zh-CN"));
+    await p.click(tid("add-row-lang-zh-TW"));
+    const codes = await p.getAttribute(tid("add-row-lang"), "data-codes");
+    await p.keyboard.press("Escape");
+    note("the queued target is Simplified Chinese only", codes === "zh-CN", codes);
+    await p.click(tid("add-submit"));
+    await p.waitForSelector(tid("add-dialog"), { state: "detached" });
+    const blocked = await until("the add button is blocked while the job runs", async () => {
+      const b = await button();
+      return b.disabled ? b : false;
+    }, 60000, 100);
+    note("while a job runs on the project the add-language button is disabled and says why", blocked.title.includes("正在處理中") && !/[a-f0-9]{16}/.test(blocked.title), JSON.stringify(blocked));
+    await shot("player-add-blocked", "Player: the add-language button is disabled while the queue translates this project");
+    await until("the job ended", async () => (await p.getAttribute(tid("queue-chip"), "data-active")) === "false", 120000, 300);
+    const after = await until("the add button is back", async () => {
+      const b = await button();
+      return b.disabled ? false : b;
+    }, 10000, 100);
+    note("the button works again once the job is done", after.title.includes("只重新翻譯"), JSON.stringify(after));
   } else if (phase === "regress") {
     await p.waitForSelector(tid("ready"));
     const bodies = [];
@@ -331,7 +371,11 @@ try {
     });
     // English speech, real ASR and real model, the default target
     const en = join(clips, "talk-demo-en.mp4");
-    note("English speech is the default and Traditional Chinese the default target", (await p.inputValue(tid("source-lang"))) === "en" && (await p.inputValue(tid("target-lang"))) === "zh-TW", "en / zh-TW");
+    const defaults = await until("the target options after ready", async () => {
+      const options = await optionsOf(tid("target-lang"));
+      return options.length > 1 ? { source: await p.inputValue(tid("source-lang")), target: await p.inputValue(tid("target-lang")), options: options.length } : false;
+    }, 10000, 50);
+    note("English speech is the default and Traditional Chinese the default target", defaults.source === "en" && defaults.target === "zh-TW", `${defaults.source} / ${defaults.target} (${defaults.options} target options)`);
     await importPath(en);
     await p.waitForSelector(tid("importing"), { timeout: 20000 });
     await until("translate step", async () => (await p.textContent(tid("step-name")))?.includes("翻譯成繁體中文"), 600000, 300);
@@ -344,7 +388,8 @@ try {
     await p.evaluate(() => document.querySelector("video").play());
     await until("playing", async () => (await p.evaluate(() => document.querySelector("video").currentTime)) > 0.8, 15000);
     await pause();
-    note("the video plays", true, "currentTime advanced");
+    const played = await p.evaluate(() => document.querySelector("video").currentTime);
+    note("the video plays", played > 0.8, `currentTime ${played.toFixed(2)} s`);
     await shot("english-player", "English video after its first run: Traditional Chinese, one language, the add-language button");
     await p.click(tid("export-menu"));
     await p.click(tid("export-srt-zh"));
@@ -396,6 +441,7 @@ try {
     throw new Error(`unknown phase ${phase}`);
   }
 } catch (e) {
+  if (existsSync(`${seedVideoB}.away`)) renameSync(`${seedVideoB}.away`, seedVideoB);
   note("lane crashed", false, String(e?.stack ?? e));
   await shot("crash", "the window when the lane stopped").catch(() => undefined);
 }
