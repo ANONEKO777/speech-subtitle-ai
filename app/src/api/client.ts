@@ -1,5 +1,6 @@
 import type { Cue } from "../player/cues";
 import { DEFAULT_SOURCE, type SourceLang, type Unavailable, parseSourceLang, parseUnavailable } from "./sourceLang";
+import { type SourceTargets, parseSourceTargets } from "./targets";
 
 export interface Backend {
   readonly port: number;
@@ -16,6 +17,14 @@ export interface ProjectView {
   readonly translatedLangs: readonly string[];
   /** The language spoken in the video. */
   readonly sourceLang: SourceLang;
+  /** The cues of each language's translation that the translator could not do, for the languages that have any. */
+  readonly failedCues: Readonly<Record<string, CueFailures>>;
+}
+
+/** Cue ids of one translation that failed every attempt. `english` are the failed cues that show their English. */
+export interface CueFailures {
+  readonly failed: readonly number[];
+  readonly english: readonly number[];
 }
 
 /** A cue the backend refused to save, with the reason. */
@@ -100,7 +109,21 @@ function projectView(body: unknown): ProjectView {
     activeLang: active,
     translatedLangs,
     sourceLang: parseSourceLang(o["source_lang"]),
+    failedCues: parseFailedCues(o["failed_cues"]),
   };
+}
+
+const ids = (value: unknown): number[] => (Array.isArray(value) ? value.filter((v): v is number => typeof v === "number") : []);
+
+export function parseFailedCues(raw: unknown): Record<string, CueFailures> {
+  const out: Record<string, CueFailures> = {};
+  for (const [code, value] of Object.entries(asRecord(raw) ?? {})) {
+    const o = asRecord(value);
+    const failed = ids(o?.["failed"]);
+    const english = ids(o?.["english"]);
+    if (failed.length > 0 || english.length > 0) out[code] = { failed, english };
+  }
+  return out;
 }
 
 export async function fetchProject(b: Backend, projectId: string): Promise<ProjectView> {
@@ -120,6 +143,8 @@ export interface LanguageSet {
   readonly languages: LanguageInfo[];
   /** The video languages this machine cannot process now, with the reason. */
   readonly unavailable: Unavailable;
+  /** What each video language can be translated into, as the backend lists it. */
+  readonly targets: SourceTargets;
 }
 
 export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
@@ -136,6 +161,7 @@ export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
     defaultCode: typeof body?.["default"] === "string" ? body["default"] : "zh-TW",
     languages,
     unavailable: parseUnavailable(body?.["sources"]),
+    targets: parseSourceTargets(body?.["sources"]),
   };
 }
 
@@ -148,10 +174,15 @@ export async function createProject(b: Backend, videoPath: string): Promise<Proj
   return projectView(await call(b, "/api/projects", { method: "POST", body }));
 }
 
-export async function startJob(b: Backend, projectId: string, sourceLang: SourceLang = DEFAULT_SOURCE): Promise<string> {
-  const body = asRecord(
-    await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify({ source_lang: sourceLang }) }),
-  );
+/** Starts the pipeline. `targetLang` is left out for the default language, as the first release asked. */
+export async function startJob(
+  b: Backend,
+  projectId: string,
+  sourceLang: SourceLang = DEFAULT_SOURCE,
+  targetLang: string | null = null,
+): Promise<string> {
+  const request = { source_lang: sourceLang, ...(targetLang === null ? {} : { target_lang: targetLang }) };
+  const body = asRecord(await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify(request) }));
   if (typeof body?.["id"] !== "string") throw new ApiError(500, "unexpected job reply");
   return body["id"];
 }

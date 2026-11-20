@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchCues, fetchLanguageSet, putCues, startJob } from "./client";
+import { fetchCues, fetchLanguageSet, fetchProject, putCues, startJob } from "./client";
 
 const backend = { port: 1, token: "t" };
 
@@ -103,5 +103,46 @@ describe("startJob", () => {
     await startJob(backend, "p");
     const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
     expect(JSON.parse(String(init.body))).toEqual({ source_lang: "en" });
+  });
+});
+
+describe("startJob with a target language", () => {
+  it("sends the target next to the video language, and nothing about a target when none is asked", async () => {
+    const fetchImpl = answer({ id: "j3" });
+    vi.stubGlobal("fetch", fetchImpl);
+    await startJob(backend, "p", "ja", "ko");
+    const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(JSON.parse(String(init.body))).toEqual({ source_lang: "ja", target_lang: "ko" });
+  });
+});
+
+describe("the targets a video language has", () => {
+  it("are read from the sources of the languages reply, with the experimental flag", async () => {
+    vi.stubGlobal(
+      "fetch",
+      answer({
+        default: "zh-TW",
+        languages: [],
+        sources: [{ code: "ja", available: true, reason: null, targets: [{ code: "ko", name: "Korean", native_name: "한국어", experimental: true }] }],
+      }),
+    );
+    expect((await fetchLanguageSet(backend)).targets).toEqual({
+      ja: [{ code: "ko", name: "Korean", nativeName: "한국어", experimental: true }],
+    });
+  });
+});
+
+describe("fetchProject and the cues a translation could not do", () => {
+  const project = (extra: object) =>
+    answer({ id: "p", video_path: "D:/a.mp4", steps: {}, languages: {}, active_job: null, source_lang: "ja", ...extra });
+
+  it("reads the failed and the English cues of each language that has any", async () => {
+    vi.stubGlobal("fetch", project({ failed_cues: { ko: { failed: [3, 5], english: [5] }, en: { failed: [], english: [] }, bad: 7 } }));
+    expect((await fetchProject(backend, "p")).failedCues).toEqual({ ko: { failed: [3, 5], english: [5] } });
+  });
+
+  it("reads none from a project of an older backend", async () => {
+    vi.stubGlobal("fetch", project({}));
+    expect((await fetchProject(backend, "p")).failedCues).toEqual({});
   });
 });
