@@ -167,6 +167,8 @@ def _report_json(report: RunReport) -> dict[str, object]:
         "edits_kept": report.edits_kept,
         "edits_unmatched": report.edits_unmatched,
         "summary_degraded": report.summary_degraded,
+        "failed_cues": list(report.failed_cues),
+        "english_cues": list(report.english_cues),
         "steps": [
             {"step": r.step.value, "ran": r.ran, "seconds": round(r.seconds, 3)}
             for r in report.steps

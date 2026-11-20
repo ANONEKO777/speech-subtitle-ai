@@ -39,6 +39,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import replace
 from pathlib import Path
+from types import MappingProxyType
 from typing import cast
 
 from backend.core import translate
@@ -133,6 +134,7 @@ def _generic(source: SourceLanguage) -> SourceLanguage:
         prompt=prompt,
         density=LOOSE,
         targets=None,
+        routes=MappingProxyType({}),
         problem=_no_kana,
         clean=_identity,
         fix_from_source=None,
@@ -172,6 +174,7 @@ ZH_SOURCE = replace(
     sentence_continues=None,
     density=LOOSE,
     targets=None,
+    routes=MappingProxyType({}),
     problem=_no_problem,
     clean=_identity,
     mends_glossary=False,
