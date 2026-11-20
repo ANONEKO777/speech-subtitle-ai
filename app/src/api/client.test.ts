@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchCues, fetchLanguageSet, fetchProject, putCues, startJob } from "./client";
+import { JOB_RUNNING, fetchCues, fetchLanguageSet, fetchProject, putCues, startJob } from "./client";
 
 const backend = { port: 1, token: "t" };
 
@@ -113,6 +113,23 @@ describe("startJob with a target language", () => {
     await startJob(backend, "p", "ja", "ko");
     const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
     expect(JSON.parse(String(init.body))).toEqual({ source_lang: "ja", target_lang: "ko" });
+  });
+});
+
+describe("a job refused because one already runs", () => {
+  it("says so in the window's language, with no job id and no English", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(JSON.stringify({ detail: "job bb44ca76c6ee4186 is already running on this project" }), { status: 409 }))),
+    );
+    const error = await startJob(backend, "p", "ja", "ko").catch((e: unknown) => e);
+    expect(error).toMatchObject({ status: 409, message: JOB_RUNNING });
+    expect(JOB_RUNNING).not.toMatch(/[A-Za-z0-9]/);
+  });
+
+  it("leaves other refusals as the backend wrote them", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ detail: "the video is gone: x" }), { status: 422 }))));
+    await expect(startJob(backend, "p")).rejects.toThrow("the video is gone: x");
   });
 });
 

@@ -337,6 +337,10 @@ export function App() {
 
   const experimentalPick = screen.kind !== "playing" && isExperimentalTarget(languageSet, sourceLang, target);
   const playingScreen = screen.kind === "playing" ? screen : null;
+  const addBlocked =
+    playingScreen && batch.items.some((i) => i.projectId === playingScreen.projectId && i.state === "running")
+      ? "這部影片正在處理中，等它完成後才能新增字幕語言"
+      : null;
   const experimental = new Set(
     playingScreen?.languages.filter((l) => isExperimentalTarget(languageSet, playingScreen.sourceLang, l.code)).map((l) => l.code),
   );
@@ -556,6 +560,7 @@ export function App() {
             experimental={experimental}
             addable={addable}
             onAddTarget={(code) => void addTarget(code)}
+            addBlocked={addBlocked}
             failures={screen.failedCues[screen.lang]}
             loaded={screen.loaded}
             notice={screen.notice}

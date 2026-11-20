@@ -50,6 +50,7 @@ function panel(over: Partial<React.ComponentProps<typeof SidePanel>> = {}) {
         { code: "zh-CN", name: "Simplified Chinese", nativeName: "简体中文", experimental: false },
       ]}
       onAddTarget={onAddTarget}
+      addBlocked={null}
       failed={new Map<number, FailedKind>([[2, "empty"], [3, "english"]])}
       summary={undefined}
       summaryDegraded={false}
@@ -128,6 +129,17 @@ describe("the languages of a project", () => {
     fireEvent.click(screen.getByTestId("add-target"));
     expect(screen.getByTestId("add-target-ko").textContent).toContain("實驗性");
     expect(screen.getByTestId("add-target-hint").textContent).toContain("英文");
+  });
+
+  it("cannot add a language while a job runs on the project, and the button says why", () => {
+    const why = "這部影片正在處理中，等它完成後才能新增字幕語言";
+    const { onAddTarget } = panel({ addBlocked: why });
+    const button = screen.getByTestId("add-target") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.title).toBe(why);
+    fireEvent.click(button);
+    expect(screen.queryByTestId("add-target-list")).toBeNull();
+    expect(onAddTarget).not.toHaveBeenCalled();
   });
 
   it("offers nothing to add once the project has every language", () => {

@@ -6,12 +6,13 @@ import { shortName } from "../export/exports";
 interface Props {
   /** The languages the video can still be translated into. */
   readonly targets: readonly Target[];
-  readonly disabled: boolean;
+  /** Why adding is not possible now, shown as the button's tooltip. Null when it is. */
+  readonly blocked: string | null;
   readonly onAdd: (code: string) => void;
 }
 
 /** A menu of the subtitle languages this project lacks. Picking one translates the project again, without redoing the speech steps. */
-export function AddTarget({ targets, disabled, onAdd }: Props) {
+export function AddTarget({ targets, blocked, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -38,11 +39,12 @@ export function AddTarget({ targets, disabled, onAdd }: Props) {
         type="button"
         className="ghost icon-button"
         data-testid="add-target"
-        title="新增字幕語言：只重新翻譯，不重跑語音辨識"
+        title={blocked ?? "新增字幕語言：只重新翻譯，不重跑語音辨識"}
         aria-label="新增字幕語言"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={disabled}
+        disabled={blocked !== null}
+        data-blocked={blocked !== null}
         onClick={() => setOpen((v) => !v)}
       >
         <Languages className="icon" aria-hidden />

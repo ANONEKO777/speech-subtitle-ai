@@ -174,6 +174,9 @@ export async function createProject(b: Backend, videoPath: string): Promise<Proj
   return projectView(await call(b, "/api/projects", { method: "POST", body }));
 }
 
+/** The backend refuses a second job on a project with "job <id> is already running", which a person should not have to read. */
+export const JOB_RUNNING = "這部影片正在處理中，請等它完成後再試。";
+
 /** Starts the pipeline. `targetLang` is left out for the default language, as the first release asked. */
 export async function startJob(
   b: Backend,
@@ -182,7 +185,12 @@ export async function startJob(
   targetLang: string | null = null,
 ): Promise<string> {
   const request = { source_lang: sourceLang, ...(targetLang === null ? {} : { target_lang: targetLang }) };
-  const body = asRecord(await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify(request) }));
+  const body = asRecord(
+    await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify(request) }).catch((e: unknown) => {
+      if (e instanceof ApiError && e.status === 409) throw new ApiError(409, JOB_RUNNING);
+      throw e;
+    }),
+  );
   if (typeof body?.["id"] !== "string") throw new ApiError(500, "unexpected job reply");
   return body["id"];
 }

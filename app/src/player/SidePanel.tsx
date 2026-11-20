@@ -31,6 +31,8 @@ interface Props {
   /** The languages the video can still be translated into, and what picking one does. */
   readonly addable: readonly Target[];
   readonly onAddTarget: (code: string) => void;
+  /** Why a language cannot be added now (a job is running on the project), or null. */
+  readonly addBlocked: string | null;
   /** The cues of `lang` the translator could not do. */
   readonly failed: ReadonlyMap<number, FailedKind>;
   readonly summary: string | null | undefined;
@@ -111,7 +113,7 @@ export function SidePanel(p: Props) {
               ))}
             </select>
           )}
-          <AddTarget targets={p.addable} disabled={false} onAdd={p.onAddTarget} />
+          <AddTarget targets={p.addable} blocked={p.addBlocked} onAdd={p.onAddTarget} />
         </div>
       )}
       {p.tab === "cues" && p.failed.size > 0 && (

@@ -38,6 +38,7 @@ interface Props {
   /** The languages the video can still be translated into, and what picking one does. */
   readonly addable: readonly Target[];
   readonly onAddTarget: (code: string) => void;
+  readonly addBlocked: string | null;
   /** The cues of `lang` that the translator could not do. */
   readonly failures: CueFailures | undefined;
   readonly loaded: Loaded;
@@ -415,6 +416,7 @@ export function Player(props: Props) {
         experimental={props.experimental}
         addable={props.addable}
         onAddTarget={props.onAddTarget}
+        addBlocked={props.addBlocked}
         failed={failed}
         summary={summary?.text}
         summaryDegraded={summary?.degraded ?? false}
