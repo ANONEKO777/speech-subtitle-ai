@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SourcePick } from "./ImportPanel";
+import { ImportPanel, SourcePick, TargetPick } from "./ImportPanel";
 
 afterEach(cleanup);
 
@@ -23,5 +23,38 @@ describe("the video language picker", () => {
     expect(mixed?.disabled).toBe(true);
     expect(mixed?.textContent).toBe(`日文與英文混合（${why}）`);
     expect(mixed?.title).toBe(why);
+  });
+});
+
+describe("the language of the subtitles", () => {
+  const targets = [
+    { code: "zh-TW", name: "Traditional Chinese", nativeName: "繁體中文（台灣）", experimental: false },
+    { code: "en", name: "English", nativeName: "English", experimental: false },
+    { code: "ko", name: "Korean", nativeName: "한국어", experimental: true },
+  ];
+
+  it("lists the targets given, labels the experimental one and marks it when picked", () => {
+    const onTarget = vi.fn();
+    const { rerender } = render(<TargetPick busy={false} targets={targets} target="zh-TW" onTarget={onTarget} />);
+    const select = screen.getByTestId("target-lang") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.label)).toEqual(["繁體中文", "English", "한국어（實驗性）"]);
+    expect(select.dataset["experimental"]).toBe("false");
+    fireEvent.change(select, { target: { value: "ko" } });
+    expect(onTarget).toHaveBeenCalledWith("ko");
+    rerender(<TargetPick busy={false} targets={targets} target="ko" onTarget={onTarget} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).dataset["experimental"]).toBe("true");
+  });
+
+  it("is fixed when the video language has one target only, as a mixed talk has", () => {
+    render(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it("sits in the import bar only where the video language does", () => {
+    const props = { busy: false, sourceLang: "ja" as const, unavailable: {}, onSourceLang: () => undefined, targets, target: "en", onTarget: () => undefined, onImport: () => undefined, onPath: () => undefined };
+    const { rerender } = render(<ImportPanel {...props} withPicker />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).value).toBe("en");
+    rerender(<ImportPanel {...props} withPicker={false} />);
+    expect(screen.queryByTestId("target-lang")).toBeNull();
   });
 });

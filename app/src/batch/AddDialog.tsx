@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { pickFolder, pickVideos } from "../api/backend";
 import type { Backend, LanguageSet } from "../api/client";
 import { type Detected, detectLine, hintFor, isDetection, preselect, switchLabel } from "../api/detect";
-import { SOURCE_NOTES, type SourceLang, type Unavailable, canTarget, parseSourceLang } from "../api/sourceLang";
+import { SOURCE_NOTES, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
+import { EXPERIMENTAL_HINT, isExperimentalTarget, targetsFor, targetsOf } from "../api/targets";
 import { SourceOptions } from "../import/ImportPanel";
 import { useDetections } from "../import/useDetections";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
-import { isExperimental } from "./lang";
 import { baseName, classifyPath } from "./paths";
+import { TargetChoice } from "./TargetChoice";
 
 interface Row extends AddEntry {
   readonly key: string;
@@ -16,13 +17,9 @@ interface Row extends AddEntry {
   readonly touched?: boolean;
 }
 
-/** The target language a source language can use: the one asked for, or the first it allows. */
-const targetFor = (source: SourceLang, lang: string, languages: LanguageSet): string =>
-  canTarget(source, lang) ? lang : (languages.languages.find((l) => canTarget(source, l.code))?.code ?? lang);
-
-export const rowsFor = (paths: readonly string[], lang: string, source: SourceLang): AddEntry[] =>
+export const rowsFor = (paths: readonly string[], langs: readonly string[], source: SourceLang): AddEntry[] =>
   paths.map((path) =>
-    classifyPath(path) === "folder" ? { path, lang, source, folder: { recursive: true } } : { path, lang, source },
+    classifyPath(path) === "folder" ? { path, langs, source, folder: { recursive: true } } : { path, langs, source },
   );
 
 interface Props {
@@ -43,27 +40,6 @@ function SourceSelect({ value, unavailable, onChange, label, testid }: {
   return (
     <select className="lang-select" data-testid={testid} aria-label={label} value={value} onChange={(e) => onChange(parseSourceLang(e.target.value))}>
       <SourceOptions unavailable={unavailable} />
-    </select>
-  );
-}
-
-function LangSelect({ value, set, onChange, label, testid, source }: {
-  value: string;
-  set: LanguageSet;
-  /** The language spoken in the video, which may allow only some targets. */
-  source: SourceLang;
-  onChange: (code: string) => void;
-  label: string;
-  testid: string;
-}) {
-  return (
-    <select className="lang-select" data-testid={testid} aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-      {set.languages.filter((l) => canTarget(source, l.code)).map((l) => (
-        <option key={l.code} value={l.code}>
-          {l.nativeName}
-          {l.quality === "experimental" ? "（實驗性）" : ""}
-        </option>
-      ))}
     </select>
   );
 }
@@ -97,15 +73,22 @@ function RowDetect({ found, row, unavailable, onSwitch }: {
 }
 
 export function AddDialog({ backend, languages, initial, onClose, onAdded }: Props) {
-  const [defaultLang, setDefaultLang] = useState(languages.defaultCode);
   const [defaultSource, setDefaultSource] = useState<SourceLang>(initial[0]?.source ?? "en");
+  const [defaultLangs, setDefaultLangs] = useState<readonly string[]>(() =>
+    targetsFor(languages, initial[0]?.source ?? "en", initial[0]?.langs ?? [languages.defaultCode]),
+  );
   const [seq, setSeq] = useState(initial.length);
   const [rows, setRows] = useState<readonly Row[]>(() => initial.map((e, i) => ({ ...e, key: `r${i}` })));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<readonly Skipped[]>([]);
 
-  const notes = [...new Set([defaultSource, ...rows.map((r) => r.source)])].flatMap((code) => SOURCE_NOTES[code] ?? []);
+  const notes = [
+    ...new Set([defaultSource, ...rows.map((r) => r.source)].flatMap((code) => SOURCE_NOTES[code] ?? [])),
+    ...(rows.some((r) => r.langs.some((code) => isExperimentalTarget(languages, r.source, code)))
+      ? [EXPERIMENTAL_HINT]
+      : []),
+  ];
 
   const append = (entries: readonly AddEntry[]) => {
     setRows((r) => {
@@ -116,7 +99,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
     setSeq((n) => n + entries.length);
   };
   const patch = (key: string, p: Partial<Row>) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...p } : x)));
-  const setSource = (row: Row, source: SourceLang) => patch(row.key, { source, lang: targetFor(source, row.lang, languages), touched: true });
+  const setSource = (row: Row, source: SourceLang) => patch(row.key, { source, langs: targetsFor(languages, source, row.langs), touched: true });
 
   const found = useDetections(
     backend,
@@ -133,18 +116,18 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
         const code = preselect(guess, row.touched === true, languages.unavailable);
         if (code === null || code === row.source) return row;
         changed = true;
-        return { ...row, source: code, lang: targetFor(code, row.lang, languages) };
+        return { ...row, source: code, langs: targetsFor(languages, code, row.langs) };
       });
       return changed ? next : current;
     });
   }, [found, languages]);
 
   async function addFiles() {
-    append((await pickVideos()).map((path) => ({ path, lang: defaultLang, source: defaultSource })));
+    append((await pickVideos()).map((path) => ({ path, langs: defaultLangs, source: defaultSource })));
   }
   async function addFolder() {
     const path = await pickFolder();
-    if (path) append([{ path, lang: defaultLang, source: defaultSource, folder: { recursive: true } }]);
+    if (path) append([{ path, langs: defaultLangs, source: defaultSource, folder: { recursive: true } }]);
   }
   async function submit() {
     setBusy(true);
@@ -193,7 +176,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
               unavailable={languages.unavailable}
               onChange={(source) => {
                 setDefaultSource(source);
-                setDefaultLang((l) => targetFor(source, l, languages));
+                setDefaultLangs((l) => targetsFor(languages, source, l));
               }}
               label="預設影片語言"
               testid="add-default-source"
@@ -201,13 +184,19 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
           </label>
           <label className="add-lang">
             <span>字幕語言</span>
-            <LangSelect value={defaultLang} set={languages} source={defaultSource} onChange={setDefaultLang} label="預設字幕語言" testid="add-default-lang" />
+            <TargetChoice
+              targets={targetsOf(languages, defaultSource)}
+              value={defaultLangs}
+              onChange={setDefaultLangs}
+              label="預設字幕語言"
+              testid="add-default-lang"
+            />
           </label>
           <button
             type="button"
             data-testid="add-apply-all"
             disabled={rows.length === 0}
-            onClick={() => setRows((r) => r.map((x) => ({ ...x, lang: defaultLang, source: defaultSource, touched: true })))}
+            onClick={() => setRows((r) => r.map((x) => ({ ...x, langs: defaultLangs, source: defaultSource, touched: true })))}
           >
             套用到全部
           </button>
@@ -246,8 +235,13 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                   label="影片語言"
                   testid="add-row-source"
                 />
-                <LangSelect value={row.lang} set={languages} source={row.source} onChange={(lang) => patch(row.key, { lang })} label="字幕語言" testid="add-row-lang" />
-                {isExperimental(row.lang, languages.languages) && <span className="chip-exp">實驗性</span>}
+                <TargetChoice
+                  targets={targetsOf(languages, row.source)}
+                  value={row.langs}
+                  onChange={(langs) => patch(row.key, { langs })}
+                  label="字幕語言"
+                  testid="add-row-lang"
+                />
                 <button
                   type="button"
                   className="ghost icon-button"

@@ -69,7 +69,8 @@ const check = (name, ok, detail) => {
 // the side panel head is 17.5 px too narrow for its tabs and the export button on main (padding only, the label stays); the queue badge must not add to it
 const EXPORT_CUT = 18;
 const BOX = { 1280: 130, 960: 66 };
-const BOX_HOME = { en: { 1280: 700, 960: 520 }, ja: { 1280: 700, 960: 520 }, "ja+en": { 1280: 640, 960: 460 } };
+// P26b added the subtitle language picker to the toolbar, about 100 px
+const BOX_HOME = { en: { 1280: 620, 960: 490 }, ja: { 1280: 620, 960: 490 }, "ja+en": { 1280: 600, 960: 420 } };
 const waitPlayer = async () => {
   await p.waitForSelector(`${tid("cue-list")} li`, { timeout: 60000 });
   await p.evaluate(() => document.querySelector("video")?.pause());

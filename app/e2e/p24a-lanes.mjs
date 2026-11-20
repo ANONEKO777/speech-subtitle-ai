@@ -166,8 +166,18 @@ const fileBoxChecks = async (label, min) => {
   return out;
 };
 const PLAYER_BOX = { 1280: 130, 960: 66 };
-const HOME_BOX = { 1280: 780, 960: 590 };
-const HOME_BOX_MIXED = { 1280: 700, 960: 520 };
+// P26b added the subtitle language picker (92 px and a gap) to the toolbar: English measures 631 and 501 px now
+const HOME_BOX = { 1280: 620, 960: 490 };
+/** The language codes the target control of add-dialog row `i` offers: opens it, reads the checkboxes, closes it. */
+async function targetOptions(p, i) {
+  const button = p.locator('[data-testid="add-row-lang"]').nth(i);
+  await button.click();
+  const codes = await p.locator('[data-testid="add-row-lang-list"] input').evaluateAll((els) => els.map((e) => e.dataset.testid.replace("add-row-lang-", "")));
+  await p.keyboard.press("Escape");
+  return codes;
+}
+
+const HOME_BOX_MIXED = { 1280: 600, 960: 420 };
 const MIXED_NOTE = "日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。";
 
 const folderOf = (needle) => {
@@ -697,9 +707,9 @@ try {
     const sources0 = await p.locator(tid("add-row-source")).evaluateAll((els) => els.map((e) => e.value));
     await p.locator(tid("add-row-source")).nth(0).selectOption("ja");
     const sources = await p.locator(tid("add-row-source")).evaluateAll((els) => els.map((e) => e.value));
-    const targets = await p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => ({ value: e.value, options: [...e.options].map((o) => o.value) })));
+    const targets = [{ options: await targetOptions(p, 0) }, { options: await targetOptions(p, 1) }];
     const noteShown = await p.locator(tid("add-source-note")).count();
-    note("add dialog per item video language", sources0.join() === "en,en" && sources.join() === "ja,en" && targets[0].options.join() === "zh-TW" && targets[1].options.length > 3 && noteShown === 1, `before ${sources0.join()}, after ${sources.join()}; row 1 targets ${targets[0].options.join()}; row 2 has ${targets[1].options.length} targets; note shown ${noteShown}`);
+    note("add dialog per item video language", sources0.join() === "en,en" && sources.join() === "ja,en" && targets[0].options.join() === "zh-TW,zh-CN,en,ko" && targets[1].options.length > 3 && noteShown === 1, `before ${sources0.join()}, after ${sources.join()}; row 1 targets ${targets[0].options.join()}; row 2 has ${targets[1].options.length} targets; note shown ${noteShown}`);
     await review("queue-add-dialog", "佇列：加入對話框，每個項目可選影片語言");
     const sent = [];
     p.on("request", (r) => { if (r.method() === "POST" && r.url().endsWith("/api/queue/items")) sent.push(r.postData()); });
@@ -779,7 +789,7 @@ try {
     await p.waitForSelector(tid("add-dialog"));
     await p.locator(tid("add-row-source")).nth(0).selectOption("ja+en");
     const sources = await p.locator(tid("add-row-source")).evaluateAll((els) => els.map((e) => e.value));
-    const targets = await p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => [...e.options].map((o) => o.value)));
+    const targets = [await targetOptions(p, 0), await targetOptions(p, 1)];
     const noteText = await p.textContent(tid("add-source-note"));
     const optionTexts = await p.locator(`${tid("add-row-source")} >> nth=0`).evaluate((e) => [...e.options].map((o) => o.textContent));
     note("add dialog offers the mixed choice per item", sources.join() === "ja+en,en" && targets[0].join() === "zh-TW" && targets[1].length > 3 && noteText.includes("24 GB") && optionTexts.length === 3, `sources ${sources.join()}; row 1 targets ${targets[0].join()}; row 2 has ${targets[1].length}; note "${noteText}"; options ${optionTexts.join()}`);

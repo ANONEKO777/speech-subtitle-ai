@@ -115,7 +115,9 @@ describe("the import box tells the window its path as it changes", () => {
   it("reports every change, trimmed, and an empty path when the box is imported", () => {
     const onPath = vi.fn();
     const onImport = vi.fn();
-    render(<ImportPanel busy={false} sourceLang="en" unavailable={{}} onSourceLang={() => undefined} withPicker onImport={onImport} onPath={onPath} />);
+    render(
+      <ImportPanel busy={false} sourceLang="en" unavailable={{}} onSourceLang={() => undefined} targets={[]} target="zh-TW" onTarget={() => undefined} withPicker onImport={onImport} onPath={onPath} />,
+    );
     expect(onPath).toHaveBeenLastCalledWith("");
     const box = screen.getByTestId("video-path");
     fireEvent.change(box, { target: { value: '"D:\talks\talk.mp4"' } });

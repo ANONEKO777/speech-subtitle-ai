@@ -1,11 +1,14 @@
 import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDetection, preselect } from "./api/detect";
+import { planImport } from "./api/importPlan";
 import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
+import { EXPERIMENTAL_HINT, isExperimentalTarget, targetFor, targetName, targetsOf } from "./api/targets";
 import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
 import {
   ApiError,
   type Backend,
+  type CueFailures,
   type LanguageInfo,
   type LanguageSet,
   cancelJob,
@@ -50,7 +53,16 @@ import { KEY, parseSettings } from "./settings/settings";
 type Screen =
   | { readonly kind: "idle"; readonly error?: string }
   | { readonly kind: "settings" }
-  | { readonly kind: "importing"; readonly videoPath: string; readonly projectId: string; readonly jobId: string }
+  | {
+      readonly kind: "importing";
+      readonly videoPath: string;
+      readonly projectId: string;
+      readonly jobId: string;
+      /** The language the run translates into, or null for the one the project already had. */
+      readonly target: string | null;
+      /** The project already has its speech steps, so the run only translates again. */
+      readonly addsTarget: boolean;
+    }
   | {
       readonly kind: "playing";
       readonly videoPath: string;
@@ -59,6 +71,8 @@ type Screen =
       /** The languages the project has a finished translation for. */
       readonly languages: readonly LanguageInfo[];
       readonly lang: string;
+      /** The cues each language's translation could not do. */
+      readonly failedCues: Readonly<Record<string, CueFailures>>;
       readonly loaded: Loaded;
       readonly playback: Playback;
       readonly notice: string | null;
@@ -81,11 +95,14 @@ const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), p
 function Importing({
   backend,
   screen,
+  targetLabel,
   onDone,
   onStop,
 }: {
   backend: Backend;
   screen: Extract<Screen, { kind: "importing" }>;
+  /** The name of the language the run translates into. */
+  targetLabel: string;
   onDone: (edits: EditsReport) => void;
   onStop: (error?: string) => void;
 }) {
@@ -108,7 +125,7 @@ function Importing({
             <span className="path">{screen.videoPath}</span>
           </div>
         </div>
-        <ProgressBar view={view} />
+        <ProgressBar view={view} target={targetLabel} addsTarget={screen.addsTarget} />
         <button type="button" className="ghost" onClick={() => void cancelJob(backend, screen.jobId)}>
           <X className="icon" aria-hidden />
           取消
@@ -127,10 +144,12 @@ export function App() {
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
   const [sourceLang, setSourceLang] = useState<SourceLang>(DEFAULT_SOURCE);
+  const [wantedTarget, setWantedTarget] = useState("zh-TW");
   const [typedPath, setTypedPath] = useState("");
   const pickedByHand = useRef(false);
   const preselectedFor = useRef("");
-  const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [], unavailable: {} });
+  const [languageSet, setLanguageSet] = useState<LanguageSet>({ defaultCode: "zh-TW", languages: [], unavailable: {}, targets: {} });
+  const target = targetFor(languageSet, sourceLang, wantedTarget);
   const [adding, setAdding] = useState<readonly AddEntry[] | null>(null);
   const [batchRequest, setBatchRequest] = useState(0);
   const { toast, show: showToast, hide: hideToast } = useToast(9000);
@@ -180,7 +199,18 @@ export function App() {
       ]);
       const languages = project.translatedLangs.flatMap((code) => known.filter((l) => l.code === code));
       const lang = prefer !== null && languages.some((l) => l.code === prefer) ? prefer : languages.some((l) => l.code === project.activeLang) ? project.activeLang : (languages[0]?.code ?? project.activeLang);
-      setScreen({ kind: "playing", videoPath, projectId, sourceLang: project.sourceLang, languages, lang, loaded: await load(b, projectId, lang), playback, notice });
+      setScreen({
+        kind: "playing",
+        videoPath,
+        projectId,
+        sourceLang: project.sourceLang,
+        languages,
+        lang,
+        failedCues: project.failedCues,
+        loaded: await load(b, projectId, lang),
+        playback,
+        notice,
+      });
       setQueue((q) => playing(q, projectId));
     },
     [load],
@@ -200,25 +230,39 @@ export function App() {
   );
 
   const startImport = useCallback(
-    async (videoPath: string, prefer: string | null = null, chosen: SourceLang | null = null) => {
+    async (videoPath: string, prefer: string | null = null, chosen: SourceLang | null = null, wanted: string | null = null) => {
       if (!backend) return;
       pickedByHand.current = false;
       try {
         await allowVideo(videoPath);
         const project = await createProject(backend, videoPath);
-        if (project.translated && project.activeJob === null) {
+        const plan = planImport(project, chosen, wanted, languageSet);
+        if (plan.kind === "play") {
           const differs = chosen !== null && chosen !== project.sourceLang;
           const notice = differs ? `這部影片先前以${sourceLabel(project.sourceLang)}處理，已直接播放` : null;
-          await show(backend, videoPath, project.id, notice, prefer);
+          await show(backend, videoPath, project.id, notice, prefer ?? plan.prefer);
           return;
         }
-        const jobId = project.activeJob ?? (await startJob(backend, project.id, chosen ?? project.sourceLang));
-        setScreen({ kind: "importing", videoPath, projectId: project.id, jobId });
+        const jobId = project.activeJob ?? (await startJob(backend, project.id, plan.source, plan.target));
+        setScreen({ kind: "importing", videoPath, projectId: project.id, jobId, target: plan.target, addsTarget: plan.addsTarget });
       } catch (e) {
         setScreen({ kind: "idle", error: e instanceof ApiError ? e.message : message(e) });
       }
     },
-    [backend, show],
+    [backend, show, languageSet],
+  );
+
+  const addTarget = useCallback(
+    async (code: string) => {
+      if (!backend || screen.kind !== "playing") return;
+      try {
+        const jobId = await startJob(backend, screen.projectId, screen.sourceLang, code);
+        setScreen({ kind: "importing", videoPath: screen.videoPath, projectId: screen.projectId, jobId, target: code, addsTarget: true });
+      } catch (e) {
+        setScreen({ ...screen, notice: `無法新增字幕語言：${e instanceof ApiError ? e.message : message(e)}` });
+      }
+    },
+    [backend, screen],
   );
 
   const chooseSource = useCallback((code: SourceLang) => {
@@ -262,13 +306,13 @@ export function App() {
     void watchDrops(
       (paths) => {
         const [first] = paths;
-        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first, null, sourceLang);
-        else if (paths.length > 0) setAdding(rowsFor(paths, languageSet.defaultCode, sourceLang));
+        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first, null, sourceLang, target);
+        else if (paths.length > 0) setAdding(rowsFor(paths, [target], sourceLang));
       },
       setDropping,
     ).then((s) => (stop = s));
     return () => stop?.();
-  }, [backend, startImport, languageSet.defaultCode, sourceLang]);
+  }, [backend, startImport, target, sourceLang]);
 
   const playItem = useCallback((item: LibraryItem) => void startImport(item.videoPath), [startImport]);
   const stepVideo = useCallback(
@@ -294,6 +338,14 @@ export function App() {
     />
   );
 
+  const experimentalPick = screen.kind !== "playing" && isExperimentalTarget(languageSet, sourceLang, target);
+  const playingScreen = screen.kind === "playing" ? screen : null;
+  const experimental = new Set(
+    playingScreen?.languages.filter((l) => isExperimentalTarget(languageSet, playingScreen.sourceLang, l.code)).map((l) => l.code),
+  );
+  const addable = playingScreen
+    ? targetsOf(languageSet, playingScreen.sourceLang).filter((t) => !playingScreen.languages.some((l) => l.code === t.code))
+    : [];
   const total = overall(batch.items);
   const badge = batch.items.length > 0 ? `${total.finished}/${total.total}` : null;
   const openItem = useCallback((item: BatchItem) => void startImport(item.videoPath, item.lang), [startImport]);
@@ -329,7 +381,7 @@ export function App() {
   const finishImport = useCallback(
     (edits: EditsReport) => {
       if (backend && importing) {
-        show(backend, importing.videoPath, importing.projectId, editsNotice(edits)).catch((e: unknown) =>
+        show(backend, importing.videoPath, importing.projectId, editsNotice(edits), importing.target).catch((e: unknown) =>
           setScreen({ kind: "idle", error: message(e) }),
         );
       }
@@ -413,20 +465,28 @@ export function App() {
             sourceLang={sourceLang}
             unavailable={languageSet.unavailable}
             onSourceLang={chooseSource}
+            targets={targetsOf(languageSet, sourceLang)}
+            target={target}
+            onTarget={setWantedTarget}
             withPicker={screen.kind !== "playing"}
-            onImport={(p) => void startImport(p, null, sourceLang)}
+            onImport={(p) => void startImport(p, null, sourceLang, target)}
             onPath={setTypedPath}
           />
           {screen.kind === "playing" && (
             <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
           )}
         </header>
-        {(SOURCE_NOTES[sourceLang] || hasDetectNote(found)) && (
+        {(SOURCE_NOTES[sourceLang] || hasDetectNote(found) || experimentalPick) && (
           <div className="source-bar">
             {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={chooseSource} />}
             {SOURCE_NOTES[sourceLang] && (
               <p className="source-note" data-testid="source-note">
                 {SOURCE_NOTES[sourceLang]}
+              </p>
+            )}
+            {experimentalPick && (
+              <p className="source-note" data-testid="target-hint">
+                {EXPERIMENTAL_HINT}
               </p>
             )}
             <DetectNote found={found} picked={sourceLang} unavailable={languageSet.unavailable} onSwitch={chooseSource} />
@@ -478,7 +538,13 @@ export function App() {
           </p>
         )}
         {backend && importing && (
-          <Importing backend={backend} screen={importing} onDone={finishImport} onStop={stopImport} />
+          <Importing
+            backend={backend}
+            screen={importing}
+            targetLabel={shortName(targetName(languageSet, sourceLang, importing.target ?? languageSet.defaultCode))}
+            onDone={finishImport}
+            onStop={stopImport}
+          />
         )}
         {backend && screen.kind === "playing" && (
           <Player
@@ -490,6 +556,10 @@ export function App() {
             languages={screen.languages}
             lang={screen.lang}
             onLang={(code) => void showLang(code)}
+            experimental={experimental}
+            addable={addable}
+            onAddTarget={(code) => void addTarget(code)}
+            failures={screen.failedCues[screen.lang]}
             loaded={screen.loaded}
             notice={screen.notice}
             playback={screen.playback}

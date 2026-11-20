@@ -2539,3 +2539,170 @@ kbd {
 :lang(ja) {
   font-family: "Yu Gothic UI", "Yu Gothic", "Meiryo UI", "Meiryo", "MS Gothic", var(--font-sans);
 }
+
+/* the language the subtitles are translated into: a picker beside the video language picker */
+.target-pick select {
+  width: 92px;
+}
+
+.target-pick select[data-experimental="true"] {
+  width: 128px;
+}
+
+.progress-note {
+  margin: 0;
+  color: var(--on-accent-light);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.steps li[data-kept="true"] {
+  opacity: 0.6;
+}
+
+/* several target languages for one video in the add dialog */
+.target-choice {
+  position: relative;
+}
+
+.target-choice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  width: auto;
+  min-width: 112px;
+  cursor: pointer;
+}
+
+.target-choice-button:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.target-choice-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-1));
+  z-index: 6;
+  display: grid;
+  gap: 1px;
+  min-width: 168px;
+  padding: var(--space-1);
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+}
+
+.target-choice-list label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.target-choice-list label:hover {
+  background: var(--hover);
+}
+
+/* the project view: adding a language, and the cues a translation could not do */
+.menu-note {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  max-width: 240px;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.add-target-list button {
+  gap: var(--space-2);
+}
+
+.failed-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.failed-note .icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  color: var(--danger);
+}
+
+.failed-note span {
+  flex: 1;
+  min-width: 0;
+}
+
+.failed-note button {
+  flex: none;
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.cues .failed-mark {
+  display: inline-flex;
+  color: var(--danger);
+}
+
+.cues .failed-mark .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.cues li[data-failed] > button {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+
+.cues .zh.missing {
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+/* the targets of one video sit together: the later ones show the name softer */
+.batch-row[data-next-target="true"] .batch-name {
+  opacity: 0.55;
+}
+
+/* the languages of the project sit on a row of their own, so the tabs, undo and export keep the room they had */
+.side-langs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.side-langs .lang-select {
+  width: auto;
+  min-width: 128px;
+  max-width: 190px;
+  flex: 0 1 auto;
+}
+
+.side-langs .menu-list {
+  left: 0;
+  right: auto;
+}

@@ -8,10 +8,16 @@ export const STEP_LABEL: Record<Step, string> = {
   vad: "偵測語音",
   asr: "語音辨識",
   segment: "斷句",
-  translate: "翻譯成繁體中文",
+  translate: "翻譯",
   export: "輸出字幕",
   summarize: "重點摘要",
 };
+
+/** The name of a step for a run that translates into `target`: 翻譯成繁體中文, 翻譯成English. */
+export const stepLabel = (step: Step, target: string): string => (step === "translate" ? `翻譯成${target}` : STEP_LABEL[step]);
+
+/** The steps a run that only adds a language redoes. The speech steps are kept from the first run. */
+export const ADD_TARGET_STEPS: readonly Step[] = ["translate", "export", "summarize"];
 
 export type JobView =
   | { readonly kind: "waiting" }

@@ -77,18 +77,34 @@ await p.waitForSelector(tid("add-dialog"));
 const dropped = await p.locator(tid("add-row")).count();
 note("3 drop of several files", dropped === 4, `${dropped} rows in the add dialog`);
 
-// 4 languages: default, apply to all, per item, experimental label
-const langOptions = await p.locator(tid("add-default-lang") + " option").allInnerTexts();
-await p.selectOption(tid("add-default-lang"), "ja");
+// 4 languages: default, apply to all, per item, experimental label. A row holds a set of targets, so a pick is the set of its checkboxes.
+const setTargets = async (control, codes) => {
+  await control.click();
+  const list = p.locator(tid("add-row-lang-list") + ", " + tid("add-default-lang-list")).first();
+  for (const want of [true, false]) {
+    for (const input of await list.locator("input").all()) {
+      const code = (await input.getAttribute("data-testid")).replace(/^add-(row|default)-lang-/, "");
+      if (codes.includes(code) === want && (await input.isChecked()) !== want) await input.click();
+    }
+  }
+  await p.keyboard.press("Escape");
+};
+const rowCodes = () => p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => e.dataset.codes));
+await p.locator(tid("add-default-lang")).click();
+const langOptions = await p.locator(tid("add-default-lang-list") + " label").allInnerTexts();
+await p.keyboard.press("Escape");
+await setTargets(p.locator(tid("add-default-lang")), ["ja"]);
 await p.click(tid("add-apply-all"));
-const allJa = (await p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => e.value))).every((v) => v === "ja");
-await p.locator(tid("add-row-lang")).nth(0).selectOption("zh-TW");
-await p.locator(tid("add-row-lang")).nth(3).selectOption("zh-TW");
-await p.locator(tid("add-row-lang")).nth(1).selectOption("ko");
-const exp = await p.locator(".chip-exp").count();
+const allJa = (await rowCodes()).every((v) => v === "ja");
+await setTargets(p.locator(tid("add-row-lang")).nth(0), ["zh-TW"]);
+await setTargets(p.locator(tid("add-row-lang")).nth(3), ["zh-TW"]);
+await setTargets(p.locator(tid("add-row-lang")).nth(1), ["ko"]);
+await p.locator(tid("add-row-lang")).nth(1).click();
+const exp = await p.locator(tid("add-row-lang-list") + " .chip-exp").count();
+await p.keyboard.press("Escape");
 await app.shot("02-add-dialog-ko.png");
-await p.locator(tid("add-row-lang")).nth(1).selectOption("ja");
-const values = await p.locator(tid("add-row-lang")).evaluateAll((els) => els.map((e) => e.value));
+await setTargets(p.locator(tid("add-row-lang")).nth(1), ["ja"]);
+const values = await rowCodes();
 note("4 languages", allJa && exp === 1 && values.join() === "zh-TW,ja,ja,zh-TW" && langOptions.some((o) => o.includes("實驗性")), `apply-all gave all ja; experimental chip shown once for ko; final ${values.join()}; ${langOptions.filter((o) => o.includes("實驗性")).length} options labeled`);
 await app.shot("02-add-dialog.png");
 await p.click(tid("add-submit"));

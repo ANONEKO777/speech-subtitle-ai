@@ -202,13 +202,15 @@ export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }
         </p>
       ) : (
         <ul className="batch-list" ref={list} data-testid="batch-list" data-dragging={drag !== null}>
-          {shown.map((id) => {
+          {shown.map((id, at) => {
             const item = byId.get(id);
             if (!item) return null;
+            const before = byId.get(shown[at - 1] ?? "");
             return (
               <Row
                 key={id}
                 item={item}
+                nextTarget={before !== undefined && before.videoPath === item.videoPath && before.sourceLang === item.sourceLang}
                 languages={languages}
                 dragging={drag?.id === id}
                 canDrag={item.state === "queued" || item.state === "paused"}
@@ -228,6 +230,8 @@ export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }
 
 interface RowProps {
   readonly item: BatchItem;
+  /** The row above is the same video in another language, so this is one more target of it. */
+  readonly nextTarget: boolean;
   readonly languages: readonly LanguageInfo[];
   readonly dragging: boolean;
   readonly canDrag: boolean;
@@ -245,7 +249,7 @@ const ACTION = {
   remove: { label: "移除", icon: Trash2 },
 } as const;
 
-function Row({ item, languages, dragging, canDrag, onOpen, onAct, onDragStart, onNudge }: RowProps) {
+function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, onDragStart, onNudge }: RowProps) {
   const percent = Math.round(item.progress * 100);
   const stepIndex = item.step ? STEP_ORDER.indexOf(item.step) + 1 : 0;
   const detail =
@@ -257,7 +261,7 @@ function Row({ item, languages, dragging, canDrag, onOpen, onAct, onDragStart, o
         ? "等待續跑"
         : "";
   return (
-    <li className="batch-row" data-row-id={item.id} data-testid={`qrow-${item.id}`} data-state={item.state} data-dragging={dragging}>
+    <li className="batch-row" data-row-id={item.id} data-testid={`qrow-${item.id}`} data-state={item.state} data-next-target={nextTarget} data-dragging={dragging}>
       <button
         type="button"
         className="ghost icon-button drag-handle"
