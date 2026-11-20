@@ -20,24 +20,37 @@ interface TargetProps {
   readonly onTarget: (code: string) => void;
 }
 
-/** The language the subtitles are translated into. One the backend has not judged says so in its option. */
+const targetText = (t: Target) => `${shortName(t.nativeName)}${t.experimental ? `（${EXPERIMENTAL}）` : ""}`;
+
+/**
+ * The language the subtitles are translated into. One the backend has not judged says so in its option.
+ * A video language with one target only (a mixed talk) has nothing to pick, so it shows the name as text and gives the room back to the path box.
+ */
 export function TargetPick({ busy, targets, target, onTarget }: TargetProps) {
-  const experimental = targets.find((t) => t.code === target)?.experimental === true;
+  const chosen = targets.find((t) => t.code === target);
+  const experimental = chosen?.experimental === true;
+  if (targets.length < 2) {
+    return (
+      <span className="source-pick target-pick target-fixed" data-testid="target-lang" data-experimental={experimental} title="字幕要翻成的語言">
+        <span className="collapsible">字幕</span>
+        <span>{chosen ? targetText(chosen) : target}</span>
+      </span>
+    );
+  }
   return (
     <label className="source-pick target-pick" title="字幕要翻成的語言">
-      <span className="collapsible">字幕語言</span>
+      <span className="collapsible">字幕</span>
       <select
         data-testid="target-lang"
         data-experimental={experimental}
         aria-label="字幕語言"
         value={target}
-        disabled={busy || targets.length < 2}
+        disabled={busy}
         onChange={(e) => onTarget(e.target.value)}
       >
         {targets.map((t) => (
           <option key={t.code} value={t.code}>
-            {shortName(t.nativeName)}
-            {t.experimental ? `（${EXPERIMENTAL}）` : ""}
+            {targetText(t)}
           </option>
         ))}
       </select>

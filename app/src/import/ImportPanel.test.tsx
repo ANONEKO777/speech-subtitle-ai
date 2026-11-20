@@ -45,9 +45,12 @@ describe("the language of the subtitles", () => {
     expect((screen.getByTestId("target-lang") as HTMLSelectElement).dataset["experimental"]).toBe("true");
   });
 
-  it("is fixed when the video language has one target only, as a mixed talk has", () => {
+  it("is plain text when the video language has one target only, as a mixed talk has, so it takes no room for a choice", () => {
     render(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
-    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(true);
+    const fixed = screen.getByTestId("target-lang");
+    expect(fixed.tagName).toBe("SPAN");
+    expect(fixed.textContent).toContain("繁體中文");
+    expect(fixed.querySelector("select")).toBeNull();
   });
 
   it("sits in the import bar only where the video language does", () => {
