@@ -46,6 +46,15 @@ def list_languages(request: Request, ctx: Context) -> dict[str, Any]:
                 "native_name": source.native,
                 "available": reasons[source.code] is None,
                 "reason": reasons[source.code],
+                "targets": [
+                    {
+                        "code": lang.code,
+                        "name": lang.name,
+                        "native_name": lang.native,
+                        "experimental": source.experimental(lang),
+                    }
+                    for lang in source.supported_targets()
+                ],
             }
             for source in SOURCES.values()
         ],

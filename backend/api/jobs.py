@@ -65,8 +65,10 @@ class JobBody(BaseModel):
     def _source_has_target(self) -> JobBody:
         source = get_source(self.source_lang)
         if not source.supports(get_language(self.target_lang)):
-            allowed = ", ".join(sorted(source.targets or ()))
-            raise ValueError(f"{source.name} speech can be translated into {allowed} for now")
+            raise ValueError(
+                f"{source.name} speech can be translated into {source.allowed_targets()}, "
+                f"not {self.target_lang}"
+            )
         return self
 
     def options(self) -> JobOptions:

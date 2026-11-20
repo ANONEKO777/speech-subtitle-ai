@@ -13,7 +13,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.api.jobs import JobBody, event_stream
 from backend.core.jobs import JobOptions
@@ -25,16 +25,41 @@ from backend.core.source_langs import get_source
 router = APIRouter(prefix="/api/queue", tags=["queue"])
 
 
+def _known_languages(codes: list[str] | None) -> list[str] | None:
+    """The codes, each a known target language and none twice."""
+    if codes is None:
+        return None
+    known = [get_language(code).code for code in codes]
+    if not known or len(set(known)) != len(known):
+        raise ValueError("target_langs must list at least one language, each once")
+    return known
+
+
 class QueuePath(BaseModel):
+    """`target_lang` is one target. `target_langs` is several, queued one after the other in this
+    order for the same video, so the speech steps run once. At most one of the two."""
+
     model_config = ConfigDict(extra="forbid")
     path: str = Field(min_length=1)
     target_lang: str | None = None
+    target_langs: list[str] | None = None
     source_lang: str | None = None
 
     @field_validator("target_lang")
     @classmethod
     def _known_language(cls, code: str | None) -> str | None:
         return None if code is None else get_language(code).code
+
+    @field_validator("target_langs")
+    @classmethod
+    def _known_codes(cls, codes: list[str] | None) -> list[str] | None:
+        return _known_languages(codes)
+
+    @model_validator(mode="after")
+    def _one_kind_of_target(self) -> QueuePath:
+        if self.target_lang is not None and self.target_langs is not None:
+            raise ValueError("give target_lang or target_langs, not both")
+        return self
 
     @field_validator("source_lang")
     @classmethod
@@ -47,13 +72,21 @@ class QueueFolder(QueuePath):
 
 
 class AddBody(BaseModel):
-    """Videos to queue. `options` is shared by all of them, and a `target_lang` or `source_lang` on
-    an item or a folder overrides the one in `options`."""
+    """Videos to queue. `options` is shared by all of them, and a `target_lang`, `target_langs` or
+    `source_lang` on an item or a folder overrides the one in `options`. `target_langs` here is the
+    targets of every video that names none of its own. Each video gets one queue item per target,
+    the targets of a video next to each other in the order given."""
 
     model_config = ConfigDict(extra="forbid")
     items: list[QueuePath] = []
     folders: list[QueueFolder] = []
     options: JobBody = JobBody()
+    target_langs: list[str] | None = None
+
+    @field_validator("target_langs")
+    @classmethod
+    def _known_codes(cls, codes: list[str] | None) -> list[str] | None:
+        return _known_languages(codes)
 
 
 class OrderBody(BaseModel):
@@ -95,7 +128,7 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
     entries: list[tuple[Path, JobOptions]] = []
     skipped: list[dict[str, str]] = []
     for entry in body.items:
-        entries.append((Path(entry.path), _with_langs(base, entry)))
+        entries.extend((Path(entry.path), options) for options in _with_langs(base, entry, body))
     for folder in body.folders:
         try:
             found = scan_folder(Path(folder.path), folder.recursive)
@@ -105,8 +138,8 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
         except (OSError, QueueError) as exc:
             skipped.append({"path": folder.path, "reason": str(exc)})
             continue
-        options = _with_langs(base, folder)
-        entries.extend((video, options) for video in found)
+        per_target = _with_langs(base, folder, body)
+        entries.extend((video, options) for video in found for options in per_target)
     queue = queue_of(request)
     added = queue.add(entries)
     skipped.extend({"path": p, "reason": r} for p, r in added.skipped)
@@ -116,18 +149,26 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
     }
 
 
-def _with_langs(options: JobOptions, entry: QueuePath) -> JobOptions:
-    if entry.target_lang is not None:
-        options = replace(options, target_lang=entry.target_lang)
+def _with_langs(options: JobOptions, entry: QueuePath, body: AddBody) -> list[JobOptions]:
+    """The options of each target of `entry`, in order: its own, else the request's, else the one
+    in `options`. A pair the source does not support refuses the whole request."""
     if entry.source_lang is not None:
         options = replace(options, source_lang=entry.source_lang)
+    if entry.target_langs is not None:
+        targets = entry.target_langs
+    elif entry.target_lang is not None:
+        targets = [entry.target_lang]
+    else:
+        targets = body.target_langs or [options.target_lang]
     source = get_source(options.source_lang)
-    if not source.supports(get_language(options.target_lang)):
-        allowed = ", ".join(sorted(source.targets or ()))
-        raise HTTPException(
-            422, f"{source.name} speech can be translated into {allowed} for now: {entry.path}"
-        )
-    return options
+    for target in targets:
+        if not source.supports(get_language(target)):
+            raise HTTPException(
+                422,
+                f"{source.name} speech can be translated into {source.allowed_targets()}, "
+                f"not {target}: {entry.path}",
+            )
+    return [replace(options, target_lang=target) for target in targets]
 
 
 @router.put("/order")

@@ -214,9 +214,9 @@ def test_each_item_carries_its_own_source_language(client: Client, tmp_path: Pat
     assert body["added"][0]["options"]["source_lang"] == "en"
     refused = client.post(
         "/api/queue/items",
-        json={"items": [{"path": str(clip), "source_lang": "ja", "target_lang": "ko"}]},
+        json={"items": [{"path": str(clip), "source_lang": "ja", "target_lang": "es"}]},
     )
-    assert refused.status_code == 422 and "zh-TW" in refused.text
+    assert refused.status_code == 422 and "zh-TW, zh-CN, en, ko, not es" in refused.text
     unknown = client.post(
         "/api/queue/items", json={"items": [{"path": str(clip), "source_lang": "xx"}]}
     )
