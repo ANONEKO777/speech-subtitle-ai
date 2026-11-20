@@ -410,10 +410,11 @@ def render_burn_ass(
     size_ratio: float,
     color: str,
     source_font: str = "Arial",
+    target_font: str = "Microsoft JhengHei",
 ) -> str:
     """ASS for burning into a video: `mode` picks the lines, `size_ratio` is the font height as a
-    share of the picture height, `color` is `#rrggbb` and `source_font` the family of the spoken
-    language's line. A bilingual cue is one block."""
+    share of the picture height, `color` is `#rrggbb`, `source_font` the family of the spoken
+    language's line and `target_font` that of the translation. A bilingual cue is one block."""
     height = _BURN_RES[1]
     rgb = color.removeprefix("#")
     primary = f"&H00{rgb[4:6]}{rgb[2:4]}{rgb[0:2]}".upper()
@@ -437,7 +438,7 @@ def render_burn_ass(
         f"[Script Info]\nScriptType: v4.00+\nPlayResX: {_BURN_RES[0]}\nPlayResY: {height}\n"
         "WrapStyle: 0\nScaledBorderAndShadow: yes\n\n"
         f"[V4+ Styles]\nFormat: {_ASS_STYLE_FIELDS}\n"
-        f"Style: Zh,Microsoft JhengHei,{size},{tail}\n"
+        f"Style: Zh,{target_font},{size},{tail}\n"
         f"Style: En,{source_font},{size},{tail}\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"

@@ -127,6 +127,7 @@ class SubtitleLook:
     size_ratio: float
     color: str
     source_font: str = "Arial"
+    target_font: str = "Microsoft JhengHei"
 
 
 def _ass_file(
@@ -140,6 +141,7 @@ def _ass_file(
         size_ratio=look.size_ratio,
         color=look.color,
         source_font=look.source_font,
+        target_font=look.target_font,
     )
     write_text_file(folder / "sub.ass", text)
 
