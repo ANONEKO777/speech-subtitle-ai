@@ -53,6 +53,33 @@ describe("the language of the subtitles", () => {
     expect(fixed.querySelector("select")).toBeNull();
   });
 
+  it("says as plain text that the only target is not yet judged, and the name it has", () => {
+    const only = targets[2];
+    if (!only) throw new Error("fixture");
+    const { rerender } = render(<TargetPick busy={false} targets={[only]} target="ko" onTarget={() => undefined} />);
+    expect(screen.getByTestId("target-lang").dataset["experimental"]).toBe("true");
+    expect(screen.getByTestId("target-lang").textContent).toContain("（實驗性）");
+    rerender(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    expect(screen.getByTestId("target-lang").dataset["experimental"]).toBe("false");
+    expect(screen.getByTestId("target-lang").textContent).not.toContain("實驗性");
+  });
+
+  it("cannot be changed while a job runs", () => {
+    const { rerender } = render(<TargetPick busy targets={targets} target="en" onTarget={() => undefined} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(true);
+    rerender(<TargetPick busy={false} targets={targets} target="en" onTarget={() => undefined} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(false);
+  });
+
+  it("is labelled with the short word 字幕, as a select and as plain text", () => {
+    const { rerender } = render(<TargetPick busy={false} targets={targets} target="en" onTarget={() => undefined} />);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕")).toBe(true);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕語言")).toBe(false);
+    rerender(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕")).toBe(true);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕語言")).toBe(false);
+  });
+
   it("sits in the import bar only where the video language does", () => {
     const props = { busy: false, sourceLang: "ja" as const, unavailable: {}, onSourceLang: () => undefined, targets, target: "en", onTarget: () => undefined, onImport: () => undefined, onPath: () => undefined };
     const { rerender } = render(<ImportPanel {...props} withPicker />);

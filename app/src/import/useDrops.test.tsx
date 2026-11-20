@@ -5,14 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 type Drop = (paths: string[]) => void;
 interface Listener {
   readonly drop: Drop;
+  readonly over: (over: boolean) => void;
   stopped: boolean;
 }
 const made: Listener[] = [];
 let gate: Promise<void> | null = null;
 
 vi.mock("../api/backend", () => ({
-  watchDrops: async (drop: Drop) => {
-    const listener: Listener = { drop, stopped: false };
+  watchDrops: async (drop: Drop, over: (over: boolean) => void) => {
+    const listener: Listener = { drop, over, stopped: false };
     made.push(listener);
     if (gate) await gate;
     return () => {
@@ -57,6 +58,23 @@ describe("the window's file drop", () => {
     await flush();
     expect(made).toHaveLength(1);
     expect(made[0]?.stopped).toBe(true);
+  });
+
+  it("stops listening when the window goes after the listener was made", async () => {
+    const { unmount } = renderHook(() => useDrops(true, () => undefined, () => undefined));
+    await flush();
+    expect(made[0]?.stopped).toBe(false);
+    unmount();
+    expect(made[0]?.stopped).toBe(true);
+  });
+
+  it("tells the window when a drag is over it and when it leaves", async () => {
+    const over = vi.fn();
+    renderHook(() => useDrops(true, () => undefined, over));
+    await flush();
+    made[0]?.over(true);
+    made[0]?.over(false);
+    expect(over.mock.calls).toEqual([[true], [false]]);
   });
 
   it("listens to nothing while it is not enabled", async () => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EXPERIMENTAL_HINT } from "../api/targets";
 import { SourceBar } from "./SourceBar";
 
@@ -23,5 +23,14 @@ describe("the line under the toolbar", () => {
     render(<SourceBar {...base} sourceLang="ja+en" experimentalPick />);
     expect(screen.getByTestId("source-note")).toBeTruthy();
     expect(screen.getByTestId("target-hint")).toBeTruthy();
+  });
+
+  it("holds the video language picker in the player, where the toolbar has no room for it, and nowhere else", () => {
+    const onSourceLang = vi.fn();
+    const { rerender } = render(<SourceBar {...base} playing sourceLang="ja" onSourceLang={onSourceLang} />);
+    fireEvent.change(screen.getByTestId("source-lang"), { target: { value: "en" } });
+    expect(onSourceLang).toHaveBeenCalledWith("en");
+    rerender(<SourceBar {...base} playing={false} sourceLang="ja" onSourceLang={onSourceLang} />);
+    expect(screen.queryByTestId("source-lang")).toBeNull();
   });
 });
