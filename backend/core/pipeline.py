@@ -112,9 +112,8 @@ class Settings:
     def __post_init__(self) -> None:
         source = get_source(self.source_lang)
         if not source.supports(self.lang):
-            allowed = ", ".join(sorted(source.targets or ()))
             raise ValueError(
-                f"{source.name} speech can be translated into {allowed} for now, "
+                f"{source.name} speech can be translated into {source.allowed_targets()}, "
                 f"not {self.target_lang}"
             )
 
@@ -136,8 +135,10 @@ class Settings:
 
     @property
     def summary_langs(self) -> tuple[str, ...]:
-        """The summaries to write: one in the target language, and one in English when asked."""
-        return (self.target_lang, ENGLISH) if self.summary_en else (self.target_lang,)
+        """The summaries to write: one in the target language, and one in English when asked and
+        the target is not English already."""
+        both = self.summary_en and self.target_lang != ENGLISH
+        return (self.target_lang, ENGLISH) if both else (self.target_lang,)
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +183,11 @@ class RunReport:
     edits_kept: int = 0
     edits_unmatched: int = 0
     summary_degraded: bool = False
+    failed_cues: tuple[int, ...] = ()
+    """Cues of this run's translation that failed every attempt and have no translation, or keep
+    their source text, as the route of the source says. A cached translation reports none."""
+    english_cues: tuple[int, ...] = ()
+    """Cues that failed every attempt in the target language and show their English instead."""
 
     @property
     def ran(self) -> tuple[Step, ...]:
@@ -205,6 +211,11 @@ class RunReport:
             )
         if self.summary_degraded:
             rows.append("summary degraded: it failed the language check and was kept anyway")
+        if self.failed_cues or self.english_cues:
+            rows.append(
+                f"{len(self.failed_cues)} cues failed every attempt, "
+                f"{len(self.english_cues)} of them show their English"
+            )
         return "\n".join(rows)
 
 
@@ -221,6 +232,7 @@ class _Ctx:
     report: Callable[[Step, float, str], None]
     llm: Callable[[], LlmSession]
     notes: dict[str, int]
+    failures: list[translate.Failure]
 
     def path(self, name: str) -> Path:
         return self.dir / name
@@ -287,6 +299,7 @@ def _translate(ctx: _Ctx) -> None:
         keep_english=True,
         lang=ctx.settings.lang,
         source_lang=ctx.settings.source,
+        on_failure=ctx.failures.append,
     )
     kept = cue_edits.reapply(ctx.dir, ctx.settings.lang)
     ctx.notes["edits_kept"] = kept.kept
@@ -315,7 +328,7 @@ def _summarize(ctx: _Ctx) -> None:
         ctx.llm().summarize,
         ctx.settings.summary_langs,
         ctx.settings.glossary,
-        source_lang=ctx.settings.source,
+        source_lang=ctx.settings.source.toward(ctx.settings.lang),
         on_progress=lambda p: ctx.progress(p.done / max(p.total, 1), p.stage),
         on_degraded=lambda lang: ctx.notes.update(summary_degraded=1),
     )
@@ -334,7 +347,7 @@ def _translate_prompt_digest(code: str, source: str) -> str:
     """The digest of the translation prompt for talks in `source` as `code` sees it, glossary left
     unfilled."""
     language = get_language(code)
-    chosen = get_source(source)
+    chosen = get_source(source).toward(language)
     text = "".join(
         translate.system_prompt_template(language, member)
         + (repr(member.terms) if member.terms else "")
@@ -342,6 +355,17 @@ def _translate_prompt_digest(code: str, source: str) -> str:
         for member in chosen.members or (chosen,)
     )
     return hashlib.blake2b(text.encode("utf-8"), digest_size=8).hexdigest()
+
+
+def _summary_prompt_digest(settings: Settings) -> str:
+    """The digest of the summary notes prompt of the source as it is translated into the target.
+    The marks of a target's own notes prompt are part of it."""
+    routed = settings.source.toward(settings.lang)
+    digest = _prompt_digest(routed.summary_map, "summarize_reduce.md")
+    if not routed.summary_marks:
+        return digest
+    marks = "|".join(f"{mark}={text}" for mark, text in sorted(routed.summary_marks.items()))
+    return hashlib.blake2b(f"{digest}|{marks}".encode(), digest_size=8).hexdigest()
 
 
 def _lang_key(settings: Settings) -> dict[str, str]:
@@ -474,7 +498,7 @@ STEPS: tuple[_StepSpec, ...] = (
             "llm": s.llm_identity,
             "langs": list(s.summary_langs),
             "glossary": _glossary(s),
-            "prompt": _prompt_digest(s.source.summary_map, "summarize_reduce.md"),
+            "prompt": _summary_prompt_digest(s),
             **_source_key(s),
             "map_text": hashlib.blake2b(
                 "|".join(summarize.MAP_FRAMING).encode("utf-8"), digest_size=8
@@ -645,6 +669,7 @@ def run(
     reports: list[StepReport] = []
     summary_degraded = False
     notes: dict[str, int] = {}
+    failures: list[translate.Failure] = []
     store.use_source(settings.source_lang)
     store.activate(settings.target_lang)
     keys, fresh = _plan(store, folder, settings, fingerprint)
@@ -677,7 +702,20 @@ def run(
             report(spec.step, 0.0, "")
             step_started = time.perf_counter()
             try:
-                spec.body(_Ctx(spec.step, folder, video, settings, ports, stop, report, llm, notes))
+                spec.body(
+                    _Ctx(
+                        spec.step,
+                        folder,
+                        video,
+                        settings,
+                        ports,
+                        stop,
+                        report,
+                        llm,
+                        notes,
+                        failures,
+                    )
+                )
             except BaseException as exc:
                 cancelled = stop.is_set() or isinstance(exc, KeyboardInterrupt | Cancelled)
                 store.mark(
@@ -703,4 +741,6 @@ def run(
         notes.get("edits_kept", 0),
         notes.get("edits_unmatched", 0),
         summary_degraded,
+        tuple(f.cue_id for f in failures),
+        tuple(f.cue_id for f in failures if f.english),
     )

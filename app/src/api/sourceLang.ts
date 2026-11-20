@@ -22,7 +22,8 @@ export const SOURCE_TARGETS: Readonly<Partial<Record<SourceLang, readonly string
   "ja+en": ["zh-TW"],
 };
 
-export const canTarget = (source: SourceLang, target: string): boolean => SOURCE_TARGETS[source]?.includes(target) ?? true;
+/** A language is never a target of its own speech, as in the backend (`SourceLanguage.supports`). */
+export const canTarget = (source: SourceLang, target: string): boolean => source !== target && (SOURCE_TARGETS[source]?.includes(target) ?? true);
 
 export const parseSourceLang = (value: unknown): SourceLang =>
   SOURCE_LANGS.find((l) => l.code === value)?.code ?? DEFAULT_SOURCE;

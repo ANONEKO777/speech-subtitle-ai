@@ -33,10 +33,11 @@ from backend.llm.ask import ReplyError
 from backend.llm.client import LlmConfig, Message
 from backend.main import AppConfig, create_app
 
-CODES = ["zh-TW", "zh-CN", "ja", "ko", "es", "fr", "de", "pt", "it", "ru", "vi", "th", "id"]
+CODES = ["zh-TW", "zh-CN", "en", "ja", "ko", "es", "fr", "de", "pt", "it", "ru", "vi", "th", "id"]
 SAMPLE = {
     "zh-TW": "這是翻譯過的句子，內容很清楚。",
     "zh-CN": "这是翻译过的句子，内容很清楚。",
+    "en": "This is the translated sentence and its content is quite clear.",
     "ja": "これは翻訳された文で、内容ははっきりしています。",
     "ko": "이것은 번역된 문장이고 내용이 분명합니다.",
     "es": "Esta es la frase traducida y el contenido queda muy claro.",
@@ -78,7 +79,7 @@ def keys_of(settings: Settings) -> dict[str, str]:
     return {step.value: key for step, key in keys.items()}
 
 
-def test_the_table_has_the_thirteen_languages_with_unique_names_and_files() -> None:
+def test_the_table_has_the_fourteen_languages_with_unique_names_and_files() -> None:
     assert list(LANGUAGES) == CODES
     assert DEFAULT.code == DEFAULT_CODE == "zh-TW"
     names = [name for lang in LANGUAGES.values() for name in vars_of(lang)]
@@ -111,7 +112,7 @@ def test_the_default_language_keeps_the_file_names_of_the_first_release() -> Non
 
 
 def test_an_unknown_code_names_the_ones_that_exist() -> None:
-    with pytest.raises(UnknownLanguage, match="zh-TW, zh-CN, ja"):
+    with pytest.raises(UnknownLanguage, match="zh-TW, zh-CN, en, ja"):
         get("xx")
 
 
@@ -146,7 +147,7 @@ def test_the_default_language_cache_keys_are_the_ones_main_computed() -> None:
 
 def test_the_language_reaches_exactly_translate_export_and_summarize() -> None:
     base = keys_of(SETTINGS)
-    for code in CODES[1:]:
+    for code in (c for c in CODES[1:] if c != "en"):
         other = keys_of(replace(SETTINGS, target_lang=code))
         assert {s for s in base if base[s] != other[s]} == {"translate", "export", "summarize"}
     ja, ko = (
@@ -346,7 +347,7 @@ class MultiLanguageLlm(Fakes):
 
     def lang_of(self, system: str) -> str:
         for code, lang in LANGUAGES.items():
-            if lang.prompt.target in system or lang.summary.rule in system:
+            if code != "en" and (lang.prompt.target in system or lang.summary.rule in system):
                 return code
         return "en"
 

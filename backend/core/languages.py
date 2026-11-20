@@ -27,6 +27,7 @@ from backend.core.zh_tw import (
 
 DEFAULT_CODE = "zh-TW"
 ENGLISH = "en"
+DEFAULT_FONT = "Microsoft JhengHei"
 
 TextCheck = Callable[[str, str, bool], str | None]
 """(text, english, required) -> what is wrong with a translation, or None. `required` says the
@@ -92,6 +93,11 @@ class Language:
     source_terms: Mapping[str, Callable[[str], str]]
     """Wording for the words a talk in one source language gives, by source code. It is run after
     `terms`, and a source with no entry gets `terms` only."""
+    fonts: tuple[str, ...] = (DEFAULT_FONT,)
+    """The families a burned-in subtitle may write this language in, best first. Only the first
+    family that draws every character of the text is used."""
+    bilingual: str = ""
+    """The stem of the bilingual files, when it is not `bilingual.en-<code>`."""
 
     def terms_from(self, source: str, text: str) -> str:
         """`text` with the wording this language has for a talk spoken in `source`."""
@@ -133,11 +139,12 @@ class Language:
                 "summary.md",
                 "summary.parts.json",
             )
+        stem = self.bilingual or f"bilingual.en-{c}"
         return LangFiles(
             f"subs.{c}.json",
             f"{c}.srt",
-            f"bilingual.en-{c}.ass",
-            f"bilingual.en-{c}.vtt",
+            f"{stem}.ass",
+            f"{stem}.vtt",
             f"summary.{c}.md",
             f"summary.{c}.parts.json",
         )
@@ -246,6 +253,19 @@ def _check_in_script(name: str, own: re.Pattern[str], own_names: tuple[str, ...]
     return check
 
 
+_LATIN_LETTER = re.compile("[A-Za-z]")
+
+
+def _check_english(text: str, en: str, required: bool) -> str | None:
+    """English as a target: no other script (a name left in kana or kanji is written in Latin
+    letters), and a letter in it when the cue has words to translate."""
+    if other := _foreign(text, ()):
+        return f"contains {other} characters; write English in Latin letters"
+    if required and not _LATIN_LETTER.search(text):
+        return "is not translated into English"
+    return None
+
+
 def _looks_english(text: str, en: str) -> bool:
     words = _WORD.findall(text.lower())
     if len(words) <= _NEEDS_WORDS:
@@ -319,6 +339,8 @@ def _build() -> dict[str, Language]:
         quality: Quality = "stable",
         spellings: Mapping[str, tuple[str, ...]] | None = None,
         source_terms: Mapping[str, Callable[[str], str]] | None = None,
+        fonts: tuple[str, ...] = (DEFAULT_FONT,),
+        bilingual: str = "",
     ) -> Language:
         return Language(
             code,
@@ -336,6 +358,8 @@ def _build() -> dict[str, Language]:
             quality,
             spellings or MappingProxyType({}),
             MappingProxyType(source_terms or {}),
+            fonts,
+            bilingual,
         )
 
     table = [
@@ -362,6 +386,15 @@ def _build() -> dict[str, Language]:
             wrap=Wrap.CJK,
         ),
         make(
+            "en",
+            "English",
+            "English",
+            _check_english,
+            _LATIN_DENSITY,
+            clean=_clean_latin,
+            bilingual="bilingual.src-en",
+        ),
+        make(
             "ja",
             "Japanese",
             "日本語",
@@ -380,6 +413,7 @@ def _build() -> dict[str, Language]:
             clean=_clean_non_latin,
             quality="experimental",
             spellings=_HANGUL_NAMES,
+            fonts=("Malgun Gothic",),
         ),
         make(
             "es", "Spanish", "Español", _check_latin("Spanish"), _LATIN_DENSITY, clean=_clean_latin
@@ -413,6 +447,7 @@ def _build() -> dict[str, Language]:
             _check_in_script("Russian", _CYRILLIC, ("Cyrillic",)),
             _WIDE,
             clean=_clean_non_latin,
+            fonts=("Arial",),
         ),
         make(
             "vi",

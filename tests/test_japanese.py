@@ -137,12 +137,15 @@ class TestSourceTable:
         with pytest.raises(UnknownSource, match="en, ja"):
             get_source("xx")
 
-    def test_japanese_can_only_be_translated_into_zh_tw_for_now(self) -> None:
-        assert JAPANESE_SOURCE.supports(ZH_TW)
-        assert not JAPANESE_SOURCE.supports(get_language("ko"))
-        assert ENGLISH_SOURCE.supports(get_language("ko"))
-        with pytest.raises(ValueError, match="zh-TW"):
-            ja_settings(target_lang="ko")
+    def test_japanese_is_translated_into_the_targets_of_its_table_and_no_others(self) -> None:
+        for code in ("zh-TW", "en", "zh-CN", "ko"):
+            assert JAPANESE_SOURCE.supports(get_language(code))
+        assert not JAPANESE_SOURCE.supports(get_language("es"))
+        assert not JAPANESE_SOURCE.supports(get_language("ja"))
+        assert ENGLISH_SOURCE.supports(get_language("es"))
+        assert not ENGLISH_SOURCE.supports(get_language("en"))
+        with pytest.raises(ValueError, match="zh-TW, zh-CN, en, ko, not es"):
+            ja_settings(target_lang="es")
 
     def test_a_language_with_no_spaces_is_not_spaced(self) -> None:
         assert is_spaced("en") and not is_spaced("ja") and is_spaced("auto")
@@ -901,8 +904,9 @@ class TestJobBody:
 
         with pytest.raises(ValidationError, match="source language"):
             JobBody(source_lang="xx")
-        with pytest.raises(ValidationError, match="zh-TW"):
-            JobBody(source_lang="ja", target_lang="ko")
+        with pytest.raises(ValidationError, match="zh-TW, zh-CN, en, ko, not es"):
+            JobBody(source_lang="ja", target_lang="es")
+        assert JobBody(source_lang="ja", target_lang="ko").options().target_lang == "ko"
         assert JobBody(source_lang="en", target_lang="ko").options().target_lang == "ko"
 
 

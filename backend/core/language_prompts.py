@@ -128,6 +128,17 @@ PROMPTS: dict[str, Prompt] = {
         you_know=", or written 你知道的, 就是 or 对吧; never write it as 你知不知道",
         filler_cue="嗯，",
     ),
+    "en": _prompt(
+        "English",
+        "English",
+        _ex("So last month, I did something pretty [[8]]crazy.", "I shipped 2,000 PRs."),
+        "- Write natural, spoken English as engineers say it in a talk. Keep one consistent "
+        "register.\n"
+        "- Write technical terms the way English-speaking engineers do (commit, pull request, "
+        "server, database) and keep names, products and code in their original spelling.\n",
+        "Um,",
+        latin=True,
+    ),
     "ja": _prompt(
         "Japanese (日本語)",
         "Japanese",
@@ -265,6 +276,7 @@ def _summary(language: str, *labels: str, sep: str = ": ") -> SummaryText:
 
 SUMMARIES: dict[str, SummaryText] = {
     "zh-TW": ZH_TW_SUMMARY,
+    "en": EN_SUMMARY,
     "zh-CN": SummaryText(
         "Write every field in Simplified Chinese as used in Mainland China (简体中文), never "
         "Traditional characters. Keep names, products and code in their original spelling.",

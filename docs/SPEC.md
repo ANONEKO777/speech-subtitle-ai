@@ -105,7 +105,7 @@ video-subtitle-translator/
 每一步結果要**快取到專案資料夾**，失敗或換模型時只重跑受影響的步驟。進度以 job 事件（SSE/WebSocket）推送給前端。
 
 ### 5.0 來源語言（P23a）
-- 影片的語言是專案的一個設定：`en`（預設）、`ja` 或 `ja+en`（日英混合，見下）（`backend/core/source_langs.py` 的型別化表，每筆有檔名、斷句規則、翻譯與摘要提示詞、輸出檢查、燒錄字型）。CLI `--source-lang`、工作 body 的 `source_lang`、佇列項目的 `source_lang`（項目或資料夾可各自指定）都對照這張表，未知代碼回 422。日文目前只能翻成繁體中文（`zh-TW`），其他目標語言回 422，等 P25。表的設計讓之後加別的來源語言不必改流程。
+- 影片的語言是專案的一個設定：`en`（預設）、`ja` 或 `ja+en`（日英混合，見下）（`backend/core/source_langs.py` 的型別化表，每筆有檔名、斷句規則、翻譯與摘要提示詞、輸出檢查、燒錄字型）。CLI `--source-lang`、工作 body 的 `source_lang`、佇列項目的 `source_lang`（項目或資料夾可各自指定）都對照這張表，未知代碼回 422。日文可翻成繁體中文（`zh-TW`）、英文（`en`）、簡體中文（`zh-CN`）與韓文（`ko`，實驗性），其他目標語言回 422，錯誤訊息列出這個來源有的目標（P26a，見 §8.2.2）。日英混合仍只有 `zh-TW`。表的設計讓之後加別的來源語言不必改流程。
 - 來源語言屬於辨識（已有）、斷句、翻譯、摘要的設定與快取鍵。英文不加任何新欄位，所以舊專案的快取鍵、提示詞與輸出逐位元組不變，不必重跑。日文專案的快取鍵與輸出也不變，只有一處行為不同（P23b）：摘要的每則重點筆記含假名時現在會被拒絕並重問（`summarize.parse_map`），舊版會收下；快取鍵沒變，已摘要的日文專案保留舊摘要。英文專案不受影響。
 - 檔名：英文是 `subs.en.json` 與 `en.srt`（不變），日文是 `subs.ja.json` 與 `ja.srt`。`project.json` 只在不是英文時才多一個 `source_lang`。一個專案資料夾只有一種來源語言，換語言會重跑辨識以後的步驟，舊語言的來源檔留在原處不刪（`en.srt` 與 `ja.srt` 一律不刪）。
 - 字幕的來源文字欄位在程式裡叫 `src`，每則字幕有自己的 `lang`（日英混合的專案每則各有自己的語言，其他專案每則都是專案的語言）。`subs.*.json` 的英文字幕仍寫 `en`，其他語言寫 `src` 加 `lang`，兩種都讀得進來。HTTP API 的請求還用 `en` 這個名字（`lang=en` 取來源文字，PUT 內文也是 `en`，`mode` 的值 `en`），這是請求的格式，不是語言；介面上一律叫「原文」。`GET /subtitles?format=json` 對日文專案的每則字幕除了 `src` 與 `lang` 之外，另外附一個 `en` 欄位放同樣的來源文字，這是暫時的別名，只出現在 API 回覆，不寫進檔案。介面（P24a）已經不讀它：桌面程式讀 `src` 與 `lang`，英文專案的字幕沒有 `lang`，仍讀 `en`。別名在後續的 PR 刪除，英文專案的回覆不變。
@@ -117,7 +117,7 @@ video-subtitle-translator/
   - 摘要用 `prompts/summarize_map_ja_en.md`（日文版加上「英文段常是前一段日文的口譯，同一點只寫一次」）。視窗大小依字數與英文詞數混算。
   - 快取鍵：只有 `ja+en` 在 VAD、ASR、斷句、翻譯、摘要的鍵多出自己的欄位，`en` 與 `ja` 的鍵逐位元組不變（`tests/test_mixed.py::TestCacheKeys`、`tests/test_japanese.py::TestEnglishIsUnchanged`）。
   - 沒有選音軌：一個音軌，兩種語言混在一起。選音軌要改匯入、佇列與 API，不便宜，沒有做。
-- 介面（P24a）：匯入框與佇列的加入對話框有「影片語言」（英文、日文，預設英文），送出時帶 `source_lang`。選日文時顯示一行說明（目前只輸出繁體中文）。P24b 在選單加上第三個選項，日文與英文混合，見 §10。播放器的工具列沒有多餘寬度，所以在播放器裡，影片語言改放在工具列下方那一條（只在選了日文時出現，和說明同一行），英文時播放器的工具列與以前相同。佇列的日文與日英混合項目只能選繁體中文。`GET /api/projects` 的每個項目帶 `source_lang`，媒體庫與佇列用它在日文影片上顯示小標籤。已處理完的專案匯入時直接播放，來源語言以專案為準。編輯字幕時原文那一行唯讀，輸入會顯示「原文不能修改」，後端回 422 `english_changed` 也顯示同一句。
+- 介面（P24a）：匯入框與佇列的加入對話框有「影片語言」（英文、日文，預設英文），送出時帶 `source_lang`。選日文時顯示一行說明（目前只輸出繁體中文；P26a 的後端已有英文、簡體中文與韓文，介面在 P26b）。P24b 在選單加上第三個選項，日文與英文混合，見 §10。播放器的工具列沒有多餘寬度，所以在播放器裡，影片語言改放在工具列下方那一條（只在選了日文時出現，和說明同一行），英文時播放器的工具列與以前相同。佇列的日文與日英混合項目只能選繁體中文。`GET /api/projects` 的每個項目帶 `source_lang`，媒體庫與佇列用它在日文影片上顯示小標籤。已處理完的專案匯入時直接播放，來源語言以專案為準。編輯字幕時原文那一行唯讀，輸入會顯示「原文不能修改」，後端回 422 `english_changed` 也顯示同一句。
 
 - 自動偵測影片語言（P24c）：使用者選了影片（匯入框、加入對話框的每個檔案）後，視窗在背景呼叫 `POST /api/languages/detect`，把猜到的語言預選在「影片語言」。它只是猜測，會猜錯。方法在 `backend/core/language_detect.py`：
   - 從影片均勻取 `SAMPLE_COUNT = 24` 段各 `SAMPLE_S = 5` 秒的音訊（`audio.cut_clips`，ffmpeg 先 seek 再讀，耗時不隨影片長度增加），用 `whisper-cli -l auto -dl` 一次執行（模型只載入一次）請 Whisper large-v3 turbo 對每段說出語言與機率。每一段取 5 秒是刻意的：講者與口譯輪流說話的演講，30 秒的段裡兩種語言都有，Whisper 只說出一種（日英混合講座全片 30 秒的段幾乎全判英文，5 秒的段判出約 4 成日文）。機率不到 `MIN_PROBABILITY = 0.5` 的段與語言不是日文也不是英文的段不計。`MIN_PROBABILITY` 只擋得掉靜音（Whisper 對靜音說英文，機率 0.37）：Whisper 對任何聲音都會說出一種語言，和弦音樂 24 段全判英文（機率 0.7），粉紅雜訊 12 段有 7 段。所以每一段還要有人聲才算：用專案已有的 Silero VAD（`backend/core/vad.py` 的 `speech_seconds`，模型載入一次）量每段的語音秒數，不到 `MIN_SPEECH_S = 0.5` 秒的段不計。在 Whisper 判出語言且機率 0.5 以上的段裡量到：和弦音樂與粉紅雜訊 0 秒，提示音（鈴聲）最多 0.3 秒，真實演講裡停頓的段 0 秒，有人講話的段最少 0.4 秒。VAD 對 24 段約多花 0.4 到 0.5 秒（量過：15 段 0.23 到 0.34 秒，模型載入一次）。
@@ -233,6 +233,21 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - 快取（P30）：日文專案的切字幕金鑰與翻譯金鑰各加一個版本字串（`pipeline.UNSPACED_CUT`、`pipeline.JAPANESE_UNITS`），術語表也在翻譯金鑰裡，所以舊的日文專案下次執行時重新切字幕、重新翻譯一次。P31 把 `JAPANESE_UNITS` 改成 finals-2（連接詞表變了），日文專案再重翻一次。英文專案的所有金鑰不變。P33 起翻譯金鑰（`pipeline._translate_prompt_digest`）也讀 `SOURCE_FIXES`，所以只改一條改寫規則也會讓日文專案重翻一次；英文來源沒有改寫，英文的金鑰不變。P34 改了其中三條規則的守衛，日文與 `ja+en` 專案因此再重翻一次，英文專案的金鑰不變。P35 在詞表加一條，詞表在翻譯金鑰裡，日文與 `ja+en` 專案再重翻一次，英文專案的金鑰不變。
 - 已知缺口（P30）：語音辨識的錯字（約 14% 字元錯誤）照樣流進翻譯，這個 PR 不動辨識引擎；標記切回時模型偶爾把一句話的後半放進下一則字幕（字幕順序不變但內容位移一則），自動檢查只能用長度比例看到它；詞彙表沒有用摘要 map 步驟抽出的專案專用名詞，因為摘要排在翻譯之後，要先重排步驟；沒有人或獨立評審看過譯文，只有自動檢查與盲測檔。
 
+### 8.2.2 日文來源的目標語言（P26a）
+操作者 2026-11-20 看了 P25 的盲測後決定：英文走直譯（操作者盲測有差異的 11 句裡選了 10 句直譯），簡體中文走直譯、一次翻完、**不經過 zh-TW 輸出**（台灣用語會漏進去），韓文是實驗性。其他九種語言第一版不做。表的設計讓之後加一個目標只是加一列、一個範例與限制，不是新的程式路徑。
+
+- 型別化的表：`backend/core/ja_routes.py` 的 `ROUTES`，一個目標一列 `TargetRoute`（`target_routes.py`）：規則文字、範例回覆、未翻譯字的規則、長度限制、輸出檢查、需要文字系統的判斷、後處理、詞表、摘要筆記提示詞、`experimental`、單句失敗時的處理。`JAPANESE_SOURCE` 自己的欄位就是第一個目標（繁體中文）。`SourceLanguage.toward(語言)` 把一列套上去，`translate.run` 與流程在知道目標的地方呼叫它；第一個目標回傳 `JAPANESE_SOURCE` 本身，所以它的提示詞、快取鍵與輸出和 main 逐位元組相同（`tests/test_ja_targets.py::TestProject` 釘著 main 算的雜湊）。程式裡沒有 `if code == "ko"`。
+- 目標：`zh-TW`（第一個）、`en`、`zh-CN`、`ko`（實驗性）。日英混合只有 `zh-TW`。`GET /api/languages` 每個來源語言帶 `targets`：`[{code, name, native_name, experimental}]`，順序是語言表的順序，介面（P26b）用它畫目標選單，不必再寫死。
+- 提示詞：沿用日文來源的口語規則（贅詞、省略的主語、數字、拉丁字母的名字、辨識錯字），只把台灣專屬的幾條換掉：寫成繁體字、台灣用語表、「片假名外來語照台灣的詞譯」、範例與「為了解決這個問題」。各目標的替換是 `ja_routes.py` 的 `_rules`（用同一份台灣規則的各行組合，所以第一個目標逐位元組不變）。簡體中文用大陸用語（软件、视频、支持、源代码…）；韓文只用 합니다 體，不寫假名與漢字，名字寫拉丁字母。每個目標有自己的範例回覆，回覆欄位名用目標語言的 `prompt.key`。
+- 長度（P25：輸出字數對日文字數的比例，`swarm\P25\checks\summary.tsv` 的 `ratio_p90` 與 `swarm\P25\runs\full\direct.<目標>.json` 的各則比例）：日文來源的 1.1 倍加 8 放不下英文。限制取 P25 90 百分位的 1.5 倍，加 8 的餘量：英文 4.2（p90 2.78）、簡體中文 1.4（p90 0.90）、韓文 1.9（p90 1.28）。下限（原文超過 25 字時譯文至少這個比例）英文與韓文 0.3、簡體中文 0.15。這是抓失控輸出的規則，不是「兩行放得下」：P25 量到拉丁字母目標有 18% 以上的字幕寬於兩行 40 欄，而且保留日文的時間軸。長字幕的折行用既有機制：ASS 與燒錄時 `subtitle_io.wrap_line` 依 `Language.wrap` 折成多行（英文 `spaces`，只在空白後斷）；在英文規則加過一句「每行約 40 字元、一則兩行」，寬於兩行的字幕是 31 則對沒有這句的 30 則（139 則取樣），沒有差別，所以拿掉。沒有另做重新切字幕，因為那會改變字幕數與 id，牽動原文對齊、手動編輯與「換目標只重跑翻譯」。
+- 輸出檢查（語言的 `check` 加路由的 `problem` 與 `needs_script`；日文來源原本的 `needs_script` 數英文單字，日文沒有空白幾乎永遠是假，所以回覆停在英文也會過）：路由的 `needs_script` 在原文有 5 個以上假名或漢字時，要求譯文有目標的文字。英文：沒有假名、沒有漢字與其他文字系統，要有拉丁字母。簡體中文：沒有假名、沒有日文才用的漢字（`zh_tw.japanese_only_chars`）、沒有只在繁體出現的字（`traditional_chars`），也沒有台灣的詞（支援、影像、軟體、資訊、程式、伺服器、網路、檔案、使用者、滑鼠、記憶體、預設、最佳化、資料庫、部落格 的簡體寫法，`_TAIWAN_FORMS_IN_SIMPLIFIED`；它們用到的字簡繁共通，字元檢查看不到）。韓文：有韓文字母、沒有假名與漢字、韓文字內部不夾小寫拉丁字母（P25 的「리lease」）。
+- 詞表：每個目標有自己的一份 `JaTerm`（同一個類別，`ja_terms.JaTerm`）。產品名（ChatGPT、Claude Code、Claude、Visual Studio Code、VS Code、GitHub Copilot、Copilot）各目標共用，是拉丁字母。Perforce 的詞（P25 譯錯的シェルブ 當成 shell、ストリーム 當成一般的流、ブランチ 在德文成了產業）：英文 shelve、sparse stream、stream、branch、workspace、changelist、submit、sync；簡體中文 搁置、Sparse Stream、Stream、分支、工作区、变更列表、提交、同步（「流」也算對，但單獨的 流 太容易和一般的流混）。這些簡體中文與韓文的寫法沒有母語者看過，是表裡可改的資料。韓文只有產品名，沒有 Perforce 詞：沒人看過音譯，錯的固定寫法比模型自己寫更糟。シンク 的 pattern 不含 シンクロ。台灣的詞表（`JA_TERMS`）與 `SOURCE_FIXES` 只給第一個目標，內容不變。
+- 單句失敗（重試與拆批用盡仍不過）：第一個目標照舊保留日文（不回報）。其他目標**絕不把日文當譯文顯示**，由路由的 `on_failure` 決定：`leave_empty`（英文、簡體中文）：該則譯文留空，記為失敗；`english_pivot`（韓文）：另送**一次**只含這一則的英文請求（英文路由的提示詞與檢查），過了就用英文，不過就留空，兩種都記為失敗。不用把片假名轉成拉丁字母的 `repair`（P25：它在韓文與泰文產出夾在韓文字裡的拉丁音節）。工作結果（`done` 事件的 `report`）有 `failed_cues`（所有失敗的字幕 id）與 `english_cues`（其中顯示英文的）。快取命中的翻譯步驟不重算，所以沒有這兩個值；執行 `translate` 步驟的那一次才有。第一個目標的 `failed_cues` 永遠是空的（它沒有這個回報）。
+- 摘要：日文來源的筆記提示詞原本固定寫繁體中文。其他目標用 `prompts/summarize_map_ja_to.md`，把規則（寫成該語言、不留假名、名字拉丁字母）、每點與主題的長度（英文 35 與 12 個字，簡體中文 60 與 20 字，韓文 60 與 20 字）填進標記。目標的摘要提示詞（含這些標記）在摘要步驟的快取鍵裡；第一個目標的檔案與鍵不變。目標是 `en` 且要英文摘要時只寫一份。
+- 快取與多目標專案：翻譯、輸出、摘要三步的鍵帶目標，翻譯鍵帶目標的提示詞雜湊（含規則、範例、詞表），所以改一個目標的列只重翻那個目標。辨識與斷句的鍵不含目標，一個專案可以同時有 `subs.zh-TW.json`、`subs.en.json`、`subs.zh-CN.json`、`subs.ko.json`（各自的 `.srt`、雙語檔、摘要），換目標只重跑翻譯以後（`project.json` 的 `parked` 停放其他語言的步驟狀態）。舊的日文轉繁體中文專案的鍵逐位元組不變，不會重翻。
+- 批次佇列：`target_langs` 把一支影片依序排成多個項目（`POST /api/queue/items` 的項目、資料夾或整個請求都可帶）。佇列一次一個項目，第一個項目做語音，之後的目標只重跑翻譯以後；某個目標失敗，那個項目是 `failed`，其餘照常。`target_lang` 與 `target_langs` 不可同時給；重複或空的清單回 422。
+- 燒錄字型：`Language.fonts` 是燒錄的譯文可用的字型家族（韓文 Malgun Gothic，俄文 Arial，其餘 Microsoft JhengHei，與以前相同）。這台電腦的實測（`fonts.file_covers`）：Microsoft JhengHei 沒有韓文字母與多數西里爾字母，Malgun Gothic 有韓文字母、西里爾字母與拉丁字母，Arial 有西里爾字母與拉丁字母。燒錄前 `fonts.target_font` 查字型有沒有譯文的每個字（中文與英文跳過查詢），沒有就回 422，訊息點名語言與缺的字形，字幕檔（SRT、ASS）不受影響。這個 PR 不含泰文與越南文（P26c）。
+
 ### 8.3 摘要（map-reduce）
 1. 依時間將逐字稿切成章節片段（約 2,000–4,000 tokens，片段間少量重疊）。
 2. Map：每段產出要點與時間範圍。
@@ -246,7 +261,7 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - 長影片不可整份塞入單次請求（小模型會遺漏前段）。
 
 ### 8.4 目標語言（多國語系）
-- 目標語言是型別化的登錄表（`backend/core/languages.py`），每筆有：代碼、英文名、母語名、檔名代碼、文字系統檢查、提示詞片段、後處理、摘要標題、ASS 折行規則（`wrap`）與品質標籤（`quality`）。支援 13 種：`zh-TW`（預設）、`zh-CN`、`ja`、`ko`、`es`、`fr`、`de`、`pt`、`it`、`ru`、`vi`、`th`、`id`。
+- 目標語言是型別化的登錄表（`backend/core/languages.py`），每筆有：代碼、英文名、母語名、檔名代碼、文字系統檢查、提示詞片段、後處理、摘要標題、ASS 折行規則（`wrap`）與品質標籤（`quality`）。支援 14 種：`zh-TW`（預設）、`zh-CN`、`en`、`ja`、`ko`、`es`、`fr`、`de`、`pt`、`it`、`ru`、`vi`、`th`、`id`。
 - 後處理：台灣用語替換（`zh_tw.py`）只套用在 `zh-TW`。`zh-CN` 檢查不含只在繁體出現的字元。`ja` 檢查假名或漢字（超過 5 個英文字的句子必須有假名），`ko` 檢查韓文字母，`th` 檢查泰文，`ru` 檢查西里爾字母，其餘拉丁語系檢查沒有其他文字系統的字元，且回覆不是英文。檢查不過就當作回覆被拒絕，走重試與降批次。
 - 後處理另含：所有目標語言都丟掉獨立的 uh、um、hmm 贅詞。葡語與德語的 um 是一般單字，只有在英文句子含贅詞 um/uh/hmm 且該 um 前後是標點或句首句尾時才丟。
 - ASS 折行（40 欄，欄寬用顯示寬度，組合符號不佔欄）依語言：`cjk`（中日文，可在字間斷，不拆拉丁字或數字，韓文用 `spaces`）；`spaces`（拉丁、西里爾、越南、印尼、韓文，只在空白後斷，沒有空白就不斷）；`thai`（泰文，不拆字元叢集，不讓一行以母音符號或聲調符號開頭，優先在空白斷）。泰文沒有使用分詞套件：PyThaiNLP（Apache-2.0）約 17 MB 且依賴多，不符合輕量；因此泰文可能在詞中斷行，但不會拆壞字元。
@@ -255,8 +270,8 @@ Tauri 外殼、前端、後端 sidecar（不含 PyTorch/CUDA）、FFmpeg、`regi
 - 詞彙表檢查不放寬。保留英文的專有名詞必須以原文出現在譯文中；日文與韓文另可用該語言文字的寫法（`Language.spellings`，例如 Cursor 的カーソル、커서，Slack 的スラック、슬랙）。單句重試用盡仍不過就保留英文。繁中與簡中沒有別名，所以永遠不會把產品名譯掉。
 - 目標語言屬於翻譯、輸出、摘要三步的設定與快取鍵；換語言只重跑這三步，音訊、VAD、ASR、斷句與英文檔都不動。預設語言不改變快取鍵，所以舊專案不必重翻。
 - 一個專案可同時保有多個語言：每個語言各自的步驟狀態停放在 `project.json` 的 `parked`，目前使用中的語言是 `active_lang`；兩者只在離開預設語言後才寫入。
-- 日文來源的專案同樣用這些檔名（來源檔是 `subs.ja.json`、`ja.srt`，所以目標語言和來源語言不能同為 `ja`）。
-- 檔名：`subs.<代碼>.json`、`<代碼>.srt`、`bilingual.en-<代碼>.ass/.vtt`、`summary.<代碼>.md`。繁中保留 `subs.zh-TW.json`、`zh-TW.srt`、`bilingual.ass/.vtt`、`summary.md`。英文摘要一律是 `summary.en.md`。
+- 日文來源的專案同樣用這些檔名（來源檔是 `subs.ja.json`、`ja.srt`，所以目標語言和來源語言不能同為 `ja`）。一種語言不能是自己語音的目標（`SourceLanguage.supports`）：英文影片沒有 `en` 這個目標，因為 `subs.en.json` 與 `en.srt` 已是它的來源檔。`en` 只給日文來源，雙語檔叫 `bilingual.src-en.ass/.vtt`（不是 `bilingual.en-en`，那會讀成英文配英文）。
+- 檔名：`subs.<代碼>.json`、`<代碼>.srt`、`bilingual.en-<代碼>.ass/.vtt`（`en` 除外，見上；這個前綴是歷史名稱，內容是來源語言加目標語言）、`summary.<代碼>.md`。繁中保留 `subs.zh-TW.json`、`zh-TW.srt`、`bilingual.ass/.vtt`、`summary.md`。英文摘要一律是 `summary.en.md`。
 
 ## 9. 後端 API（草案）
 
@@ -281,11 +296,11 @@ GET  /api/projects/{id}/summary?lang=<代碼>|en          # 預設為最近處�
 ```
 ### 9.1 工作佇列（批次處理）
 
-佇列存在使用者資料夾的 `queue.db`（SQLite，WAL）。項目有影片路徑、`target_lang` 與其他 job 設定、狀態（`queued`、`running`、`paused`、`done`、`failed`、`cancelled`）、時間戳、`attempts` 與 `last_error`。後端啟動時，上次沒跑完的 `running` 項目回到 `queued`，靠管線快取續跑。佇列一次只跑一個項目（GPU 單工），一個項目失敗只影響自己。
+佇列存在使用者資料夾的 `queue.db`（SQLite，WAL）。項目有影片路徑、`target_lang` 與其他 job 設定、狀態（`queued`、`running`、`paused`、`done`、`failed`、`cancelled`）、時間戳、`attempts` 與 `last_error`。後端啟動時，上次沒跑完的 `running` 項目回到 `queued`，靠管線快取續跑。佇列一次只跑一個項目（GPU 單工），一個項目失敗只影響自己（P26a：同一支影片的多個目標是各自的項目，第一個目標做完語音步驟，其餘只重跑翻譯以後；某個目標失敗，其餘照常跑完）。
 
 ```
 GET    /api/queue                          # paused、settings、running、eta_s、counts、items（state、step、progress、eta_s、job_id、last_error…）
-POST   /api/queue/items                    # body: {items:[{path,target_lang?,source_lang?}], folders:[{path,target_lang?,source_lang?,recursive?}], options:{…同 job body}}；回 {added, skipped:[{path,reason}]}。只收影片副檔名；遞迴掃描不跟隨符號連結或 junction；資料夾 10 秒內沒回應就略過；影片長度超過 5 秒探測預算的部分改在背景補上
+POST   /api/queue/items                    # body: {items:[{path,target_lang?,target_langs?,source_lang?}], folders:[{path,target_lang?,target_langs?,source_lang?,recursive?}], target_langs?, options:{…同 job body}}；`target_langs` 是同一支影片依序排的多個目標（P26a）；回 {added, skipped:[{path,reason}]}。只收影片副檔名；遞迴掃描不跟隨符號連結或 junction；資料夾 10 秒內沒回應就略過；影片長度超過 5 秒探測預算的部分改在背景補上
 PUT    /api/queue/order                    # body: {ids:[…]}，列出的項目排到最前面
 POST   /api/queue/pause                    # body 可選 {interrupt:true}：中斷執行中的項目並放回原位
 POST   /api/queue/resume

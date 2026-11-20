@@ -10,10 +10,12 @@ from importlib.resources import files
 from pathlib import Path
 from typing import cast
 
-from backend.core.languages import DEFAULT, Density, Language
+from backend.core.languages import DEFAULT, ENGLISH, Density, Language
+from backend.core.languages import get as get_language
 from backend.core.model import Cue, FormatError
 from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage, is_bare_punctuation
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
+from backend.core.target_routes import OnFailure
 from backend.llm.ask import (
     MAX_RETRIES,
     ChatFn,
@@ -164,6 +166,16 @@ class BatchRequest:
     @property
     def ids(self) -> tuple[int, ...]:
         return tuple(unit[0] for unit in self.units)
+
+
+@dataclass(frozen=True, slots=True)
+class Failure:
+    """A cue that failed every attempt. `english` says the cue shows its translation into English
+    in place of the target language, which the route of its source allows. Otherwise the cue has
+    no translation, or keeps the speaker's own words when the route says so."""
+
+    cue_id: int
+    english: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -384,7 +396,8 @@ def _check_text(lang: Language, cue_id: int, zh: str, en: str, source: SourceLan
         raise ReplyError(
             f"cue {cue_id} has only punctuation; translate its own words {_quoted(en)}"
         )
-    if problem := lang.problem(zh, en) or source.problem(zh):
+    required = lang.needs_script(en) or bool(source.needs_script and source.needs_script(en))
+    if problem := lang.check(zh, en, required) or source.problem(zh):
         raise ReplyError(f"cue {cue_id} {problem}")
     density = source.density or lang.density
     if len(zh) > density.max_per_en_char * len(en) + density.slack:
@@ -553,10 +566,14 @@ class _Run:
         keep_english: bool,
         lang: Language,
         source: SourceLanguage,
+        home: SourceLanguage,
+        on_failure: Callable[[Failure], None] | None,
     ) -> None:
         self.keep_english = keep_english
         self.lang = lang
         self.source = source
+        self.home = home
+        self.on_failure = on_failure
         self.cues = list(cues)
         self.chat = chat
         self.glossary = glossary
@@ -608,21 +625,53 @@ class _Run:
         self.store(batch, translations, started, attempts)
 
     def keep_english_cue(self, batch: Batch, exc: RepliesRejected, started: float) -> None:
-        """A cue that failed every attempt keeps its English. The glossary check is never relaxed:
-        a language that spells a term differently says so in `Language.spellings`."""
+        """A cue that failed every attempt is handled as the route of its source says. The glossary
+        check is never relaxed: a language that spells a term differently says so in
+        `Language.spellings`."""
         cue = self.cues[batch.start]
         if (repaired := self.repaired(batch, exc.reply)) is not None:
             log.warning("cue %d: kept the last reply after %s", cue.id, exc.reason)
             self.store(batch, repaired, started, exc.attempts)
             return
+        source = self.source_of(batch)
         log.warning(
-            "cue %d could not be translated after %d attempts (%s); keeping its %s",
+            "cue %d could not be translated after %d attempts (%s)",
             cue.id,
             exc.attempts,
             exc.reason,
-            self.source_of(batch).name,
         )
-        self.store(batch, {cue.id: cue.src}, started, 0)
+        if source.on_failure is OnFailure.KEEP_SOURCE:
+            self.store(batch, {cue.id: cue.src}, started, 0)
+            return
+        english = source.on_failure is OnFailure.ENGLISH_PIVOT and self.pivot(batch, started)
+        if not english:
+            self.store(batch, {cue.id: ""}, started, 0)
+        if self.on_failure:
+            self.on_failure(Failure(cue.id, english))
+
+    def pivot(self, batch: Batch, started: float) -> bool:
+        """Translate the one cue of `batch` into English with the English route of its source and
+        store it when it passes that route's checks."""
+        english = get_language(ENGLISH)
+        source = self.home.of(self.cues[batch.start].lang).toward(english)
+        request = build_request(self.cues, batch, self.glossary, self.context, english, source)
+        try:
+            translations, attempts = ask(
+                self.chat,
+                request.messages,
+                lambda text: parse_reply(text, request, self.cues, self.glossary, english, source),
+                reprompt=lambda reason: (
+                    f"That reply was rejected: {reason}. Reply again with the "
+                    f'complete JSON for all {len(request.ids)} entries in "translate".'
+                ),
+                label=f"cue {self.cues[batch.start].id} in English",
+                retries=self.max_retries,
+                sleep=self.sleep,
+            )
+        except RepliesRejected:
+            return False
+        self.store(batch, translations, started, attempts)
+        return True
 
     def repaired(self, batch: Batch, reply: str) -> dict[int, str] | None:
         """The last reply of a cue that failed every attempt, after the source language's repair
@@ -685,18 +734,22 @@ def run(
     keep_english: bool = False,
     lang: Language = DEFAULT,
     source: SourceLanguage = ENGLISH_SOURCE,
+    on_failure: Callable[[Failure], None] | None = None,
 ) -> list[Cue]:
     """Translate every cue whose `zh` is empty into `lang` and return all cues, timing and `en`
-    unchanged. The `zh` field holds the translation whatever the language is.
+    unchanged. The `zh` field holds the translation whatever the language is. `source` is applied
+    to `lang` (`SourceLanguage.toward`), and `on_failure` hears of each cue that failed every
+    attempt.
 
     Cues are sent as whole sentences, each cue marked inside its sentence, and the translation is
     cut back into cues at the markers. A batch whose replies fail `max_retries` retries is split in
     half, and a lone sentence is split between cues. A single cue that still fails raises
-    `TranslationError`, unless `keep_english` is set: then that cue keeps its English as its `zh`
-    and the run goes on. A server that fails every attempt raises its `LlmError` at once, because
-    splitting cannot help. Cues stored before a failure stay stored: `checkpoint` has already
-    seen them.
+    `TranslationError`, unless `keep_english` is set: then the route of its source says what the
+    cue gets (its source text, nothing, or its English) and the run goes on. A server that fails
+    every attempt raises its `LlmError` at once, because splitting cannot help. Cues stored
+    before a failure stay stored: `checkpoint` has already seen them.
     """
+    routed = source.toward(lang)
     job = _Run(
         cues,
         chat,
@@ -708,11 +761,13 @@ def run(
         sleep=sleep,
         keep_english=keep_english,
         lang=lang,
-        source=source,
+        source=routed,
+        home=source,
+        on_failure=on_failure,
     )
-    for batch in plan_batches(job.cues, batch_size, source=source):
+    for batch in plan_batches(job.cues, batch_size, source=routed):
         job.translate(batch)
-    return settle_bare_punctuation(job.cues, source)
+    return settle_bare_punctuation(job.cues, routed)
 
 
 def translate_file(
@@ -726,6 +781,7 @@ def translate_file(
     keep_english: bool = False,
     lang: Language = DEFAULT,
     source_lang: SourceLanguage = ENGLISH_SOURCE,
+    on_failure: Callable[[Failure], None] | None = None,
 ) -> list[Cue]:
     """Translate `source` (a subs json) into `dest`, saving `dest` after every batch.
 
@@ -751,6 +807,7 @@ def translate_file(
         keep_english=keep_english,
         lang=lang,
         source=source_lang,
+        on_failure=on_failure,
     )
     save(result)
     return result

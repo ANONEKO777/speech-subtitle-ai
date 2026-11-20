@@ -16,6 +16,11 @@ describe("the mixed Japanese and English choice", () => {
     expect(canTarget("en", "ko")).toBe(true);
   });
 
+  it("never offers English speech English as its target", () => {
+    expect(canTarget("en", "en")).toBe(false);
+    expect(canTarget("en", "zh-TW")).toBe(true);
+  });
+
   it("says it needs the Qwen3 model files, not only the 24 GB profile", () => {
     expect(SOURCE_NOTES["ja+en"]).toContain("Qwen3");
   });

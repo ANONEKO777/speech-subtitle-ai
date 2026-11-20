@@ -285,8 +285,11 @@ def map_messages(
         body += ["", _MAP_CONTEXT]
         body += [render_line(line) for line in window.context]
     body += ["", _MAP_LINES, *(render_line(line) for line in window.lines)]
+    system = _template(source.summary_map)
+    for mark, text in source.summary_marks.items():
+        system = system.replace(mark, text)
     return (
-        Message(role="system", content=_template(source.summary_map)),
+        Message(role="system", content=system),
         Message(role="user", content="\n".join(body)),
     )
 

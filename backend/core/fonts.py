@@ -14,6 +14,7 @@ from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 from backend.core.audio import AudioError
+from backend.core.languages import DEFAULT_FONT, Language
 from backend.core.model import Cue
 from backend.core.source_langs import ENGLISH, ENGLISH_SOURCE, SOURCES
 
@@ -41,6 +42,12 @@ MISSING_FONT_MESSAGE = (
 MISSING_GLYPH_MESSAGE = (
     "字型 {font} 缺少這些字的字形：{chars}，燒錄出來的字幕會變成空白方塊。"
     "請安裝含有這些字的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
+)
+
+
+MISSING_TARGET_FONT_MESSAGE = (
+    "這台電腦沒有可以顯示{language}字幕的字型（試過 {fonts}），燒錄出來的字幕會變成空白方塊。"
+    "請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
 )
 
 
@@ -162,16 +169,15 @@ def windows_coverage(chars: Iterable[str]) -> Callable[[str], tuple[Path, set[st
 Lookup = Callable[[Iterable[str]], Callable[[str], tuple[Path, set[str]] | None]]
 
 
-def burn_font(cues: Sequence[Cue], lookup: Lookup = windows_coverage) -> str:
-    """The font to burn the source text of `cues` in. An English source keeps the font the first
-    release used, with no lookup, whatever punctuation it has. Japanese text with kana or kanji goes
-    to the first installed font of its language that draws all of it. When there is none, raises
-    `FontMissing` saying what is missing."""
-    needed = {c for cue in cues if cue.lang != ENGLISH for c in cue.src if needs_cjk_font(c)}
-    if not needed:
-        return ENGLISH_SOURCE.fonts[0]
-    langs = [code for code in dict.fromkeys(cue.lang for cue in cues) if code in SOURCES]
-    candidates = [font for code in langs if code != ENGLISH for font in SOURCES[code].fonts]
+def _first_covering(
+    needed: set[str],
+    candidates: Sequence[str],
+    lookup: Lookup,
+    no_font: str,
+) -> str:
+    """The first family of `candidates` that draws every character of `needed`. When none does,
+    raises `FontMissing`: the glyph message for the family that lacks the fewest, or `no_font` when
+    no family is installed."""
     find = lookup(needed)
     tried: list[str] = []
     lacking: dict[str, set[str]] = {}
@@ -189,4 +195,31 @@ def burn_font(cues: Sequence[Cue], lookup: Lookup = windows_coverage) -> str:
         raise FontMissing(
             MISSING_GLYPH_MESSAGE.format(font=family, chars="".join(sorted(missing)[:12]))
         )
-    raise FontMissing(MISSING_FONT_MESSAGE.format(fonts="、".join(tried)))
+    raise FontMissing(no_font.format(fonts="、".join(tried)))
+
+
+def burn_font(cues: Sequence[Cue], lookup: Lookup = windows_coverage) -> str:
+    """The font to burn the source text of `cues` in. An English source keeps the font the first
+    release used, with no lookup, whatever punctuation it has. Japanese text with kana or kanji goes
+    to the first installed font of its language that draws all of it. When there is none, raises
+    `FontMissing` saying what is missing."""
+    needed = {c for cue in cues if cue.lang != ENGLISH for c in cue.src if needs_cjk_font(c)}
+    if not needed:
+        return ENGLISH_SOURCE.fonts[0]
+    langs = [code for code in dict.fromkeys(cue.lang for cue in cues) if code in SOURCES]
+    candidates = [font for code in langs if code != ENGLISH for font in SOURCES[code].fonts]
+    return _first_covering(needed, candidates, lookup, MISSING_FONT_MESSAGE)
+
+
+def target_font(cues: Sequence[Cue], lang: Language, lookup: Lookup = windows_coverage) -> str:
+    """The font to burn the translation of `cues` in. A language that keeps the default font
+    (Chinese, English) is not looked up, as before. A language with fonts of its own (Korean,
+    Russian) goes to the first installed one that draws every character of its text, or raises
+    `FontMissing` saying what is missing."""
+    if lang.fonts == (DEFAULT_FONT,):
+        return DEFAULT_FONT
+    needed = {c for cue in cues for c in cue.zh if ord(c) > 0x7F and not c.isspace()}
+    if not needed:
+        return lang.fonts[0]
+    message = MISSING_TARGET_FONT_MESSAGE.replace("{language}", lang.native)
+    return _first_covering(needed, lang.fonts, lookup, message)
