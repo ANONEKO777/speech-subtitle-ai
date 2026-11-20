@@ -71,6 +71,11 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
         onClick={openList}
       >
         <span>{choiceSummary(targets, value)}</span>
+        {targets.some((t) => t.experimental && value.includes(t.code)) && (
+          <span className="chip-exp" data-testid={`${testid}-experimental`}>
+            {EXPERIMENTAL}
+          </span>
+        )}
         {several && <ChevronDown className="icon chevron" aria-hidden />}
       </button>
       {open && (

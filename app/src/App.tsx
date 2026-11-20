@@ -2,8 +2,8 @@ import { Captions, Film, Home, Layers, ListPlus, LoaderCircle, Settings, Triangl
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDetection, preselect } from "./api/detect";
 import { planImport } from "./api/importPlan";
-import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
-import { EXPERIMENTAL_HINT, isExperimentalTarget, targetFor, targetName, targetsOf } from "./api/targets";
+import { DEFAULT_SOURCE, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
+import { isExperimentalTarget, targetFor, targetName, targetsOf } from "./api/targets";
 import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
 import {
   ApiError,
@@ -31,8 +31,8 @@ import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
-import { DetectNote, hasDetectNote } from "./import/DetectNote";
-import { ImportPanel, SourcePick } from "./import/ImportPanel";
+import { ImportPanel } from "./import/ImportPanel";
+import { SourceBar } from "./import/SourceBar";
 import { useDetections, useSettledPath } from "./import/useDetections";
 import { useDrops } from "./import/useDrops";
 import { Library } from "./player/Library";
@@ -477,22 +477,15 @@ export function App() {
             <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
           )}
         </header>
-        {(SOURCE_NOTES[sourceLang] || hasDetectNote(found) || experimentalPick) && (
-          <div className="source-bar">
-            {screen.kind === "playing" && <SourcePick busy={!backend} sourceLang={sourceLang} unavailable={languageSet.unavailable} onSourceLang={chooseSource} />}
-            {SOURCE_NOTES[sourceLang] && (
-              <p className="source-note" data-testid="source-note">
-                {SOURCE_NOTES[sourceLang]}
-              </p>
-            )}
-            {experimentalPick && (
-              <p className="source-note" data-testid="target-hint">
-                {EXPERIMENTAL_HINT}
-              </p>
-            )}
-            <DetectNote found={found} picked={sourceLang} unavailable={languageSet.unavailable} onSwitch={chooseSource} />
-          </div>
-        )}
+        <SourceBar
+          playing={screen.kind === "playing"}
+          busy={!backend}
+          sourceLang={sourceLang}
+          unavailable={languageSet.unavailable}
+          onSourceLang={chooseSource}
+          found={found}
+          experimentalPick={experimentalPick}
+        />
       </div>
       <main>
         {status.kind === "starting" && (
