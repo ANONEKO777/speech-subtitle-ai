@@ -2702,7 +2702,16 @@ kbd {
   flex: 0 1 auto;
 }
 
+.side-langs {
+  position: relative;
+}
+
+.side-langs .menu {
+  position: static;
+}
+
 .side-langs .menu-list {
-  left: 0;
+  left: var(--space-2);
   right: auto;
+  width: 250px;
 }

@@ -276,14 +276,16 @@ try {
     await p.waitForSelector(tid("ready"));
     // queue Simplified Chinese and Korean for the same video, from the add dialog
     const emit = (event, payload) => p.evaluate(([e, pl]) => window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: e, payload: pl }), [event, payload]);
-    await p.click(tid("batch-open-add"));
-    await p.waitForSelector(tid("add-dialog"));
-    await emit("tauri://drag-drop", { paths: [seedVideoB], position: { x: 10, y: 10 } });
-    await until("row", async () => (await p.locator(tid("add-row")).count()) === 1, 10000);
+    // a drop of one file imports it, so two are dropped and the first row is the one kept
+    await emit("tauri://drag-enter", { paths: [], position: { x: 10, y: 10 } });
+    await emit("tauri://drag-drop", { paths: [seedVideoB, seedVideo], position: { x: 10, y: 10 } });
+    await until("rows", async () => (await p.locator(tid("add-row")).count()) === 2, 10000);
+    await p.locator('[data-testid="add-row"] button[aria-label="移除"]').nth(1).click();
+    await until("one row", async () => (await p.locator(tid("add-row")).count()) === 1, 5000);
     await p.selectOption(tid("add-row-source"), "ja");
     await p.click(tid("add-row-lang"));
     for (const code of ["zh-CN", "ko"]) await p.click(tid(`add-row-lang-${code}`));
-    await p.click(tid("add-row-lang-zh-TW"));
+    await p.click(tid("add-row-lang-en"));
     const codes = await p.getAttribute(tid("add-row-lang"), "data-codes");
     note("a row picks several targets", codes === "zh-CN,ko", codes);
     await shot("queue-add-dialog-two-targets", "Add dialog: one video, Simplified Chinese and Korean picked, the list open with the experimental label, the hint under it");
@@ -321,6 +323,49 @@ try {
     note("the retried Korean target holds real Korean text", ko.length === 8 && ko.filter((c) => /[가-힣]/.test(c.zh)).length >= 6, ko.map((c) => c.zh).join(" / "));
     const fails = existsSync(join(folder, "failures.ko.json")) ? readFileSync(join(folder, "failures.ko.json"), "utf8") : "none";
     note("failures.ko.json says what the model could not do, or is absent", true, fails.replace(/\s+/g, " "));
+  } else if (phase === "regress") {
+    await p.waitForSelector(tid("ready"));
+    const bodies = [];
+    p.on("request", (r) => {
+      if (r.method() === "POST" && /\/api\/projects\/[^/]+\/jobs$/.test(r.url())) bodies.push(r.postData());
+    });
+    // English speech, real ASR and real model, the default target
+    const en = join(clips, "talk-demo-en.mp4");
+    note("English speech is the default and Traditional Chinese the default target", (await p.inputValue(tid("source-lang"))) === "en" && (await p.inputValue(tid("target-lang"))) === "zh-TW", "en / zh-TW");
+    await importPath(en);
+    await p.waitForSelector(tid("importing"), { timeout: 20000 });
+    await until("translate step", async () => (await p.textContent(tid("step-name")))?.includes("翻譯成繁體中文"), 600000, 300);
+    note("the first run names the language and has no rerun note", (await p.locator(tid("rerun-note")).count()) === 0, await p.textContent(tid("step-name")));
+    await shot("english-progress", "English video, first run: the translate step says it translates into Traditional Chinese");
+    await waitPlayer(600000);
+    const cues = await cueTexts();
+    note("the English project plays with Traditional Chinese cues", cues.length >= 3 && cues.every((c) => /[一-鿿]/.test(c.zh) && !c.failed), cues.map((c) => c.zh).join(" / "));
+    note("the job body is the first release's plus the target", bodies.length === 1 && JSON.parse(bodies[0]).source_lang === "en" && JSON.parse(bodies[0]).target_lang === "zh-TW", bodies[0]);
+    await p.evaluate(() => document.querySelector("video").play());
+    await until("playing", async () => (await p.evaluate(() => document.querySelector("video").currentTime)) > 0.8, 15000);
+    await pause();
+    note("the video plays", true, "currentTime advanced");
+    await shot("english-player", "English video after its first run: Traditional Chinese, one language, the add-language button");
+    await p.click(tid("export-menu"));
+    await p.click(tid("export-srt-zh"));
+    await until("english srt", () => existsSync(join(exportDir, "talk-demo-en.zh-TW.srt")), 10000);
+    note("exported once: <video>.zh-TW.srt", /[一-鿿]/.test(readFileSync(join(exportDir, "talk-demo-en.zh-TW.srt"), "utf8")), "talk-demo-en.zh-TW.srt");
+    // Japanese to Traditional Chinese: the finished seed
+    await p.click(tid("home"));
+    await p.waitForSelector(tid("ready"));
+    await importPath(seedVideo, "ja", "zh-TW");
+    await waitPlayer(60000);
+    note("the Japanese project in Traditional Chinese plays as before, with no new job", bodies.length === 1 && (await p.locator(tid("importing")).count()) === 0, `${bodies.length} job requests`);
+    await p.evaluate(() => document.querySelector("video").play());
+    await until("playing ja", async () => (await p.evaluate(() => document.querySelector("video").currentTime)) > 0.8, 15000);
+    await pause();
+    await p.selectOption(tid("lang-select"), "zh-TW");
+    await sleep(500);
+    await p.click(tid("export-menu"));
+    await p.click(tid("export-srt-zh"));
+    await until("ja srt", () => existsSync(join(exportDir, "talk-demo-ja.zh-TW.srt")), 10000);
+    note("exported once: <video>.zh-TW.srt", readFileSync(join(exportDir, "talk-demo-ja.zh-TW.srt"), "utf8").includes("今天我要來談談鎮上的祭典"), "talk-demo-ja.zh-TW.srt");
+    await shot("japanese-zh-TW-player", "Japanese video in Traditional Chinese after the change");
   } else if (phase === "nofont") {
     await p.waitForSelector(tid("ready"));
     await importPath(seedVideo, "ja", "zh-TW");
@@ -342,8 +387,11 @@ try {
     await p.selectOption(tid("lang-select"), "zh-TW");
     await sleep(600);
     await p.keyboard.press("Shift+s");
-    const ok = await until("zh toast", async () => (await p.locator(tid("toast-text")).count()) > 0 && (await p.textContent(tid("toast-text"))), 30000);
-    note("Traditional Chinese on the same PC still burns", ok.includes("截圖已存到") || !ok.includes("한국어"), ok);
+    const ok = await until("zh toast", async () => {
+      const t = (await p.locator(tid("toast-text")).count()) > 0 ? await p.textContent(tid("toast-text")) : "";
+      return t.includes("한국어") ? false : t;
+    }, 30000);
+    note("Traditional Chinese on the same PC still burns", ok.includes("截圖已存到"), ok);
   } else {
     throw new Error(`unknown phase ${phase}`);
   }

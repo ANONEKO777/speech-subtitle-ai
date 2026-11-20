@@ -3,7 +3,9 @@
     uv run python scripts/make_p26b_seed.py OUT [NAME [TARGET ...]]
 
 It makes a 30 s colour video with ffmpeg and runs the real pipeline over it with the ports a test
-uses: no model runs. The Japanese talk is eight invented sentences, and the translations are
+uses: no model runs. The settings are the ones the app resolves for `VST_USER_DATA` (the engine,
+the models, their sizes), so the app finds every step cached and a new target reruns only the
+translation. The Japanese talk is eight invented sentences, and the translations are
 written here by hand. Two cues fail on purpose: the English target leaves cue 6 empty, and the
 Korean one shows cue 4 in English and leaves cue 6 empty, as the routes of the registry do.
 
@@ -27,13 +29,15 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
 from test_ja_targets import TargetFakes  # noqa: E402
-from test_japanese import ja_settings  # noqa: E402
 
+from backend.api.jobs import JobBody  # noqa: E402
 from backend.core.languages import get as get_language  # noqa: E402
 from backend.core.model import Word  # noqa: E402
 from backend.core.pipeline import run  # noqa: E402
 from backend.core.projects import project_id  # noqa: E402
 from backend.llm.client import Message  # noqa: E402
+from backend.main import default_resolver  # noqa: E402
+from backend.manager.storage import default_user_data  # noqa: E402
 
 SENTENCES = [
     "今日は、町の祭りについてお話しします。",
@@ -155,8 +159,11 @@ def main() -> None:
         for i, text in enumerate(SENTENCES)
     ]
     fakes = Demo(words=words)
+    resolver = default_resolver(default_user_data())
     for code in targets:
-        run(video, folder, ja_settings(target_lang=code), fakes.ports())
+        options = JobBody(source_lang="ja", target_lang=code).options()
+        settings, _real_ports = resolver(options, folder)
+        run(video, folder, settings, fakes.ports())
     print(f"project folder {folder}")
     print(f"import this video {video}")
 
