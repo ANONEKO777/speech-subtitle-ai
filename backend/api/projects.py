@@ -7,9 +7,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core import cue_failures
 from backend.core.cue_edits import CueProblem
 from backend.core.jobs import JobBook
 from backend.core.languages import UnknownLanguage
+from backend.core.languages import get as get_language
 from backend.core.media import accepted_extensions, is_media
 from backend.core.model import Cue, Step, StepState
 from backend.core.projects import (
@@ -66,10 +68,24 @@ def _steps_json(steps: Mapping[Step, StepState]) -> dict[str, Any]:
     }
 
 
+def _failed_cues_json(info: ProjectInfo) -> dict[str, Any]:
+    """The cues each language's translation could not do, for the languages that have any:
+    `failed` ids, and `english` for the ones that show their English."""
+    found = {
+        code: cue_failures.read(info.folder, get_language(code))
+        for code in info.project.languages()
+    }
+    return {
+        code: {"failed": list(f.failed), "english": list(f.english)}
+        for code, f in found.items()
+        if f
+    }
+
+
 def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
     """`steps` is every step as it stands for `active_lang`, the language last worked on.
     `languages` has the translate, export and summarize steps of every language the project
-    has been given."""
+    has been given, and `failed_cues` the cues of a translation that has none."""
     active = jobs.active(info.id)
     return {
         "id": info.id,
@@ -83,6 +99,7 @@ def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
         },
         "files": {name: str(path) for name, path in info.files.items()},
         "active_job": active.id if active else None,
+        "failed_cues": _failed_cues_json(info),
     }
 
 

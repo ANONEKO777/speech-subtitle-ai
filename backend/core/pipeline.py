@@ -21,7 +21,7 @@ from functools import cache
 from importlib.resources import files as package_files
 from pathlib import Path
 
-from backend.core import cue_edits, summarize, translate
+from backend.core import cue_edits, cue_failures, summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
 from backend.core.ja_terms import SOURCE_FIXES
 from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
@@ -300,6 +300,12 @@ def _translate(ctx: _Ctx) -> None:
         lang=ctx.settings.lang,
         source_lang=ctx.settings.source,
         on_failure=ctx.failures.append,
+    )
+    cue_failures.write(
+        ctx.dir,
+        ctx.settings.lang,
+        [f.cue_id for f in ctx.failures],
+        [f.cue_id for f in ctx.failures if f.english],
     )
     kept = cue_edits.reapply(ctx.dir, ctx.settings.lang)
     ctx.notes["edits_kept"] = kept.kept

@@ -25,7 +25,7 @@ from test_pipeline import SETTINGS, Fakes
 from test_queue import Power, QueueRig, add, video
 from test_summarize import good_map, good_reduce
 
-from backend.core import fonts, pipeline, summarize, translate
+from backend.core import cue_failures, fonts, pipeline, summarize, translate
 from backend.core.ja_routes import ROUTES
 from backend.core.ja_terms import JA_TERMS
 from backend.core.jobs import JobOptions
@@ -726,6 +726,53 @@ class TestProject:
         assert all(c.zh == "" for c in cues)
         assert "cues failed every attempt" in report.describe()
         assert _report_json(report)["failed_cues"] == list(report.failed_cues)
+
+    def test_the_failed_cues_stay_with_the_project_until_its_translation_runs_again(
+        self, project: tuple[Path, Path]
+    ) -> None:
+        from backend.api.projects import _failed_cues_json
+        from backend.core.projects import ProjectInfo
+
+        video, folder = project
+
+        class Failing(TargetFakes):
+            def translate(self, messages: Sequence[Message], temperature: float) -> str:
+                if "into English" not in messages[0]["content"]:
+                    return super().translate(messages, temperature)
+                entries = json.loads(messages[1]["content"])["translate"]
+                body = [{"id": e["id"], "text": "ブランチ"} for e in entries]
+                return json.dumps({"translations": body}, ensure_ascii=False)
+
+        fakes = target_fakes(Failing)
+
+        def seen() -> dict[str, Any]:
+            state = parse_project(read_text_file(folder / "project.json"))
+            return _failed_cues_json(ProjectInfo("p", folder, state, {}))
+
+        run(video, folder, ja_settings(target_lang="en"), fakes.ports())
+        ids = [c.id for c in parse_subs(read_text_file(folder / "subs.en.json"))]
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        run(video, folder, ja_settings(target_lang="zh-CN"), fakes.ports())
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        run(video, folder, ja_settings(target_lang="en"), fakes.ports())
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        assert not (folder / "failures.zh-CN.json").exists()
+
+    def test_a_translation_that_ran_again_without_failures_clears_the_list(
+        self, tmp_path: Path
+    ) -> None:
+        cue_failures.write(tmp_path, EN, [3, 1], [3])
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures((1, 3), (3,))
+        cue_failures.write(tmp_path, EN, [], [])
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures()
+        assert not cue_failures.read(tmp_path, EN)
+
+    @pytest.mark.parametrize(
+        "text", ["", "not json", "[1, 2]", '{"failed": "x", "english": [true]}']
+    )
+    def test_a_damaged_list_of_failed_cues_is_no_list(self, tmp_path: Path, text: str) -> None:
+        (tmp_path / "failures.en.json").write_text(text)
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures()
 
 
 def derive_keys(settings: Settings) -> dict[str, str]:
