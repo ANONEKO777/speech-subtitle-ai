@@ -90,6 +90,9 @@ _KATAKANA_MIDDLE_DOT = "・"
 _CJK = re.compile("[぀-ヿ㐀-䶿一-鿿ｦ-ﾟ]")
 _MIN_CJK_TO_REQUIRE = 5
 _LATIN_IN_HANGUL = re.compile("[가-힣][a-z]")
+_ENGLISH_RUN = re.compile(r"(?<![A-Za-z'])(?:[A-Za-z][A-Za-z']*[.,;:!?]? ){3,}[A-Za-z][A-Za-z']*")
+_MIN_ENGLISH_WORDS = 3
+_LOWERCASE_WORD = re.compile("(?<![A-Za-z'])[a-z]{3,}(?![A-Za-z'])")
 
 _TAIWAN_FORMS_IN_SIMPLIFIED = (
     "支援",
@@ -130,6 +133,15 @@ def _english_problem(text: str) -> str | None:
     return _no_kana(text)
 
 
+def _english_tail(text: str) -> str | None:
+    """A run of four or more English words, three of them plain lowercase words, is a sentence the
+    model left in English, not a product name (Visual Studio Code, Model Context Protocol)."""
+    for run in _ENGLISH_RUN.finditer(text):
+        if len(_LOWERCASE_WORD.findall(run.group())) >= _MIN_ENGLISH_WORDS:
+            return f"has English text {run.group()[:30]!r} left in it; translate all of it"
+    return None
+
+
 def _simplified_problem(text: str) -> str | None:
     if problem := _no_kana(text):
         return problem
@@ -137,7 +149,7 @@ def _simplified_problem(text: str) -> str | None:
         return f"uses Japanese kanji forms {''.join(kanji)}; write Simplified Chinese characters"
     if found := [word for word in _TAIWAN_FORMS_IN_SIMPLIFIED if word in text]:
         return f"uses Taiwan wording {', '.join(found)}; write the Mainland China words"
-    return None
+    return _english_tail(text)
 
 
 def _korean_problem(text: str) -> str | None:
@@ -145,7 +157,7 @@ def _korean_problem(text: str) -> str | None:
         return problem
     if _LATIN_IN_HANGUL.search(text):
         return "has Latin letters inside a Hangul word; write the whole word in Hangul"
-    return None
+    return _english_tail(text)
 
 
 def _middle_dot(text: str) -> str:
@@ -212,14 +224,10 @@ _NAMES_LATIN = (
     "is written in Latin letters, as its Hepburn romanisation, when it has no other Latin spelling"
 )
 
-_EN_BREVITY = (
-    " Each subtitle line holds about 40 characters and a cue two lines at most, so choose the "
-    "shortest natural wording that keeps every fact."
-)
 _EN_WORDING = (
     "- Write plain spoken English, with contractions where a speaker would use them. Use the "
     "software terms English-speaking engineers use (commit, branch, repository, pipeline, "
-    "workspace) and the term table below when it names one." + _EN_BREVITY
+    "workspace) and the term table below when it names one."
 )
 _ZH_CN_WORDING = (
     "- Use Mainland China wording, not Taiwan wording: 软件 (not 软体), 视频 (not 影片), 支持 "
