@@ -8,6 +8,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from backend.core.languages import Language
 from backend.core.subtitle_io import read_text_file, write_text_file
@@ -41,7 +42,8 @@ def write(folder: Path, lang: Language, failed: Sequence[int], english: Sequence
 def _ids(value: object) -> tuple[int, ...]:
     if not isinstance(value, list):
         return ()
-    return tuple(sorted({v for v in value if type(v) is int}))
+    items = cast("list[object]", value)
+    return tuple(sorted({v for v in items if type(v) is int}))
 
 
 def read(folder: Path, lang: Language) -> CueFailures:
@@ -55,4 +57,5 @@ def read(folder: Path, lang: Language) -> CueFailures:
         return CueFailures()
     if not isinstance(doc, dict):
         return CueFailures()
-    return CueFailures(_ids(doc.get("failed")), _ids(doc.get("english")))
+    found = cast("dict[str, object]", doc)
+    return CueFailures(_ids(found.get("failed")), _ids(found.get("english")))

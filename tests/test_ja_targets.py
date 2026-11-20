@@ -918,7 +918,11 @@ class TestGapsOfTheFirstRelease:
     ) -> None:
         from backend.api.player import StillBody, _look
 
-        installed = {"Malgun Gothic": set(), "Yu Gothic": set(), "Microsoft JhengHei": set()}
+        installed: dict[str, set[str]] = {
+            "Malgun Gothic": set(),
+            "Yu Gothic": set(),
+            "Microsoft JhengHei": set(),
+        }
         lookup = TestFonts().lookup(installed)
         monkeypatch.setattr(fonts.target_font, "__defaults__", (lookup,))
         monkeypatch.setattr(fonts.burn_font, "__defaults__", (lookup,))

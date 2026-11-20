@@ -1,3 +1,4 @@
+# pyright: basic, reportMissingImports=false
 """Build a finished Japanese project with three targets for the P26b window checks.
 
     uv run python scripts/make_p26b_seed.py OUT [NAME [TARGET ...]]
