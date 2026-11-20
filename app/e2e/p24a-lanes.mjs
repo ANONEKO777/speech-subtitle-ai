@@ -170,9 +170,10 @@ const PLAYER_BOX = { 1280: 130, 960: 66 };
 // English and Japanese 656.2 px at 1280 and 500.8 at 960, mixed (a plain-text target, no select) 634.2 and 478.9. Main measured 789.1, 600.8 and 725.1.
 // Each minimum is the measurement minus 10 px, so a further loss of more than 10 px fails.
 const HOME_BOX = { 1280: 646, 960: 490 };
-/** The language codes the target control of add-dialog row `i` offers: opens it, reads the checkboxes, closes it. */
+/** The language codes the target control of add-dialog row `i` offers. A row with one target (the mixed choice) has a disabled control that lists them in `data-codes`; otherwise it opens the control, reads the checkboxes and closes it. */
 async function targetOptions(p, i) {
   const button = p.locator('[data-testid="add-row-lang"]').nth(i);
+  if (await button.isDisabled()) return (await button.getAttribute("data-codes")).split(",");
   await button.click();
   const codes = await p.locator('[data-testid="add-row-lang-list"] input').evaluateAll((els) => els.map((e) => e.dataset.testid.replace("add-row-lang-", "")));
   await p.keyboard.press("Escape");
