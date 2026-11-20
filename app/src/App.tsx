@@ -4,7 +4,7 @@ import { isDetection, preselect } from "./api/detect";
 import { planImport } from "./api/importPlan";
 import { DEFAULT_SOURCE, SOURCE_NOTES, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
 import { EXPERIMENTAL_HINT, isExperimentalTarget, targetFor, targetName, targetsOf } from "./api/targets";
-import { type BackendStatus, allowVideo, watchBackend, watchDrops } from "./api/backend";
+import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
 import {
   ApiError,
   type Backend,
@@ -34,6 +34,7 @@ import { shortName } from "./export/exports";
 import { DetectNote, hasDetectNote } from "./import/DetectNote";
 import { ImportPanel, SourcePick } from "./import/ImportPanel";
 import { useDetections, useSettledPath } from "./import/useDetections";
+import { useDrops } from "./import/useDrops";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
 import { Player } from "./player/Player";
@@ -300,19 +301,15 @@ export function App() {
     };
   }, [backend, screenKind, playingId]);
 
-  useEffect(() => {
-    if (!backend) return;
-    let stop: (() => void) | undefined;
-    void watchDrops(
-      (paths) => {
-        const [first] = paths;
-        if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first, null, sourceLang, target);
-        else if (paths.length > 0) setAdding(rowsFor(paths, [target], sourceLang));
-      },
-      setDropping,
-    ).then((s) => (stop = s));
-    return () => stop?.();
-  }, [backend, startImport, target, sourceLang]);
+  useDrops(
+    backend !== null,
+    (paths) => {
+      const [first] = paths;
+      if (first && paths.length === 1 && classifyPath(first) === "file") void startImport(first, null, sourceLang, target);
+      else if (paths.length > 0) setAdding(rowsFor(paths, [target], sourceLang));
+    },
+    setDropping,
+  );
 
   const playItem = useCallback((item: LibraryItem) => void startImport(item.videoPath), [startImport]);
   const stepVideo = useCallback(
