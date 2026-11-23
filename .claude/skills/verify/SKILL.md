@@ -65,3 +65,11 @@ Save screenshots into the shots folder you pass. For a UI claim capture the acti
 ## Cleanup
 
 The drivers close the window with `CloseMainWindow`, which is the user path, and exit. If a run died, stop only what you started: `Stop-Process -Id <pid>` for the app pid the driver printed or `strayProcesses()` listed, never by name. Delete the disposable projects folder if you made one. Screenshots are the proof, leave them.
+
+**Links in scratch folders.** A user data folder or worktree you made for a run may hold junctions into the real `models\` and `runtimes\` (`.work\p08-ud`, a lane's `run\ud`) or into `app\node_modules`. `git worktree remove`, `Remove-Item -Recurse` and `shutil.rmtree` can follow a junction and delete the real files (this emptied the repo's `models\` and `runtimes\` on 2026-11-21, and `node_modules` twice before). Before any recursive delete of a scratch folder:
+
+```
+Get-ChildItem <dir> -Force -Recurse -Directory | Where-Object LinkType -eq Junction | ForEach-Object { cmd /c rmdir $_.FullName }
+```
+
+then check `Get-ChildItem <dir> -Force -Recurse -Directory | Where-Object LinkType` prints nothing, and only then delete. Run it in PowerShell, not Git Bash (path conversion breaks `rmdir`). Prefer a user data folder with real copies, or `models_dir` in `storage.json` for the models, over a junction.
