@@ -23,6 +23,9 @@ function list(marks: boolean) {
       mode="both"
       marks={marks}
       edited={new Set()}
+      failed={new Map()}
+      onlyFailed={false}
+      target="繁體中文"
       editingId={null}
       editor={editor}
       onSeek={() => undefined}

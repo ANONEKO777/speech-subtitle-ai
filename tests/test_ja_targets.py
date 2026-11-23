@@ -25,7 +25,7 @@ from test_pipeline import SETTINGS, Fakes
 from test_queue import Power, QueueRig, add, video
 from test_summarize import good_map, good_reduce
 
-from backend.core import fonts, pipeline, summarize, translate
+from backend.core import cue_failures, fonts, pipeline, summarize, translate
 from backend.core.ja_routes import ROUTES
 from backend.core.ja_terms import JA_TERMS
 from backend.core.jobs import JobOptions
@@ -727,6 +727,53 @@ class TestProject:
         assert "cues failed every attempt" in report.describe()
         assert _report_json(report)["failed_cues"] == list(report.failed_cues)
 
+    def test_the_failed_cues_stay_with_the_project_until_its_translation_runs_again(
+        self, project: tuple[Path, Path]
+    ) -> None:
+        from backend.api.projects import _failed_cues_json
+        from backend.core.projects import ProjectInfo
+
+        video, folder = project
+
+        class Failing(TargetFakes):
+            def translate(self, messages: Sequence[Message], temperature: float) -> str:
+                if "into English" not in messages[0]["content"]:
+                    return super().translate(messages, temperature)
+                entries = json.loads(messages[1]["content"])["translate"]
+                body = [{"id": e["id"], "text": "ブランチ"} for e in entries]
+                return json.dumps({"translations": body}, ensure_ascii=False)
+
+        fakes = target_fakes(Failing)
+
+        def seen() -> dict[str, Any]:
+            state = parse_project(read_text_file(folder / "project.json"))
+            return _failed_cues_json(ProjectInfo("p", folder, state, {}))
+
+        run(video, folder, ja_settings(target_lang="en"), fakes.ports())
+        ids = [c.id for c in parse_subs(read_text_file(folder / "subs.en.json"))]
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        run(video, folder, ja_settings(target_lang="zh-CN"), fakes.ports())
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        run(video, folder, ja_settings(target_lang="en"), fakes.ports())
+        assert seen() == {"en": {"failed": ids, "english": []}}
+        assert not (folder / "failures.zh-CN.json").exists()
+
+    def test_a_translation_that_ran_again_without_failures_clears_the_list(
+        self, tmp_path: Path
+    ) -> None:
+        cue_failures.write(tmp_path, EN, [3, 1], [3])
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures((1, 3), (3,))
+        cue_failures.write(tmp_path, EN, [], [])
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures()
+        assert not cue_failures.read(tmp_path, EN)
+
+    @pytest.mark.parametrize(
+        "text", ["", "not json", "[1, 2]", '{"failed": "x", "english": [true]}']
+    )
+    def test_a_damaged_list_of_failed_cues_is_no_list(self, tmp_path: Path, text: str) -> None:
+        (tmp_path / "failures.en.json").write_text(text)
+        assert cue_failures.read(tmp_path, EN) == cue_failures.CueFailures()
+
 
 def derive_keys(settings: Settings) -> dict[str, str]:
     keys: dict[Step, str] = {}
@@ -854,6 +901,123 @@ class TestFonts:
             if found is None:
                 pytest.skip(f"{lang.fonts[0]} is not installed here")
             assert not found[1], lang.code
+
+
+class TestGapsOfTheFirstRelease:
+    """What the independent verifier's mutants of P26a showed no test pinned."""
+
+    def test_the_glyph_message_of_a_target_font_names_the_language(self) -> None:
+        with pytest.raises(fonts.FontMissing) as caught:
+            fonts.target_font(
+                TestFonts().cues("안녕 뷁"), KO, TestFonts().lookup({"Malgun Gothic": {"뷁"}})
+            )
+        assert "한국어" in str(caught.value) and "Malgun Gothic" in str(caught.value)
+
+    def test_the_burned_subtitle_of_a_target_is_looked_up_for_that_target(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from backend.api.player import StillBody, _look
+
+        installed: dict[str, set[str]] = {
+            "Malgun Gothic": set(),
+            "Yu Gothic": set(),
+            "Microsoft JhengHei": set(),
+        }
+        lookup = TestFonts().lookup(installed)
+        monkeypatch.setattr(fonts.target_font, "__defaults__", (lookup,))
+        monkeypatch.setattr(fonts.burn_font, "__defaults__", (lookup,))
+        body = StillBody(time_s=0)
+        korean = [Cue(1, 0, 1000, "こんにちは", lang="ja", zh="안녕하세요")]
+        assert _look(body, korean, KO).target_font == "Malgun Gothic"
+        assert _look(body, korean, ZH_TW).target_font == "Microsoft JhengHei"
+
+    def test_a_pc_without_the_korean_font_refuses_the_burn_with_a_422_naming_the_language(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from fastapi import HTTPException
+
+        from backend.api.player import StillBody, _look
+
+        lookup = TestFonts().lookup({"Yu Gothic": set()})
+        monkeypatch.setattr(fonts.target_font, "__defaults__", (lookup,))
+        monkeypatch.setattr(fonts.burn_font, "__defaults__", (lookup,))
+        korean = [Cue(1, 0, 1000, "こんにちは", lang="ja", zh="안녕하세요")]
+        with pytest.raises(HTTPException) as caught:
+            _look(StillBody(time_s=0), korean, KO)
+        assert caught.value.status_code == 422 and "한국어" in str(caught.value.detail)
+
+    def test_four_english_words_are_a_sentence_and_three_are_not(self) -> None:
+        for code, start in (
+            ("ko", "지난달에 브랜치를 만들었습니다"),
+            ("zh-CN", "上个月我创建了分支并搁置"),
+        ):
+            assert "English text" in refused(code, f"{start} use the left side"), code
+            assert read(code, f"{start} use the left"), code
+
+    def test_four_english_words_with_fewer_than_three_plain_lowercase_ones_are_names(self) -> None:
+        text = "지난달에 Visual Studio Code is 브랜치를 만들었습니다"
+        assert read("ko", text, BRANCH * 2)
+
+    @pytest.mark.parametrize("code", NEW_TARGETS)
+    def test_half_width_kana_are_kana(self, code: str) -> None:
+        said = {
+            "en": "Last month I made a ﾌﾞﾗﾝﾁ in Perforce.",
+            "zh-CN": "上个月我创建了ﾌﾞﾗﾝﾁ。",
+            "ko": "지난달에 ﾌﾞﾗﾝﾁ를 만들었습니다.",
+        }
+        assert "kana" in refused(code, said[code])
+
+    @pytest.mark.parametrize(
+        ("taiwan", "mainland"),
+        [
+            ("支援", "支持"),
+            ("影像", "视频"),
+            ("软体", "软件"),
+            ("资讯", "信息"),
+            ("程式", "程序"),
+            ("伺服器", "服务器"),
+            ("网路", "网络"),
+            ("档案", "文件"),
+            ("使用者", "用户"),
+            ("滑鼠", "鼠标"),
+            ("记忆体", "内存"),
+            ("预设", "默认"),
+            ("最佳化", "优化"),
+            ("资料库", "数据库"),
+            ("部落格", "博客"),
+        ],
+    )
+    def test_every_taiwan_form_of_the_list_is_refused_in_simplified_chinese(
+        self, taiwan: str, mainland: str
+    ) -> None:
+        wrong = f"上个月我在这个{taiwan}里创建了分支并搁置了修改。"
+        assert taiwan in refused("zh-CN", wrong)
+        assert read("zh-CN", wrong.replace(taiwan, mainland))
+
+    @pytest.mark.parametrize("code", ["zh-CN", "ko"])
+    def test_the_katakana_middle_dot_becomes_the_middle_dot_in_zh_cn_and_korean(
+        self, code: str
+    ) -> None:
+        reply = {
+            "zh-CN": "上个月我用了乔治・华盛顿创建分支并搁置了修改。",
+            "ko": "지난달에 조지・워싱턴과 브랜치를 만들었습니다.",
+        }[code]
+        (text,) = read(code, reply).values()
+        assert "・" not in text and "·" in text
+
+    def test_the_english_of_a_failed_korean_cue_is_asked_again_when_a_reply_is_refused(
+        self,
+    ) -> None:
+        asked: list[str] = []
+
+        def english(ja: str) -> str:
+            asked.append(ja)
+            return "Last month I made a ブランチ." if len(asked) == 1 else GOOD["en"]
+
+        chat = RoutedChat(ko="ブランチ", en=english)
+        cues, failures = run_one("ko", chat)
+        assert cues[0].zh == GOOD["en"] and failures == [Failure(1, english=True)]
+        assert len(asked) == 2
 
 
 @pytest.fixture

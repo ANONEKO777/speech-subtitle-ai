@@ -1,8 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openFolder, pickFolder } from "../api/backend";
-import type { Backend, LanguageInfo } from "../api/client";
+import type { Backend, CueFailures, LanguageInfo } from "../api/client";
 import { MIXED, type SourceLang } from "../api/sourceLang";
+import type { Target } from "../api/targets";
 import { type Look, type Playback, takeStill } from "../api/library";
 import { type Loaded, useCueEditing } from "../editor/useCueEditing";
 import { exportItems, shortName } from "../export/exports";
@@ -12,6 +13,7 @@ import { Controls } from "./Controls";
 import { BurnCard, HelpOverlay, Toast } from "./Overlays";
 import { SidePanel, type Tab } from "./SidePanel";
 import type { Cue } from "./cues";
+import { openFailures } from "./failures";
 import { type Action, isArrow, keyAction } from "./shortcuts";
 import { adjacentCue, clampOffset, playClock, startOnVideo } from "./transport";
 import { useActiveCue } from "./useActiveCue";
@@ -31,6 +33,14 @@ interface Props {
   readonly languages: readonly LanguageInfo[];
   readonly lang: string;
   readonly onLang: (code: string) => void;
+  /** The languages of `languages` the backend has not judged. */
+  readonly experimental: ReadonlySet<string>;
+  /** The languages the video can still be translated into, and what picking one does. */
+  readonly addable: readonly Target[];
+  readonly onAddTarget: (code: string) => void;
+  readonly addBlocked: string | null;
+  /** The cues of `lang` that the translator could not do. */
+  readonly failures: CueFailures | undefined;
   readonly loaded: Loaded;
   /** What the last run did with the person's edits, shown until something else happens. */
   readonly notice: string | null;
@@ -94,6 +104,7 @@ export function Player(props: Props) {
   const { offsetMs, change: changeOffset } = useOffset(backend, projectId, playback.offsetMs);
   const active = useActiveCue(video, cues, offsetMs);
   const cue = active >= 0 ? cues[active] : undefined;
+  const failed = useMemo(() => openFailures(props.failures, cues, editing.state.edited), [props.failures, cues, editing.state.edited]);
 
   const say = useCallback((text: string | void) => {
     if (!text) return;
@@ -300,7 +311,7 @@ export function Player(props: Props) {
 
   const lines: Array<{ side: "src" | "zh"; lang: string; text: string }> = [];
   if (cue && settings.mode !== "zh") lines.push({ side: "src", lang: cue.lang, text: cue.src });
-  if (cue && settings.mode !== "en") lines.push({ side: "zh", lang: "zh-TW", text: cue.zh });
+  if (cue && settings.mode !== "en") lines.push({ side: "zh", lang, text: cue.zh });
   if (settings.zhFirst) lines.reverse();
 
   const subtitleStyle = {
@@ -402,6 +413,11 @@ export function Player(props: Props) {
         languages={languages}
         lang={lang}
         onLang={onLang}
+        experimental={props.experimental}
+        addable={props.addable}
+        onAddTarget={props.onAddTarget}
+        addBlocked={props.addBlocked}
+        failed={failed}
         summary={summary?.text}
         summaryDegraded={summary?.degraded ?? false}
         exports={exportItems(videoPath, lang, label, sourceLang)}

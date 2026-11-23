@@ -10,20 +10,11 @@ export const SOURCE_LANGS: ReadonlyArray<{ readonly code: SourceLang; readonly l
   { code: "ja+en", label: "日文與英文混合", tag: "日英混合" },
 ];
 
-/** What a person is told after picking a language whose subtitles come out in one language only. */
+/** What a person is told after picking a language whose subtitles come out in a few languages only. */
 export const SOURCE_NOTES: Readonly<Partial<Record<SourceLang, string>>> = {
-  ja: "日文影片目前只輸出繁體中文字幕。",
+  ja: "日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。",
   "ja+en": "日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。",
 };
-
-/** The target languages a source language can be translated into for now, or null for all of them. Mirrors `targets` of the backend's source table. */
-export const SOURCE_TARGETS: Readonly<Partial<Record<SourceLang, readonly string[]>>> = {
-  ja: ["zh-TW"],
-  "ja+en": ["zh-TW"],
-};
-
-/** A language is never a target of its own speech, as in the backend (`SourceLanguage.supports`). */
-export const canTarget = (source: SourceLang, target: string): boolean => source !== target && (SOURCE_TARGETS[source]?.includes(target) ?? true);
 
 export const parseSourceLang = (value: unknown): SourceLang =>
   SOURCE_LANGS.find((l) => l.code === value)?.code ?? DEFAULT_SOURCE;

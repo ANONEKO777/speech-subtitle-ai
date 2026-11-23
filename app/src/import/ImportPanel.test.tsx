@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SourcePick } from "./ImportPanel";
+import { ImportPanel, SourcePick, TargetPick } from "./ImportPanel";
 
 afterEach(cleanup);
 
@@ -23,5 +23,68 @@ describe("the video language picker", () => {
     expect(mixed?.disabled).toBe(true);
     expect(mixed?.textContent).toBe(`日文與英文混合（${why}）`);
     expect(mixed?.title).toBe(why);
+  });
+});
+
+describe("the language of the subtitles", () => {
+  const targets = [
+    { code: "zh-TW", name: "Traditional Chinese", nativeName: "繁體中文（台灣）", experimental: false },
+    { code: "en", name: "English", nativeName: "English", experimental: false },
+    { code: "ko", name: "Korean", nativeName: "한국어", experimental: true },
+  ];
+
+  it("lists the targets given, labels the experimental one and marks it when picked", () => {
+    const onTarget = vi.fn();
+    const { rerender } = render(<TargetPick busy={false} targets={targets} target="zh-TW" onTarget={onTarget} />);
+    const select = screen.getByTestId("target-lang") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.label)).toEqual(["繁體中文", "English", "한국어（實驗性）"]);
+    expect(select.dataset["experimental"]).toBe("false");
+    fireEvent.change(select, { target: { value: "ko" } });
+    expect(onTarget).toHaveBeenCalledWith("ko");
+    rerender(<TargetPick busy={false} targets={targets} target="ko" onTarget={onTarget} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).dataset["experimental"]).toBe("true");
+  });
+
+  it("is plain text when the video language has one target only, as a mixed talk has, so it takes no room for a choice", () => {
+    render(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    const fixed = screen.getByTestId("target-lang");
+    expect(fixed.tagName).toBe("SPAN");
+    expect(fixed.textContent).toContain("繁體中文");
+    expect(fixed.querySelector("select")).toBeNull();
+  });
+
+  it("says as plain text that the only target is not yet judged, and the name it has", () => {
+    const only = targets[2];
+    if (!only) throw new Error("fixture");
+    const { rerender } = render(<TargetPick busy={false} targets={[only]} target="ko" onTarget={() => undefined} />);
+    expect(screen.getByTestId("target-lang").dataset["experimental"]).toBe("true");
+    expect(screen.getByTestId("target-lang").textContent).toContain("（實驗性）");
+    rerender(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    expect(screen.getByTestId("target-lang").dataset["experimental"]).toBe("false");
+    expect(screen.getByTestId("target-lang").textContent).not.toContain("實驗性");
+  });
+
+  it("cannot be changed while a job runs", () => {
+    const { rerender } = render(<TargetPick busy targets={targets} target="en" onTarget={() => undefined} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(true);
+    rerender(<TargetPick busy={false} targets={targets} target="en" onTarget={() => undefined} />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).disabled).toBe(false);
+  });
+
+  it("is labelled with the short word 字幕, as a select and as plain text", () => {
+    const { rerender } = render(<TargetPick busy={false} targets={targets} target="en" onTarget={() => undefined} />);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕")).toBe(true);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕語言")).toBe(false);
+    rerender(<TargetPick busy={false} targets={targets.slice(0, 1)} target="zh-TW" onTarget={() => undefined} />);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕")).toBe(true);
+    expect(screen.getByTitle("字幕要翻成的語言").textContent?.startsWith("字幕語言")).toBe(false);
+  });
+
+  it("sits in the import bar only where the video language does", () => {
+    const props = { busy: false, sourceLang: "ja" as const, unavailable: {}, onSourceLang: () => undefined, targets, target: "en", onTarget: () => undefined, onImport: () => undefined, onPath: () => undefined };
+    const { rerender } = render(<ImportPanel {...props} withPicker />);
+    expect((screen.getByTestId("target-lang") as HTMLSelectElement).value).toBe("en");
+    rerender(<ImportPanel {...props} withPicker={false} />);
+    expect(screen.queryByTestId("target-lang")).toBeNull();
   });
 });

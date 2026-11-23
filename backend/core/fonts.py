@@ -45,6 +45,10 @@ MISSING_GLYPH_MESSAGE = (
 )
 
 
+MISSING_TARGET_GLYPH_MESSAGE = (
+    "字型 {font} 缺少{language}字幕要用的字形：{chars}，燒錄出來的字幕會變成空白方塊。"
+    "請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
+)
 MISSING_TARGET_FONT_MESSAGE = (
     "這台電腦沒有可以顯示{language}字幕的字型（試過 {fonts}），燒錄出來的字幕會變成空白方塊。"
     "請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
@@ -174,10 +178,11 @@ def _first_covering(
     candidates: Sequence[str],
     lookup: Lookup,
     no_font: str,
+    glyphs: str = MISSING_GLYPH_MESSAGE,
 ) -> str:
     """The first family of `candidates` that draws every character of `needed`. When none does,
-    raises `FontMissing`: the glyph message for the family that lacks the fewest, or `no_font` when
-    no family is installed."""
+    raises `FontMissing`: the `glyphs` message for the family that lacks the fewest, or `no_font`
+    when no family is installed."""
     find = lookup(needed)
     tried: list[str] = []
     lacking: dict[str, set[str]] = {}
@@ -192,9 +197,7 @@ def _first_covering(
         lacking[family] = missing
     if lacking:
         family, missing = min(lacking.items(), key=lambda item: len(item[1]))
-        raise FontMissing(
-            MISSING_GLYPH_MESSAGE.format(font=family, chars="".join(sorted(missing)[:12]))
-        )
+        raise FontMissing(glyphs.format(font=family, chars="".join(sorted(missing)[:12])))
     raise FontMissing(no_font.format(fonts="、".join(tried)))
 
 
@@ -221,5 +224,6 @@ def target_font(cues: Sequence[Cue], lang: Language, lookup: Lookup = windows_co
     needed = {c for cue in cues for c in cue.zh if ord(c) > 0x7F and not c.isspace()}
     if not needed:
         return lang.fonts[0]
-    message = MISSING_TARGET_FONT_MESSAGE.replace("{language}", lang.native)
-    return _first_covering(needed, lang.fonts, lookup, message)
+    no_font = MISSING_TARGET_FONT_MESSAGE.replace("{language}", lang.native)
+    glyphs = MISSING_TARGET_GLYPH_MESSAGE.replace("{language}", lang.native)
+    return _first_covering(needed, lang.fonts, lookup, no_font, glyphs)

@@ -1,7 +1,8 @@
-import { Pencil } from "lucide-react";
+import { Pencil, TriangleAlert } from "lucide-react";
 import { type KeyboardEvent, memo, useEffect, useRef } from "react";
 import { CueEditor, type EditorHooks } from "../editor/CueEditor";
 import { type Cue, type SubtitleMode } from "./cues";
+import { type FailedKind, failureTitle } from "./failures";
 import { LangMark } from "./LangMark";
 
 export function clock(ms: number): string {
@@ -19,13 +20,17 @@ interface RowProps {
   readonly mode: SubtitleMode;
   readonly edited: boolean;
   readonly marks: boolean;
+  /** The translation of this cue failed, and what the cue shows instead. */
+  readonly failed: FailedKind | undefined;
+  /** The name of the language the cues are translated into. */
+  readonly target: string;
   readonly editor: EditorHooks | null;
   readonly onSeek: (cue: Cue) => void;
   readonly onEdit: (id: number) => void;
 }
 
 /** Memoized so a cue change re-renders the two rows whose `active` flipped, not the whole list. */
-const Row = memo(function Row({ cue, n, active, mode, edited, marks, editor, onSeek, onEdit }: RowProps) {
+const Row = memo(function Row({ cue, n, active, mode, edited, marks, failed, target, editor, onSeek, onEdit }: RowProps) {
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "F2") {
       e.preventDefault();
@@ -43,6 +48,7 @@ const Row = memo(function Row({ cue, n, active, mode, edited, marks, editor, onS
       data-testid={`cue-${n}`}
       data-active={active}
       data-edited={edited}
+      data-failed={failed}
       data-editing={editor !== null}
       data-start={cue.startMs}
     >
@@ -60,6 +66,11 @@ const Row = memo(function Row({ cue, n, active, mode, edited, marks, editor, onS
           <span className="time">
             {clock(cue.startMs)}
             {edited && <Pencil className="edited-mark" aria-label="已手動修改" data-testid="edited-mark" />}
+            {failed && (
+              <span className="failed-mark" role="img" aria-label="翻譯失敗" title={failureTitle(failed, target)} data-testid="failed-mark" data-kind={failed}>
+                <TriangleAlert className="icon" aria-hidden />
+              </span>
+            )}
           </span>
           <span className="text">
             {mode !== "zh" && (
@@ -68,7 +79,7 @@ const Row = memo(function Row({ cue, n, active, mode, edited, marks, editor, onS
                 {cue.src}
               </span>
             )}
-            {mode !== "en" && <span className="zh">{cue.zh}</span>}
+            {mode !== "en" && (failed === "empty" ? <span className="zh missing">（沒有翻譯）</span> : <span className="zh">{cue.zh}</span>)}
           </span>
         </button>
       )}
@@ -83,6 +94,11 @@ interface Props {
   /** Whether each cue shows its language, as in a mixed talk. */
   readonly marks: boolean;
   readonly edited: ReadonlySet<number>;
+  /** The cues the translator could not do, by id. */
+  readonly failed: ReadonlyMap<number, FailedKind>;
+  /** Show only the cues in `failed`. */
+  readonly onlyFailed: boolean;
+  readonly target: string;
   readonly editingId: number | null;
   /** Hooks for the editor of the cue being edited. */
   readonly editor: (cue: Cue) => EditorHooks;
@@ -90,12 +106,12 @@ interface Props {
   readonly onEdit: (id: number) => void;
 }
 
-export function CueList({ cues, active, mode, marks, edited, editingId, editor, onSeek, onEdit }: Props) {
+export function CueList({ cues, active, mode, marks, edited, failed, onlyFailed, target, editingId, editor, onSeek, onEdit }: Props) {
   const list = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
     const box = list.current;
-    const item = box?.children[active];
+    const item = box?.querySelector('[data-active="true"]');
     if (!box || !(item instanceof HTMLElement)) return;
     const edge = box.getBoundingClientRect();
     const row = item.getBoundingClientRect();
@@ -105,7 +121,8 @@ export function CueList({ cues, active, mode, marks, edited, editingId, editor, 
 
   return (
     <ol className="cues" ref={list} data-testid="cue-list">
-      {cues.map((cue, i) => (
+      {cues.map((cue, i) =>
+        onlyFailed && !failed.has(cue.id) ? null : (
         <Row
           key={cue.id}
           cue={cue}
@@ -114,11 +131,14 @@ export function CueList({ cues, active, mode, marks, edited, editingId, editor, 
           mode={mode}
           marks={marks}
           edited={edited.has(cue.id)}
+          failed={failed.get(cue.id)}
+          target={target}
           editor={cue.id === editingId ? editor(cue) : null}
           onSeek={onSeek}
           onEdit={onEdit}
         />
-      ))}
+        ),
+      )}
     </ol>
   );
 }

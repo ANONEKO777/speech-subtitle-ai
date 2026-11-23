@@ -2,12 +2,60 @@ import { ArrowDownToLine, FileVideo, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { pickVideo } from "../api/backend";
 import { SOURCE_LANGS, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
+import { EXPERIMENTAL, type Target } from "../api/targets";
+import { shortName } from "../export/exports";
 
 interface PickProps {
   readonly busy: boolean;
   readonly sourceLang: SourceLang;
   readonly unavailable: Unavailable;
   readonly onSourceLang: (code: SourceLang) => void;
+}
+
+interface TargetProps {
+  readonly busy: boolean;
+  /** What the video language can be translated into, in the backend's order. */
+  readonly targets: readonly Target[];
+  readonly target: string;
+  readonly onTarget: (code: string) => void;
+}
+
+const targetText = (t: Target) => `${shortName(t.nativeName)}${t.experimental ? `（${EXPERIMENTAL}）` : ""}`;
+
+/**
+ * The language the subtitles are translated into. One the backend has not judged says so in its option.
+ * A video language with one target only (a mixed talk) has nothing to pick, so it shows the name as text and gives the room back to the path box.
+ */
+export function TargetPick({ busy, targets, target, onTarget }: TargetProps) {
+  const chosen = targets.find((t) => t.code === target);
+  const experimental = chosen?.experimental === true;
+  if (targets.length < 2) {
+    return (
+      <span className="source-pick target-pick target-fixed" data-testid="target-lang" data-experimental={experimental} title="字幕要翻成的語言">
+        <span className="collapsible">字幕</span>
+        <span>{chosen ? targetText(chosen) : target}</span>
+      </span>
+    );
+  }
+  return (
+    <label className="source-pick target-pick" title="字幕要翻成的語言">
+      <span className="collapsible">字幕</span>
+      <select
+        data-testid="target-lang"
+        data-experimental={experimental}
+        aria-label="字幕語言"
+        value={target}
+        disabled={busy}
+        onChange={(e) => onTarget(e.target.value)}
+      >
+        {targets.map((t) => (
+          <option key={t.code} value={t.code}>
+            {targetText(t)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 /** The choices of a video language. One this machine cannot process is shown but cannot be picked, and its option says why. */
@@ -40,14 +88,14 @@ export function SourcePick({ busy, sourceLang, unavailable, onSourceLang }: Pick
   );
 }
 
-interface Props extends PickProps {
+interface Props extends PickProps, TargetProps {
   readonly withPicker: boolean;
   readonly onImport: (videoPath: string) => void;
   /** The path in the box as it changes, and an empty one when it is imported: the box then keeps the path but it has been used. */
   readonly onPath: (videoPath: string) => void;
 }
 
-export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withPicker, onImport, onPath }: Props) {
+export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, targets, target, onTarget, withPicker, onImport, onPath }: Props) {
   const [path, setPath] = useState("");
 
   async function browse() {
@@ -80,6 +128,7 @@ export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, withP
         />
       </div>
       {withPicker && <SourcePick busy={busy} sourceLang={sourceLang} unavailable={unavailable} onSourceLang={onSourceLang} />}
+      {withPicker && <TargetPick busy={busy} targets={targets} target={target} onTarget={onTarget} />}
       <button type="button" title="選擇檔案" onClick={() => void browse()} disabled={busy}>
         <FolderOpen className="icon" aria-hidden />
         <span className="collapsible">選擇檔案</span>

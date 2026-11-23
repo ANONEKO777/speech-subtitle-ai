@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SOURCE_NOTES, canTarget, cueMark, parseSourceLang, parseUnavailable, sourceLabel, sourceTag, usableSource } from "./sourceLang";
+import { SOURCE_NOTES, cueMark, parseSourceLang, parseUnavailable, sourceLabel, sourceTag, usableSource } from "./sourceLang";
 
 describe("the mixed Japanese and English choice", () => {
   it("is a source language with its own label and tag", () => {
@@ -10,15 +10,9 @@ describe("the mixed Japanese and English choice", () => {
     expect(sourceTag("ja")).toBe("日文影片");
   });
 
-  it("can be translated into Traditional Chinese only, as Japanese can", () => {
-    expect(canTarget("ja+en", "zh-TW")).toBe(true);
-    expect(canTarget("ja+en", "ko")).toBe(false);
-    expect(canTarget("en", "ko")).toBe(true);
-  });
-
-  it("never offers English speech English as its target", () => {
-    expect(canTarget("en", "en")).toBe(false);
-    expect(canTarget("en", "zh-TW")).toBe(true);
+  it("tells a Japanese talk it can hold several subtitle languages, and no longer says Traditional Chinese only", () => {
+    expect(SOURCE_NOTES["ja"]).toContain("只會重新翻譯");
+    expect(SOURCE_NOTES["ja"]).not.toContain("只輸出繁體中文");
   });
 
   it("says it needs the Qwen3 model files, not only the 24 GB profile", () => {
