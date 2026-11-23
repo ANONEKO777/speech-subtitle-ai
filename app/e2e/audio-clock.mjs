@@ -3,12 +3,12 @@
 // The projects folder holds a finished project of the file (scripts/make_p26b_seed.py makes one for a video; the same steps for an mp3 are in the P38 note).
 import { launch, sleep } from "./lib.mjs";
 
-const [projects, media, shots, port = "9333"] = process.argv.slice(2);
+const [projects, media, shots, port = "9471"] = process.argv.slice(2);
 if (!projects || !media || !shots) throw new Error("usage: audio-clock.mjs <projects> <mp3> <shots> [port]");
 if (!process.env.VST_USER_DATA || !process.env.WEBVIEW2_USER_DATA_FOLDER) throw new Error("set VST_USER_DATA and WEBVIEW2_USER_DATA_FOLDER to disposable folders");
 // The disposable user data folder has stand-in model files, so the first-run wizard would show: skip it as a person can.
 const START_S = Number(process.env.AUDIO_START_S ?? 0); // where to start playing (a real talk: pick a stretch with speech)
-const STRICT = process.env.AUDIO_STRICT !== "0"; // the lateness check needs the invented seed's timing (cues 2.2 s long)
+const STRICT = process.env.AUDIO_STRICT !== "0"; // the lateness check needs the invented seed's timing (cues 1.5 s long)
 const app = await launch({ projects, shots, port: Number(port), ready: "body" });
 const p = app.page;
 await p.evaluate(() => localStorage.setItem("vst.wizard.skipped", "1"));
@@ -62,9 +62,9 @@ try {
   check(moved > 7, `the clock ran ${moved.toFixed(1)} s without a seek`);
   const texts = new Set(rows.map((r) => r.sub).filter(Boolean));
   check(texts.size >= 3, `the subtitle changed ${texts.size} times while playing: ${[...texts].map((t) => JSON.stringify(t)).join(" | ")}`);
-  // A sample is late when it is 300 ms to 1.8 s into a cue (the shortest cue of the seed lasts 2.2 s) and the subtitle is empty or the list highlights another cue.
+  // A sample is late when it is 300 ms to 1.2 s into a cue (the cues of the seed last 1.5 s) and the subtitle is empty or the list highlights another cue.
   const stale = rows.filter((r) => {
-    const own = starts.find((s) => r.t * 1000 >= s + 300 && r.t * 1000 <= s + 1800);
+    const own = starts.find((s) => r.t * 1000 >= s + 300 && r.t * 1000 <= s + 1200);
     return own !== undefined && (r.sub === "" || Number(r.on) !== own);
   });
   check(rows.some((r) => r.on !== null && starts.indexOf(Number(r.on)) >= 1), "the highlighted cue moved on past the first one");
