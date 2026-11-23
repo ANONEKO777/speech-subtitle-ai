@@ -1,6 +1,7 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Backend } from "../api/client";
 import { fetchFrameRate, putPlayback } from "../api/library";
+import { watchAudioClock } from "./audioClock";
 import { PREFS_KEY, parsePrefs } from "./prefs";
 import { type Loop, NO_LOOP, cycleLoop, loopTarget, playClock, resumeAt, stepFrame, stepOrigin, stepSpeed } from "./transport";
 
@@ -92,7 +93,14 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
       handle = el.requestVideoFrameCallback(onFrame);
     };
     handle = el.requestVideoFrameCallback(onFrame);
-    return () => el.cancelVideoFrameCallback(handle);
+    const stopClock = watchAudioClock(el, (seconds) => {
+      const back = loopTarget(loop, seconds);
+      if (back !== null) el.currentTime = back;
+    });
+    return () => {
+      stopClock();
+      el.cancelVideoFrameCallback(handle);
+    };
   }, [video, projectId, loop]);
 
   const videoProps = useMemo(
