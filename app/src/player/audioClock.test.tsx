@@ -68,6 +68,15 @@ describe("the subtitle of a file with no picture", () => {
     expect(result.current).toBe(0);
   });
 
+  it("waits for the metadata before it reads the clock", () => {
+    const m = fakeMedia(0);
+    m.raw.readyState = 0;
+    const { result } = renderHook(() => useActiveCue({ current: m.el }, CUES));
+    m.raw.currentTime = 2.5;
+    refresh();
+    expect(result.current).toBe(0);
+  });
+
   it("applies the subtitle offset", () => {
     const m = fakeMedia(0);
     const { result } = renderHook(() => useActiveCue({ current: m.el }, CUES, 1000));
