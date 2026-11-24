@@ -7,6 +7,8 @@ use std::io::Write;
 use std::path::Path;
 use url::Url;
 
+use crate::platform::{self, Os};
+
 pub const PROJECT_URL: &str = "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai";
 const SPDX_HOST: &str = "spdx.org";
 /// The Microsoft page the wizard sends people to for the Visual C++ runtime.
@@ -45,9 +47,7 @@ fn allowed_hosts() -> BTreeSet<String> {
 /// Checks `address`, then appends it to `log` when one is given, else starts the default browser
 /// on it. A log means no process is started.
 pub fn open(address: &str, log: Option<&Path>) -> Result<(), String> {
-    open_with(address, log, |url| {
-        std::process::Command::new("explorer").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
-    })
+    open_with(address, log, |url| platform::browse(Os::CURRENT, url).spawn())
 }
 
 fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(&str) -> Result<(), String>) -> Result<(), String> {

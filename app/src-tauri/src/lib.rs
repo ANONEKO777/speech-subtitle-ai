@@ -1,9 +1,13 @@
 mod folders;
+#[cfg(unix)]
+mod group;
 mod links;
+mod platform;
 mod sidecar;
 mod updater;
 
 use folders::Folders;
+use platform::Os;
 
 use sidecar::{Backend, BackendState};
 use std::collections::HashSet;
@@ -130,11 +134,11 @@ async fn pick_folder(app: AppHandle, folders: tauri::State<'_, Folders>) -> Resu
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
-/// Shows a file in Explorer (selected), or opens a folder. The path must be a file this process
+/// Shows a file in the file manager (selected), or opens a folder. The path must be a file this process
 /// wrote, or lie in the app's screenshot and export folders or a folder the person picked, so a
 /// page script cannot open or reveal anything else.
 /// With `VST_OPEN_FOLDER_LOG` set (the e2e drivers do), the resolved path is appended to that file
-/// and no Explorer window opens.
+/// and no file manager window opens.
 #[tauri::command]
 fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
@@ -147,15 +151,10 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
         let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(|e| e.to_string())?;
         return writeln!(file, "{}", shown.display()).map_err(|e| e.to_string());
     }
-    let mut explorer = std::process::Command::new("explorer");
-    if path.is_file() {
-        explorer.arg(format!("/select,{}", shown.display()));
-    } else if path.is_dir() {
-        explorer.arg(&shown);
-    } else {
+    if !path.exists() {
         return Err(format!("{} does not exist", path.display()));
     }
-    explorer.spawn().map(|_| ()).map_err(|e| e.to_string())
+    platform::reveal(Os::CURRENT, &shown, path.is_file()).spawn()
 }
 
 /// Opens an https address in the default browser. Only a host the license pages already link to
