@@ -208,6 +208,11 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       <span className="sub">
                         {asset.type === "model" ? "模型" : "執行檔"} · {asset.kind} · {asset.license}
                       </span>
+                      {asset.localBuild && asset.state === "not_installed" && (
+                        <span className="sub" data-testid={`inv-${asset.id}-build`}>
+                          {LOCAL_BUILD_TEXT}
+                        </span>
+                      )}
                       {asset.path && asset.state !== "not_installed" && (
                         <span className="sub path-line" title={asset.path}>
                           {asset.path}
@@ -293,11 +298,6 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                           );
                         })}
                       </div>
-                      {asset.localBuild && asset.state === "not_installed" && (
-                        <span className="sub" data-testid={`inv-${asset.id}-build`}>
-                          {LOCAL_BUILD_TEXT}
-                        </span>
-                      )}
                       {working && <span className="sub">{working}</span>}
                       {note && (
                         <span className={`sub note-line ${note.bad ? "bad" : "ok"}`} role={note.bad ? "alert" : "status"} data-testid={`inv-${asset.id}-note`}>
