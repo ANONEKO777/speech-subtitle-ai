@@ -105,6 +105,10 @@ def test_the_shell_and_the_backend_use_the_same_variable_name() -> None:
     assert declared.group(1) == PARENT_PID_ENV
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="os.kill(pid, 0) on Windows sends CTRL_C_EVENT to the console, which stops pytest",
+)
 def test_this_process_is_alive_to_the_check() -> None:
     import os
 
