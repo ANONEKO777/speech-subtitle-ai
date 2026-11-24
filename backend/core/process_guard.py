@@ -102,6 +102,7 @@ class KillOnClose:
 
 _watched: weakref.WeakSet[KillOnClose] = weakref.WeakSet()
 _hooked = False
+_signals_hooked = False
 
 
 def _stop(proc: subprocess.Popen[bytes] | subprocess.Popen[str], sig: int) -> None:
@@ -150,23 +151,32 @@ def _on_stop_signal(signum: int, frame: FrameType | None) -> None:
 
 def _watch(guard: KillOnClose) -> None:
     """Make sure `guard`'s children are stopped when this process exits or is told to stop. The
-    exit hook goes in once. A signal handler goes in only where nothing else has one (a server
-    that handles SIGTERM itself ends through the exit hook) and only from the main thread."""
+    exit hook goes in once, from any thread. The signal handlers go in on the first call that
+    runs on the main thread (see `stop_children_on_signals`)."""
     global _hooked
     _watched.add(guard)
-    if _hooked:
+    if not _hooked:
+        _hooked = True
+        atexit.register(_stop_every_watched)
+    stop_children_on_signals()
+
+
+def stop_children_on_signals() -> None:
+    """Stop the guarded children when this process gets SIGTERM or SIGHUP. Python allows a signal
+    handler only on the main thread, and a server makes its first guard in a worker thread, so a
+    server calls this once at start. A call from another thread does nothing, and a later one from
+    the main thread still installs. A signal that already has a handler (a server that handles
+    SIGTERM itself ends through the exit hook) is left alone. Windows has no use for it."""
+    global _signals_hooked
+    if sys.platform == "win32" or _signals_hooked:
         return
-    _hooked = True
-    atexit.register(_stop_every_watched)
+    if threading.current_thread() is not threading.main_thread():
+        return
+    _signals_hooked = True
     for name in _STOP_SIGNALS:
         number = getattr(signal, name, None)
-        if number is None:
-            continue
-        try:
-            if signal.getsignal(number) is signal.SIG_DFL:
-                signal.signal(number, _on_stop_signal)
-        except ValueError:
-            return
+        if number is not None and signal.getsignal(number) is signal.SIG_DFL:
+            signal.signal(number, _on_stop_signal)
 
 
 def _limit_information() -> ctypes.Structure:

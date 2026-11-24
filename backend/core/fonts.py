@@ -7,7 +7,6 @@ checked against the fonts Windows has installed, and a missing glyph is reported
 
 from __future__ import annotations
 
-import functools
 import os
 import struct
 import sys
@@ -242,15 +241,39 @@ def _font_files(dirs: Sequence[str]) -> list[Path]:
     return [p for p in files if p.is_file()]
 
 
-@functools.cache
-def _macos_index(dirs: tuple[str, ...]) -> Mapping[str, tuple[tuple[Path, int], ...]]:
-    """Family name (lower case) -> the (file, offset in the file) pairs that hold it."""
-    found: dict[str, list[tuple[Path, int]]] = {}
+_FileNames = tuple[tuple[int, int], list[tuple[int, set[str]]]]
+"""A font file's (modified time, size) and what `read_family_names` found in it."""
+_Index = Mapping[str, tuple[tuple[Path, int], ...]]
+_indexed: dict[tuple[str, ...], tuple[dict[Path, _FileNames], _Index]] = {}
+
+
+def _macos_index(dirs: tuple[str, ...], *, rescan: bool = False) -> _Index:
+    """Family name (lower case) -> the (file, offset in the file) pairs that hold it. The index is
+    kept for the life of the process. `rescan` lists the folders again and reads only the files
+    that are new or changed, so a font installed while the service runs is found."""
+    known = _indexed.get(dirs)
+    if known is not None and not rescan:
+        return known[1]
+    before = known[0] if known is not None else {}
+    reads: dict[Path, _FileNames] = {}
     for path in _font_files(dirs):
-        for offset, names in read_family_names(path):
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        old = before.get(path)
+        reads[path] = (
+            old if old is not None and old[0] == stamp else (stamp, read_family_names(path))
+        )
+    found: dict[str, list[tuple[Path, int]]] = {}
+    for path, (_, names_at) in reads.items():
+        for offset, names in names_at:
             for name in names:
                 found.setdefault(name.lower(), []).append((path, offset))
-    return MappingProxyType({name: tuple(places) for name, places in found.items()})
+    index = MappingProxyType({name: tuple(places) for name, places in found.items()})
+    _indexed[dirs] = (reads, index)
+    return index
 
 
 def file_covers_at(path: Path, offset: int, chars: Iterable[str]) -> set[str]:
@@ -263,12 +286,21 @@ def macos_coverage(
     chars: Iterable[str], dirs: Sequence[str] = MACOS_FONT_DIRS
 ) -> Callable[[str], tuple[Path, set[str]] | None]:
     """A lookup from a font family to the file that holds it and the characters it lacks, for the
-    fonts in the macOS font folders. The family is matched by its whole name, in any letter case."""
-    index = _macos_index(tuple(dirs))
+    fonts in the macOS font folders. The family is matched by its whole name, in any letter case.
+    A family that is not found makes the folders be listed again, once for this lookup, because the
+    person may have installed it since the service started."""
+    key = tuple(dirs)
+    index = _macos_index(key)
     wanted = list(chars)
+    rescanned = False
 
     def lookup(family: str) -> tuple[Path, set[str]] | None:
+        nonlocal index, rescanned
         places = index.get(family.lower())
+        if not places and not rescanned:
+            rescanned = True
+            index = _macos_index(key, rescan=True)
+            places = index.get(family.lower())
         if not places:
             return None
         path, offset = places[0]
