@@ -187,10 +187,10 @@ def test_the_build_script_parses_in_bash() -> None:
     bash = shutil.which("bash")
     if bash is None:
         pytest.skip("no bash on this machine")
-    script = SCRIPT.read_text(encoding="utf-8")
-    result = subprocess.run([bash, "-n"], input=script, capture_output=True, text=True, check=False)
+    script = SCRIPT.read_bytes().replace(b"\r\n", b"\n")
+    result = subprocess.run([bash, "-n"], input=script, capture_output=True, check=False)
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
 
 
 # --- the page the operator reads ---
