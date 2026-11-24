@@ -7,11 +7,13 @@ checked against the fonts Windows has installed, and a missing glyph is reported
 
 from __future__ import annotations
 
+import functools
 import os
 import struct
 import sys
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
+from types import MappingProxyType
 
 from backend.core.audio import AudioError
 from backend.core.languages import DEFAULT_FONT, Language
@@ -37,6 +39,11 @@ MISSING_FONT_MESSAGE = (
     "這台電腦沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。"
     "請到「設定 > 個人化 > 字型」安裝日文字型（例如 Yu Gothic 或 Meiryo），"
     "或到「設定 > 系統 > 選用功能」新增「日文」的補充字型後再試。"
+    "字幕檔（SRT、ASS）不受影響，仍可匯出。"
+)
+MISSING_FONT_MESSAGE_MACOS = (
+    "這台 Mac 沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。"
+    "請用「字體簿」安裝日文字型（例如 Hiragino Sans 或 Yu Gothic）後再試。"
     "字幕檔（SRT、ASS）不受影響，仍可匯出。"
 )
 MISSING_GLYPH_MESSAGE = (
@@ -134,6 +141,142 @@ def file_covers(path: Path, chars: Iterable[str]) -> set[str]:
     return {c for c in chars if not any(font_covers(data, o, ord(c)) for o in offsets)}
 
 
+MACOS_SUBSTITUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "Microsoft JhengHei": ("PingFang TC",),
+        "Malgun Gothic": ("Apple SD Gothic Neo",),
+        "Yu Gothic": ("Hiragino Sans", "Yu Gothic", "Hiragino Kaku Gothic ProN"),
+        "Meiryo": ("Hiragino Maru Gothic ProN",),
+        "MS Gothic": (),
+    }
+)
+"""For each family a Windows PC has, the families to try on a Mac, best first. A family that is
+not listed (Arial ships with macOS) stays as it is."""
+MACOS_FONT_DIRS = (
+    "/System/Library/Fonts",
+    "/Library/Fonts",
+    "~/Library/Fonts",
+    "/System/Library/AssetsV2",
+)
+"""Where macOS keeps fonts. The system folder has a `Supplemental` folder with Arial in it, and the
+newer CJK families (PingFang among them) are said to live in font assets under `AssetsV2`: that
+last one is an assumption not yet checked on a Mac (P37d)."""
+_FONT_SUFFIXES = frozenset({".ttf", ".otf", ".ttc", ".otc"})
+_NAME_FAMILY_IDS = (1, 16)
+_MAX_COLLECTION = 64
+_MAX_NAME_TABLE = 1 << 20
+
+
+def fonts_for(families: Sequence[str], system: str | None = None) -> tuple[str, ...]:
+    """`families` as this machine knows them: unchanged on Windows, the Mac counterparts (see
+    `MACOS_SUBSTITUTES`) on macOS."""
+    if (sys.platform if system is None else system) != "darwin":
+        return tuple(families)
+    mapped = [name for family in families for name in MACOS_SUBSTITUTES.get(family, (family,))]
+    return tuple(dict.fromkeys(mapped))
+
+
+def missing_font_message(system: str | None = None) -> str:
+    if (sys.platform if system is None else system) == "darwin":
+        return MISSING_FONT_MESSAGE_MACOS
+    return MISSING_FONT_MESSAGE
+
+
+def _names_of_table(table: bytes) -> set[str]:
+    """The family names (name ids 1 and 16, in every language the font gives) in a `name` table."""
+    names: set[str] = set()
+    count, string_base = struct.unpack_from(">HH", table, 2)
+    for i in range(count):
+        platform, _encoding, _language, name_id, length, offset = struct.unpack_from(
+            ">HHHHHH", table, 6 + 12 * i
+        )
+        if name_id in _NAME_FAMILY_IDS:
+            raw = table[string_base + offset : string_base + offset + length]
+            text = raw.decode("utf-16-be" if platform in (0, 3) else "mac-roman", "replace")
+            if text:
+                names.add(text)
+    return names
+
+
+def read_family_names(path: Path) -> list[tuple[int, set[str]]]:
+    """(offset, family names) of each font in the file `path`. Only the header and the `name`
+    table of each font are read, so listing a large collection does not load it."""
+    found: list[tuple[int, set[str]]] = []
+    try:
+        with path.open("rb") as handle:
+            head = handle.read(12 + 4 * _MAX_COLLECTION)
+            offsets = [0]
+            if head[:4] == b"ttcf":
+                count = min(struct.unpack_from(">I", head, 8)[0], _MAX_COLLECTION)
+                offsets = [struct.unpack_from(">I", head, 12 + 4 * i)[0] for i in range(count)]
+            for offset in offsets:
+                handle.seek(offset)
+                header = handle.read(12)
+                tables = struct.unpack_from(">H", header, 4)[0]
+                directory = header + handle.read(16 * tables)
+                entry = next(
+                    (
+                        12 + 16 * i
+                        for i in range(tables)
+                        if directory[12 + 16 * i : 16 + 16 * i] == b"name"
+                    ),
+                    None,
+                )
+                if entry is None:
+                    continue
+                where, length = struct.unpack_from(">II", directory, entry + 8)
+                handle.seek(where)
+                names = _names_of_table(handle.read(min(length, _MAX_NAME_TABLE)))
+                found.append((offset, names))
+    except (OSError, struct.error):
+        pass
+    return found
+
+
+def _font_files(dirs: Sequence[str]) -> list[Path]:
+    files: list[Path] = []
+    for folder in dirs:
+        root = Path(folder).expanduser()
+        if root.is_dir():
+            files.extend(sorted(p for p in root.rglob("*") if p.suffix.lower() in _FONT_SUFFIXES))
+    return [p for p in files if p.is_file()]
+
+
+@functools.cache
+def _macos_index(dirs: tuple[str, ...]) -> Mapping[str, tuple[tuple[Path, int], ...]]:
+    """Family name (lower case) -> the (file, offset in the file) pairs that hold it."""
+    found: dict[str, list[tuple[Path, int]]] = {}
+    for path in _font_files(dirs):
+        for offset, names in read_family_names(path):
+            for name in names:
+                found.setdefault(name.lower(), []).append((path, offset))
+    return MappingProxyType({name: tuple(places) for name, places in found.items()})
+
+
+def file_covers_at(path: Path, offset: int, chars: Iterable[str]) -> set[str]:
+    """The characters of `chars` that the one font at `offset` in the file `path` does not draw."""
+    data = path.read_bytes()
+    return {c for c in chars if not font_covers(data, offset, ord(c))}
+
+
+def macos_coverage(
+    chars: Iterable[str], dirs: Sequence[str] = MACOS_FONT_DIRS
+) -> Callable[[str], tuple[Path, set[str]] | None]:
+    """A lookup from a font family to the file that holds it and the characters it lacks, for the
+    fonts in the macOS font folders. The family is matched by its whole name, in any letter case."""
+    index = _macos_index(tuple(dirs))
+    wanted = list(chars)
+
+    def lookup(family: str) -> tuple[Path, set[str]] | None:
+        places = index.get(family.lower())
+        if not places:
+            return None
+        path, offset = places[0]
+        return path, file_covers_at(path, offset, wanted)
+
+    return lookup
+
+
 def _registry_fonts() -> dict[str, Path]:
     """Installed fonts as the registry lists them: the display name, which holds every family of a
     collection, and the file."""
@@ -173,6 +316,11 @@ def windows_coverage(chars: Iterable[str]) -> Callable[[str], tuple[Path, set[st
 Lookup = Callable[[Iterable[str]], Callable[[str], tuple[Path, set[str]] | None]]
 
 
+def system_coverage(chars: Iterable[str]) -> Callable[[str], tuple[Path, set[str]] | None]:
+    """The coverage lookup of the machine this runs on."""
+    return macos_coverage(chars) if sys.platform == "darwin" else windows_coverage(chars)
+
+
 def _first_covering(
     needed: set[str],
     candidates: Sequence[str],
@@ -201,29 +349,32 @@ def _first_covering(
     raise FontMissing(no_font.format(fonts="、".join(tried)))
 
 
-def burn_font(cues: Sequence[Cue], lookup: Lookup = windows_coverage) -> str:
+def burn_font(cues: Sequence[Cue], lookup: Lookup | None = None) -> str:
     """The font to burn the source text of `cues` in. An English source keeps the font the first
     release used, with no lookup, whatever punctuation it has. Japanese text with kana or kanji goes
     to the first installed font of its language that draws all of it. When there is none, raises
     `FontMissing` saying what is missing."""
     needed = {c for cue in cues if cue.lang != ENGLISH for c in cue.src if needs_cjk_font(c)}
     if not needed:
-        return ENGLISH_SOURCE.fonts[0]
+        return fonts_for(ENGLISH_SOURCE.fonts)[0]
     langs = [code for code in dict.fromkeys(cue.lang for cue in cues) if code in SOURCES]
-    candidates = [font for code in langs if code != ENGLISH for font in SOURCES[code].fonts]
-    return _first_covering(needed, candidates, lookup, MISSING_FONT_MESSAGE)
+    families = [font for code in langs if code != ENGLISH for font in SOURCES[code].fonts]
+    return _first_covering(
+        needed, fonts_for(families), lookup or system_coverage, missing_font_message()
+    )
 
 
-def target_font(cues: Sequence[Cue], lang: Language, lookup: Lookup = windows_coverage) -> str:
+def target_font(cues: Sequence[Cue], lang: Language, lookup: Lookup | None = None) -> str:
     """The font to burn the translation of `cues` in. A language that keeps the default font
     (Chinese, English) is not looked up, as before. A language with fonts of its own (Korean,
     Russian) goes to the first installed one that draws every character of its text, or raises
     `FontMissing` saying what is missing."""
+    families = fonts_for(lang.fonts)
     if lang.fonts == (DEFAULT_FONT,):
-        return DEFAULT_FONT
+        return families[0]
     needed = {c for cue in cues for c in cue.zh if ord(c) > 0x7F and not c.isspace()}
     if not needed:
-        return lang.fonts[0]
+        return families[0]
     no_font = MISSING_TARGET_FONT_MESSAGE.replace("{language}", lang.native)
     glyphs = MISSING_TARGET_GLYPH_MESSAGE.replace("{language}", lang.native)
-    return _first_covering(needed, lang.fonts, lookup, no_font, glyphs)
+    return _first_covering(needed, families, lookup or system_coverage, no_font, glyphs)

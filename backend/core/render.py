@@ -37,6 +37,8 @@ MAX_FPS = 240.0
 _MP4_AUDIO = frozenset({"aac", "mp3", "ac3", "eac3", "alac"})
 _FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 _MF_QUALITY = "75"
+_VT_QUALITY = "65"
+"""VideoToolbox `-q:v` (0 to 100). A first guess, not a measured value (P37d)."""
 
 
 _PROBE_TIMEOUT_S = 20
@@ -47,6 +49,13 @@ NO_ENCODER_MESSAGE = (
 )
 
 
+NO_ENCODER_MESSAGE_MACOS = (
+    "這台 Mac 的 ffmpeg 沒有可用的 H.264 編碼器，無法把字幕燒進影片。"
+    "請在終端機執行 brew install ffmpeg 安裝完整版的 ffmpeg 後再試。"
+    "字幕檔（SRT、ASS）不受影響，仍可匯出。"
+)
+
+
 class EncoderMissing(AudioError):
     """Burn-in cannot run because this PC has no usable H.264 encoder."""
 
@@ -54,6 +63,12 @@ class EncoderMissing(AudioError):
 def _h264_mf_works(ffmpeg: str) -> bool:
     """Encodes one frame to the null device. `-encoders` lists h264_mf even where Windows has no
     H.264 encoder, so only an encode shows whether it is there."""
+    return _one_frame_encodes(
+        ffmpeg, ("-c:v", "h264_mf", "-rate_control", "quality", "-quality", _MF_QUALITY)
+    )
+
+
+def _one_frame_encodes(ffmpeg: str, codec_args: tuple[str, ...]) -> bool:
     if os.environ.get("VST_SIMULATE_NO_H264"):
         return False
     try:
@@ -70,12 +85,7 @@ def _h264_mf_works(ffmpeg: str) -> bool:
                 "color=c=black:s=128x128:r=1",
                 "-frames:v",
                 "1",
-                "-c:v",
-                "h264_mf",
-                "-rate_control",
-                "quality",
-                "-quality",
-                _MF_QUALITY,
+                *codec_args,
                 "-pix_fmt",
                 "yuv420p",
                 "-f",
@@ -93,9 +103,10 @@ def _h264_mf_works(ffmpeg: str) -> bool:
 
 
 @functools.cache
-def _video_encoder(ffmpeg: str) -> tuple[str, ...]:
+def _video_encoder(ffmpeg: str, system: str | None = None) -> tuple[str, ...]:
     """libx264 where this ffmpeg has it. The LGPL ffmpeg the installer ships has no x264 (it is
     GPL), so it uses the H.264 encoder that comes with Windows, tried once before the first burn.
+    On a Mac it is VideoToolbox, tried the same way. `system` is a `sys.platform` value.
     Raises EncoderMissing, which is not cached, so a fix on the PC works without a restart."""
     try:
         listed = subprocess.run(  # noqa: S603
@@ -110,6 +121,11 @@ def _video_encoder(ffmpeg: str) -> tuple[str, ...]:
         listed = ""
     if " libx264 " in listed:
         return ("-c:v", "libx264", "-preset", PRESET, "-crf", str(CRF))
+    if (sys.platform if system is None else system) == "darwin":
+        videotoolbox = ("-c:v", "h264_videotoolbox", "-q:v", _VT_QUALITY)
+        if " h264_videotoolbox " in listed and _one_frame_encodes(ffmpeg, videotoolbox):
+            return videotoolbox
+        raise EncoderMissing(NO_ENCODER_MESSAGE_MACOS)
     if not _h264_mf_works(ffmpeg):
         raise EncoderMissing(NO_ENCODER_MESSAGE)
     return ("-c:v", "h264_mf", "-rate_control", "quality", "-quality", _MF_QUALITY)
