@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
 
-use crate::platform::{self, Os};
+use crate::platform;
 
 const CHECK_TIMEOUT: Duration = Duration::from_secs(10);
 /// A download is cut off when no data arrives for this long. The whole transfer has no limit, so a
@@ -65,7 +65,7 @@ fn endpoint_override() -> Result<Option<url::Url>, String> {
 
 #[tauri::command]
 pub async fn update_check(app: AppHandle, pending: tauri::State<'_, Pending>) -> Result<Checked, String> {
-    if !platform::updates_supported(Os::CURRENT) {
+    if !platform::here::updates_supported() {
         return Err(NO_UPDATES.into());
     }
     let mut builder = app.updater_builder().timeout(CHECK_TIMEOUT);

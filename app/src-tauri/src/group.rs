@@ -49,6 +49,17 @@ pub fn end(child: &mut Child) {
     signal(group, libc::SIGKILL);
 }
 
+/// Ends the backend a restart replaces. When macOS kills the backend (memory pressure), its
+/// `llama-server` and `whisper-cli` children stay in the group and hold their memory, so the old
+/// group is ended before the new backend takes the slot. Leaves the slot empty.
+pub fn end_previous(slot: &mut Option<Child>) {
+    if let Some(mut old) = slot.take() {
+        end(&mut old);
+        let _ = old.kill();
+        let _ = old.wait();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,6 +139,40 @@ mod tests {
         let _ = child.wait();
         assert!(start.elapsed() >= TERM_GRACE);
         assert!(gone_within(group, Duration::from_secs(3)));
+    }
+
+    #[test]
+    fn the_group_gets_sigterm_before_sigkill() {
+        let mut cmd = shell("trap 'echo term; exit 0' TERM; echo up; while :; do sleep 1 & wait $!; done");
+        lead_own_group(&mut cmd);
+        let mut child = cmd.spawn().unwrap();
+        let mut out = child.stdout.take().unwrap();
+        let mut up = [0u8; 8];
+        out.read_exact(&mut up[..3]).unwrap();
+        let start = Instant::now();
+        end(&mut child);
+        let _ = child.wait();
+        let mut rest = String::new();
+        out.read_to_string(&mut rest).unwrap();
+        assert!(rest.contains("term"), "the leader never saw SIGTERM: {rest:?}");
+        assert!(start.elapsed() < TERM_GRACE);
+    }
+
+    #[test]
+    fn a_replaced_backend_leaves_no_program_of_its_group_running() {
+        let mut cmd = shell("sleep 60 & echo up; wait");
+        lead_own_group(&mut cmd);
+        let mut child = cmd.spawn().unwrap();
+        let mut up = [0u8; 8];
+        child.stdout.take().unwrap().read_exact(&mut up[..3]).unwrap();
+        let group = group_of(child.id()).unwrap();
+        child.kill().unwrap();
+        let mut slot = Some(child);
+        assert!(group_exists(group), "the leader died but its child must still be there");
+        end_previous(&mut slot);
+        assert!(slot.is_none());
+        assert!(gone_within(group, Duration::from_secs(3)), "the old group still has processes");
+        end_previous(&mut slot);
     }
 
     #[test]

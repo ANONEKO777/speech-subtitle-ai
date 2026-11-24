@@ -12,7 +12,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::platform::{self, Os};
+use crate::platform;
 
 #[derive(Clone, Serialize)]
 pub struct Backend {
@@ -82,7 +82,7 @@ fn packaged(app: &AppHandle) -> Option<Packaged> {
         return None;
     }
     let resources = app.path().resource_dir().ok()?;
-    let exe = resources.join("backend").join(platform::packaged_backend(Os::CURRENT));
+    let exe = resources.join("backend").join(platform::here::packaged_backend());
     exe.is_file().then(|| Packaged { exe, ffmpeg: resources.join("ffmpeg") })
 }
 
@@ -104,7 +104,7 @@ fn command(app: &AppHandle) -> Command {
             let root = repo_root();
             let python = python
                 .map(PathBuf::from)
-                .unwrap_or_else(|| root.join(platform::venv_python(Os::CURRENT)));
+                .unwrap_or_else(|| root.join(platform::here::venv_python()));
             let mut cmd = Command::new(python);
             cmd.args(["-m", "backend.main"]).current_dir(root);
             cmd
@@ -190,6 +190,8 @@ pub fn start(app: AppHandle) {
                 eprintln!("cannot put the backend in a job object; stop() will kill its process tree instead");
             }
         }
+        #[cfg(unix)]
+        crate::group::end_previous(&mut inner.child);
         inner.child = Some(child);
     }
     let tail = Arc::new(Mutex::new(Vec::<u8>::new()));

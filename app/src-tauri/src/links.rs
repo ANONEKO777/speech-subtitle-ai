@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use url::Url;
 
-use crate::platform::{self, Os};
+use crate::platform;
 
 pub const PROJECT_URL: &str = "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai";
 const SPDX_HOST: &str = "spdx.org";
@@ -47,7 +47,7 @@ fn allowed_hosts() -> BTreeSet<String> {
 /// Checks `address`, then appends it to `log` when one is given, else starts the default browser
 /// on it. A log means no process is started.
 pub fn open(address: &str, log: Option<&Path>) -> Result<(), String> {
-    open_with(address, log, |url| platform::browse(Os::CURRENT, url).spawn())
+    open_with(address, log, |url| platform::here::browse(url).spawn())
 }
 
 fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(&str) -> Result<(), String>) -> Result<(), String> {

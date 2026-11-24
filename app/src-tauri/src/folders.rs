@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use crate::platform::{self, Os};
+use crate::platform;
 
 pub const LIST_FILE: &str = "output-folders.txt";
 const APP_DIR: &str = "video-subtitle-translator";
@@ -16,7 +16,7 @@ pub fn user_data() -> PathBuf {
     if let Some(dir) = std::env::var_os("VST_USER_DATA").filter(|d| !d.is_empty()) {
         return PathBuf::from(dir);
     }
-    platform::data_base(Os::CURRENT, std::env::var_os("LOCALAPPDATA"), std::env::var_os("HOME")).join(APP_DIR)
+    platform::here::data_base().join(APP_DIR)
 }
 
 fn real(path: &Path) -> Option<PathBuf> {

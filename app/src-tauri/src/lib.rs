@@ -7,7 +7,6 @@ mod sidecar;
 mod updater;
 
 use folders::Folders;
-use platform::Os;
 
 use sidecar::{Backend, BackendState};
 use std::collections::HashSet;
@@ -154,7 +153,7 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
     if !path.exists() {
         return Err(format!("{} does not exist", path.display()));
     }
-    platform::reveal(Os::CURRENT, &shown, path.is_file()).spawn()
+    platform::here::reveal(&shown, path.is_file()).spawn()
 }
 
 /// Opens an https address in the default browser. Only a host the license pages already link to

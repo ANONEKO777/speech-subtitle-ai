@@ -35,16 +35,26 @@ pub fn venv_python(os: Os) -> PathBuf {
     }
 }
 
+/// The person's home folder, as Python's `Path.home()` gives it: `$HOME`, an empty `$HOME` meaning
+/// the root folder, and the account's own home folder when `$HOME` is not set at all. `account` is
+/// asked only in that last case. A system with no home folder at all gets the root folder.
+pub fn home_dir(home: Option<OsString>, account: impl FnOnce() -> Option<PathBuf>) -> PathBuf {
+    match home {
+        Some(home) if home.is_empty() => PathBuf::from("/"),
+        Some(home) => PathBuf::from(home),
+        None => account().unwrap_or_else(|| PathBuf::from("/")),
+    }
+}
+
 /// The folder holding the app's data, below `APP_DIR`. It must equal `default_user_data` in
 /// `backend/manager/storage.py`: a Mac keeps it in `~/Library/Application Support`, Windows in
 /// `%LOCALAPPDATA%`, and anything else in `~/.local/share` as the backend does.
-pub fn data_base(os: Os, local_app_data: Option<OsString>, home: Option<OsString>) -> PathBuf {
+pub fn data_base(os: Os, local_app_data: Option<OsString>, home: PathBuf) -> PathBuf {
     let non_empty = |v: Option<OsString>| v.filter(|v| !v.is_empty()).map(PathBuf::from);
     match os {
         Os::Windows => non_empty(local_app_data).unwrap_or_default(),
-        Os::MacOs => non_empty(home).unwrap_or_default().join("Library").join("Application Support"),
-        Os::Other => non_empty(local_app_data)
-            .unwrap_or_else(|| non_empty(home).unwrap_or_default().join(".local").join("share")),
+        Os::MacOs => home.join("Library").join("Application Support"),
+        Os::Other => non_empty(local_app_data).unwrap_or_else(|| home.join(".local").join("share")),
     }
 }
 
@@ -89,6 +99,37 @@ pub fn updates_supported(os: Os) -> bool {
     os == Os::Windows
 }
 
+/// The functions above for the system this binary runs on. Call sites use these, so `Os::CURRENT` is
+/// named in one place and `here_follows_the_system_this_runs_on` covers every one of them.
+pub mod here {
+    use super::*;
+
+    pub fn packaged_backend() -> &'static str {
+        super::packaged_backend(Os::CURRENT)
+    }
+
+    pub fn venv_python() -> PathBuf {
+        super::venv_python(Os::CURRENT)
+    }
+
+    pub fn data_base() -> PathBuf {
+        let home = home_dir(std::env::var_os("HOME"), std::env::home_dir);
+        super::data_base(Os::CURRENT, std::env::var_os("LOCALAPPDATA"), home)
+    }
+
+    pub fn reveal(path: &Path, is_file: bool) -> Launch {
+        super::reveal(Os::CURRENT, path, is_file)
+    }
+
+    pub fn browse(url: &str) -> Launch {
+        super::browse(Os::CURRENT, url)
+    }
+
+    pub fn updates_supported() -> bool {
+        super::updates_supported(Os::CURRENT)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -112,25 +153,25 @@ mod tests {
 
     #[test]
     fn a_mac_keeps_its_data_where_the_backend_does() {
-        let base = data_base(Os::MacOs, os_str(r"C:\ignored"), os_str("/Users/me"));
+        let base = data_base(Os::MacOs, os_str(r"C:\ignored"), PathBuf::from("/Users/me"));
         assert_eq!(base, Path::new("/Users/me").join("Library").join("Application Support"));
     }
 
     #[test]
     fn windows_keeps_its_data_in_local_app_data_and_ignores_home() {
-        assert_eq!(data_base(Os::Windows, os_str(r"C:\Users\me\AppData\Local"), os_str("/x")), Path::new(r"C:\Users\me\AppData\Local"));
+        assert_eq!(data_base(Os::Windows, os_str(r"C:\Users\me\AppData\Local"), PathBuf::from("/x")), Path::new(r"C:\Users\me\AppData\Local"));
     }
 
     #[test]
     fn a_missing_or_empty_base_gives_an_empty_one_as_before_on_windows() {
-        assert_eq!(data_base(Os::Windows, None, os_str("/x")), PathBuf::new());
-        assert_eq!(data_base(Os::Windows, os_str(""), None), PathBuf::new());
+        assert_eq!(data_base(Os::Windows, None, PathBuf::from("/x")), PathBuf::new());
+        assert_eq!(data_base(Os::Windows, os_str(""), PathBuf::new()), PathBuf::new());
     }
 
     #[test]
     fn other_systems_follow_the_backend_default() {
-        assert_eq!(data_base(Os::Other, os_str("/data"), os_str("/home/me")), Path::new("/data"));
-        assert_eq!(data_base(Os::Other, None, os_str("/home/me")), Path::new("/home/me").join(".local").join("share"));
+        assert_eq!(data_base(Os::Other, os_str("/data"), PathBuf::from("/home/me")), Path::new("/data"));
+        assert_eq!(data_base(Os::Other, None, PathBuf::from("/home/me")), Path::new("/home/me").join(".local").join("share"));
     }
 
     #[test]
@@ -160,5 +201,42 @@ mod tests {
     fn only_windows_checks_for_updates() {
         assert!(updates_supported(Os::Windows));
         assert!(!updates_supported(Os::MacOs));
+    }
+
+    #[test]
+    fn the_home_folder_is_what_python_finds() {
+        let account = || Some(PathBuf::from("/home/passwd"));
+        assert_eq!(home_dir(os_str("/Users/me"), account), Path::new("/Users/me"));
+        assert_eq!(home_dir(os_str(""), account), Path::new("/"));
+        assert_eq!(home_dir(None, account), Path::new("/home/passwd"));
+        assert_eq!(home_dir(None, || None), Path::new("/"));
+        assert_eq!(home_dir(os_str("/Users/me"), || panic!("the account is asked only without HOME")), Path::new("/Users/me"));
+    }
+
+    #[test]
+    fn a_mac_with_no_home_variable_still_gets_an_absolute_data_folder() {
+        let home = home_dir(None, || Some(PathBuf::from("/Users/me")));
+        let base = data_base(Os::MacOs, None, home);
+        assert_eq!(base, Path::new("/Users/me").join("Library").join("Application Support"));
+        assert!(base.has_root());
+        assert!(data_base(Os::MacOs, None, home_dir(Some(OsString::new()), || None)).has_root());
+    }
+
+    #[test]
+    fn here_follows_the_system_this_runs_on() {
+        let (os, launcher, exe, python, updates) = if cfg!(windows) {
+            (Os::Windows, "explorer", "vst-backend.exe", Path::new(".venv").join("Scripts").join("python.exe"), true)
+        } else if cfg!(target_os = "macos") {
+            (Os::MacOs, "open", "vst-backend", Path::new(".venv").join("bin").join("python"), false)
+        } else {
+            (Os::Other, "xdg-open", "vst-backend", Path::new(".venv").join("bin").join("python"), false)
+        };
+        assert_eq!(Os::CURRENT, os);
+        assert_eq!(here::browse("https://spdx.org/").program, launcher);
+        assert_eq!(here::reveal(Path::new("/tmp"), false).program, launcher);
+        assert_eq!(here::packaged_backend(), exe);
+        assert_eq!(here::venv_python(), python);
+        assert_eq!(here::updates_supported(), updates);
+        assert_eq!(here::reveal(Path::new("/tmp/a.srt"), true), reveal(os, Path::new("/tmp/a.srt"), true));
     }
 }
