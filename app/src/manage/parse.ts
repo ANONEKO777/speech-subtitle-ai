@@ -110,7 +110,7 @@ function parseHardware(raw: unknown): Hardware {
 
 const missing = (raw: unknown): MissingAsset => {
   const o = rec(raw);
-  return { id: str(o, "id"), type: str(o, "type"), sizeBytes: num(o, "size_bytes") };
+  return { id: str(o, "id"), type: str(o, "type"), sizeBytes: num(o, "size_bytes"), localBuild: bool(o, "local_build") };
 };
 
 function parseOption(raw: unknown): ProfileOption {

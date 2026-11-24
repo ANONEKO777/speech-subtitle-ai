@@ -18,6 +18,7 @@ import type { DownloadJob, LicenseEntry, ProfileId } from "../manage/types";
 import { useDownloads } from "../manage/useDownloads";
 import { CPU_NOTICE, SelfTestPanel } from "../settings/HardwareSection";
 import { chipOrGpu, isCpuProfile, isMac } from "../manage/hardwareText";
+import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 export const VC_REDIST_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist";
 import { downloadPlan } from "./plan";
@@ -54,7 +55,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
         const jobs = await downloadProfileAssets(backend);
         const plan = downloadPlan(view, selected);
         const extra = await Promise.all(
-          plan.items.filter((i) => i.fallback).map((i) => startAsset(backend, { id: i.id, type: i.type === "model" ? "model" : "runtime" })),
+          plan.items.filter((i) => i.fallback && !i.localBuild).map((i) => startAsset(backend, { id: i.id, type: i.type === "model" ? "model" : "runtime" })),
         );
         if (!alive) return;
         downloads.refresh();
@@ -235,6 +236,9 @@ function OverallLine({ jobs }: { jobs: readonly DownloadJob[] }) {
   );
 }
 
+/** "兩" and "三" read as Taiwan speech does; a larger count stays a digit. */
+const othersText = (n: number): string => (n === 2 ? "兩" : n === 3 ? "三" : String(n));
+
 function Choose({
   state,
   licenses,
@@ -253,6 +257,8 @@ function Choose({
   const plan = downloadPlan(view, selected);
   const option = view.profiles.find((p) => p.id === selected);
   const others = view.profiles.length - 1;
+  const downloads = toDownload(plan.items);
+  const builds = toBuild(plan.items);
   const tight = hw.diskFreeMib !== null && plan.totalBytes > hw.diskFreeMib * 1024 * 1024;
   return (
     <div data-testid="wizard-choose">
@@ -273,7 +279,7 @@ function Choose({
         </div>
       )}
       <p data-testid="wizard-recommended">
-        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外{others === 2 ? "兩" : others}個。
+        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外{othersText(others)}個。
       </p>
       <div className="wizard-profiles" role="radiogroup" aria-label="設定檔">
         {view.profiles.map((p) => (
@@ -328,10 +334,11 @@ function Choose({
                     <span className="asset-id">{item.id}</span>
                     <span className="sub">
                       {item.type === "model" ? "模型" : "執行檔"}
+                      {item.localBuild ? `，${LOCAL_BUILD_TEXT}` : ""}
                       {item.fallback ? "，GPU 失敗時改用 CPU 的備援" : ""}
                     </span>
                   </td>
-                  <td>{bytes(item.sizeBytes)}</td>
+                  <td>{item.localBuild ? "—" : bytes(item.sizeBytes)}</td>
                   <td>
                     {lic ? (
                       <ExternalLink href={lic.licenseUrl} testId={`wizard-license-${item.id}`}>
@@ -348,7 +355,7 @@ function Choose({
         </table>
       )}
       <p className="sub" data-testid="wizard-total">
-        共 {bytes(plan.totalBytes)}
+        {downloads.length === 0 && builds.length > 0 ? "沒有要下載的項目" : `共 ${bytes(plan.totalBytes)}`}
         {hw.diskFreeMib !== null && `，磁碟可用 ${mib(hw.diskFreeMib)}`}
       </p>
       {tight && (
@@ -360,7 +367,7 @@ function Choose({
 
       <div className="dialog-buttons start sticky-actions">
         <button type="button" className="primary" data-testid="wizard-start" onClick={onStart}>
-          {plan.items.length === 0 ? "開始自檢" : "下載並開始"}
+          {downloads.length === 0 ? "開始自檢" : "下載並開始"}
         </button>
         <button type="button" className="ghost" data-testid="wizard-skip" onClick={onSkip}>
           略過，之後在設定裡處理

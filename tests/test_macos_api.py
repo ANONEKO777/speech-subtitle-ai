@@ -135,3 +135,16 @@ def test_the_inventory_lists_every_mac_runtime_and_the_shared_models(client: Any
     assert WHISPER in ids and "qwen3-8b-q4_k_m" in ids
     assert not any("-win-" in i for i in ids)
     assert body["active_profile"] == "metal-32gb"
+
+
+def test_the_profile_page_marks_the_missing_program_the_script_builds_and_only_that_one(
+    client: Any,
+) -> None:
+    body = client.get("/api/profile").json()
+    active = next(p for p in body["profiles"] if p["active"])
+    flags = {m["id"]: (m["local_build"], m["size_bytes"]) for m in active["missing"]}
+
+    assert flags[WHISPER] == (True, 0)
+    assert all(not built for asset, (built, _) in flags.items() if asset != WHISPER)
+    assert all(size > 0 for asset, (_, size) in flags.items() if asset != WHISPER)
+    assert active["download_bytes"] == sum(size for _, size in flags.values())

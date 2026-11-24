@@ -137,7 +137,7 @@ describe("who sees the wizard", () => {
 });
 
 describe("download plan", () => {
-  const miss = (id: string, type: string, sizeBytes: number) => ({ id, type, sizeBytes });
+  const miss = (id: string, type: string, sizeBytes: number) => ({ id, type, sizeBytes, localBuild: false });
   const planView: ProfileView = {
     ...view,
     profiles: [

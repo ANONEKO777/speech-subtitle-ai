@@ -78,6 +78,8 @@ export interface MissingAsset {
   readonly id: string;
   readonly type: string;
   readonly sizeBytes: number;
+  /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
+  readonly localBuild: boolean;
 }
 
 export interface ProfileOption {

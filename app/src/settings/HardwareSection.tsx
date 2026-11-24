@@ -6,6 +6,7 @@ import { isActive, overall } from "../manage/downloads";
 import { bytes, mib } from "../manage/format";
 import { chipOrGpu, deviceLabel, isCpuProfile, isMac } from "../manage/hardwareText";
 import { JobRow } from "../manage/JobRow";
+import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
@@ -55,7 +56,13 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
 }
 
 function missingText(option: ProfileOption): string {
-  return option.missing.length === 0 ? "需要的項目都已安裝" : `缺少 ${option.missing.length} 項，要下載 ${bytes(option.downloadBytes)}`;
+  if (option.missing.length === 0) return "需要的項目都已安裝";
+  const get = toDownload(option.missing);
+  const build = toBuild(option.missing);
+  const download = `缺少 ${get.length} 項，要下載 ${bytes(option.downloadBytes)}`;
+  if (build.length === 0) return download;
+  const built = `${build.length} 項要${LOCAL_BUILD_TEXT}`;
+  return get.length === 0 ? built : `${download}；另有 ${built}`;
 }
 
 interface Props {
@@ -251,16 +258,18 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 {active && active.missing.length > 0 ? (
                   <>
                     <p data-testid="switch-missing-title">
-                      還缺 {active.missing.length} 項，共 {bytes(active.downloadBytes)}：
+                      {toDownload(active.missing).length > 0
+                        ? `還缺 ${toDownload(active.missing).length} 項，共 ${bytes(active.downloadBytes)}：`
+                        : "還缺的項目要在這台 Mac 上自行建置："}
                     </p>
                     <ul className="stages" data-testid="switch-missing">
                       {active.missing.map((m) => (
                         <li key={m.id}>
-                          {m.id}（{m.type === "model" ? "模型" : "執行檔"}，{bytes(m.sizeBytes)}）
+                          {m.id}（{m.type === "model" ? "模型" : "執行檔"}，{m.localBuild ? LOCAL_BUILD_TEXT : bytes(m.sizeBytes)}）
                         </li>
                       ))}
                     </ul>
-                    {jobs.length === 0 && (
+                    {jobs.length === 0 && toDownload(active.missing).length > 0 && (
                       <button type="button" className="primary" data-testid="switch-download" onClick={() => void fetchMissing()}>
                         下載缺少的項目
                       </button>
