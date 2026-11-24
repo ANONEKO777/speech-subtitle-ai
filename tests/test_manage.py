@@ -55,6 +55,7 @@ def test_inventory_lists_every_registry_asset_and_says_what_is_installed(rig: Ri
     turbo = after[WHISPER_TURBO]
 
     assert set(before) == {*rig.registry.models, *rig.registry.runtimes}
+    assert not any(a["local_build"] for a in before.values())
     assert not any(a["installed"] for a in before.values())
     assert turbo["installed"] and turbo["state"] == "installed"
     assert turbo["size_on_disk"] == turbo["size_bytes"]

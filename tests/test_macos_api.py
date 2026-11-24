@@ -153,6 +153,17 @@ def test_the_profile_page_marks_the_missing_program_the_script_builds_and_only_t
     assert active["download_bytes"] == sum(size for _, size in flags.values())
 
 
+def test_the_inventory_marks_the_program_the_script_builds_and_only_that_one(
+    client: Any,
+) -> None:
+    rows = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}
+
+    assert rows[WHISPER]["local_build"] is True
+    assert (rows[WHISPER]["state"], rows[WHISPER]["size_bytes"]) == ("not_installed", 0)
+    assert [i for i, e in rows.items() if e["local_build"]] == [WHISPER]
+    assert rows["llama.cpp-b12068-macos-metal"]["size_bytes"] > 0
+
+
 class RecordingRunner:
     def __init__(self) -> None:
         self.plans: list[Any] = []
