@@ -41,7 +41,14 @@ def requirements(ctx: ManagerContext, profile_id: ProfileId) -> Requirements:
 def warnings_for(ctx: ManagerContext, profile: Profile) -> list[str]:
     hardware = ctx.detect_hardware()
     found: list[str] = []
-    if not fits(profile, hardware):
+    if not fits(profile, hardware) and profile.min_unified_mib is not None:
+        have = f"{hardware.ram_mib} MiB" if hardware.ram_mib else "unknown memory"
+        found.append(
+            f"This machine has {have} of memory; {profile.id.value} needs "
+            f"{profile.min_unified_mib} MiB. The self-test will fall back to the CPU if the "
+            "GPU cannot run it."
+        )
+    elif not fits(profile, hardware):
         have = f"{hardware.vram_mib} MiB" if hardware.vram_mib else "no NVIDIA GPU"
         found.append(
             f"This machine has {have}; {profile.id.value} needs {profile.min_vram_mib} MiB of "
@@ -55,7 +62,7 @@ def download_missing(ctx: ManagerContext, profile_id: ProfileId) -> list[JobStat
     jobs: list[JobStatus] = []
     for item in requirements(ctx, profile_id).missing:
         found = ctx.registry.runtimes.get(item.id)
-        if found is not None and found.executable is None:
+        if found is not None and (found.executable is None or found.is_local_build):
             continue
         jobs.append(ctx.runner.submit(plan_of(ctx, item.id)))
     return jobs

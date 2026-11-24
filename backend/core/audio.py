@@ -20,6 +20,9 @@ from backend.core.subtitle_io import read_text_file, write_text_file
 
 SAMPLE_RATE = 16_000
 TOOL_DIR_ENV = "VST_FFMPEG_DIR"
+HOMEBREW_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
+"""Where Homebrew puts programs. A desktop app does not get the shell's PATH, so on a Mac
+these are looked in after PATH."""
 DEFAULT_EXTRACT_TIMEOUT_S = 1800.0
 
 _STAMP_VERSION = 1
@@ -51,8 +54,9 @@ class ExtractResult:
     skipped: bool
 
 
-def find_tool(name: str, tool_dir: Path | None = None) -> Path:
-    """Look in `tool_dir`, then in `$VST_FFMPEG_DIR`, then on PATH."""
+def find_tool(name: str, tool_dir: Path | None = None, system: str | None = None) -> Path:
+    """Look in `tool_dir`, then in `$VST_FFMPEG_DIR`, then on PATH, and on a Mac then in the
+    Homebrew folders. `system` is a `sys.platform` value."""
     env_dir = os.environ.get(TOOL_DIR_ENV)
     search = [str(d) for d in (tool_dir, env_dir and Path(env_dir)) if d]
     for directory in search:
@@ -60,10 +64,16 @@ def find_tool(name: str, tool_dir: Path | None = None) -> Path:
         if found:
             return Path(found)
     found = shutil.which(name)
+    mac = (sys.platform if system is None else system) == "darwin"
+    if found is None and mac:
+        found = shutil.which(name, path=os.pathsep.join(HOMEBREW_DIRS))
     if found is None:
-        raise AudioError(
-            f"{name} was not found. Install ffmpeg, add it to PATH, or set {TOOL_DIR_ENV}."
+        how = (
+            f"Install it with `brew install ffmpeg`, or set {TOOL_DIR_ENV}."
+            if mac
+            else f"Install ffmpeg, add it to PATH, or set {TOOL_DIR_ENV}."
         )
+        raise AudioError(f"{name} was not found. {how}")
     return Path(found)
 
 

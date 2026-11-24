@@ -53,18 +53,45 @@
         "id": {"$ref": "#/$defs/id"},
         "engine": {"type": "string", "minLength": 1},
         "version": {"type": "string", "minLength": 1},
-        "platform": {"enum": ["win-x64"]},
-        "backend": {"enum": ["cuda", "cpu"]},
-        "url": {"$ref": "#/$defs/url"},
-        "file": {"$ref": "#/$defs/file"},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "size_bytes": {"type": "integer", "minimum": 1},
+        "platform": {"enum": ["win-x64", "macos-arm64"]},
+        "backend": {"enum": ["cuda", "cpu", "metal"]},
+        "url": {},
+        "file": {},
+        "sha256": {},
+        "size_bytes": {},
         "license": {"type": "string", "minLength": 1},
         "license_url": {"$ref": "#/$defs/url"},
         "executable": {"anyOf": [{"$ref": "#/$defs/relative_path"}, {"type": "null"}]},
         "min_driver": {"type": ["string", "null"], "pattern": "^\\d+\\.\\d+$"},
         "ascii_paths_only": {"type": "boolean"},
-        "needs": {"$ref": "#/$defs/needs"}
+        "needs": {"$ref": "#/$defs/needs"},
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["script", "source_url"],
+          "properties": {
+            "script": {"$ref": "#/$defs/relative_path"},
+            "source_url": {"$ref": "#/$defs/url"}
+          }
+        }
+      },
+      "if": {"required": ["build"]},
+      "then": {
+        "properties": {
+          "url": {"type": "null"},
+          "file": {"type": "null"},
+          "sha256": {"type": "null"},
+          "size_bytes": {"type": "null"},
+          "executable": {"$ref": "#/$defs/relative_path"}
+        }
+      },
+      "else": {
+        "properties": {
+          "url": {"$ref": "#/$defs/url"},
+          "file": {"$ref": "#/$defs/file"},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "size_bytes": {"type": "integer", "minimum": 1}
+        }
       }
     }
   }

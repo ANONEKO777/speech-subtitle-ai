@@ -7,11 +7,16 @@ it as an argument so a test passes a fake and never touches the machine.
 
 from __future__ import annotations
 
+import logging
 import subprocess
+import sys
 import threading
 import time
 from collections.abc import Callable, Mapping
 from enum import StrEnum
+from types import MappingProxyType
+
+log = logging.getLogger(__name__)
 
 COUNTDOWN_S = 60.0
 
@@ -26,13 +31,46 @@ StillDue = Callable[[PowerAction], bool]
 Emit = Callable[[str, Mapping[str, object]], None]
 
 
-def system_power(action: PowerAction) -> None:
-    """Put this Windows machine to sleep, or shut it down at once."""
-    match action:
-        case PowerAction.SLEEP:
-            subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"], check=False)
-        case PowerAction.SHUTDOWN:
-            subprocess.run(["shutdown", "/s", "/t", "0"], check=False)
+COMMANDS: Mapping[str, Mapping[PowerAction, tuple[str, ...]]] = MappingProxyType(
+    {
+        "win32": MappingProxyType(
+            {
+                PowerAction.SLEEP: ("rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"),
+                PowerAction.SHUTDOWN: ("shutdown", "/s", "/t", "0"),
+            }
+        ),
+        # `pmset sleepnow` needs no password. Shutting down without one goes through System
+        # Events, which asks the person once to let this app control it (an Automation prompt).
+        "darwin": MappingProxyType(
+            {
+                PowerAction.SLEEP: ("pmset", "sleepnow"),
+                PowerAction.SHUTDOWN: (
+                    "osascript",
+                    "-e",
+                    'tell application "System Events" to shut down',
+                ),
+            }
+        ),
+    }
+)
+
+Runner = Callable[[tuple[str, ...]], int]
+
+
+def _run(command: tuple[str, ...]) -> int:
+    return subprocess.run(command, check=False).returncode
+
+
+def system_power(action: PowerAction, system: str | None = None, run: Runner = _run) -> None:
+    """Put this machine to sleep, or shut it down at once. `system` is a `sys.platform` value and
+    `run` starts the command, so a test can see what would have run."""
+    commands = COMMANDS.get(sys.platform if system is None else system)
+    if commands is None:
+        log.warning("no %s command for this platform", action.value)
+        return
+    command = commands[action]
+    if run(command) != 0:
+        log.warning("%s did not succeed: %s", action.value, " ".join(command))
 
 
 class Countdown:

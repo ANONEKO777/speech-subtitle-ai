@@ -13,6 +13,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.manager.platforms import MACOS_ARM64, WIN_X64, UnsupportedPlatform, detect_platform
+
 VRAM_OVERRIDE_ENV = "VST_VRAM_MIB"
 NVIDIA_SMI_ENV = "VST_NVIDIA_SMI"
 LEGACY_NVIDIA_SMI = Path(r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe")
@@ -24,6 +26,8 @@ _MIB = 1024 * 1024
 _DRIVER = re.compile(r"\d+(?:\.\d+)+")
 _DIGITS = re.compile(r"\d+")
 _CUDA_INDEX = re.compile(r"-?\d+")
+SYSCTL = "/usr/sbin/sysctl"
+_SYSCTL_TIMEOUT_S = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,11 +45,23 @@ class Hardware:
     driver_version: str | None
     ram_mib: int | None
     disk_free_mib: int | None
+    platform: str = WIN_X64
+    chip: str | None = None
+    """The Apple chip's name on a Mac ("Apple M3 Pro"); None elsewhere. On a Mac `ram_mib` is the
+    unified memory the CPU and the GPU share, and there is no separate VRAM."""
 
     def describe(self) -> str:
         def show(value: object, unit: str = "") -> str:
             return "unknown" if value is None else f"{value}{unit}"
 
+        if self.platform == MACOS_ARM64:
+            return "\n".join(
+                (
+                    f"Chip:       {show(self.chip)}",
+                    f"Memory:     {show(self.ram_mib, ' MiB')} (shared by the CPU and the GPU)",
+                    f"Disk free:  {show(self.disk_free_mib, ' MiB')}",
+                )
+            )
         return "\n".join(
             (
                 f"GPU:        {show(self.gpu_name)}",
@@ -166,6 +182,36 @@ class _MemoryStatus(ctypes.Structure):
     )
 
 
+Sysctl = Callable[[str], str | None]
+"""(name) -> the value `sysctl -n name` prints, or None when it cannot be read."""
+
+
+def run_sysctl(name: str) -> str | None:
+    try:
+        done = subprocess.run(  # noqa: S603
+            [SYSCTL, "-n", name],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=_SYSCTL_TIMEOUT_S,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return done.stdout.strip() if done.returncode == 0 else None
+
+
+def read_apple_silicon(sysctl: Sysctl = run_sysctl) -> tuple[str, int | None] | None:
+    """The chip name and the unified memory in MiB of an Apple-silicon Mac, or None when the
+    machine does not say it is one. A memory that cannot be read comes back as None."""
+    brand = sysctl("machdep.cpu.brand_string")
+    if not brand or not brand.startswith("Apple"):
+        return None
+    raw = sysctl("hw.memsize")
+    memory = int(raw) // _MIB if raw is not None and _DIGITS.fullmatch(raw) else None
+    return brand, memory
+
+
 def _total_ram_mib() -> int | None:
     try:
         if sys.platform == "win32":
@@ -194,8 +240,27 @@ def detect(
     env: Mapping[str, str] | None = None,
     smi: Callable[[], str | None] | None = None,
     disk_path: Path | None = None,
+    platform: str | None = None,
+    sysctl: Sysctl = run_sysctl,
 ) -> Hardware:
     env = os.environ if env is None else env
+    if platform is None:
+        try:
+            platform = detect_platform()
+        except UnsupportedPlatform:
+            platform = WIN_X64
+    if platform == MACOS_ARM64:
+        apple = read_apple_silicon(sysctl)
+        chip, memory = apple if apple is not None else (None, None)
+        return Hardware(
+            None,
+            None,
+            None,
+            memory if memory is not None else _total_ram_mib(),
+            _disk_free_mib(_disk_root(disk_path)),
+            MACOS_ARM64,
+            chip,
+        )
     output = smi() if smi is not None else run_nvidia_smi(env)
     detected = parse_nvidia_smi(output) if output else []
     gpu = _largest_vram_gpu(_cuda_visible_gpus(detected, env.get("CUDA_VISIBLE_DEVICES")))

@@ -11,7 +11,7 @@ from backend.manager.inventory import Inventory
 from backend.manager.manifest import Manifest
 from backend.manager.registry import Registry
 from backend.manager.runtimes import recover_runtimes
-from backend.manager.secrets import DpapiSecretStore, SecretStore
+from backend.manager.secrets import SecretStore, default_secret_store
 from backend.manager.selftest import Probe, real_probe
 from backend.manager.selftest_store import SelfTestStore
 from backend.manager.settings import SettingsStore
@@ -58,7 +58,7 @@ def build_context(
         runner=runner,
         detect_hardware=detect_hardware,
         settings=SettingsStore(user_data),
-        secrets=secrets or DpapiSecretStore(user_data),
+        secrets=secrets or default_secret_store(user_data),
         manifest=manifest,
         inventory=inventory,
         selftest=SelfTestStore(user_data),

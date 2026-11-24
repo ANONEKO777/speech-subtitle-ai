@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from backend.manager.registry import Registry
+from backend.manager.registry import Registry, Runtime
 
 _NVIDIA_EULA = "https://docs.nvidia.com/cuda/eula/index.html"
 _SPLIT = re.compile(r"\s+(?:AND|OR|WITH)\s+")
@@ -51,7 +51,9 @@ def license_entries(registry: Registry) -> tuple[LicenseEntry, ...]:
                     license=item.license,
                     license_url=item.license_url,
                     parts=tuple(_part(n) for n in names),
-                    source_url=item.url,
+                    source_url=item.build.source_url
+                    if isinstance(item, Runtime) and item.build
+                    else item.url,
                 )
             )
     return tuple(entries)

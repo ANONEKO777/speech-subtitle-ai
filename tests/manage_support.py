@@ -43,6 +43,7 @@ def tiny_registry(tmp_path: Path, origin: Origin) -> Registry:
         data = blob(3000 + index, seed=index + 1)
         origin.files[f"/{model['id']}"] = data
         model.update(url=f"{ORIGIN}{model['id']}", sha256=sha(data), size_bytes=len(data))
+    raw["runtimes"] = [r for r in raw["runtimes"] if r["platform"] == "win-x64"]
     for index, runtime in enumerate(raw["runtimes"]):
         exe = runtime["executable"] or "addon.dll"
         archive = make_zip(tmp_path / f"{runtime['id']}.zip", {exe: b"MZ" + bytes([index])})

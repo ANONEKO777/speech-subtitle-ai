@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 from backend.api.deps import Context, job_json
 from backend.core import vc_runtime
 from backend.manager import profiles
-from backend.manager.profiles import PROFILES, ProfileId
+from backend.manager.profiles import ProfileId, profiles_for
 from backend.manager.switch import current, download_missing, requirements, warnings_for
 
 router = APIRouter(prefix="/api", tags=["profile"])
@@ -73,7 +73,10 @@ def view(ctx: Context) -> dict[str, Any]:
             if report and report.fallback and report.profile is chosen.id
             else chosen.asr.device.value,
         },
-        "profiles": [_profile_json(ctx, p, chosen.id, rec.profile.id) for p in PROFILES.values()],
+        "profiles": [
+            _profile_json(ctx, p, chosen.id, rec.profile.id)
+            for p in profiles_for(hardware.platform)
+        ],
         "fallback": asdict(report.fallback)
         if report and report.fallback and report.profile is chosen.id
         else None,

@@ -194,6 +194,61 @@
       "min_driver": "551.61",
       "ascii_paths_only": false,
       "needs": []
+    },
+    {
+      "id": "llama.cpp-b12068-macos-metal",
+      "engine": "llama.cpp",
+      "version": "b12068",
+      "platform": "macos-arm64",
+      "backend": "metal",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12068/llama-b12068-bin-macos-arm64.tar.gz",
+      "file": "llama-b12068-bin-macos-arm64.tar.gz",
+      "sha256": "0b12600a3f04acc4d74e876cbe4ca70be8fe04093bb19d825828bb4f49048936",
+      "size_bytes": 16548390,
+      "license": "MIT AND Apache-2.0 WITH LLVM-exception",
+      "license_url": "https://github.com/ggml-org/llama.cpp/blob/b12068/LICENSE",
+      "executable": "llama-b12068/llama-server",
+      "min_driver": null,
+      "ascii_paths_only": false,
+      "needs": []
+    },
+    {
+      "id": "crispasr-v0.8.49-macos-metal",
+      "engine": "crispasr",
+      "version": "v0.8.49",
+      "platform": "macos-arm64",
+      "backend": "metal",
+      "url": "https://github.com/CrispStrobe/CrispASR/releases/download/v0.8.49/crispasr-macos-arm64.tar.gz",
+      "file": "crispasr-macos-arm64.tar.gz",
+      "sha256": "53fa0b1addeacaafd05f8b0cd10cad6e8f44cbe302be3bd07fdf7fce2eff27ec",
+      "size_bytes": 18165415,
+      "license": "MIT AND BSD-3-Clause AND Apache-2.0 AND MIT-0",
+      "license_url": "https://github.com/CrispStrobe/CrispASR/blob/v0.8.49/LICENSE",
+      "executable": "crispasr-macos-arm64/crispasr",
+      "min_driver": null,
+      "ascii_paths_only": true,
+      "needs": []
+    },
+    {
+      "id": "whispercpp-b5454-macos-metal",
+      "engine": "whispercpp",
+      "version": "b5454",
+      "platform": "macos-arm64",
+      "backend": "metal",
+      "url": null,
+      "file": null,
+      "sha256": null,
+      "size_bytes": null,
+      "license": "MIT",
+      "license_url": "https://github.com/ggml-org/whisper.cpp/blob/b5454/LICENSE",
+      "executable": "whisper-cli",
+      "min_driver": null,
+      "ascii_paths_only": false,
+      "needs": [],
+      "build": {
+        "script": "scripts/mac/build_whisper_cli.sh",
+        "source_url": "https://github.com/ggml-org/whisper.cpp"
+      }
     }
   ]
 }

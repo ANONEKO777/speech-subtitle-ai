@@ -10,14 +10,16 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
 
+from backend.manager.platforms import MACOS_ARM64, WIN_X64, UnsupportedPlatform, detect_platform
+
 REGISTRY_PATH = Path(__file__).with_name("registry.json")
 SCHEMA_VERSION = 1
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _DRIVER = re.compile(r"\d+\.\d+")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
-PLATFORMS = frozenset({"win-x64"})
-BACKENDS = frozenset({"cuda", "cpu"})
+PLATFORMS = frozenset({WIN_X64, MACOS_ARM64})
+BACKENDS = frozenset({"cuda", "cpu", "metal"})
 
 
 class RegistryError(ValueError):
@@ -49,6 +51,15 @@ class Model:
 
 
 @dataclass(frozen=True, slots=True)
+class LocalBuild:
+    """A runtime nobody publishes a build of for this platform, so it is built on the machine by
+    `script` from the source at `source_url`, at the tag in the runtime's `version`."""
+
+    script: str
+    source_url: str
+
+
+@dataclass(frozen=True, slots=True)
 class Runtime:
     id: str
     engine: str
@@ -65,6 +76,14 @@ class Runtime:
     min_driver: str | None
     ascii_paths_only: bool
     needs: tuple[str, ...]
+    build: LocalBuild | None = None
+    """Set for a runtime that is built on the machine. Its `url`, `file` and `sha256` are then
+    empty and its `size_bytes` is 0 (the JSON has null for all four): there is nothing to
+    download, so nothing may read them as a download. See `is_local_build`."""
+
+    @property
+    def is_local_build(self) -> bool:
+        return self.build is not None
 
 
 _Entry = TypeVar("_Entry", Model, Runtime)
@@ -76,12 +95,29 @@ class Registry:
     runtimes: Mapping[str, Runtime]
 
 
-def load(path: Path = REGISTRY_PATH) -> Registry:
+def load(path: Path = REGISTRY_PATH, *, platform: str | None = None) -> Registry:
+    """The registry as this machine sees it: the models, and the runtimes built for `platform`
+    (this machine's platform when None; every runtime when this machine is unsupported)."""
     try:
         raw: object = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise RegistryError(f"cannot read {path}: {exc}") from exc
-    return parse(raw)
+    table = parse(raw)
+    if platform is None:
+        try:
+            platform = detect_platform()
+        except UnsupportedPlatform:
+            return table
+    return for_platform(table, platform)
+
+
+def for_platform(table: Registry, platform: str) -> Registry:
+    """`table` without the runtimes of other platforms. A runtime of this platform never needs
+    one of another, so no `needs` link is cut."""
+    kept = {rid: r for rid, r in table.runtimes.items() if r.platform == platform}
+    if not kept:
+        raise RegistryError(f"the registry has no runtime for {platform}")
+    return Registry(table.models, MappingProxyType(kept))
 
 
 def parse(raw: object) -> Registry:
@@ -134,8 +170,10 @@ def _model(raw: object) -> Model:
 
 
 def _runtime(raw: object) -> Runtime:
-    d = _object(raw, "runtime", {f.name for f in dataclasses.fields(Runtime)})
+    keys = {f.name for f in dataclasses.fields(Runtime)}
+    d = _object(raw, "runtime", keys - {"build"}, {"build"})
     name = f"runtime {d['id']!r}"
+    build = _build(d.get("build"), d, name)
     executable = d["executable"]
     if executable is not None and not _is_safe_relative_path(executable):
         raise RegistryError(
@@ -150,31 +188,53 @@ def _runtime(raw: object) -> Runtime:
     ascii_only = d["ascii_paths_only"]
     if type(ascii_only) is not bool:
         raise RegistryError(f"{name}: ascii_paths_only must be a boolean")
+    local = build is not None
     return Runtime(
         id=_id(d, "id", name),
         engine=_str(d, "engine", name),
         version=_str(d, "version", name),
         platform=_one_of(d, "platform", name, PLATFORMS),
         backend=_one_of(d, "backend", name, BACKENDS),
-        url=_url(d, name),
-        file=_file(d, name),
-        sha256=_sha256(d, name),
-        size_bytes=_positive_int(d, "size_bytes", name),
+        url="" if local else _url(d, name),
+        file="" if local else _file(d, name),
+        sha256="" if local else _sha256(d, name),
+        size_bytes=0 if local else _positive_int(d, "size_bytes", name),
         license=_str(d, "license", name),
         license_url=_url(d, name, "license_url"),
         executable=executable,
         min_driver=min_driver,
         ascii_paths_only=ascii_only,
         needs=_needs(d, name),
+        build=build,
     )
 
 
-def _object(raw: object, what: str, keys: set[str]) -> dict[str, Any]:
+def _build(raw: object, d: dict[str, Any], name: str) -> LocalBuild | None:
+    """The `build` key of a runtime (left out or null for a download), which also decides whether
+    its download fields are null."""
+    if raw is None:
+        return None
+    fields = _object(raw, f"{name}: build", {"script", "source_url"})
+    for key in ("url", "file", "sha256", "size_bytes"):
+        if d[key] is not None:
+            raise RegistryError(f"{name}: a runtime that is built on the machine has {key} null")
+    if d["executable"] is None:
+        raise RegistryError(f"{name}: a runtime that is built on the machine needs an executable")
+    script = _str(fields, "script", name)
+    if not _is_safe_relative_path(script):
+        raise RegistryError(f"{name}: build.script must be a relative path of plain segments")
+    return LocalBuild(script, _url(fields, name, "source_url"))
+
+
+def _object(
+    raw: object, what: str, keys: set[str], optional: set[str] | None = None
+) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise RegistryError(f"{what} must be an object")
     d: dict[str, Any] = dict(raw)  # pyright: ignore[reportUnknownArgumentType]
-    if set(d) != keys:
-        missing, extra = sorted(keys - set(d)), sorted(set(d) - keys)
+    allowed = keys | (optional or set())
+    if not keys <= set(d) or not set(d) <= allowed:
+        missing, extra = sorted(keys - set(d)), sorted(set(d) - allowed)
         raise RegistryError(f"{what}: missing keys {missing}, unexpected keys {extra}")
     return d
 
