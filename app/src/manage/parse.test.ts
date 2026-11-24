@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseProfileView } from "./parse";
+import { parseAsset, parseProfileView } from "./parse";
 
 const raw = (missing: unknown[]) => ({
   hardware: { platform: "macos-arm64", chip: "Apple M3", gpu_name: null, vram_mib: null, driver_version: null, ram_mib: 36864, disk_free_mib: 1 },
@@ -40,5 +40,15 @@ describe("parseProfileView", () => {
   it("treats a missing item without the flag as a download", () => {
     const view = parseProfileView(raw([{ id: "llama", type: "runtime", size_bytes: 5 }]));
     expect(view.profiles[0]?.missing[0]?.localBuild).toBe(false);
+  });
+});
+
+describe("parseAsset", () => {
+  const row = (extra: Record<string, unknown>) => ({ id: "x", type: "runtime", state: "not_installed", sha256_state: "not_installed", size_bytes: 0, ...extra });
+
+  it("reads which inventory row is built on the machine, and none without the flag", () => {
+    expect(parseAsset(row({ local_build: true })).localBuild).toBe(true);
+    expect(parseAsset(row({ local_build: false })).localBuild).toBe(false);
+    expect(parseAsset(row({})).localBuild).toBe(false);
   });
 });
