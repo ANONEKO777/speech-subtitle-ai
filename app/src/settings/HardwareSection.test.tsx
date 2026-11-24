@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { macView, windowsView } from "../manage/screens.fixture";
@@ -12,6 +12,7 @@ vi.mock("../manage/api", async (orig) => ({
   ...(await orig<typeof import("../manage/api")>()),
   fetchProfile: vi.fn(() => Promise.resolve(mocks.view)),
   fetchLastSelfTest: vi.fn(() => Promise.resolve(null)),
+  chooseProfile: vi.fn(() => Promise.resolve({ profile: mocks.view, warnings: [] })),
 }));
 
 const backend = { port: 1, token: "t" } as Backend;
@@ -81,5 +82,30 @@ describe("HardwareSection and the program a Mac builds for itself", () => {
     expect(text).toContain("缺少 2 項，要下載 1.53 GB");
     expect(text).toContain("另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）");
     expect(text).not.toContain("0 B");
+  });
+
+  it("says the notice under a processor-only Mac profile is about Metal, and keeps the CPU wording on Windows", async () => {
+    const section = await show(macView());
+    const mac = screen.getByTestId("profile-apple-cpu").textContent ?? "";
+    expect(mac).toContain("這個設定檔只用處理器，不用 GPU（Metal）");
+    expect(mac).not.toContain("CPU 設定檔");
+    expect(section.textContent).not.toContain("NVIDIA");
+    cleanup();
+    await show(windowsView());
+    expect(screen.getByTestId("profile-cpu").textContent).toContain("CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。");
+  });
+
+  it("lists only the build step after a switch when nothing is left to download", async () => {
+    const view = macView();
+    mocks.view = { ...view, profiles: view.profiles.map((p) => ({ ...p, missing: p.missing.filter((m) => m.localBuild), downloadBytes: 0 })) };
+    render(<HardwareSection backend={backend} downloads={downloads} onOpenLlm={() => undefined} />);
+    await waitFor(() => screen.getByTestId("profile-use-metal-16gb"));
+    fireEvent.click(screen.getByTestId("profile-use-metal-16gb"));
+    await waitFor(() => screen.getByTestId("switch-missing"));
+    expect(screen.getByTestId("switch-missing-title").textContent).toBe("還缺的項目要在這台 Mac 上自行建置：");
+    const list = screen.getByTestId("switch-missing").textContent ?? "";
+    expect(list).toContain("whispercpp-b5454-macos-metal（執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md））");
+    expect(list).not.toContain("0 B");
+    expect(screen.queryByTestId("switch-download")).toBeNull();
   });
 });

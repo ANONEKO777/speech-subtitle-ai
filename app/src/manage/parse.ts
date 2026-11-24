@@ -64,6 +64,7 @@ export function parseAsset(raw: unknown): Asset {
     blockers: strings(o["blockers"]),
     license: str(o, "license"),
     licenseUrl: str(o, "license_url"),
+    localBuild: bool(o, "local_build"),
   };
 }
 

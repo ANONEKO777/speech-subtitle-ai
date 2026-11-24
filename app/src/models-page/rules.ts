@@ -4,9 +4,12 @@ import type { Asset, DownloadJob, UpdateItem } from "../manage/types";
 
 export type RowAction = "download" | "resume" | "verify" | "repair" | "redownload" | "update" | "delete" | "cancel";
 
-/** The actions a row offers, from what is on disk and what is downloading. */
+/** The actions a row offers, from what is on disk and what is downloading. A program this machine builds
+ * for itself has nothing to download, verify or fetch again (the backend refuses all three), so it offers
+ * only delete once it is there. */
 export function rowActions(asset: Asset, job: DownloadJob | undefined, update?: UpdateItem): RowAction[] {
   if (job && isActive(job)) return ["cancel"];
+  if (asset.localBuild) return asset.state === "installed" ? ["delete"] : [];
   switch (asset.state) {
     case "installing":
       return ["cancel"];

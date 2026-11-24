@@ -14,6 +14,7 @@ import {
 } from "../manage/api";
 import { fraction, isActive, stateLabel } from "../manage/downloads";
 import { bytes, shortVersion, speed } from "../manage/format";
+import { LOCAL_BUILD_TEXT } from "../manage/localBuild";
 import type { Downloads } from "../manage/useDownloads";
 import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/types";
 import { DeleteDialog } from "./DeleteDialog";
@@ -246,8 +247,8 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       )}
                     </td>
                     <td>
-                      <span>{bytes(asset.sizeOnDisk ?? asset.sizeBytes)}</span>
-                      {asset.sizeOnDisk === null && <span className="sub">下載大小</span>}
+                      <span>{asset.localBuild && asset.sizeOnDisk === null ? "—" : bytes(asset.sizeOnDisk ?? asset.sizeBytes)}</span>
+                      {asset.sizeOnDisk === null && !asset.localBuild && <span className="sub">下載大小</span>}
                     </td>
                     <td>
                       <span className="chips">
@@ -292,6 +293,11 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                           );
                         })}
                       </div>
+                      {asset.localBuild && asset.state === "not_installed" && (
+                        <span className="sub" data-testid={`inv-${asset.id}-build`}>
+                          {LOCAL_BUILD_TEXT}
+                        </span>
+                      )}
                       {working && <span className="sub">{working}</span>}
                       {note && (
                         <span className={`sub note-line ${note.bad ? "bad" : "ok"}`} role={note.bad ? "alert" : "status"} data-testid={`inv-${asset.id}-note`}>

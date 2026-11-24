@@ -32,6 +32,8 @@ export interface Asset {
   readonly blockers: readonly string[];
   readonly license: string;
   readonly licenseUrl: string;
+  /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
+  readonly localBuild: boolean;
 }
 
 export interface Inventory {

@@ -1,4 +1,4 @@
-import type { LicenseEntry, MissingAsset, ProfileId, ProfileOption, ProfileView } from "./types";
+import type { Asset, Inventory, LicenseEntry, MissingAsset, ProfileId, ProfileOption, ProfileView } from "./types";
 
 const option = (id: ProfileId, over: Partial<ProfileOption>): ProfileOption => ({
   id,
@@ -63,3 +63,53 @@ export const licenses: readonly LicenseEntry[] = [
   { id: "whispercpp-b5454-win-cuda", type: "runtime", version: "b5454", license: "MIT", licenseUrl: "https://spdx.org/licenses/MIT.html", parts: [], sourceUrl: "https://github.com/ggml-org/whisper.cpp" },
   { id: "whispercpp-b5454-macos-metal", type: "runtime", version: "b5454", license: "MIT", licenseUrl: "https://spdx.org/licenses/MIT.html", parts: [], sourceUrl: "https://github.com/ggml-org/whisper.cpp" },
 ];
+
+const asset = (id: string, type: Asset["type"], over: Partial<Asset> = {}): Asset => ({
+  id,
+  type,
+  kind: type === "model" ? "asr" : "whisper.cpp",
+  state: "not_installed",
+  version: "1",
+  installedVersion: null,
+  sizeBytes: 0,
+  sizeOnDisk: null,
+  path: null,
+  shaState: "not_installed",
+  shaScope: type === "model" ? "file" : "archive_at_install",
+  usedByProfiles: [],
+  inActiveProfile: false,
+  dependents: [],
+  blockers: [],
+  license: "MIT",
+  licenseUrl: "https://spdx.org/licenses/MIT.html",
+  localBuild: false,
+  ...over,
+});
+
+/** What `/api/inventory` lists on the Windows PC: the model is there, the CUDA runtime is not. */
+export function windowsInventory(): Inventory {
+  return {
+    activeProfile: "gpu-24gb",
+    modelsDir: "C:/m",
+    runtimesDir: "C:/r",
+    installedBytes: 1_600_000_000,
+    assets: [
+      asset("whisper-large-v3-turbo", "model", { state: "installed", sizeBytes: 1_600_000_000, sizeOnDisk: 1_600_000_000, path: "C:/m/w.bin", shaState: "verified" }),
+      asset("whispercpp-b5454-win-cuda", "runtime", { sizeBytes: 480_000_000 }),
+    ],
+  };
+}
+
+/** The 36 GB M3: `whispercpp-b5454-macos-metal` is built by a script, so it has no size and no archive. */
+export function macInventory(): Inventory {
+  return {
+    activeProfile: "metal-32gb",
+    modelsDir: "/m",
+    runtimesDir: "/r",
+    installedBytes: 0,
+    assets: [
+      asset("whispercpp-b5454-macos-metal", "runtime", { localBuild: true }),
+      asset("llama-b8000-macos-metal", "runtime", { sizeBytes: 40_000_000 }),
+    ],
+  };
+}

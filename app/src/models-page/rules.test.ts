@@ -20,6 +20,7 @@ const asset = (over: Partial<Asset> = {}): Asset => ({
   blockers: [],
   license: "MIT",
   licenseUrl: "https://x",
+  localBuild: false,
   ...over,
 });
 const job = (state: DownloadJob["state"]): DownloadJob => ({
@@ -44,6 +45,13 @@ describe("row actions", () => {
   it("offers a download for a missing asset and a resume for a half download", () => {
     expect(rowActions(asset({ state: "not_installed" }), undefined)).toEqual(["download"]);
     expect(rowActions(asset({ state: "partial" }), job("cancelled"))).toEqual(["resume", "delete"]);
+  });
+
+  it("offers no download for a program this machine builds, and only delete once it is there", () => {
+    const built = { type: "runtime", localBuild: true } as const;
+    expect(rowActions(asset({ ...built, state: "not_installed" }), undefined)).toEqual([]);
+    expect(rowActions(asset({ ...built, state: "installed" }), undefined)).toEqual(["delete"]);
+    expect(rowActions(asset({ type: "runtime", state: "not_installed" }), undefined)).toEqual(["download"]);
   });
 
   it("offers only cancel while a job runs", () => {
