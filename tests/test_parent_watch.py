@@ -5,6 +5,7 @@ check itself where the system has POSIX signals."""
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import textwrap
@@ -14,7 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from backend.core.parent_watch import PARENT_PID_ENV, is_alive, parent_pid, watch
+from backend.core import parent_watch
+from backend.core.parent_watch import MAX_PID, PARENT_PID_ENV, is_alive, parent_pid, watch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,9 +25,16 @@ def test_a_pid_in_the_environment_is_watched() -> None:
     assert parent_pid({PARENT_PID_ENV: "4242"}, "darwin") == 4242
 
 
-@pytest.mark.parametrize("value", ["", "abc", "0", "1", "-5", "12.5", " "])
+@pytest.mark.parametrize(
+    "value", ["", "abc", "0", "1", "-5", "12.5", " ", str(2**31), str(2**63), "9" * 40]
+)
 def test_nothing_is_watched_without_a_usable_pid(value: str) -> None:
     assert parent_pid({PARENT_PID_ENV: value}, "darwin") is None
+
+
+def test_the_largest_pid_that_fits_is_still_watched_and_a_pid_that_does_not_fit_is_not() -> None:
+    assert parent_pid({PARENT_PID_ENV: str(MAX_PID)}, "darwin") == MAX_PID
+    assert parent_pid({PARENT_PID_ENV: str(MAX_PID + 1)}, "darwin") is None
 
 
 def test_nothing_is_watched_when_the_variable_is_missing() -> None:
@@ -64,6 +73,36 @@ def test_a_parent_that_stays_alive_never_triggers_the_callback() -> None:
     thread.join(2)
     assert calls == []
     assert not thread.is_alive()
+
+
+def test_a_pid_this_user_may_not_signal_still_counts_as_alive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def refuse(_pid: int, _sig: int) -> None:
+        raise PermissionError
+
+    monkeypatch.setattr("os.kill", refuse)
+    assert is_alive(4242)
+
+
+def test_a_pid_that_is_gone_counts_as_dead(monkeypatch: pytest.MonkeyPatch) -> None:
+    def gone(_pid: int, _sig: int) -> None:
+        raise ProcessLookupError
+
+    monkeypatch.setattr("os.kill", gone)
+    assert not is_alive(4242)
+
+
+def test_the_parent_is_checked_often_enough_to_notice_within_a_few_seconds() -> None:
+    assert 0 < parent_watch.CHECK_EVERY_S <= 5
+
+
+def test_the_shell_and_the_backend_use_the_same_variable_name() -> None:
+    rust = (ROOT / "app" / "src-tauri" / "src" / "group.rs").read_text(encoding="utf-8")
+    declared = re.search(r'pub const PARENT_ENV: &str = "([^"]+)";', rust)
+
+    assert declared is not None
+    assert declared.group(1) == PARENT_PID_ENV
 
 
 def test_this_process_is_alive_to_the_check() -> None:

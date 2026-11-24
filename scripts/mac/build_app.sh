@@ -51,6 +51,8 @@ cd "$ROOT/app"
 npx tauri build --bundles app,dmg --config ../installer/tauri.bundle.mac.conf.json
 
 BUNDLE="$ROOT/app/src-tauri/target/release/bundle"
+[ -d "$BUNDLE/macos" ] || fail "tauri build left no $BUNDLE/macos folder; read its output above"
+[ -d "$BUNDLE/dmg" ] || fail "tauri build left no $BUNDLE/dmg folder; read its output above"
 APP="$(find "$BUNDLE/macos" -maxdepth 1 -name '*.app' | head -n 1)"
 DMG="$(find "$BUNDLE/dmg" -maxdepth 1 -name '*.dmg' | head -n 1)"
 [ -n "$APP" ] || fail "no .app was produced under $BUNDLE/macos"

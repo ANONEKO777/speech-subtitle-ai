@@ -139,7 +139,29 @@ def test_the_build_script_stops_on_errors_and_never_asks_for_root() -> None:
 
     assert "set -euo pipefail" in lines
     assert not any(re.search(r"\bsudo\b", line) for line in lines)
-    assert not any(re.search(r"\brm\s+-\w*r\w*f?\s+(/|~|\$HOME)(\s|$)", line) for line in lines)
+    assert not any(re.search(DANGEROUS_RM, line) for line in lines)
+
+
+DANGEROUS_RM = r"\brm\b[^;&|]*\s[\"']?(/|~|\$\{?HOME\}?)[\"']?(\s|/?$)"
+
+
+@pytest.mark.parametrize(
+    "line",
+    ['rm -rf "$BUILD/pyi" ~', "rm -rf $BUILD/x /", "rm -rf ~", "rm -r -f $HOME", 'rm -rf "$HOME"'],
+)
+def test_the_rm_check_catches_a_dangerous_target_in_any_argument(line: str) -> None:
+    assert re.search(DANGEROUS_RM, line)
+
+
+def test_the_rm_check_lets_the_scripts_own_folders_pass() -> None:
+    assert not re.search(DANGEROUS_RM, 'rm -rf "$BUILD/pyi" "$BUILD/pyi-work" "$BUILD/backend"')
+
+
+def test_a_missing_bundle_folder_stops_with_a_plain_message_before_find_runs() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+
+    assert text.index('[ -d "$BUNDLE/macos" ] || fail') < text.index('find "$BUNDLE/macos"')
+    assert text.index('[ -d "$BUNDLE/dmg" ] || fail') < text.index('find "$BUNDLE/dmg"')
 
 
 def test_the_build_script_builds_both_bundles_with_the_mac_overlay_and_checks_the_signature() -> (

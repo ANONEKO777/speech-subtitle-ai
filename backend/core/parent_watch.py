@@ -14,19 +14,21 @@ from collections.abc import Callable, Mapping
 
 PARENT_PID_ENV = "VST_PARENT_PID"
 CHECK_EVERY_S = 2.0
+MAX_PID = 2**31 - 1
 
 
 def parent_pid(env: Mapping[str, str], system: str | None = None) -> int | None:
     """The pid to watch, or None. Windows is left alone: there `os.kill` would end the process
     instead of testing it, and the job object already covers that case. A pid below 2 would be
-    the system or every process of this group."""
+    the system or every process of this group, and one above `MAX_PID` is no pid (`os.kill` raises
+    `OverflowError` for it), so neither is watched."""
     if (sys.platform if system is None else system) == "win32":
         return None
     try:
         pid = int(env.get(PARENT_PID_ENV, ""))
     except ValueError:
         return None
-    return pid if pid > 1 else None
+    return pid if 1 < pid <= MAX_PID else None
 
 
 def is_alive(pid: int) -> bool:
