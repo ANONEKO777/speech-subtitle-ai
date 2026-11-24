@@ -391,7 +391,9 @@ _REASON_TEXT: Mapping[Cause, str] = MappingProxyType(
         Cause.VRAM_UNKNOWN: "An NVIDIA GPU was found but its VRAM could not be read.",
         Cause.VRAM_TOO_SMALL: "The GPU has less VRAM than the smallest GPU profile needs.",
         Cause.USER_CHOICE: "You chose this profile.",
-        Cause.MEMORY_FITS: "The Mac has enough unified memory for this profile.",
+        Cause.MEMORY_FITS: (
+            "This profile was chosen by the Mac's unified memory size, not by a measurement."
+        ),
         Cause.MEMORY_UNKNOWN: "The Mac's memory size could not be read.",
         Cause.MEMORY_TOO_SMALL: "The Mac has less memory than the smallest Metal profile needs.",
     }

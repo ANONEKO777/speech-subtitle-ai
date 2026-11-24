@@ -128,6 +128,36 @@ def test_a_program_keeps_its_execute_bit_and_loses_set_user_id(
     assert asked["data"] & 0o111 == 0
 
 
+def test_a_member_never_keeps_write_access_for_the_group_or_others(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: dict[str, int] = {}
+    real = Path.chmod
+
+    def chmod(self: Path, mode: int, **kwargs: bool) -> None:
+        asked[self.name] = mode
+        real(self, mode, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", chmod)
+    archive = make_tar(
+        tmp_path / "rt.tar.gz",
+        dir_entry("open-dir", 0o1777),
+        file_entry("open-tool", b"x", 0o777),
+        file_entry("open-data", b"x", 0o666),
+        file_entry("group-write", b"x", 0o664),
+        file_entry("source", b"x", 0o755),
+        link_entry("hard-copy", "source", hard=True),
+    )
+
+    unpack_to(archive, tmp_path / "out")
+
+    assert asked["open-dir"] == 0o755
+    assert asked["open-tool"] == 0o755
+    assert asked["open-data"] == 0o644
+    assert asked["group-write"] == 0o644
+    assert asked["hard-copy"] & 0o022 == 0
+
+
 @pytest.mark.parametrize(
     "name",
     [

@@ -11,6 +11,7 @@ import signal
 import struct
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -153,6 +154,73 @@ def test_the_lookup_walks_folders_inside_a_font_folder_and_skips_other_files(
     found = macos_coverage("я", [str(tmp_path / "Fonts")])("Arial")
 
     assert found is not None and found[1] == set()
+
+
+def test_a_font_installed_after_a_miss_is_found_by_the_next_lookup_without_a_restart(
+    tmp_path: Path,
+) -> None:
+    folder = folder_with(tmp_path, **{"one.ttf": sfnt(["Family One"], KANA_KANJI)})
+    assert macos_coverage("漢", [folder])("Family Two") is None
+
+    (Path(folder) / "two.ttf").write_bytes(sfnt(["Family Two"], KANA_KANJI))
+
+    found = macos_coverage("漢", [folder])("Family Two")
+    assert found is not None and found[1] == set()
+
+
+def test_a_font_installed_between_the_lookup_and_its_first_question_is_found(
+    tmp_path: Path,
+) -> None:
+    folder = folder_with(tmp_path, **{"one.ttf": sfnt(["Family One"], KANA_KANJI)})
+    lookup = macos_coverage("漢", [folder])
+
+    (Path(folder) / "two.ttf").write_bytes(sfnt(["Family Two"], KANA_KANJI))
+
+    assert lookup("Family Two") is not None
+
+
+def test_the_folders_are_listed_again_only_for_a_family_that_is_not_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = folder_with(tmp_path, **{"one.ttf": sfnt(["Family One"], KANA_KANJI)})
+    listed: list[int] = []
+    real_list = fonts._font_files  # pyright: ignore[reportPrivateUsage]
+    monkeypatch.setattr(fonts, "_font_files", lambda dirs: (listed.append(1), real_list(dirs))[1])
+    macos_coverage("漢", [folder])("Family One")
+    assert len(listed) == 1
+
+    hits = macos_coverage("漢", [folder])
+    for _ in range(5):
+        assert hits("family one") is not None
+    assert len(listed) == 1
+
+    misses = macos_coverage("漢", [folder])
+    for _ in range(5):
+        assert misses("No Such Family") is None
+    assert len(listed) == 2
+
+
+def test_listing_again_reads_only_the_files_that_are_new_or_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = folder_with(tmp_path, **{"one.ttf": sfnt(["Family One"], KANA_KANJI)})
+    macos_coverage("漢", [folder])("Family One")
+    read: list[str] = []
+    real_read = fonts.read_family_names
+
+    def recording(path: Path) -> list[tuple[int, set[str]]]:
+        read.append(path.name)
+        return real_read(path)
+
+    monkeypatch.setattr(fonts, "read_family_names", recording)
+    (Path(folder) / "two.ttf").write_bytes(sfnt(["Family Two"], KANA_KANJI))
+
+    assert macos_coverage("漢", [folder])("Family Two") is not None
+    assert read == ["two.ttf"]
+
+    (Path(folder) / "two.ttf").write_bytes(sfnt(["Family Two Renamed"], KANA_KANJI))
+    assert macos_coverage("漢", [folder])("Family Two Renamed") is not None
+    assert read == ["two.ttf", "two.ttf"]
 
 
 def test_a_font_folder_that_does_not_exist_is_ignored(tmp_path: Path) -> None:
@@ -479,6 +547,7 @@ def sleeper() -> subprocess.Popen[bytes]:
 def mac_guard(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setattr("sys.platform", "darwin")
     monkeypatch.setattr(process_guard, "_hooked", True)  # no atexit or signal hooks in a test
+    monkeypatch.setattr(process_guard, "_signals_hooked", True)
     return process_guard.KillOnClose
 
 
@@ -614,6 +683,7 @@ def test_the_handlers_go_in_only_where_nothing_else_has_one(
 ) -> None:
     monkeypatch.setattr("sys.platform", "darwin")
     monkeypatch.setattr(process_guard, "_hooked", False)
+    monkeypatch.setattr(process_guard, "_signals_hooked", False)
     installed: list[int] = []
     registered: list[Any] = []
     monkeypatch.setattr(process_guard.atexit, "register", lambda fn: registered.append(fn))
@@ -628,7 +698,110 @@ def test_the_handlers_go_in_only_where_nothing_else_has_one(
     monkeypatch.setattr(signal, "getsignal", lambda number: lambda *a: None)
     installed.clear()
     monkeypatch.setattr(process_guard, "_hooked", False)
+    monkeypatch.setattr(process_guard, "_signals_hooked", False)
 
     process_guard.KillOnClose()
 
     assert installed == []
+
+
+def fake_signals(monkeypatch: pytest.MonkeyPatch) -> tuple[list[int], list[Any]]:
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr(process_guard, "_hooked", False)
+    monkeypatch.setattr(process_guard, "_signals_hooked", False)
+    installed: list[int] = []
+    registered: list[Any] = []
+    monkeypatch.setattr(process_guard.atexit, "register", lambda fn: registered.append(fn))
+    monkeypatch.setattr(signal, "signal", lambda number, handler: installed.append(number))
+    monkeypatch.setattr(signal, "getsignal", lambda number: signal.SIG_DFL)
+    monkeypatch.setattr(process_guard, "_STOP_SIGNALS", ("SIGTERM", "SIGINT"))
+    return installed, registered
+
+
+def test_a_first_guard_made_in_a_worker_thread_does_not_use_up_the_signal_handlers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    installed, registered = fake_signals(monkeypatch)
+    guards: list[process_guard.KillOnClose] = []
+    worker = threading.Thread(target=lambda: guards.append(process_guard.KillOnClose()))
+    worker.start()
+    worker.join()
+
+    assert installed == []
+    assert registered == [process_guard._stop_every_watched]  # pyright: ignore[reportPrivateUsage]
+
+    process_guard.stop_children_on_signals()
+
+    assert installed == [signal.SIGTERM, signal.SIGINT]
+
+
+def test_a_server_that_only_makes_guards_in_workers_still_gets_the_handlers_at_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    installed, _ = fake_signals(monkeypatch)
+    worker = threading.Thread(target=process_guard.stop_children_on_signals)
+    worker.start()
+    worker.join()
+    assert installed == []
+
+    process_guard.stop_children_on_signals()
+    process_guard.stop_children_on_signals()
+
+    assert installed == [signal.SIGTERM, signal.SIGINT]
+
+
+def test_the_handlers_are_left_out_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    installed, _ = fake_signals(monkeypatch)
+    monkeypatch.setattr("sys.platform", "win32")
+
+    process_guard.stop_children_on_signals()
+
+    assert installed == []
+
+
+def test_the_service_asks_for_the_handlers_before_it_serves(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from backend import main as service
+
+    order: list[str] = []
+    monkeypatch.setattr(service, "stop_children_on_signals", lambda: order.append("handlers"))
+    monkeypatch.setattr(service, "serve", lambda *args: order.append("serve"))
+
+    assert service.main(["--user-data", str(tmp_path)]) == 0
+
+    assert order == ["handlers", "serve"]
+
+
+def test_a_child_that_ignores_the_polite_stop_gets_a_kill_signal_of_its_own(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_kill = 9
+    monkeypatch.setattr(signal, "SIGKILL", fake_kill, raising=False)
+    monkeypatch.setattr(process_guard, "_TERM_GRACE_S", 0.01)
+    monkeypatch.delattr(os, "getpgid", raising=False)
+    stubborn = FakeChild(1, stubborn=True)
+
+    process_guard._stop_all([stubborn])  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+    assert stubborn.signals == [signal.SIGTERM, fake_kill]
+    assert stubborn.code == -fake_kill
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="needs real signals")
+def test_a_real_child_that_ignores_sigterm_is_killed_after_the_grace_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(process_guard, "_TERM_GRACE_S", 0.3)
+    code = (
+        "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+        "print(1, flush=True); time.sleep(120)"
+    )
+    child = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE)
+    assert child.stdout is not None
+    child.stdout.readline()
+
+    process_guard._stop_all([child])  # pyright: ignore[reportPrivateUsage]
+
+    assert child.wait(timeout=10) == -signal.SIGKILL  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+    child.stdout.close()
