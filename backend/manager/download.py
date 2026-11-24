@@ -574,6 +574,7 @@ def extract_zip(archive_path: Path, into: Path, job: Job) -> None:
 TAR_SUFFIXES = (".tar.gz", ".tgz")
 _DIR_MODE = 0o700
 _FILE_MODE = 0o600
+_KEPT_MODE_BITS = 0o755
 
 
 def _tar_target(name: str, root: Path) -> Path | None:
@@ -648,9 +649,17 @@ def _link_in(archive_name: str, target: Path, root: Path, *, link: str) -> None:
         )
 
 
+def _unpacked_mode(archive_mode: int, floor: int) -> int:
+    """The mode of an unpacked entry: the archive's owner bits and group and other read and
+    execute bits (so a program stays runnable), plus `floor` so this program can read it. Never
+    a set-user-id, set-group-id or sticky bit, and never group or other write."""
+    return (archive_mode & _KEPT_MODE_BITS) | floor
+
+
 def extract_tar(archive_path: Path, into: Path, job: Job) -> None:
     """Unpack a `.tar.gz` with the same safety as `extract_zip`. A file keeps its permission
-    bits (so a program stays runnable) but never a set-user-id bit or write access for others."""
+    bits (so a program stays runnable) but never a set-user-id bit or write access for the group or
+    others."""
     root = into.resolve()
     try:
         with tarfile.open(archive_path, "r:gz") as archive:
@@ -662,7 +671,7 @@ def extract_tar(archive_path: Path, into: Path, job: Job) -> None:
                     continue
                 if info.isdir():
                     target.mkdir(parents=True, exist_ok=True)
-                    target.chmod((info.mode & 0o777) | _DIR_MODE)
+                    target.chmod(_unpacked_mode(info.mode, _DIR_MODE))
                 elif info.issym():
                     _link_in(info.name, target, root, link=info.linkname)
                 elif info.islnk():
@@ -673,14 +682,14 @@ def extract_tar(archive_path: Path, into: Path, job: Job) -> None:
                         )
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, target)
-                    target.chmod((info.mode & 0o777) | _FILE_MODE)
+                    target.chmod(_unpacked_mode(info.mode, _FILE_MODE))
                 else:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     source_file = archive.extractfile(info)
                     assert source_file is not None
                     with source_file, target.open("wb") as out:
                         shutil.copyfileobj(source_file, out, CHUNK)
-                    target.chmod((info.mode & 0o777) | _FILE_MODE)
+                    target.chmod(_unpacked_mode(info.mode, _FILE_MODE))
     except (tarfile.TarError, gzip.BadGzipFile, EOFError, zlib.error) as exc:
         raise DownloadError(Failure(FailureKind.ARCHIVE, f"{archive_path.name}: {exc}")) from exc
     except OSError as exc:

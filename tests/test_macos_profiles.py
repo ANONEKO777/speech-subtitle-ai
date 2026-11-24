@@ -135,6 +135,13 @@ def test_a_36_gb_mac_gets_the_conservative_default_one_model_stage_at_a_time() -
     assert selection.low_ram is None
 
 
+def test_the_reason_for_a_memory_choice_says_it_went_by_size_and_not_by_a_measurement() -> None:
+    text = describe(select(mac(36), MAC), MAC)
+
+    assert "chosen by the Mac's unified memory size, not by a measurement" in text
+    assert "enough" not in text
+
+
 def test_the_other_choice_is_a_profile_the_operator_can_pick_and_it_runs_both_at_once() -> None:
     chosen = selection_for(ProfileId.METAL_32GB_PARALLEL, mac(36), MAC)
 

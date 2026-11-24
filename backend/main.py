@@ -40,6 +40,7 @@ from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
 from backend.core.pipeline import Ports, Settings
 from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
+from backend.core.process_guard import stop_children_on_signals
 from backend.core.projects import ProjectStore
 from backend.core.queue_runner import Probe, QueueRunner
 from backend.core.queue_store import QueueStore
@@ -244,6 +245,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if unsupported:
         print(f"error: {unsupported}", file=sys.stderr)
         return 2
+    stop_children_on_signals()
     serve(args.user_data or default_user_data(), args.projects, args.origin)
     return 0
 
