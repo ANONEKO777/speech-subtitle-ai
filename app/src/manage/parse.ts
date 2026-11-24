@@ -98,6 +98,8 @@ export function parseJob(raw: unknown): DownloadJob {
 function parseHardware(raw: unknown): Hardware {
   const o = rec(raw);
   return {
+    platform: str(o, "platform"),
+    chip: strOrNull(o, "chip"),
     gpuName: strOrNull(o, "gpu_name"),
     vramMib: numOrNull(o, "vram_mib"),
     driverVersion: strOrNull(o, "driver_version"),

@@ -17,6 +17,7 @@ import { JobRow } from "../manage/JobRow";
 import type { DownloadJob, LicenseEntry, ProfileId } from "../manage/types";
 import { useDownloads } from "../manage/useDownloads";
 import { CPU_NOTICE, SelfTestPanel } from "../settings/HardwareSection";
+import { chipOrGpu, isCpuProfile, isMac } from "../manage/hardwareText";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 export const VC_REDIST_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist";
 import { downloadPlan } from "./plan";
@@ -251,17 +252,18 @@ function Choose({
   const hw = view.hardware;
   const plan = downloadPlan(view, selected);
   const option = view.profiles.find((p) => p.id === selected);
+  const others = view.profiles.length - 1;
   const tight = hw.diskFreeMib !== null && plan.totalBytes > hw.diskFreeMib * 1024 * 1024;
   return (
     <div data-testid="wizard-choose">
       <div className="detected" data-testid="wizard-hardware">
         <span>
-          <strong data-testid="wizard-gpu">{hw.gpuName ?? "沒有偵測到 NVIDIA 顯示卡"}</strong>
-          {hw.vramMib !== null && <> · 顯示記憶體 {mib(hw.vramMib)}</>}
-          {hw.driverVersion && <> · 驅動 {hw.driverVersion}</>}
+          <strong data-testid="wizard-gpu">{chipOrGpu(hw).value}</strong>
+          {!isMac(hw) && hw.vramMib !== null && <> · 顯示記憶體 {mib(hw.vramMib)}</>}
+          {!isMac(hw) && hw.driverVersion && <> · 驅動 {hw.driverVersion}</>}
         </span>
         <span className="sub">
-          記憶體 {mib(hw.ramMib)} · 磁碟可用 {mib(hw.diskFreeMib)}
+          {isMac(hw) ? "統一記憶體" : "記憶體"} {mib(hw.ramMib)} · 磁碟可用 {mib(hw.diskFreeMib)}
         </span>
       </div>
       {view.vcRuntimeMissing && (
@@ -271,7 +273,7 @@ function Choose({
         </div>
       )}
       <p data-testid="wizard-recommended">
-        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外兩個。
+        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外{others === 2 ? "兩" : others}個。
       </p>
       <div className="wizard-profiles" role="radiogroup" aria-label="設定檔">
         {view.profiles.map((p) => (
@@ -286,7 +288,7 @@ function Choose({
             onClick={() => onSelect(p.id)}
           >
             <span className="profile-title">
-              {p.id === "cpu" ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
+              {isCpuProfile(p.id) ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
               <strong>{PROFILE_NAME[p.id]}</strong>
               {p.recommended && <span className="chip-tag rec">建議</span>}
             </span>

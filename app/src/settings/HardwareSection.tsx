@@ -4,6 +4,7 @@ import type { Backend } from "../api/client";
 import { cancelDownload, chooseProfile, downloadProfileAssets, fetchLastSelfTest, fetchProfile, runSelfTest } from "../manage/api";
 import { isActive, overall } from "../manage/downloads";
 import { bytes, mib } from "../manage/format";
+import { chipOrGpu, deviceLabel, isCpuProfile, isMac } from "../manage/hardwareText";
 import { JobRow } from "../manage/JobRow";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
@@ -15,7 +16,7 @@ export const CPU_NOTICE =
 
 export function selfTestText(t: SelfTest): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
   if (t.ok && t.fallback) return { tone: "warn", title: "GPU 後端失敗，已改用 CPU", body: t.fallback.reason };
-  if (t.ok) return { tone: "ok", title: `自檢通過，使用 ${t.device === "cuda" ? "GPU" : "CPU"}`, body: `${t.seconds.toFixed(1)} 秒` };
+  if (t.ok) return { tone: "ok", title: `自檢通過，使用 ${deviceLabel(t.device)}`, body: `${t.seconds.toFixed(1)} 秒` };
   return { tone: "bad", title: "自檢沒有通過", body: t.message };
 }
 
@@ -132,6 +133,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const active = view?.profiles.find((p) => p.active);
   const jobs = downloads.list.filter((j) => switched?.jobIds.includes(j.id));
   const total = overall(jobs);
+  const first = hw ? chipOrGpu(hw) : null;
   return (
     <section className="panel" data-testid="hardware-section" aria-labelledby="hw-title">
       <div className="panel-head">
@@ -153,19 +155,23 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
             <h3>偵測到的硬體</h3>
             <dl className="facts">
               <div>
-                <dt>顯示卡</dt>
-                <dd data-testid="hw-gpu">{hw.gpuName ?? "沒有偵測到 NVIDIA 顯示卡"}</dd>
+                <dt>{first?.label}</dt>
+                <dd data-testid="hw-gpu">{first?.value}</dd>
               </div>
+              {!isMac(hw) && (
+                <>
+                  <div>
+                    <dt>顯示記憶體</dt>
+                    <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
+                  </div>
+                  <div>
+                    <dt>驅動程式</dt>
+                    <dd data-testid="hw-driver">{hw.driverVersion ?? "—"}</dd>
+                  </div>
+                </>
+              )}
               <div>
-                <dt>顯示記憶體</dt>
-                <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
-              </div>
-              <div>
-                <dt>驅動程式</dt>
-                <dd data-testid="hw-driver">{hw.driverVersion ?? "—"}</dd>
-              </div>
-              <div>
-                <dt>記憶體</dt>
+                <dt>{isMac(hw) ? "統一記憶體" : "記憶體"}</dt>
                 <dd data-testid="hw-ram">{mib(hw.ramMib)}</dd>
               </div>
               <div>
@@ -194,7 +200,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 data-recommended={p.recommended}
               >
                 <div className="profile-title">
-                  {p.id === "cpu" ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
+                  {isCpuProfile(p.id) ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
                   <strong>{PROFILE_NAME[p.id]}</strong>
                 </div>
                 <p className="sub">{PROFILE_BLURB[p.id]}</p>
