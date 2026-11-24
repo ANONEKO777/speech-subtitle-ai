@@ -82,6 +82,8 @@ The app looks for it in the folder above first, then on `PATH`, then in `/opt/ho
    Metal and the shaders embedded, builds only `whisper-cli`, and copies it into place. To try
    another tag set `WHISPER_CPP_TAG=<tag>` before the command. The tag and the Metal switches
    have not been run by the author; if the build fails, the last lines of cmake's output say why.
+   The first-run wizard and the hardware page list this program as "在這台 Mac 上自行建置" (built on this
+   Mac), with no size and not counted as a download, until the script has run.
 
 5. Start the local service and download the runtimes and models for your profile. The service
    prints `READY port=<n> token=<t>`:
@@ -184,8 +186,12 @@ stay.
 
 ### What the build cannot promise
 
-- Nobody has built or run this on a Mac. The Mac-specific code was checked by unit tests and a
-  compile on Windows and Linux. Every item under "What only a Mac can prove" is still open.
+- Nobody has built or run this on a Mac. The Mac-specific code was checked by unit tests only.
+  Two files of the desktop shell, `group.rs` and `platform.rs`, were type-checked for
+  `aarch64-apple-darwin`, and `group.rs` was run under Linux. The whole shell crate was not
+  compiled for macOS, because the machine that checked it has no macOS C compiler. That the whole
+  crate compiles on a Mac is the first thing P37d shows. Every item under "What only a Mac can
+  prove" is still open.
 - A copy of the app for other people. Without a paid Apple Developer account the app cannot be
   notarized, so each person who receives it must do the "Open Anyway" steps above, and a later macOS
   release may make them harder. A notarized build needs the paid account and is a separate step.
@@ -238,6 +244,11 @@ Nothing below has been run:
 - the window: that the built `.app` opens, shows the chip name and "unified memory" on the hardware
   page and the profile name for your memory size, starts the backend packed inside it, plays a
   video, and that "show in folder" opens Finder (`open -R`);
+- that the notification permission prompt appears when a queue ends, and that the notification
+  shows;
+- that the native folder dialog opens and returns the folder you pick;
+- that the app works when it is run straight from the disk image: macOS may start such an app from a
+  randomised read-only copy (App Translocation), which can break the paths the app expects;
 - that Cmd+Q and Cmd+W stop the backend (nothing left in `ps aux | grep vst-backend`), and that
   force-quitting the window ends the backend within a few seconds;
 - that ad hoc signing is enough for the PyInstaller folder inside the app (the build script runs
