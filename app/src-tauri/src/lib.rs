@@ -153,7 +153,12 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
     if !path.exists() {
         return Err(format!("{} does not exist", path.display()));
     }
-    platform::here::reveal(&shown, path.is_file()).spawn()
+    reveal_launch(&shown, &path).spawn()
+}
+
+/// What to start to show `shown`: the file selected, or the folder opened. `on_disk` is the resolved path, the one to ask whether it is a file.
+fn reveal_launch(shown: &Path, on_disk: &Path) -> platform::Launch {
+    platform::here::reveal(shown, on_disk.is_file())
 }
 
 /// Opens an https address in the default browser. Only a host the license pages already link to
@@ -163,6 +168,27 @@ fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), S
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
     links::open(&url, std::env::var_os("VST_OPEN_URL_LOG").map(PathBuf::from).as_deref())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_file_is_revealed_selected_and_a_folder_is_opened() {
+        let dir = std::env::temp_dir().join(format!("vst-reveal-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("out.srt");
+        std::fs::write(&file, b"x").unwrap();
+
+        let as_file = reveal_launch(&file, &file);
+        let as_dir = reveal_launch(&dir, &dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+
+        assert_eq!(as_file, platform::reveal(platform::Os::CURRENT, &file, true));
+        assert_eq!(as_dir, platform::reveal(platform::Os::CURRENT, &dir, false));
+        assert_ne!(as_file, as_dir);
+    }
 }
 
 pub fn run() {

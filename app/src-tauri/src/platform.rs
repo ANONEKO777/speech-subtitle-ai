@@ -237,6 +237,14 @@ mod tests {
         assert_eq!(here::packaged_backend(), exe);
         assert_eq!(here::venv_python(), python);
         assert_eq!(here::updates_supported(), updates);
+        let base = here::data_base();
+        if cfg!(windows) {
+            assert_eq!(base, PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap_or_default()));
+        } else if cfg!(target_os = "macos") {
+            assert!(base.ends_with(Path::new("Library").join("Application Support")), "{base:?}");
+        } else {
+            assert!(base.ends_with(Path::new(".local").join("share")) || std::env::var_os("LOCALAPPDATA").is_some(), "{base:?}");
+        }
         assert_eq!(here::reveal(Path::new("/tmp/a.srt"), true), reveal(os, Path::new("/tmp/a.srt"), true));
     }
 }

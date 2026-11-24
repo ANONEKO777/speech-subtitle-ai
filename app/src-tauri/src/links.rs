@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use url::Url;
 
-use crate::platform;
+use crate::platform::{self, Launch};
 
 pub const PROJECT_URL: &str = "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai";
 const SPDX_HOST: &str = "spdx.org";
@@ -47,13 +47,13 @@ fn allowed_hosts() -> BTreeSet<String> {
 /// Checks `address`, then appends it to `log` when one is given, else starts the default browser
 /// on it. A log means no process is started.
 pub fn open(address: &str, log: Option<&Path>) -> Result<(), String> {
-    open_with(address, log, |url| platform::here::browse(url).spawn())
+    open_with(address, log, Launch::spawn)
 }
 
-fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(&str) -> Result<(), String>) -> Result<(), String> {
+fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(Launch) -> Result<(), String>) -> Result<(), String> {
     let url = check(address)?;
     let Some(log) = log else {
-        return launch(&url);
+        return launch(platform::here::browse(&url));
     };
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(|e| e.to_string())?;
     writeln!(file, "{url}").map_err(|e| e.to_string())
@@ -101,10 +101,29 @@ mod tests {
     }
 
     #[test]
+    fn without_a_log_the_address_goes_to_the_launcher_of_the_system_this_runs_on() {
+        let program = if cfg!(windows) {
+            "explorer"
+        } else if cfg!(target_os = "macos") {
+            "open"
+        } else {
+            "xdg-open"
+        };
+        let mut seen = None;
+        open_with(PROJECT_URL, None, |launch| {
+            seen = Some(launch);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(seen, Some(Launch { program, args: vec![PROJECT_URL.into()] }));
+        assert!(open_with("https://example.com/", None, |_| panic!("a host that is not allowed")).is_err());
+    }
+
+    #[test]
     fn a_log_records_the_address_and_starts_nothing() {
         let log = std::env::temp_dir().join(format!("vst-open-url-{}.log", std::process::id()));
         let _ = std::fs::remove_file(&log);
-        let launched = |_: &str| -> Result<(), String> { panic!("a browser would have started") };
+        let launched = |_: Launch| -> Result<(), String> { panic!("a browser would have started") };
         open_with("https://github.com/ggml-org/whisper.cpp/blob/b5454/LICENSE", Some(&log), launched).unwrap();
         open_with(PROJECT_URL, Some(&log), launched).unwrap();
         assert!(open_with("https://example.com/", Some(&log), launched).is_err());
@@ -113,17 +132,6 @@ mod tests {
         assert_eq!(written, format!("https://github.com/ggml-org/whisper.cpp/blob/b5454/LICENSE
 {PROJECT_URL}
 "));
-    }
-
-    #[test]
-    fn without_a_log_the_checked_address_goes_to_the_launcher() {
-        let mut seen = None;
-        open_with("https://spdx.org/licenses/MIT.html", None, |url| {
-            seen = Some(url.to_owned());
-            Ok(())
-        })
-        .unwrap();
-        assert_eq!(seen.as_deref(), Some("https://spdx.org/licenses/MIT.html"));
     }
 
     #[test]

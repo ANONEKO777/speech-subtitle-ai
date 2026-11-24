@@ -82,6 +82,16 @@ mod tests {
         true
     }
 
+    const WAIT: Duration = Duration::from_secs(10);
+
+    fn reaped_within(child: &mut std::process::Child, wait: Duration) {
+        let deadline = Instant::now() + wait;
+        while child.try_wait().unwrap().is_none() {
+            assert!(Instant::now() < deadline, "the child did not exit within {wait:?}");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
     fn shell(script: &str) -> Command {
         let mut cmd = Command::new("sh");
         cmd.args(["-c", script]).stdout(Stdio::piped()).stderr(Stdio::null());
@@ -106,7 +116,7 @@ mod tests {
         // SAFETY: plain query of a live child's group.
         let group = unsafe { libc::getpgid(child.id() as libc::pid_t) };
         end(&mut child);
-        let _ = child.wait();
+        reaped_within(&mut child, WAIT);
         assert_eq!(group, child.id() as libc::pid_t);
         assert_ne!(group, unsafe { libc::getpgrp() });
         assert_eq!(String::from_utf8_lossy(&line[..n]).trim(), std::process::id().to_string());
@@ -122,7 +132,7 @@ mod tests {
         let group = group_of(child.id()).unwrap();
         assert!(group_exists(group));
         end(&mut child);
-        let _ = child.wait();
+        reaped_within(&mut child, WAIT);
         assert!(gone_within(group, Duration::from_secs(3)), "the group still has processes");
     }
 
@@ -136,7 +146,7 @@ mod tests {
         let group = group_of(child.id()).unwrap();
         let start = Instant::now();
         end(&mut child);
-        let _ = child.wait();
+        reaped_within(&mut child, WAIT);
         assert!(start.elapsed() >= TERM_GRACE);
         assert!(gone_within(group, Duration::from_secs(3)));
     }
@@ -151,7 +161,7 @@ mod tests {
         out.read_exact(&mut up[..3]).unwrap();
         let start = Instant::now();
         end(&mut child);
-        let _ = child.wait();
+        reaped_within(&mut child, WAIT);
         let mut rest = String::new();
         out.read_to_string(&mut rest).unwrap();
         assert!(rest.contains("term"), "the leader never saw SIGTERM: {rest:?}");
@@ -180,7 +190,7 @@ mod tests {
         let mut cmd = shell("exit 0");
         lead_own_group(&mut cmd);
         let mut child = cmd.spawn().unwrap();
-        let _ = child.wait();
+        reaped_within(&mut child, WAIT);
         let start = Instant::now();
         end(&mut child);
         assert!(start.elapsed() < TERM_GRACE);

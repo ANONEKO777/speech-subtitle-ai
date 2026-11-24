@@ -63,11 +63,18 @@ fn endpoint_override() -> Result<Option<url::Url>, String> {
     raw.to_string_lossy().parse().map(Some).map_err(|_| "VST_UPDATE_URL 不是有效的網址。".to_string())
 }
 
+/// Only the Windows installer has update artifacts, so any other system is told so before anything is fetched.
+fn ensure_supported() -> Result<(), String> {
+    if platform::here::updates_supported() {
+        Ok(())
+    } else {
+        Err(NO_UPDATES.into())
+    }
+}
+
 #[tauri::command]
 pub async fn update_check(app: AppHandle, pending: tauri::State<'_, Pending>) -> Result<Checked, String> {
-    if !platform::here::updates_supported() {
-        return Err(NO_UPDATES.into());
-    }
+    ensure_supported()?;
     let mut builder = app.updater_builder().timeout(CHECK_TIMEOUT);
     if let Some(url) = endpoint_override()? {
         builder = builder.endpoints(vec![url]).map_err(|e| plain(&e))?;
@@ -163,6 +170,15 @@ mod tests {
     #[test]
     fn a_page_that_is_not_json_says_it_may_need_a_sign_in() {
         assert!(plain(&Error::ReleaseNotFound).contains("需要先登入"));
+    }
+
+    #[test]
+    fn only_windows_may_check_and_the_rest_are_told_why() {
+        if cfg!(windows) {
+            assert_eq!(ensure_supported(), Ok(()));
+        } else {
+            assert_eq!(ensure_supported(), Err(NO_UPDATES.to_string()));
+        }
     }
 
     #[test]
