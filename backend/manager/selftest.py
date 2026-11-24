@@ -20,13 +20,7 @@ from pathlib import Path
 
 from backend.core import vc_runtime
 from backend.core.process_guard import adopt
-from backend.manager.profiles import (
-    LLAMA_CPU_RUNTIME,
-    WHISPER_CPU_RUNTIME,
-    Device,
-    Profile,
-    Stage,
-)
+from backend.manager.profiles import Device, Profile, Stage, runtime_set
 from backend.manager.registry import Registry
 from backend.manager.runtimes import runtime_executable
 from backend.manager.selftest_store import Fallback, SelfTestReport, SelfTestStore, StageResult
@@ -35,7 +29,6 @@ from backend.manager.storage import Storage
 FAULT_ENV = "VST_SIMULATE_CUDA_FAILURE"
 PROBE_TIMEOUT_S = 15.0
 _ASR, _LLM = "asr", "llm"
-_CPU_TWIN = {_ASR: WHISPER_CPU_RUNTIME, _LLM: LLAMA_CPU_RUNTIME}
 
 
 class ProbeFailed(Exception):
@@ -102,14 +95,15 @@ def real_probe(stage: str, program: Path, model: Path, device: Device, timeout_s
 
 def _stages(profile: Profile, device: Device) -> list[tuple[str, str, str]]:
     """(stage, runtime id, model id) for each main stage on `device`."""
-    if device is Device.CUDA:
+    if device is not Device.CPU:
         return [
             (_ASR, profile.asr.runtime, profile.asr.model),
             (_LLM, profile.llm.runtime, profile.llm.model),
         ]
+    twins = runtime_set(profile.platform)
     return [
-        (stage, _CPU_TWIN[stage], model)
-        for stage, model in ((_ASR, profile.asr.model), (_LLM, profile.llm.model))
+        (_ASR, twins.whisper_cpu, profile.asr.model),
+        (_LLM, twins.llama_cpu, profile.llm.model),
     ]
 
 

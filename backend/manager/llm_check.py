@@ -13,7 +13,7 @@ from http.client import HTTPException, HTTPMessage
 from typing import IO, cast
 from urllib.parse import urlsplit
 
-from backend.manager.profiles import LLAMA_CPU_RUNTIME, LLAMA_RUNTIME, QWEN3_8B
+from backend.manager.profiles import QWEN3_8B, runtime_set
 from backend.manager.registry import Registry
 from backend.manager.runtimes import runtime_executable
 from backend.manager.settings import LOOPBACK, LlmSettings, LlmSource
@@ -139,7 +139,7 @@ def test_connection(
     server = next(
         (
             p
-            for rid in (LLAMA_RUNTIME, LLAMA_CPU_RUNTIME)
+            for rid in dict.fromkeys((runtime_set().llama, runtime_set().llama_cpu))
             if (p := runtime_executable(rid, registry, storage))
         ),
         None,

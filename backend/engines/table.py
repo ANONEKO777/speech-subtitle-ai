@@ -4,22 +4,17 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Literal
 
 from backend.engines.base import SubprocessEngine
 from backend.engines.crispasr import ENGINE_ID as CRISPASR_ID
 from backend.engines.crispasr import CrispAsrEngine
 from backend.engines.whispercpp import ENGINE_ID as WHISPERCPP_ID
 from backend.engines.whispercpp import WhisperCppEngine
-from backend.manager.profiles import (
-    CRISPASR_RUNTIME,
-    QWEN3_ASR,
-    WHISPER_RUNTIME,
-    WHISPER_TURBO,
-    Device,
-)
+from backend.manager.profiles import QWEN3_ASR, WHISPER_TURBO, Device, runtime_set
 from backend.manager.registry import ModelKind, Registry
 from backend.manager.registry import load as load_registry
-from backend.manager.runtimes import recover_runtime
+from backend.manager.runtimes import program_of, recover_runtime
 from backend.manager.storage import Storage
 
 Factory = Callable[[Path, Path, Path | None, Device, float | None, bool], SubprocessEngine]
@@ -29,9 +24,14 @@ Factory = Callable[[Path, Path, Path | None, Device, float | None, bool], Subpro
 class EngineSpec:
     id: str
     model_id: str
-    runtime_id: str
+    role: Literal["whisper", "crispasr"]
+    """Which runtime of the platform's `RuntimeSet` runs this engine."""
     needs_aligner: bool
     factory: Factory
+
+    @property
+    def runtime_id(self) -> str:
+        return getattr(runtime_set(), self.role)
 
 
 def _whispercpp(
@@ -61,8 +61,8 @@ ENGINES: Mapping[str, EngineSpec] = MappingProxyType(
     {
         spec.id: spec
         for spec in (
-            EngineSpec(WHISPERCPP_ID, WHISPER_TURBO, WHISPER_RUNTIME, False, _whispercpp),
-            EngineSpec(CRISPASR_ID, QWEN3_ASR, CRISPASR_RUNTIME, True, _crispasr),
+            EngineSpec(WHISPERCPP_ID, WHISPER_TURBO, "whisper", False, _whispercpp),
+            EngineSpec(CRISPASR_ID, QWEN3_ASR, "crispasr", True, _crispasr),
         )
     }
 )
@@ -95,7 +95,7 @@ def engine_paths(
     )
     recover_runtime(runtime, storage)
     return EnginePaths(
-        binary=storage.runtime_dir(runtime) / (runtime.executable or ""),
+        binary=program_of(runtime, storage),
         model=storage.model_file(model),
         aligner=storage.model_file(aligner) if aligner else None,
     )

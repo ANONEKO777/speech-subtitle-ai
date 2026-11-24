@@ -35,7 +35,8 @@ def stages() -> list[tuple[str, Stage, ModelKind]]:
 
 
 def test_there_are_exactly_three_profiles_and_cpu_is_the_only_one_without_a_vram_floor() -> None:
-    assert set(PROFILES) == set(ProfileId)
+    assert set(PROFILES) == {ProfileId.GPU_24GB, ProfileId.GPU_8GB, ProfileId.CPU}
+    assert set(profiles.ALL_PROFILES) == set(ProfileId)
     assert [p.id for p in PROFILES.values() if p.min_vram_mib is None] == [ProfileId.CPU]
 
 

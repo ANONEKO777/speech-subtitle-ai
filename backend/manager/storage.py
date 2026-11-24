@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -21,11 +22,20 @@ class StorageError(ValueError):
     pass
 
 
-def default_user_data(env: Mapping[str, str] | None = None) -> Path:
+def default_user_data(
+    env: Mapping[str, str] | None = None, system: str | None = None, home: Path | None = None
+) -> Path:
+    """`$VST_USER_DATA`, else the folder the platform keeps application data in: `%LOCALAPPDATA%`
+    on Windows, `~/Library/Application Support` on a Mac. The desktop shell computes the same
+    path, so a change here needs the same change in `app/src-tauri/src/folders.rs`."""
     env = os.environ if env is None else env
     if env.get(USER_DATA_ENV):
         return Path(env[USER_DATA_ENV])
-    base = env.get("LOCALAPPDATA") or str(Path.home() / ".local" / "share")
+    system = sys.platform if system is None else system
+    home = Path.home() if home is None else home
+    if system == "darwin":
+        return home / "Library" / "Application Support" / APP_DIR
+    base = env.get("LOCALAPPDATA") or str(home / ".local" / "share")
     return Path(base) / APP_DIR
 
 

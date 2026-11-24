@@ -17,6 +17,8 @@ from backend.core.process_guard import KillOnClose
 log = logging.getLogger(__name__)
 
 HOST = "127.0.0.1"
+ALL_LAYERS = 99
+"""`-ngl` value that puts every layer on the GPU; 0 keeps the model on the CPU."""
 NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
 _STOP_WAIT_S = 10.0
 
@@ -44,7 +46,7 @@ class LlamaServer:
         *,
         log_path: Path,
         ctx: int = 8192,
-        gpu_layers: int = 99,
+        gpu_layers: int = ALL_LAYERS,
         startup_timeout_s: float = 300.0,
         cancel: threading.Event | None = None,
     ) -> None:

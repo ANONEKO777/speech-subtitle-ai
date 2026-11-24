@@ -18,13 +18,15 @@ router = APIRouter(prefix="/api/runtimes", tags=["runtimes"])
 
 
 def runtime_entry(ctx: ManagerContext, runtime: Runtime) -> dict[str, Any]:
-    installable = runtime.executable is not None
+    installable = runtime.executable is not None and not runtime.is_local_build
     active = ctx.runner.active_job(runtime.id)
     state = None
     if installable:
         plan = runtime_plan(runtime.id, ctx.registry, ctx.storage)
         state = InstallState.INSTALLING if active else plan.state()
     exe = runtime_executable(runtime.id, ctx.registry, ctx.storage)
+    if runtime.is_local_build:
+        state = InstallState.INSTALLED if exe else InstallState.NOT_INSTALLED
     return {
         "id": runtime.id,
         "engine": runtime.engine,

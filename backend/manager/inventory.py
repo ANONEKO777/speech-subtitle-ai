@@ -16,9 +16,16 @@ from pathlib import Path
 
 from backend.manager.download import CHUNK, InstallState, Item, Plan
 from backend.manager.manifest import Manifest, Record
-from backend.manager.profiles import PROFILES, ProfileId, Selection, required_assets
+from backend.manager.platforms import detect_platform
+from backend.manager.profiles import (
+    ALL_PROFILES,
+    ProfileId,
+    Selection,
+    profiles_for,
+    required_assets,
+)
 from backend.manager.registry import Model, Registry, Runtime
-from backend.manager.runtimes import runtime_executable
+from backend.manager.runtimes import program_of, runtime_executable
 from backend.manager.storage import Storage
 
 
@@ -92,7 +99,7 @@ def closure(ids: Iterable[str], registry: Registry) -> frozenset[str]:
 
 
 def profile_assets(profile_id: ProfileId, registry: Registry) -> frozenset[str]:
-    profile = PROFILES[profile_id]
+    profile = ALL_PROFILES[profile_id]
     stages = [profile.asr, profile.llm]
     if profile.asr_fallback is not None:
         stages.append(profile.asr_fallback)
@@ -147,7 +154,11 @@ class Inventory:
         installed = self.is_installed(asset_id)
         record = self.manifest.get(asset_id)
         sha_state, scope, verified_at = self._sha_state(found, installed, record)
-        profiles = tuple(pid for pid in PROFILES if asset_id in profile_assets(pid, self.registry))
+        profiles = tuple(
+            p.id
+            for p in profiles_for(detect_platform())
+            if asset_id in profile_assets(p.id, self.registry)
+        )
         return Entry(
             id=asset_id,
             type=AssetType.MODEL if is_model else AssetType.RUNTIME,
@@ -178,6 +189,8 @@ class Inventory:
             return str(self.storage.model_file(found))
         if found.executable is None:
             return str(self.storage.runtimes_root) if installed else None
+        if found.is_local_build:
+            return str(program_of(found, self.storage))
         return str(self.storage.runtime_dir(found))
 
     def _size_on_disk(self, found: Model | Runtime) -> int | None:
@@ -185,6 +198,8 @@ class Inventory:
             return self.storage.model_file(found).stat().st_size
         if found.executable is None:
             return None
+        if found.is_local_build:
+            return program_of(found, self.storage).stat().st_size
         return folder_size(self.storage.runtime_dir(found))
 
     def _installed_version(self, installed: bool, record: Record | None) -> str | None:

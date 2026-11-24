@@ -12,6 +12,8 @@ from ctypes import wintypes
 from pathlib import Path
 from typing import Protocol
 
+from backend.manager.platforms import WIN_X64, detect_platform
+
 SECRETS_DIR = "secrets"
 LLM_KEY = "llm_api_key"
 _ENTROPY = b"video-subtitle-translator/v1"
@@ -108,3 +110,31 @@ class MemorySecretStore:
 
     def clear(self, name: str) -> None:
         self._values.pop(name, None)
+
+
+KEY_NOT_AVAILABLE_MESSAGE = (
+    "這個版本在 Mac 上還不能儲存雲端 API 金鑰。請改用本機模型（預設）或 Ollama；"
+    "雲端金鑰的儲存之後會再加上。"
+)
+
+
+class UnavailableSecretStore:
+    """For a platform with no key store yet (macOS): nothing is saved and saving says so in plain
+    words, so the settings page shows a refusal and not an error. Reading finds no key."""
+
+    def get(self, name: str) -> str | None:
+        return None
+
+    def set(self, name: str, value: str) -> None:
+        raise SecretError(KEY_NOT_AVAILABLE_MESSAGE)
+
+    def clear(self, name: str) -> None:
+        return None
+
+
+def default_secret_store(user_data: Path, platform: str | None = None) -> SecretStore:
+    """The key store of `platform` (this machine's when None): DPAPI on Windows, none on a Mac."""
+    platform = detect_platform() if platform is None else platform
+    if platform == WIN_X64:
+        return DpapiSecretStore(user_data)
+    return UnavailableSecretStore()

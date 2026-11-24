@@ -28,18 +28,11 @@ from backend.engines.table import create_engine, engine_paths, spec_for
 from backend.engines.whispercpp import ENGINE_ID as WHISPERCPP_ID
 from backend.llm.ask import json_chat
 from backend.llm.client import LLM_SEED, LlmConfig
-from backend.llm.local_server import NO_THINK, LlamaServer
+from backend.llm.local_server import ALL_LAYERS, NO_THINK, LlamaServer
 from backend.manager import registry as registry_module
-from backend.manager.profiles import (
-    LLAMA_CPU_RUNTIME,
-    LLAMA_RUNTIME,
-    QWEN3_8B,
-    VAD_MODEL,
-    WHISPER_CPU_RUNTIME,
-    Device,
-)
+from backend.manager.profiles import QWEN3_8B, VAD_MODEL, Device, runtime_set
 from backend.manager.registry import Model, Registry, Runtime
-from backend.manager.runtimes import recover_runtimes
+from backend.manager.runtimes import local_build_message, recover_runtimes
 from backend.manager.storage import Storage, default_user_data
 
 ENGINE_ALIASES = {"whispercpp": WHISPERCPP_ID, "crispasr": CRISPASR_ID}
@@ -104,9 +97,12 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
         spec = spec_for(engine_id)
     except ValueError as exc:
         raise SettingsError(str(exc)) from exc
-    cpu_runtime = WHISPER_CPU_RUNTIME if request.cpu and engine_id == WHISPERCPP_ID else None
+    cpu_runtime = runtime_set().whisper_cpu if request.cpu and engine_id == WHISPERCPP_ID else None
     found = engine_paths(engine_id, storage, registry=registry, runtime_id=cpu_runtime)
     found_runtime = cpu_runtime or spec.runtime_id
+    runtime = registry.runtimes[found_runtime]
+    if runtime.is_local_build and not request.asr_bin and not found.binary.is_file():
+        raise SettingsError(local_build_message(runtime, storage))
     try:
         binary = _need_file(request.asr_bin or found.binary, f"{engine_id} program")
         model = _need_file(request.asr_model or found.model, f"{engine_id} model")
@@ -120,7 +116,6 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     aligner = request.aligner or found.aligner
     if spec.needs_aligner:
         aligner = _need_file(aligner or Path("aligner"), f"{engine_id} aligner model")
-    runtime = registry.runtimes[found_runtime]
     model_entry = registry.models[spec.model_id]
     parts = [
         _file_id(request.asr_model) if request.asr_model else _registry_id(model_entry),
@@ -133,7 +128,7 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
             if registry.models[n].kind is registry_module.ModelKind.ALIGNER
         )
         parts.append(_file_id(request.aligner) if request.aligner else _registry_id(aligner_entry))
-    device = Device.CPU if request.cpu else Device.CUDA
+    device = Device.CPU if request.cpu else _gpu_device(runtime)
 
     def transcribe(
         wav: Path, chunks: Sequence[Chunk], progress: ProgressCb, cancel: threading.Event
@@ -146,6 +141,10 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
         return transcribe_chunks(engine, wav, chunks, request.source_lang, progress, cancel)
 
     return engine_id, "|".join(parts), transcribe
+
+
+def _gpu_device(runtime: Runtime) -> Device:
+    return Device.METAL if runtime.backend == "metal" else Device.CUDA
 
 
 def _vad_model(request: Request, storage: Storage, registry: Registry) -> tuple[Path, str]:
@@ -169,7 +168,8 @@ def _remote_config(request: Request) -> LlmConfig:
 
 
 def _local_llm(request: Request, storage: Storage, registry: Registry) -> tuple[Path, Path, str]:
-    runtime = registry.runtimes[LLAMA_CPU_RUNTIME if request.cpu else LLAMA_RUNTIME]
+    twins = runtime_set()
+    runtime = registry.runtimes[twins.llama_cpu if request.cpu else twins.llama]
     server = request.llama_server or storage.runtime_dir(runtime) / (runtime.executable or "")
     server = _need_file(server, "llama-server program (see --llama-server)")
     as_path = Path(request.llm)
@@ -217,12 +217,19 @@ def resolve(request: Request, folder: Path) -> tuple[Settings, Ports]:
         opener = open_remote
     else:
         server, gguf, llm_identity = _local_llm(request, storage, registry)
+        cpu_on_metal = request.cpu and registry.runtimes[runtime_set().llama_cpu].backend == "metal"
+        gpu_layers = 0 if cpu_on_metal else ALL_LAYERS
 
         @contextmanager
         def open_local(cancel: threading.Event) -> Generator[LlmSession]:
             log_path = folder / "llama-server.log"
             with LlamaServer(
-                server, gguf, log_path=log_path, ctx=LLM_CONTEXT, cancel=cancel
+                server,
+                gguf,
+                log_path=log_path,
+                ctx=LLM_CONTEXT,
+                gpu_layers=gpu_layers,
+                cancel=cancel,
             ) as running:
                 config = LlmConfig(
                     running.base_url, "local", extra_body={**NO_THINK, "seed": LLM_SEED}
