@@ -45,8 +45,9 @@ from backend.core.render import BurnBook
 from backend.manager.active import runs_on_cpu
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.detect import Detector, real_detector
+from backend.manager.platforms import check_platform
 from backend.manager.profiles import QWEN3_8B
-from backend.manager.secrets import LLM_KEY, DpapiSecretStore, SecretError
+from backend.manager.secrets import LLM_KEY, SecretError, default_secret_store
 from backend.manager.settings import LlmSource, load_settings
 from backend.manager.storage import default_user_data
 
@@ -76,7 +77,7 @@ def _configured_llm(user_data: Path) -> tuple[str, str | None, str]:
         return f"{source.ollama_url}/v1", source.ollama_model, ""
     if source.source is LlmSource.CLOUD:
         try:
-            key = DpapiSecretStore(user_data).get(LLM_KEY) or ""
+            key = default_secret_store(user_data).get(LLM_KEY) or ""
         except SecretError as exc:
             raise OptionsError(f"cannot read the saved API key: {exc}") from exc
         return source.cloud_url, source.cloud_model, key
@@ -217,7 +218,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         metavar="DIR",
         help="folder for projects, runtimes and models "
-        "(default: $VST_USER_DATA or %%LOCALAPPDATA%%/video-subtitle-translator)",
+        "(default: $VST_USER_DATA, else %%LOCALAPPDATA%%/video-subtitle-translator on Windows "
+        "or ~/Library/Application Support/video-subtitle-translator on a Mac)",
     )
     parser.add_argument(
         "--projects",
@@ -233,6 +235,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="one more page origin allowed to call the service, such as a dev server",
     )
     args = parser.parse_args(argv)
+    unsupported = check_platform()
+    if unsupported:
+        print(f"error: {unsupported}", file=sys.stderr)
+        return 2
     serve(args.user_data or default_user_data(), args.projects, args.origin)
     return 0
 

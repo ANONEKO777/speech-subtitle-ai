@@ -32,6 +32,7 @@ from backend.core.pipeline import (
 from backend.core.source_langs import SOURCES
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
 from backend.llm.local_server import ServerError
+from backend.manager.platforms import check_platform
 from backend.manager.profiles import QWEN3_8B
 from backend.manager.resolve import DEFAULT_KEY_ENV, ENGINE_ALIASES, Request, SettingsError, resolve
 
@@ -127,7 +128,8 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="DIR",
         help="folder where downloaded runtimes and models live "
-        "(default: $VST_USER_DATA or %%LOCALAPPDATA%%/video-subtitle-translator)",
+        "(default: $VST_USER_DATA, else %%LOCALAPPDATA%%/video-subtitle-translator on Windows "
+        "or ~/Library/Application Support/video-subtitle-translator on a Mac)",
     )
     parser.add_argument("--asr-bin", type=Path, metavar="FILE", help="ASR program to use instead")
     parser.add_argument("--asr-model", type=Path, metavar="FILE", help="ASR model file to use")
@@ -176,6 +178,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(errors="backslashreplace")
     args = build_parser().parse_args(argv)
+    unsupported = check_platform()
+    if unsupported:
+        print(f"error: {unsupported}", file=sys.stderr)
+        return EXIT_USAGE
     video: Path = args.input
     if not video.is_file():
         print(f"error: input file not found: {video}", file=sys.stderr)

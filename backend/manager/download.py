@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import errno
+import gzip
 import hashlib
 import http.client
 import logging
@@ -8,12 +9,14 @@ import os
 import queue
 import re
 import shutil
+import tarfile
 import threading
 import time
 import urllib.error
 import urllib.request
 import uuid
 import zipfile
+import zlib
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -568,6 +571,130 @@ def extract_zip(archive_path: Path, into: Path, job: Job) -> None:
         raise _disk_failure(exc) from exc
 
 
+TAR_SUFFIXES = (".tar.gz", ".tgz")
+_DIR_MODE = 0o700
+_FILE_MODE = 0o600
+
+
+def _tar_target(name: str, root: Path) -> Path | None:
+    """Where the archive path `name` lands under `root`, or None for the archive's own folder
+    entry ("./"). Raises for a name that could leave `root`."""
+    parts = [p for p in re.split(r"[\\/]", name) if p not in ("", ".")]
+    if not parts:
+        if name.strip("/") in ("", "."):
+            return None
+        raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+    target = root.joinpath(*parts).resolve()
+    if (
+        name.startswith(("/", "\\"))
+        or any(":" in p or _NON_NAME.match(p) or "\x00" in p for p in parts)
+        or not target.is_relative_to(root)
+    ):
+        raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+    return target
+
+
+def _safe_link_name(link: str, member: str) -> str:
+    """A symlink may point at a plain relative path under the archive: no `..`, no absolute
+    path, no drive. With no `..` a chain of links cannot climb out of the folder."""
+    parts = link.split("/")
+    if (
+        not link
+        or link.startswith(("/", "\\"))
+        or "\\" in link
+        or any(p in ("", "..") or ":" in p or "\x00" in p for p in parts if p != ".")
+    ):
+        raise DownloadError(
+            Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {member!r} -> {link!r}")
+        )
+    return link
+
+
+def safe_tar_members(
+    archive: tarfile.TarFile, into: Path
+) -> list[tuple[tarfile.TarInfo, Path | None]]:
+    """Every member with the place it lands, after the checks `safe_members` makes for a zip.
+    Only folders, files, symlinks and hard links under the archive are accepted; a device, a
+    pipe, or a link that could point outside is an archive error."""
+    root = into.resolve()
+    members: list[tuple[tarfile.TarInfo, Path | None]] = []
+    for info in archive.getmembers():
+        target = _tar_target(info.name, root)
+        if info.issym():
+            _safe_link_name(info.linkname, info.name)
+        elif info.islnk():
+            if _tar_target(info.linkname, root) is None:
+                raise DownloadError(
+                    Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {info.name!r}")
+                )
+        elif not (info.isdir() or info.isfile()):
+            raise DownloadError(
+                Failure(FailureKind.ARCHIVE, f"unsupported entry in archive: {info.name!r}")
+            )
+        members.append((info, target))
+    return members
+
+
+def _link_in(archive_name: str, target: Path, root: Path, *, link: str) -> None:
+    """Make `target` a symlink to `link` and check where it really points."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_symlink() or target.exists():
+        target.unlink()
+    os.symlink(link, target)
+    if not Path(os.path.realpath(target)).is_relative_to(root):
+        target.unlink()
+        raise DownloadError(
+            Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {archive_name!r} -> {link!r}")
+        )
+
+
+def extract_tar(archive_path: Path, into: Path, job: Job) -> None:
+    """Unpack a `.tar.gz` with the same safety as `extract_zip`. A file keeps its permission
+    bits (so a program stays runnable) but never a set-user-id bit or write access for others."""
+    root = into.resolve()
+    try:
+        with tarfile.open(archive_path, "r:gz") as archive:
+            members = safe_tar_members(archive, into)
+            check_space([(into, sum(info.size for info, _ in members if info.isfile()))])
+            for info, target in members:
+                job.raise_if_cancelled()
+                if target is None:
+                    continue
+                if info.isdir():
+                    target.mkdir(parents=True, exist_ok=True)
+                    target.chmod((info.mode & 0o777) | _DIR_MODE)
+                elif info.issym():
+                    _link_in(info.name, target, root, link=info.linkname)
+                elif info.islnk():
+                    source = _tar_target(info.linkname, root)
+                    if source is None or not source.is_file():
+                        raise DownloadError(
+                            Failure(FailureKind.ARCHIVE, f"link to a missing file: {info.name!r}")
+                        )
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, target)
+                    target.chmod((info.mode & 0o777) | _FILE_MODE)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    source_file = archive.extractfile(info)
+                    assert source_file is not None
+                    with source_file, target.open("wb") as out:
+                        shutil.copyfileobj(source_file, out, CHUNK)
+                    target.chmod((info.mode & 0o777) | _FILE_MODE)
+    except (tarfile.TarError, gzip.BadGzipFile, EOFError, zlib.error) as exc:
+        raise DownloadError(Failure(FailureKind.ARCHIVE, f"{archive_path.name}: {exc}")) from exc
+    except OSError as exc:
+        raise _disk_failure(exc) from exc
+
+
+def extract_archive(archive_path: Path, into: Path, job: Job) -> None:
+    """Unpack by the archive's name: `.tar.gz` and `.tgz` as a tarball, anything else as a zip."""
+    if archive_path.name.lower().endswith(TAR_SUFFIXES):
+        extract_tar(archive_path, into, job)
+    else:
+        extract_zip(archive_path, into, job)
+
+
 _swap_lock = threading.Lock()
 
 
@@ -624,7 +751,7 @@ def unpack(plan: Plan, job: Job) -> None:
     staging.mkdir(parents=True)
     try:
         for item in plan.items:
-            extract_zip(item.dest, staging, job)
+            extract_archive(item.dest, staging, job)
         if plan.entry_point and not (staging / plan.entry_point).is_file():
             raise DownloadError(
                 Failure(FailureKind.ARCHIVE, f"archive does not contain {plan.entry_point}")
