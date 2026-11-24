@@ -16,7 +16,7 @@ import { bytes, mib, speed } from "../manage/format";
 import { JobRow } from "../manage/JobRow";
 import type { DownloadJob, LicenseEntry, ProfileId } from "../manage/types";
 import { useDownloads } from "../manage/useDownloads";
-import { CPU_NOTICE, SelfTestPanel } from "../settings/HardwareSection";
+import { SelfTestPanel, cpuNotice } from "../settings/HardwareSection";
 import { chipOrGpu, isCpuProfile, isMac } from "../manage/hardwareText";
 import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
@@ -239,6 +239,10 @@ function OverallLine({ jobs }: { jobs: readonly DownloadJob[] }) {
 /** "兩" and "三" read as Taiwan speech does; a larger count stays a digit. */
 const othersText = (n: number): string => (n === 2 ? "兩" : n === 3 ? "三" : String(n));
 
+/** The table lists what to download and, on a Mac, the program the build script makes. The heading says which of the two it holds. */
+const assetsTitle = (downloads: number, builds: number): string =>
+  builds === 0 ? "會下載的項目" : downloads === 0 ? "要自行建置的項目" : "要下載或自行建置的項目";
+
 function Choose({
   state,
   licenses,
@@ -307,11 +311,11 @@ function Choose({
       {option?.recommendCloud && (
         <p className="note cloud" data-testid="wizard-cpu-note">
           <Cloud className="icon" aria-hidden />
-          {CPU_NOTICE}
+          {cpuNotice(option.id)}
         </p>
       )}
 
-      <h3>會下載的項目</h3>
+      <h3 data-testid="wizard-assets-title">{assetsTitle(downloads.length, builds.length)}</h3>
       {plan.items.length === 0 ? (
         <p className="sub" data-testid="wizard-assets-empty">
           這個設定檔需要的項目都已安裝，直接做自檢。

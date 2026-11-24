@@ -32,6 +32,7 @@ describe("the wizard's profile step", () => {
     const text = (await choose(windowsView())).textContent;
     expect(text).toMatchInlineSnapshot(`"RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 488 GB建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-win-cuda執行檔458 MBMITwhispercpp-b5454-win-cpu執行檔，GPU 失敗時改用 CPU 的備援8.58 MB—共 1.95 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理"`);
     expect(screen.getByTestId("wizard-recommended").textContent).toContain("另外兩個");
+    expect(screen.getByTestId("wizard-assets-title").textContent).toBe("會下載的項目");
   });
 
   it("lists the runtime a Mac builds for itself without a size and says where the script is", async () => {
@@ -45,6 +46,7 @@ describe("the wizard's profile step", () => {
     expect(screen.getByTestId("wizard-recommended").textContent).toContain("另外三個");
     expect(screen.getByTestId("wizard-total").textContent).toContain("共 1.53 GB");
     expect(screen.getByTestId("wizard-start").textContent).toBe("下載並開始");
+    expect(screen.getByTestId("wizard-assets-title").textContent).toBe("要下載或自行建置的項目");
   });
 
   it("says nothing is left to download when the only missing program is the one the Mac builds", async () => {
@@ -53,5 +55,6 @@ describe("the wizard's profile step", () => {
     await choose({ ...view, profiles }, false);
     expect(screen.getByTestId("wizard-total").textContent).toContain("沒有要下載的項目");
     expect(screen.getByTestId("wizard-start").textContent).toBe("開始自檢");
+    expect(screen.getByTestId("wizard-assets-title").textContent).toBe("要自行建置的項目");
   });
 });

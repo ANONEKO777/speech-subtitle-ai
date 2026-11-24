@@ -11,8 +11,13 @@ import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
 
-export const CPU_NOTICE =
-  "CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。";
+const CLOUD_ADVICE = "建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。";
+
+/** The notice under a processor-only profile. A Mac has no NVIDIA card to be missing and its GPU is Metal, so it says what this profile gives up. */
+export const cpuNotice = (id: ProfileId): string =>
+  id === "apple-cpu"
+    ? `這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`
+    : `CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`;
 
 
 export function selfTestText(t: SelfTest): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
@@ -222,7 +227,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 {p.recommendCloud && (
                   <p className="note cloud" data-testid="cpu-cloud-note">
                     <Cloud className="icon" aria-hidden />
-                    {CPU_NOTICE}
+                    {cpuNotice(p.id)}
                   </p>
                 )}
                 <button type="button" className={p.active ? "ghost" : "primary"} data-testid={`profile-use-${p.id}`} disabled={p.active || busy} onClick={() => void choose(p.id)}>
