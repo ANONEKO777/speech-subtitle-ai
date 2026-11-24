@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "resources": {
+      "../../installer/build/backend/": "backend/"
+    }
+  }
+}
