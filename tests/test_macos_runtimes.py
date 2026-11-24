@@ -529,3 +529,60 @@ def test_the_mac_whisper_runtime_ids_and_the_selftest_twin_are_the_same_row() ->
     twins = runtime_set(MACOS_ARM64)
 
     assert twins.whisper == twins.whisper_cpu == WHISPER
+
+
+def engine_device(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, cpu: bool) -> Device:
+    """The device `resolve` hands the engine, with the engine and the chunk loop faked."""
+    import threading
+
+    seen: list[Device] = []
+
+    def fake_engine(engine_id: str, binary: Path, model: Path, **kwargs: Any) -> object:
+        seen.append(kwargs["device"])
+        return object()
+
+    monkeypatch.setattr("backend.manager.resolve.create_engine", fake_engine)
+    monkeypatch.setattr("backend.manager.resolve.transcribe_chunks", lambda *a, **k: [])
+    _settings, ports = resolve(Request(user_data=tmp_path, cpu=cpu), tmp_path / "p")
+    ports.transcribe(tmp_path / "a.wav", [], lambda *_: None, threading.Event())
+    return seen[0]
+
+
+def test_the_engine_on_a_mac_is_given_metal_or_the_cpu(
+    tmp_path: Path, as_mac: None, no_path: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install_mac(tmp_path)
+
+    assert engine_device(tmp_path, monkeypatch, cpu=False) is Device.METAL
+    assert engine_device(tmp_path, monkeypatch, cpu=True) is Device.CPU
+
+
+def test_the_engine_on_windows_is_given_cuda_as_it_always_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    windows = registry_module.load(platform=WIN_X64)
+    storage = Storage(tmp_path)
+    for model_id in (TURBO, VAD, QWEN3_8B):
+        put(storage.model_file(windows.models[model_id]), b"model")
+    for rid in ("whispercpp-b5454-win-cuda12.4", "llama.cpp-b12068-win-cuda12.4"):
+        runtime = windows.runtimes[rid]
+        put(storage.runtime_dir(runtime) / (runtime.executable or ""), b"exe")
+
+    assert engine_device(tmp_path, monkeypatch, cpu=False) is Device.CUDA
+
+
+def test_a_metal_stage_is_checked_with_its_own_runtime_and_not_the_cpu_twin(
+    tmp_path: Path, as_mac: None, no_path: None
+) -> None:
+    import dataclasses
+
+    from backend.manager.profiles import QWEN3_ASR, Stage
+
+    storage = install_mac(tmp_path)
+    profile = dataclasses.replace(
+        ALL_PROFILES[ProfileId.METAL_32GB], asr=Stage(QWEN3_ASR, CRISPASR, Device.METAL)
+    )
+
+    report = run_selftest(profile, MAC, storage, SelfTestStore(tmp_path), probe_that(None, []))
+
+    assert [s.runtime_id for s in report.stages] == [CRISPASR, LLAMA]

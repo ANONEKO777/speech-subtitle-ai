@@ -79,14 +79,12 @@ def test_the_script_refuses_a_machine_that_is_not_an_apple_silicon_mac() -> None
 
 def test_the_script_is_valid_shell() -> None:
     bash = shutil.which("bash")
-    if bash is None:
-        pytest.skip("no bash on this machine")
+    if bash is None or subprocess.run([bash, "-c", "true"], capture_output=True).returncode != 0:
+        pytest.skip("no working bash on this machine")
 
-    done = subprocess.run(
-        [bash, "-n"], input=script_text(), capture_output=True, text=True, check=False
-    )
+    done = subprocess.run([bash, "-n"], input=SCRIPT.read_bytes(), capture_output=True, check=False)
 
-    assert done.returncode == 0, done.stderr
+    assert done.returncode == 0, done.stderr.decode(errors="replace")
 
 
 def test_the_script_has_unix_line_endings() -> None:
