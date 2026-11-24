@@ -9,6 +9,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 import jsonschema
@@ -238,6 +240,30 @@ def test_the_command_line_stops_with_the_sentence_and_no_stack_trace(
 
     err = capsys.readouterr().err
     assert code == cli.EXIT_USAGE
+    assert err.startswith("error: 這個程式只支援")
+    assert "Traceback" not in err
+    assert err.count("\n") == 1
+
+
+def test_the_service_stops_with_the_sentence_and_never_starts_on_an_unsupported_machine(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Any
+) -> None:
+    from backend import main as service
+
+    started: list[object] = []
+
+    def serve(user_data: Path, projects: Path | None, origins: Sequence[str]) -> None:
+        started.append(1)
+
+    monkeypatch.setattr(service, "serve", serve)
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("platform.machine", lambda: "x86_64")
+
+    code = service.main(["--user-data", str(tmp_path)])
+
+    err = capsys.readouterr().err
+    assert code == 2
+    assert started == []
     assert err.startswith("error: 這個程式只支援")
     assert "Traceback" not in err
     assert err.count("\n") == 1

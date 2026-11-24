@@ -4,6 +4,7 @@ The registry is the shipped one filtered to macOS; nothing is downloaded and no 
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,9 @@ from backend.manager import registry as registry_module
 from backend.manager.context import build_context
 from backend.manager.hardware import Hardware
 from backend.manager.platforms import MACOS_ARM64
+from backend.manager.profiles import ProfileId
 from backend.manager.secrets import KEY_NOT_AVAILABLE_MESSAGE, UnavailableSecretStore
+from backend.manager.switch import download_missing, requirements
 
 MAC = registry_module.load(platform=MACOS_ARM64)
 WHISPER = "whispercpp-b5454-macos-metal"
@@ -135,3 +138,29 @@ def test_the_inventory_lists_every_mac_runtime_and_the_shared_models(client: Any
     assert WHISPER in ids and "qwen3-8b-q4_k_m" in ids
     assert not any("-win-" in i for i in ids)
     assert body["active_profile"] == "metal-32gb"
+
+
+class RecordingRunner:
+    def __init__(self) -> None:
+        self.plans: list[Any] = []
+
+    def submit(self, plan: Any) -> str:
+        self.plans.append(plan)
+        return plan.asset_id
+
+
+def test_fetching_what_a_mac_profile_misses_skips_the_runtime_built_on_the_machine(
+    client: Any,
+) -> None:
+    missing = {m.id for m in requirements(client.ctx, ProfileId.METAL_32GB).missing}
+    assert WHISPER in missing
+    runner = RecordingRunner()
+    ctx: Any = dataclasses.replace(client.ctx, runner=runner)
+
+    started = download_missing(ctx, ProfileId.METAL_32GB)
+
+    submitted = {plan.asset_id for plan in runner.plans}
+    assert started == [plan.asset_id for plan in runner.plans]
+    assert WHISPER not in submitted
+    assert "llama.cpp-b12068-macos-metal" in submitted
+    assert submitted == missing - {WHISPER}
