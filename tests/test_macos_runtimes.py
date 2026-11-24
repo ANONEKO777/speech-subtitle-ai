@@ -1,3 +1,4 @@
+# pyright: reportUnknownLambdaType=false, reportUnknownArgumentType=false
 """The backend's choices on a Mac, made with the platform faked on this Windows PC.
 
 `as_mac` makes `sys.platform` and `platform.machine()` say an Apple-silicon Mac; no program is

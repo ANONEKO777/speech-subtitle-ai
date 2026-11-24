@@ -22,6 +22,7 @@ RAW: dict[str, Any] = json.loads(registry.REGISTRY_PATH.read_text(encoding="utf-
 SCHEMA: dict[str, Any] = json.loads(
     registry.REGISTRY_PATH.with_name("registry.schema.json").read_text(encoding="utf-8")
 )
+VALIDATOR: Any = jsonschema.Draft202012Validator(SCHEMA)
 WINDOWS_DIGEST = "09168f2b81d4cffe71e9baa6a97a53a41f53091c645a4909bba401623b4ad7c9"
 WINDOWS_RUNTIME_IDS = [
     "whispercpp-b5454-win-cuda12.4",
@@ -113,7 +114,7 @@ def test_a_downloaded_runtime_has_no_build() -> None:
 
 
 def test_the_shipped_registry_passes_the_schema_with_the_mac_rows_in() -> None:
-    jsonschema.Draft202012Validator(SCHEMA).validate(RAW)
+    VALIDATOR.validate(RAW)
 
 
 BAD_BUILDS: list[tuple[str, dict[str, Any]]] = []
@@ -145,7 +146,7 @@ def test_a_bad_local_build_is_refused_by_the_loader_and_by_the_schema(
 ) -> None:
     with pytest.raises(RegistryError):
         registry.parse(raw)
-    assert not jsonschema.Draft202012Validator(SCHEMA).is_valid(raw), label
+    assert not VALIDATOR.is_valid(raw), label
 
 
 def test_a_download_row_that_leaves_its_url_null_is_refused() -> None:
@@ -156,7 +157,7 @@ def test_a_download_row_that_leaves_its_url_null_is_refused() -> None:
 
     with pytest.raises(RegistryError):
         registry.parse(raw)
-    assert not jsonschema.Draft202012Validator(SCHEMA).is_valid(raw)
+    assert not VALIDATOR.is_valid(raw)
 
 
 def test_a_null_build_means_no_build() -> None:

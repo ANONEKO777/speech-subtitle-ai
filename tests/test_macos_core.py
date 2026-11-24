@@ -1,3 +1,4 @@
+# pyright: reportUnknownLambdaType=false, reportUnknownArgumentType=false
 """The parts of the backend core that differ on a Mac: process guard, fonts, burn-in encoder and
 the ffmpeg search. The platform is faked; fonts are tiny files built here with only the tables the
 code reads (`name` and `cmap`), so no Mac font is needed."""
@@ -188,9 +189,9 @@ def test_the_default_chinese_font_on_a_mac_is_pingfang_with_no_lookup(as_mac: No
 
 
 def test_the_default_chinese_font_on_windows_is_what_it_was() -> None:
-    assert target_font(cues("x", "en", "你好"), get_language("zh-TW"), lambda _c: None) == (
-        "Microsoft JhengHei"
-    )
+    assert target_font(
+        cues("x", "en", "你好"), get_language("zh-TW"), lambda _c: lambda _f: None
+    ) == ("Microsoft JhengHei")
 
 
 def test_korean_on_a_mac_uses_apple_sd_gothic_neo_when_it_draws_the_text(
