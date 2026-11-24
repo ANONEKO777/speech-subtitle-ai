@@ -187,7 +187,8 @@ def test_the_build_script_parses_in_bash() -> None:
     bash = shutil.which("bash")
     if bash is None:
         pytest.skip("no bash on this machine")
-    result = subprocess.run([bash, "-n", str(SCRIPT)], capture_output=True, text=True, check=False)
+    script = SCRIPT.read_text(encoding="utf-8")
+    result = subprocess.run([bash, "-n"], input=script, capture_output=True, text=True, check=False)
 
     assert result.returncode == 0, result.stderr
 
