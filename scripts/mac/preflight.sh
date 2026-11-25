@@ -25,7 +25,7 @@ echo "uname -m: $ARCH"
 echo "uname -s: $SYSTEM"
 
 if [ "$SYSTEM" != "Darwin" ]; then
-  echo "這支預檢只能在 Apple 晶片的 Mac 上執行；這台是 $SYSTEM $ARCH，已停止。"
+  echo "這支預檢只能在 Apple 晶片的 Mac 上執行；這台是 ${SYSTEM} ${ARCH}，已停止。"
   exit 1
 fi
 
@@ -34,7 +34,7 @@ if [ "$ARCH" != "arm64" ]; then
     echo "這是 Apple 晶片的 Mac，但終端機正以 Rosetta（x86_64）執行，已停止。"
     echo "請用原生的終端機重新開啟（在 Finder 的「終端機」資訊視窗取消勾選「使用 Rosetta 開啟」），再執行一次。"
   else
-    echo "需要 Apple 晶片（M1 或更新）的 Mac；這台回報 $ARCH，已停止。"
+    echo "需要 Apple 晶片（M1 或更新）的 Mac；這台回報 ${ARCH}，已停止。"
   fi
   exit 1
 fi
@@ -70,7 +70,7 @@ macos_version="$(echo "$sw_vers_text" | sed -n 's/^ProductVersion:[[:space:]]*//
 macos_major="${macos_version%%.*}"
 case "$macos_major" in
   '' | *[!0-9]*) problem "讀不到 macOS 版本：請把上面 sw_vers 的輸出貼回來" ;;
-  *) [ "$macos_major" -ge 13 ] || problem "macOS 版本太舊（$macos_version）：預先編好的 llama.cpp 與 CrispASR 需要 macOS 13 或更新" ;;
+  *) [ "$macos_major" -ge 13 ] || problem "macOS 版本太舊（${macos_version}）：預先編好的 llama.cpp 與 CrispASR 需要 macOS 13 或更新" ;;
 esac
 
 mem_bytes="$(sysctl -n hw.memsize 2>/dev/null)"
@@ -118,7 +118,7 @@ check() {
     return 0
   fi
   echo "$name: 找不到"
-  problem "缺少 $name：請執行 $fix"
+  problem "缺少 ${name}：請執行 ${fix}"
   return 1
 }
 

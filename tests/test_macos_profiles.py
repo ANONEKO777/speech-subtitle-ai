@@ -5,6 +5,7 @@ measured on a Mac (P37d), so a test pins what was chosen, not that it is fast or
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,10 @@ from backend.manager.profiles import (
     runtime_set,
     select,
     selection_for,
+)
+
+windows_host = pytest.mark.skipif(
+    sys.platform != "win32", reason="asserts what the real Windows host does"
 )
 
 MAC = registry.load(platform=MACOS_ARM64)
@@ -106,6 +111,7 @@ def test_detect_on_a_mac_never_runs_nvidia_smi(tmp_path: Path) -> None:
     assert found.platform == MACOS_ARM64
 
 
+@windows_host
 def test_detect_on_windows_is_what_it_was(tmp_path: Path) -> None:
     found = hardware.detect(env={}, smi=lambda: None, disk_path=tmp_path)
 
@@ -321,6 +327,7 @@ def test_the_runtime_ids_of_each_platform_come_from_one_table() -> None:
     ) <= set(WINDOWS.runtimes)
 
 
+@windows_host
 def test_the_run_time_set_follows_this_machine(monkeypatch: pytest.MonkeyPatch) -> None:
     assert runtime_set() == runtime_set(WIN_X64)
     monkeypatch.setattr("sys.platform", "darwin")
