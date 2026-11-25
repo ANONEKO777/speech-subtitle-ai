@@ -117,7 +117,7 @@ The third choice, "Japanese and English mixed", is for a talk where a Japanese s
 
 ## Demo video
 
-[![Demo video, a still from it. The link opens the file page.](docs/media/poster.png)](docs/media/demo.mp4)
+https://github.com/user-attachments/assets/e2ca30a6-9098-4748-a5a7-86c3687cb118
 
 [Download the video](docs/media/demo.mp4). About a minute and a half: import, progress, playback, switching modes, the shortcut list, an edit, a summary chapter jump, a second language and export, then the batch queue, the settings page and the first-run wizard. The progress and the queue run are sped up.
 
