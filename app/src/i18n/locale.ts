@@ -5,6 +5,12 @@ export type Locale = (typeof LOCALES)[number];
 export const UI_LANGUAGES = ["auto", ...LOCALES] as const;
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
+/**
+ * What a fresh install shows until the whole window has an English catalog (W5 flips it to `auto`).
+ * `tests/test_ui_language.py` keeps it equal to the backend default in `backend/manager/settings.py`.
+ */
+export const DEFAULT_UI_LANGUAGE: UiLanguage = "zh-TW";
+
 /** The locales a person can pick. zh-CN and ja stay hidden until their catalogs are complete (W5). */
 export const RELEASED_LOCALES: readonly Locale[] = ["zh-TW", "en"];
 
@@ -54,9 +60,9 @@ export function resolveLocale(setting: UiLanguage, browserLanguages: readonly st
 export function readMirror(): UiLanguage {
   try {
     const value = localStorage.getItem(MIRROR_KEY);
-    return isUiLanguage(value) ? value : "auto";
+    return isUiLanguage(value) ? value : DEFAULT_UI_LANGUAGE;
   } catch {
-    return "auto";
+    return DEFAULT_UI_LANGUAGE;
   }
 }
 

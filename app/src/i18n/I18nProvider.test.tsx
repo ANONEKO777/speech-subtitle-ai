@@ -66,6 +66,15 @@ describe("I18nProvider", () => {
     expect(screen.getByTestId("locale").textContent).toBe("en");
   });
 
+  it("shows Traditional Chinese on a fresh install, even when the browser speaks English", () => {
+    render(
+      <I18nProvider browserLanguages={["en-US"]}>
+        <Probe />
+      </I18nProvider>,
+    );
+    expect(screen.getByTestId("locale").textContent).toBe("zh-TW");
+  });
+
   it("follows the browser language on auto, and English for a language it does not speak", () => {
     const { rerender } = render(
       <I18nProvider initial="auto" browserLanguages={["zh-HK"]}>

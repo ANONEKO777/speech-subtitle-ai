@@ -67,9 +67,14 @@ describe("the localStorage mirror", () => {
     expect(localStorage.getItem(MIRROR_KEY)).toBe("ja");
   });
 
-  it("is auto when nothing, or something that is not a language, is stored", () => {
-    expect(readMirror()).toBe("auto");
+  it("is Traditional Chinese when nothing, or something that is not a language, is stored", () => {
+    expect(readMirror()).toBe("zh-TW");
     localStorage.setItem(MIRROR_KEY, "klingon");
+    expect(readMirror()).toBe("zh-TW");
+  });
+
+  it("keeps auto when auto is what is stored", () => {
+    writeMirror("auto");
     expect(readMirror()).toBe("auto");
   });
 
@@ -80,7 +85,7 @@ describe("the localStorage mirror", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(readMirror()).toBe("auto");
+    expect(readMirror()).toBe("zh-TW");
     expect(() => writeMirror("en")).not.toThrow();
   });
 });

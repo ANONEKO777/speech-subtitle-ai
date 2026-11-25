@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 from manage_support import Rig
 
 from backend.manager.settings import (
+    DEFAULT_UI_LANGUAGE,
     AppSettings,
     SettingsError,
     SettingsStore,
@@ -15,10 +17,20 @@ from backend.manager.settings import (
     settings_json,
 )
 
+ROOT = Path(__file__).resolve().parent.parent
 
-def test_the_window_language_follows_the_system_until_a_person_picks_one(rig: Rig) -> None:
-    assert rig.client.get("/api/settings").json()["ui_language"] == "auto"
-    assert rig.ctx.settings.current.ui_language is UiLanguage.AUTO
+
+def test_the_window_is_traditional_chinese_until_a_person_picks_a_language(rig: Rig) -> None:
+    assert rig.client.get("/api/settings").json()["ui_language"] == "zh-TW"
+    assert rig.ctx.settings.current.ui_language is UiLanguage.ZH_TW
+
+
+def test_the_frontend_and_the_backend_start_from_the_same_window_language() -> None:
+    source = (ROOT / "app" / "src" / "i18n" / "locale.ts").read_text(encoding="utf-8")
+    declared = re.search(r'export const DEFAULT_UI_LANGUAGE: UiLanguage = "([^"]+)";', source)
+
+    assert declared is not None
+    assert declared.group(1) == DEFAULT_UI_LANGUAGE.value
 
 
 @pytest.mark.parametrize("language", ["en", "zh-TW", "zh-CN", "ja", "auto"])
@@ -51,6 +63,17 @@ def test_saving_another_part_of_the_settings_keeps_the_window_language(rig: Rig)
     assert rig.client.get("/api/settings").json()["ui_language"] == "en"
 
 
+def test_switching_the_model_profile_keeps_the_window_language(rig: Rig) -> None:
+    rig.client.put("/api/settings", json={"ui_language": "ja"})
+
+    reply = rig.client.put("/api/profile", json={"profile": "cpu"})
+
+    assert reply.status_code == 200
+    assert rig.client.get("/api/settings").json()["ui_language"] == "ja"
+    rig.start()
+    assert rig.client.get("/api/settings").json()["ui_language"] == "ja"
+
+
 def test_changing_the_window_language_keeps_the_other_saved_settings(rig: Rig) -> None:
     url = "https://example.test/registry.json"
     rig.client.put("/api/settings", json={"registry_url": url})
@@ -61,13 +84,15 @@ def test_changing_the_window_language_keeps_the_other_saved_settings(rig: Rig) -
     assert body["registry_url"] == url and body["ui_language"] == "zh-CN"
 
 
-def test_a_settings_file_from_before_the_window_language_loads_as_auto(tmp_path: Path) -> None:
+def test_a_settings_file_from_before_the_window_language_loads_as_the_default(
+    tmp_path: Path,
+) -> None:
     old = {"schema_version": 1, "profile": None, "llm": {"source": "builtin"}, "registry_url": None}
     (tmp_path / "settings.json").write_text(json.dumps(old), encoding="utf-8")
 
     store = SettingsStore(tmp_path)
 
-    assert store.problem is None and store.current.ui_language is UiLanguage.AUTO
+    assert store.problem is None and store.current.ui_language is DEFAULT_UI_LANGUAGE
 
 
 def test_a_settings_file_with_a_bad_window_language_is_not_used_and_says_why(

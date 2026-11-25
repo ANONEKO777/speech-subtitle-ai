@@ -51,6 +51,10 @@ class UiLanguage(StrEnum):
     JA = "ja"
 
 
+DEFAULT_UI_LANGUAGE = UiLanguage.ZH_TW
+"""Traditional Chinese until every released language is complete. W5 makes AUTO the default."""
+
+
 def clean_url(value: str, what: str, *, https_only: bool = False) -> str:
     parts = urlsplit(value.strip())
     schemes = ("https",) if https_only else ("http", "https")
@@ -95,7 +99,7 @@ class AppSettings:
     llm: LlmSettings = field(default_factory=LlmSettings)
     registry_url: str | None = None
     """Where to look for a newer registry.json. None means no remote is configured."""
-    ui_language: UiLanguage = UiLanguage.AUTO
+    ui_language: UiLanguage = DEFAULT_UI_LANGUAGE
 
     def __post_init__(self) -> None:
         if self.registry_url is not None:
@@ -138,7 +142,7 @@ def parse_settings(raw: object) -> AppSettings:
     try:
         source = LlmSource(llm.get("source", LlmSource.BUILTIN))
         profile = None if top.get("profile") is None else ProfileId(str(top["profile"]))
-        ui_language = UiLanguage(top.get("ui_language", UiLanguage.AUTO))
+        ui_language = UiLanguage(top.get("ui_language", DEFAULT_UI_LANGUAGE))
     except ValueError as exc:
         raise SettingsError(str(exc)) from exc
     registry_url = top.get("registry_url")

@@ -65,8 +65,12 @@ describe("parseSettings", () => {
     expect(parseSettings({ ui_language: "zh-TW" }).uiLanguage).toBe("zh-TW");
   });
 
-  it("takes auto from a backend that does not send it yet, or sends something unknown", () => {
-    expect(parseSettings({}).uiLanguage).toBe("auto");
-    expect(parseSettings({ ui_language: "fr" }).uiLanguage).toBe("auto");
+  it("takes Traditional Chinese from a backend that does not send it yet, or sends something unknown", () => {
+    expect(parseSettings({}).uiLanguage).toBe("zh-TW");
+    expect(parseSettings({ ui_language: "fr" }).uiLanguage).toBe("zh-TW");
+  });
+
+  it("keeps auto when the backend sends auto", () => {
+    expect(parseSettings({ ui_language: "auto" }).uiLanguage).toBe("auto");
   });
 });
