@@ -86,7 +86,7 @@ describe("the Models page", () => {
     await show(builtIn({ path: "/opt/homebrew/bin/whisper-cli", foundOutsideRuntimes: true }));
     fireEvent.click(screen.getByTestId("check-updates"));
     const line = await waitFor(() => screen.getByTestId("inv-whispercpp-b5454-macos-metal-update"));
-    expect(line.textContent).toBe("沒有更新檢查（不是 App 建置的）");
+    expect(line.textContent).toBe("沒有更新檢查");
   });
 
   it("keeps saying already up to date on a Windows row after the update check", async () => {

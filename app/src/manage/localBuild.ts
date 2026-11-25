@@ -10,7 +10,7 @@ export const LOCAL_BUILD_ELSEWHERE_TEXT = "不是 App 建置的，是在 PATH �
 
 /** Said where "檢查更新" would otherwise call a program that was built here "已是最新" without checking it. */
 export const LOCAL_BUILD_NO_UPDATE_TEXT = `自行建置的程式沒有更新檢查，要換新版請重新執行 ${LOCAL_BUILD_SCRIPT}`;
-export const LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT = "沒有更新檢查（不是 App 建置的）";
+export const LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT = "沒有更新檢查";
 
 export const toDownload = <T extends Pick<MissingAsset, "localBuild">>(list: readonly T[]): T[] => list.filter((m) => !m.localBuild);
 
