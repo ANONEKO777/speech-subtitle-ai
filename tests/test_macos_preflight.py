@@ -64,7 +64,9 @@ def without(*names: str) -> dict[str, str]:
     return {name: body for name, body in GOOD.items() if name not in names}
 
 
-def run_preflight(shims: dict[str, str], data_files: tuple[str, ...] = ()) -> tuple[int, str, str]:
+def run_preflight(
+    shims: dict[str, str], data_files: tuple[str, ...] = (), locale: str = ""
+) -> tuple[int, str, str]:
     """Runs the script under bash with only `shims` (and awk, sed, head, dirname, grep) on PATH.
 
     Returns its exit code, its output, and what it left in the home folder, the data folder and
@@ -87,6 +89,7 @@ def run_preflight(shims: dict[str, str], data_files: tuple[str, ...] = ()) -> tu
     parts += [
         'before="$(cd "$d" && find . | sort | tr "\\n" " ")"',
         "set +e",
+        f"{'LC_ALL=' + locale + ' ' if locale else ''}"
         'PATH="$d/bin" HOME="$d/home" VST_USER_DATA="$d/home/data" '
         'VST_HOMEBREW_DIRS="$d/no-homebrew" "$BASH" "$d/preflight.sh"',
         "code=$?",
@@ -106,6 +109,18 @@ def run_preflight(shims: dict[str, str], data_files: tuple[str, ...] = ()) -> tu
     body, _, tail = text.rpartition("@@code=")
     code, _, extra = tail.partition("\n")
     return int(code), body, extra
+
+
+@needs_bash
+def test_a_stop_message_is_printed_when_bash_reads_bytes_as_single_characters() -> None:
+    """A variable directly before a full-width character is read as part of its name where the shell
+    does not read UTF-8, and `set -u` then ends the script with no message. macOS hit this."""
+    shims = {**GOOD, "uname": 'case "$1" in -s) echo Linux ;; *) echo x86_64 ;; esac'}
+
+    code, out, _ = run_preflight(shims, locale="en_US")
+
+    assert code == 1
+    assert "已停止" in out
 
 
 @needs_bash
