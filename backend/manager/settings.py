@@ -41,6 +41,16 @@ class LlmSource(StrEnum):
     CLOUD = "cloud"
 
 
+class UiLanguage(StrEnum):
+    """The language of the app window. AUTO follows the operating system, and the frontend picks."""
+
+    AUTO = "auto"
+    EN = "en"
+    ZH_TW = "zh-TW"
+    ZH_CN = "zh-CN"
+    JA = "ja"
+
+
 def clean_url(value: str, what: str, *, https_only: bool = False) -> str:
     parts = urlsplit(value.strip())
     schemes = ("https",) if https_only else ("http", "https")
@@ -85,6 +95,7 @@ class AppSettings:
     llm: LlmSettings = field(default_factory=LlmSettings)
     registry_url: str | None = None
     """Where to look for a newer registry.json. None means no remote is configured."""
+    ui_language: UiLanguage = UiLanguage.AUTO
 
     def __post_init__(self) -> None:
         if self.registry_url is not None:
@@ -111,7 +122,9 @@ def _text(data: dict[str, object], key: str, default: str) -> str:
 
 
 def parse_settings(raw: object) -> AppSettings:
-    top = _object(raw, "settings", {"schema_version", "profile", "llm", "registry_url"})
+    top = _object(
+        raw, "settings", {"schema_version", "profile", "llm", "registry_url", "ui_language"}
+    )
     if top.get("schema_version", SCHEMA_VERSION) != SCHEMA_VERSION:
         raise SettingsError(f"unsupported schema_version {top['schema_version']!r}")
     llm = _object(
@@ -125,6 +138,7 @@ def parse_settings(raw: object) -> AppSettings:
     try:
         source = LlmSource(llm.get("source", LlmSource.BUILTIN))
         profile = None if top.get("profile") is None else ProfileId(str(top["profile"]))
+        ui_language = UiLanguage(top.get("ui_language", UiLanguage.AUTO))
     except ValueError as exc:
         raise SettingsError(str(exc)) from exc
     registry_url = top.get("registry_url")
@@ -141,6 +155,7 @@ def parse_settings(raw: object) -> AppSettings:
             cloud_consent=consent,
         ),
         registry_url=registry_url or None,
+        ui_language=ui_language,
     )
 
 
@@ -158,6 +173,7 @@ def settings_json(settings: AppSettings) -> dict[str, object]:
             "cloud_consent": llm.cloud_consent,
         },
         "registry_url": settings.registry_url,
+        "ui_language": settings.ui_language.value,
     }
 
 
