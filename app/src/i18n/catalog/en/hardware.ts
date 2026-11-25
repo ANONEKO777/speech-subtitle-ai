@@ -1,6 +1,6 @@
 export const hardware = {
   "asset.model": "model",
-  "asset.program": "program",
+  "asset.program": "runtime",
   "hw.title": "Hardware and performance",
   "hw.hint": "The app detects this computer's hardware and recommends a profile. You can switch profiles at any time without reinstalling.",
   "hw.detected": "Detected hardware",
@@ -18,7 +18,7 @@ export const hardware = {
   "hw.profiles": "Profiles",
   "hw.inUse": "In use",
   "hw.recommendedTag": "Recommended",
-  "hw.mayNotFit": "This computer may not be powerful enough",
+  "hw.mayNotFit": "May not fit this computer",
   "hw.useActive": "In use",
   "hw.use": "Use this profile",
   "hw.auto": "Switch back to automatic: use the profile recommended for the hardware",

@@ -13,7 +13,7 @@ The catalogs are in `app/src/i18n/catalog/`. See `docs/I18N-PLAN.md` for how the
 | video language | 影片語言 | video language | The language spoken in the video. |
 | subtitle language | 字幕語言 | subtitle language | The language the subtitles are translated into. |
 | original | 原文 | original | The source-language line of a cue. |
-| bilingual | 雙語 | bilingual | Both lines shown together. |
+| bilingual | 雙語 | bilingual, "Both" on the toolbar | Both lines shown together. The toolbar button says "Both" because "Bilingual" leaves the path field too short at 960 px. |
 | transcript | 逐字稿 | transcript | What speech recognition writes. |
 | speech recognition | 語音辨識 | speech recognition | The step is "Recognizing speech". |
 | sentence splitting | 斷句 | splitting sentences | |
@@ -27,7 +27,7 @@ The catalogs are in `app/src/i18n/catalog/`. See `docs/I18N-PLAN.md` for how the
 | settings | 設定 | settings | |
 | profile | 設定檔 | profile | A hardware profile (which devices run speech recognition and the LLM). Not "configuration file". |
 | model | 模型 | model | A downloaded model file. |
-| program | 執行檔 | program | A downloaded executable (a runtime). "Runtime" is only used for 執行環境. |
+| runtime | 執行檔 | runtime | A downloaded executable the app runs (whisper-cli, llama-server). It matches the navigation "Models and runtimes". 執行環境 in the navigation is the same word. |
 | runtime | 執行環境 | runtime | "Models and runtimes" is 模型與執行環境. |
 | graphics card, GPU | 顯示卡, GPU | graphics card, GPU | Say "graphics card" for the hardware and "GPU" for the work it does. |
 | processor, CPU | 處理器, CPU | processor, CPU | |
