@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
-import { type ArgsFor, type Key, type PluralBase, plural, t } from ".";
+import { type PluralTranslate, type Translate, plural, t } from ".";
 import { HTML_LANG, type Locale, UNMANAGED_LOCALE, type UiLanguage, readMirror, resolveLocale, writeMirror } from "./locale";
 
 interface I18n {
@@ -35,8 +35,8 @@ export function useT() {
   return useMemo(
     () => ({
       locale,
-      t: <K extends Key>(key: K, ...args: ArgsFor<K>) => t(locale, key, ...args),
-      plural: <B extends PluralBase>(base: B, n: number, ...args: ArgsFor<`${B}.other` & Key, "n">) => plural(locale, base, n, ...args),
+      t: ((key, ...args) => t(locale, key, ...args)) as Translate,
+      plural: ((base, n, ...args) => plural(locale, base, n, ...args)) as PluralTranslate,
     }),
     [locale],
   );
