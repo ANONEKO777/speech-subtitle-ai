@@ -117,7 +117,7 @@
 
 ## 示範影片
 
-[![示範影片的靜態畫面，連結會開啟檔案頁面](docs/media/poster.png)](docs/media/demo.mp4)
+https://github.com/user-attachments/assets/e2ca30a6-9098-4748-a5a7-86c3687cb118
 
 [下載影片](docs/media/demo.mp4)。約一分半鐘，依序是匯入、進度、播放、切換模式、快捷鍵清單、修改字幕、跳到摘要章節、換成第二個語言並匯出，接著是批次佇列、設定頁與第一次使用精靈。進度與佇列執行的部分經過加速。
 
