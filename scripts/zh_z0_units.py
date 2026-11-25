@@ -61,6 +61,20 @@ def main() -> int:
                 "text": convert(str(text)),
             }
         )
+    reference = WORK / "e5" / "reference.tsv"
+    if reference.exists():
+        for index, line in enumerate(reference.read_text(encoding="utf-8").splitlines()[1:]):
+            fields = line.split("	")
+            units.append(
+                {
+                    "set": "ref",
+                    "id": index,
+                    "start": int(float(fields[1]) * 1000),
+                    "end": int(float(fields[2]) * 1000),
+                    "orig": fields[3],
+                    "text": convert(fields[3]),
+                }
+            )
     write_json(RUNS / "units.json", {"converter": args.converter, "units": units})
     print(f"{len(units)} units written")
     return 0

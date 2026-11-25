@@ -89,7 +89,7 @@ def corpus() -> tuple[list[tuple[str, str]], dict[str, int]]:
     return found, skipped
 
 
-def converters() -> dict[str, Convert]:
+def converters(opencc_label: str = "opencc") -> dict[str, Convert]:
     """Every conversion this environment can do, under the name `<package>:<config>`."""
     out: dict[str, Convert] = {}
 
@@ -106,7 +106,7 @@ def converters() -> dict[str, Convert]:
             out[f"{label}:{config}"] = cast("Convert", made.convert)
 
     configs = ["s2t", "s2tw", "s2twp", "s2hk", "t2s", "tw2s", "hk2s", "tw2sp"]
-    add("opencc", "opencc", configs)
+    add(opencc_label, "opencc", configs)
     add("opencc-purepy", "opencc_purepy", configs)
     try:
         zhconv_rs = cast("Any", importlib.import_module("zhconv_rs"))
@@ -137,7 +137,7 @@ def edit_pairs(a: str, b: str) -> list[tuple[str, str]]:
     return pairs
 
 
-def run(out: Path) -> None:
+def run(out: Path, opencc_label: str) -> None:
     texts, skipped = corpus()
     whole = "\n".join(text for _, text in texts)
     result: dict[str, Any] = {
@@ -146,7 +146,7 @@ def run(out: Path) -> None:
         "skipped": skipped,
         "converters": {},
     }
-    table = converters()
+    table = converters(opencc_label)
     to_simplified = {
         name: fn
         for name, fn in table.items()
@@ -233,11 +233,17 @@ def main() -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     runner = sub.add_parser("run")
     runner.add_argument("--out", type=Path, required=True)
+    runner.add_argument(
+        "--opencc-label",
+        default="opencc",
+        help="name for the package that provides the module `opencc`: use opencc-reimpl in the "
+        "environment that holds opencc-python-reimplemented",
+    )
     reporter = sub.add_parser("report")
     reporter.add_argument("files", nargs="+", type=Path)
     args = parser.parse_args()
     if args.cmd == "run":
-        run(args.out)
+        run(args.out, args.opencc_label)
     else:
         report(args.files)
     return 0

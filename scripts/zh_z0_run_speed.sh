@@ -4,7 +4,7 @@
 # repository root with PYTHONPATH=<root>:<root>/scripts and PY=<the repo's Python>.
 PY="${PY:-python}"
 run() { "$PY" scripts/zh_z0_asr.py "$@" || echo "FAILED: $*"; }
-for round in 1 2; do
+for round in ${ROUNDS:-1 2}; do
   run --tag sp-w-$round --engine whisper --lang zh --subset every5
   run --tag sp-q-$round --engine qwen3 --lang zh --subset every5
   run --tag sp-qn-$round --engine qwen3 --lang zh --subset every5 --no-aligner

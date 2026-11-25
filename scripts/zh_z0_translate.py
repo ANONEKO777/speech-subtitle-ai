@@ -218,18 +218,46 @@ def report() -> None:
         )
 
 
+def samples() -> None:
+    """20 cues picked by position, not by quality: every 8th of the FLEURS set (14) and every 20th of
+    the anime ASR cues (6, cut to their first 12 characters and 12 words of translation, because
+    that video is not ours to quote). FLEURS is CC BY 4.0, so its sentences are quoted whole."""
+    picks = [("fleurs", i) for i in range(0, 112, 8)] + [("e5", i) for i in range(0, 120, 20)]
+    print("| set | source | English | Japanese | EN per char | JA per char |")
+    print("|---|---|---|---|---|---|")
+    for set_name, index in picks:
+        en = cast("list[dict[str, Any]]", read_json(RUNS / f"tr-draft-{set_name}-en.json")["rows"])[
+            index
+        ]
+        ja = cast("list[dict[str, Any]]", read_json(RUNS / f"tr-draft-{set_name}-ja.json")["rows"])[
+            index
+        ]
+        src = str(en["src"]).replace("\n", "")
+        out_en, out_ja = str(en["zh"]), str(ja["zh"])
+        shown = (src, out_en, out_ja)
+        if set_name == "e5":
+            shown = (src[:12] + "…", " ".join(out_en.split()[:12]) + " …", out_ja[:14] + "…")
+        print(
+            f"| {set_name} {index} | {shown[0]} | {shown[1]} | {shown[2]} | "
+            f"{len(out_en) / max(len(src), 1):.2f} | {len(out_ja) / max(len(src), 1):.2f} |"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="cmd", required=True)
     runner = sub.add_parser("run")
     runner.add_argument("--variant", choices=("standin", "draft"), required=True)
     runner.add_argument("--targets", nargs="+", default=["en", "ja"])
-    runner.add_argument("--sets", nargs="+", default=["fleurs", "e5"])
+    runner.add_argument("--sets", nargs="+", default=["fleurs", "e5", "ref"])
     runner.add_argument("--limit", type=int)
     sub.add_parser("report")
+    sub.add_parser("samples")
     args = parser.parse_args()
     if args.cmd == "run":
         run(args.variant, args.targets, args.sets, args.limit)
+    elif args.cmd == "samples":
+        samples()
     else:
         report()
     return 0
