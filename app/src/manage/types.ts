@@ -1,3 +1,5 @@
+import type { UiLanguage } from "../i18n/locale";
+
 /** What the manager routes return, parsed once at the boundary (see `parse.ts`). */
 
 export type ProfileId = "gpu-24gb" | "gpu-8gb" | "cpu" | "metal-32gb" | "metal-32gb-parallel" | "metal-16gb" | "apple-cpu";
@@ -156,6 +158,7 @@ export interface StorageView {
 }
 
 export interface SettingsView {
+  readonly uiLanguage: UiLanguage;
   readonly llm: LlmSaved;
   readonly consentText: string;
   readonly problem: string | null;

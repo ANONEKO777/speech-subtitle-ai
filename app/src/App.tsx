@@ -45,6 +45,7 @@ import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
 import { fetchModelStates } from "./manage/api";
 import { SettingsPage } from "./settings/SettingsPage";
+import { useUiLanguageSync } from "./settings/useUiLanguageSync";
 import { SettingsBar } from "./settings/SettingsBar";
 import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
 import { Wizard } from "./wizard/Wizard";
@@ -166,6 +167,7 @@ export function App() {
   useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
+  useUiLanguageSync(backend);
   useEffect(() => {
     if (!backend) return;
     let alive = true;

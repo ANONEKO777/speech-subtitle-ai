@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAsset, parseProfileView } from "./parse";
+import { parseAsset, parseProfileView, parseSettings } from "./parse";
 
 const raw = (missing: unknown[]) => ({
   hardware: { platform: "macos-arm64", chip: "Apple M3", gpu_name: null, vram_mib: null, driver_version: null, ram_mib: 36864, disk_free_mib: 1 },
@@ -56,5 +56,17 @@ describe("parseAsset", () => {
     expect(parseAsset(row({ found_outside_runtimes: true })).foundOutsideRuntimes).toBe(true);
     expect(parseAsset(row({ found_outside_runtimes: false })).foundOutsideRuntimes).toBe(false);
     expect(parseAsset(row({})).foundOutsideRuntimes).toBe(false);
+  });
+});
+
+describe("parseSettings", () => {
+  it("reads the window language the backend saved", () => {
+    expect(parseSettings({ ui_language: "ja" }).uiLanguage).toBe("ja");
+    expect(parseSettings({ ui_language: "zh-TW" }).uiLanguage).toBe("zh-TW");
+  });
+
+  it("takes auto from a backend that does not send it yet, or sends something unknown", () => {
+    expect(parseSettings({}).uiLanguage).toBe("auto");
+    expect(parseSettings({ ui_language: "fr" }).uiLanguage).toBe("auto");
   });
 });

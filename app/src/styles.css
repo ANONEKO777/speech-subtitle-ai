@@ -70,6 +70,22 @@
   text-rendering: optimizeLegibility;
 }
 
+/* The Han characters differ between Japanese, Simplified and Traditional Chinese, and a font draws only one form.
+   A window in Japanese or Simplified Chinese names its own fonts before the Traditional Chinese ones above. */
+:root:lang(ja) {
+  --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Yu Gothic UI", "Meiryo UI", "Noto Sans JP",
+    system-ui, sans-serif;
+  --font-display: "Inter Variable", "Inter", "Segoe UI Variable Display", "Segoe UI", "Yu Gothic UI", "Meiryo UI", "Noto Sans JP",
+    system-ui, sans-serif;
+}
+
+:root:lang(zh-Hans) {
+  --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, sans-serif;
+  --font-display: "Inter Variable", "Inter", "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, sans-serif;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-1: 0ms;

@@ -1,4 +1,5 @@
 import { ApiError, asRecord } from "../api/client";
+import { isUiLanguage } from "../i18n/locale";
 import type {
   Asset,
   DownloadJob,
@@ -192,6 +193,7 @@ export function parseSettings(raw: unknown): SettingsView {
   };
   const s = rec(o["storage"]);
   return {
+    uiLanguage: isUiLanguage(o["ui_language"]) ? o["ui_language"] : "auto",
     llm,
     consentText: str(o, "cloud_consent_text"),
     problem: strOrNull(o, "problem"),

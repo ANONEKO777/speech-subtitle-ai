@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { ApiError, type Backend, asRecord, call } from "../api/client";
+import type { UiLanguage } from "../i18n/locale";
 import {
   parseInventory,
   parseJob,
@@ -125,6 +126,8 @@ export interface LlmBody {
   readonly api_key?: string;
 }
 
+export const saveUiLanguage = async (b: Backend, uiLanguage: UiLanguage) =>
+  parseSettings(await put(b, "/api/settings", { ui_language: uiLanguage }));
 export const saveLlm = async (b: Backend, llm: LlmBody) => parseSettings(await put(b, "/api/settings", { llm }));
 export const testLlm = async (b: Backend, llm: LlmBody) => parseLlmTest(await post(b, "/api/llm/test", { llm }));
 
