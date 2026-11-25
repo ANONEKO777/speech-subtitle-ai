@@ -7,6 +7,7 @@ A machine that is set up with a private npm mirror writes that mirror's address 
 import json
 import re
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,9 +16,12 @@ PYPI_REGISTRY = "https://pypi.org/simple"
 
 
 def test_npm_lock_resolves_every_package_from_the_public_registry() -> None:
-    lock = json.loads((ROOT / "app" / "package-lock.json").read_text(encoding="utf-8"))
+    lock = cast(
+        dict[str, dict[str, dict[str, Any]]],
+        json.loads((ROOT / "app" / "package-lock.json").read_text(encoding="utf-8")),
+    )
     hosts = {
-        urlparse(entry["resolved"]).netloc
+        urlparse(str(entry["resolved"])).netloc
         for entry in lock["packages"].values()
         if "resolved" in entry
     }
