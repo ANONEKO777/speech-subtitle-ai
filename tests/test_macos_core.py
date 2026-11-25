@@ -23,6 +23,10 @@ from backend.core.fonts import FontMissing, burn_font, fonts_for, macos_coverage
 from backend.core.languages import get as get_language
 from backend.core.model import Cue
 
+windows_host = pytest.mark.skipif(
+    sys.platform != "win32", reason="asserts what the real Windows host does"
+)
+
 # --- tiny fonts -------------------------------------------------------------------------------
 
 
@@ -256,6 +260,7 @@ def test_the_default_chinese_font_on_a_mac_is_pingfang_with_no_lookup(as_mac: No
     assert target_font(cues("x", "en", "你好"), get_language("zh-TW"), boom) == "PingFang TC"
 
 
+@windows_host
 def test_the_default_chinese_font_on_windows_is_what_it_was() -> None:
     assert target_font(
         cues("x", "en", "你好"), get_language("zh-TW"), lambda _c: lambda _f: None
@@ -345,6 +350,7 @@ def test_japanese_source_text_on_a_mac_with_no_font_gets_the_mac_message(
     assert "設定 > 個人化" not in text
 
 
+@windows_host
 def test_japanese_source_text_on_windows_gets_the_windows_message() -> None:
     with pytest.raises(FontMissing) as caught:
         burn_font(cues("日本語です"), lambda _chars: lambda _family: None)
@@ -373,6 +379,7 @@ def test_the_system_lookup_is_the_mac_one_on_a_mac(
     assert seen == ["mac"]
 
 
+@windows_host
 def test_the_system_lookup_is_the_windows_one_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[str] = []
     monkeypatch.setattr(
@@ -669,7 +676,15 @@ def test_a_stop_signal_stops_the_children_then_lets_the_signal_do_what_it_would_
     monkeypatch.setattr(
         signal, "signal", lambda number, handler: handlers.append((number, handler))
     )
-    monkeypatch.setattr(os, "kill", lambda pid, sig: killed.append((pid, sig)))
+    real_kill = os.kill
+
+    def kill(pid: int, sig: int) -> None:
+        if pid == os.getpid():
+            killed.append((pid, sig))
+        else:
+            real_kill(pid, sig)
+
+    monkeypatch.setattr(os, "kill", kill)
 
     process_guard._on_stop_signal(signal.SIGTERM, None)  # pyright: ignore[reportPrivateUsage]
 

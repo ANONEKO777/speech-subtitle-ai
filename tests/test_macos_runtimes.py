@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,10 @@ from backend.manager.runtimes import (
 from backend.manager.selftest import ProbeFailed, run_selftest
 from backend.manager.selftest_store import SelfTestStore
 from backend.manager.storage import Storage
+
+windows_host = pytest.mark.skipif(
+    sys.platform != "win32", reason="asserts what the real Windows host does"
+)
 
 MAC: Registry = registry_module.load(platform=MACOS_ARM64)
 WHISPER = "whispercpp-b5454-macos-metal"
@@ -191,6 +196,7 @@ def test_the_engine_table_names_this_platforms_runtimes(as_mac: None) -> None:
     assert spec_for("crispasr-qwen3-asr-1.7b").runtime_id == CRISPASR
 
 
+@windows_host
 def test_the_engine_table_on_windows_names_the_windows_runtimes() -> None:
     assert spec_for("whispercpp-large-v3-turbo").runtime_id == "whispercpp-b5454-win-cuda12.4"
     assert spec_for("crispasr-qwen3-asr-1.7b").runtime_id == "crispasr-v0.8.49-win-cuda"
@@ -268,6 +274,7 @@ def test_the_cpu_switch_on_a_mac_keeps_every_layer_off_the_gpu(
     assert llama_layers(tmp_path, monkeypatch, cpu=False) == 99
 
 
+@windows_host
 def test_the_cpu_switch_on_windows_passes_the_layers_it_always_did(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -441,6 +448,7 @@ def test_saving_a_cloud_key_on_a_mac_is_a_plain_refusal_in_traditional_chinese(
     assert not (tmp_path / "secrets").exists()
 
 
+@windows_host
 def test_windows_still_gets_the_dpapi_store(tmp_path: Path) -> None:
     from backend.manager.secrets import DpapiSecretStore, default_secret_store
 
@@ -557,6 +565,7 @@ def test_the_engine_on_a_mac_is_given_metal_or_the_cpu(
     assert engine_device(tmp_path, monkeypatch, cpu=True) is Device.CPU
 
 
+@windows_host
 def test_the_engine_on_windows_is_given_cuda_as_it_always_was(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
