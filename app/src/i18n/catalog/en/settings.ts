@@ -11,7 +11,7 @@ export const settings = {
   "settings.title": "Settings",
   "settings.nav.models": "Models and runtimes",
   "bar.original": "Original",
-  "bar.both": "Bilingual",
+  "bar.both": "Both",
   "bar.language": "Subtitle language",
   "bar.size": "Subtitle size",
   "bar.color": "Subtitle color",
