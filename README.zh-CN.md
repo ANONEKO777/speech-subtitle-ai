@@ -117,7 +117,7 @@
 
 ## 演示视频
 
-[![演示视频的静态画面，链接会打开文件页面](docs/media/poster.png)](docs/media/demo.mp4)
+https://github.com/user-attachments/assets/e2ca30a6-9098-4748-a5a7-86c3687cb118
 
 [下载视频](docs/media/demo.mp4)。约一分半钟，依次是导入、进度、播放、切换模式、快捷键列表、修改字幕、跳到总结章节、换成第二种语言并导出，接着是批量队列、设置页和首次使用向导。进度和队列运行的部分经过加速。
 

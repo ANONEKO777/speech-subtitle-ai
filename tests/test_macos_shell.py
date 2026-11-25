@@ -8,6 +8,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,10 @@ from backend.core.languages import get as get_language
 from backend.core.model import Cue
 from backend.manager import hardware
 from backend.manager.profiles import ProfileId
+
+windows_host = pytest.mark.skipif(
+    sys.platform != "win32", reason="asserts what the real Windows host does"
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
@@ -52,6 +57,7 @@ def test_a_burn_on_a_mac_names_pingfang_and_arial_in_the_ass_file(
     assert "JhengHei" not in ass
 
 
+@windows_host
 def test_a_burn_on_windows_keeps_the_windows_fonts(tmp_path: Path) -> None:
     cues = [Cue(1, 0, 1000, "Hello", "你好", "en")]
     look = player._look(player.StillBody(time_s=0), cues, get_language("zh-TW"))  # pyright: ignore[reportPrivateUsage]
