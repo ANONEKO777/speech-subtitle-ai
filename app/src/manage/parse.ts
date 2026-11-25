@@ -64,6 +64,7 @@ export function parseAsset(raw: unknown): Asset {
     blockers: strings(o["blockers"]),
     license: str(o, "license"),
     licenseUrl: str(o, "license_url"),
+    localBuild: bool(o, "local_build"),
   };
 }
 
@@ -98,6 +99,8 @@ export function parseJob(raw: unknown): DownloadJob {
 function parseHardware(raw: unknown): Hardware {
   const o = rec(raw);
   return {
+    platform: str(o, "platform"),
+    chip: strOrNull(o, "chip"),
     gpuName: strOrNull(o, "gpu_name"),
     vramMib: numOrNull(o, "vram_mib"),
     driverVersion: strOrNull(o, "driver_version"),
@@ -108,7 +111,7 @@ function parseHardware(raw: unknown): Hardware {
 
 const missing = (raw: unknown): MissingAsset => {
   const o = rec(raw);
-  return { id: str(o, "id"), type: str(o, "type"), sizeBytes: num(o, "size_bytes") };
+  return { id: str(o, "id"), type: str(o, "type"), sizeBytes: num(o, "size_bytes"), localBuild: bool(o, "local_build") };
 };
 
 function parseOption(raw: unknown): ProfileOption {

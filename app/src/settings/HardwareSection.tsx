@@ -4,18 +4,25 @@ import type { Backend } from "../api/client";
 import { cancelDownload, chooseProfile, downloadProfileAssets, fetchLastSelfTest, fetchProfile, runSelfTest } from "../manage/api";
 import { isActive, overall } from "../manage/downloads";
 import { bytes, mib } from "../manage/format";
+import { chipOrGpu, deviceLabel, isCpuProfile, isMac } from "../manage/hardwareText";
 import { JobRow } from "../manage/JobRow";
+import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
 
-export const CPU_NOTICE =
-  "CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。";
+const CLOUD_ADVICE = "建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。";
+
+/** The notice under a processor-only profile. A Mac has no NVIDIA card to be missing and its GPU is Metal, so it says what this profile gives up. */
+export const cpuNotice = (id: ProfileId): string =>
+  id === "apple-cpu"
+    ? `這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`
+    : `CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`;
 
 
 export function selfTestText(t: SelfTest): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
   if (t.ok && t.fallback) return { tone: "warn", title: "GPU 後端失敗，已改用 CPU", body: t.fallback.reason };
-  if (t.ok) return { tone: "ok", title: `自檢通過，使用 ${t.device === "cuda" ? "GPU" : "CPU"}`, body: `${t.seconds.toFixed(1)} 秒` };
+  if (t.ok) return { tone: "ok", title: `自檢通過，使用 ${deviceLabel(t.device)}`, body: `${t.seconds.toFixed(1)} 秒` };
   return { tone: "bad", title: "自檢沒有通過", body: t.message };
 }
 
@@ -54,7 +61,13 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
 }
 
 function missingText(option: ProfileOption): string {
-  return option.missing.length === 0 ? "需要的項目都已安裝" : `缺少 ${option.missing.length} 項，要下載 ${bytes(option.downloadBytes)}`;
+  if (option.missing.length === 0) return "需要的項目都已安裝";
+  const get = toDownload(option.missing);
+  const build = toBuild(option.missing);
+  const download = `缺少 ${get.length} 項，要下載 ${bytes(option.downloadBytes)}`;
+  if (build.length === 0) return download;
+  const built = `${build.length} 項要${LOCAL_BUILD_TEXT}`;
+  return get.length === 0 ? built : `${download}；另有 ${built}`;
 }
 
 interface Props {
@@ -132,6 +145,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const active = view?.profiles.find((p) => p.active);
   const jobs = downloads.list.filter((j) => switched?.jobIds.includes(j.id));
   const total = overall(jobs);
+  const first = hw ? chipOrGpu(hw) : null;
   return (
     <section className="panel" data-testid="hardware-section" aria-labelledby="hw-title">
       <div className="panel-head">
@@ -153,19 +167,23 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
             <h3>偵測到的硬體</h3>
             <dl className="facts">
               <div>
-                <dt>顯示卡</dt>
-                <dd data-testid="hw-gpu">{hw.gpuName ?? "沒有偵測到 NVIDIA 顯示卡"}</dd>
+                <dt>{first?.label}</dt>
+                <dd data-testid="hw-gpu">{first?.value}</dd>
               </div>
+              {!isMac(hw) && (
+                <>
+                  <div>
+                    <dt>顯示記憶體</dt>
+                    <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
+                  </div>
+                  <div>
+                    <dt>驅動程式</dt>
+                    <dd data-testid="hw-driver">{hw.driverVersion ?? "—"}</dd>
+                  </div>
+                </>
+              )}
               <div>
-                <dt>顯示記憶體</dt>
-                <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
-              </div>
-              <div>
-                <dt>驅動程式</dt>
-                <dd data-testid="hw-driver">{hw.driverVersion ?? "—"}</dd>
-              </div>
-              <div>
-                <dt>記憶體</dt>
+                <dt>{isMac(hw) ? "統一記憶體" : "記憶體"}</dt>
                 <dd data-testid="hw-ram">{mib(hw.ramMib)}</dd>
               </div>
               <div>
@@ -194,7 +212,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 data-recommended={p.recommended}
               >
                 <div className="profile-title">
-                  {p.id === "cpu" ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
+                  {isCpuProfile(p.id) ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
                   <strong>{PROFILE_NAME[p.id]}</strong>
                 </div>
                 <p className="sub">{PROFILE_BLURB[p.id]}</p>
@@ -209,7 +227,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 {p.recommendCloud && (
                   <p className="note cloud" data-testid="cpu-cloud-note">
                     <Cloud className="icon" aria-hidden />
-                    {CPU_NOTICE}
+                    {cpuNotice(p.id)}
                   </p>
                 )}
                 <button type="button" className={p.active ? "ghost" : "primary"} data-testid={`profile-use-${p.id}`} disabled={p.active || busy} onClick={() => void choose(p.id)}>
@@ -245,16 +263,18 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 {active && active.missing.length > 0 ? (
                   <>
                     <p data-testid="switch-missing-title">
-                      還缺 {active.missing.length} 項，共 {bytes(active.downloadBytes)}：
+                      {toDownload(active.missing).length > 0
+                        ? `還缺 ${toDownload(active.missing).length} 項，共 ${bytes(active.downloadBytes)}：`
+                        : "還缺的項目要在這台 Mac 上自行建置："}
                     </p>
                     <ul className="stages" data-testid="switch-missing">
                       {active.missing.map((m) => (
                         <li key={m.id}>
-                          {m.id}（{m.type === "model" ? "模型" : "執行檔"}，{bytes(m.sizeBytes)}）
+                          {m.id}（{m.type === "model" ? "模型" : "執行檔"}，{m.localBuild ? LOCAL_BUILD_TEXT : bytes(m.sizeBytes)}）
                         </li>
                       ))}
                     </ul>
-                    {jobs.length === 0 && (
+                    {jobs.length === 0 && toDownload(active.missing).length > 0 && (
                       <button type="button" className="primary" data-testid="switch-download" onClick={() => void fetchMissing()}>
                         下載缺少的項目
                       </button>

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import socket
 import sys
 from collections.abc import AsyncGenerator, Callable, Sequence
@@ -34,6 +35,7 @@ from backend.api import (
 )
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
 from backend.api.deps import locked_path_response
+from backend.core import parent_watch
 from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
 from backend.core.pipeline import Ports, Settings
@@ -206,6 +208,9 @@ def serve(user_data: Path, projects_dir: Path | None, extra_origins: Sequence[st
     server = uvicorn.Server(
         uvicorn.Config(app, log_level="warning", timeout_graceful_shutdown=GRACEFUL_SHUTDOWN_S)
     )
+    watched = parent_watch.parent_pid(os.environ)
+    if watched is not None:
+        parent_watch.watch(watched, lambda: setattr(server, "should_exit", True))
     server.run(sockets=[listener])
 
 

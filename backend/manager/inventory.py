@@ -77,6 +77,8 @@ class Entry:
     """Why a plain delete is refused. Empty means it may go."""
     license: str
     license_url: str
+    local_build: bool
+    """A runtime this machine builds with a script. It has no download, so the size is 0."""
 
 
 def asset(registry: Registry, asset_id: str) -> Model | Runtime | None:
@@ -182,6 +184,7 @@ class Inventory:
             blockers=self.blockers(asset_id, active),
             license=found.license,
             license_url=found.license_url,
+            local_build=isinstance(found, Runtime) and found.is_local_build,
         )
 
     def _path(self, found: Model | Runtime, installed: bool) -> str | None:

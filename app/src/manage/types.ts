@@ -1,7 +1,7 @@
 /** What the manager routes return, parsed once at the boundary (see `parse.ts`). */
 
-export type ProfileId = "gpu-24gb" | "gpu-8gb" | "cpu";
-export const PROFILE_IDS: readonly ProfileId[] = ["gpu-24gb", "gpu-8gb", "cpu"];
+export type ProfileId = "gpu-24gb" | "gpu-8gb" | "cpu" | "metal-32gb" | "metal-32gb-parallel" | "metal-16gb" | "apple-cpu";
+export const PROFILE_IDS: readonly ProfileId[] = ["gpu-24gb", "gpu-8gb", "cpu", "metal-32gb", "metal-32gb-parallel", "metal-16gb", "apple-cpu"];
 
 export type InstallState = "not_installed" | "partial" | "installing" | "installed";
 export type ShaState = "verified" | "unchecked" | "corrupt" | "not_installed";
@@ -32,6 +32,8 @@ export interface Asset {
   readonly blockers: readonly string[];
   readonly license: string;
   readonly licenseUrl: string;
+  /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
+  readonly localBuild: boolean;
 }
 
 export interface Inventory {
@@ -63,6 +65,10 @@ export interface DownloadJob {
 }
 
 export interface Hardware {
+  /** `macos-arm64` for an Apple-silicon Mac, `win-x64` for a Windows PC. */
+  readonly platform: string;
+  /** The Apple chip's name ("Apple M3 Pro"); null on a PC. */
+  readonly chip: string | null;
   readonly gpuName: string | null;
   readonly vramMib: number | null;
   readonly driverVersion: string | null;
@@ -74,6 +80,8 @@ export interface MissingAsset {
   readonly id: string;
   readonly type: string;
   readonly sizeBytes: number;
+  /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
+  readonly localBuild: boolean;
 }
 
 export interface ProfileOption {

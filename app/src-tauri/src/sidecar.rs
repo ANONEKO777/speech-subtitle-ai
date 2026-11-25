@@ -1,8 +1,9 @@
 //! Starts the Python backend, reads its `READY port=<n> token=<t>` line, and kills it, with every
 //! process it started, when the window closes or the app exits.
 //!
-//! An installed app runs the packaged backend (`backend/vst-backend.exe` in the resource folder)
-//! with the bundled FFmpeg. `tauri dev` runs it from the repository's virtual environment.
+//! An installed app runs the packaged backend (`backend/vst-backend.exe` in the resource folder, or
+//! `backend/vst-backend` on a Mac) with the bundled FFmpeg. `tauri dev` runs it from the
+//! repository's virtual environment.
 
 use serde::Serialize;
 use std::io::{BufRead, BufReader, Read};
@@ -10,6 +11,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
+
+use crate::platform;
 
 #[derive(Clone, Serialize)]
 pub struct Backend {
@@ -48,6 +51,8 @@ impl BackendState {
             if job.is_none() {
                 kill_tree(child.id());
             }
+            #[cfg(unix)]
+            crate::group::end(&mut child);
             let _ = child.kill();
             let _ = child.wait();
         }
@@ -77,7 +82,7 @@ fn packaged(app: &AppHandle) -> Option<Packaged> {
         return None;
     }
     let resources = app.path().resource_dir().ok()?;
-    let exe = resources.join("backend").join("vst-backend.exe");
+    let exe = resources.join("backend").join(platform::here::packaged_backend());
     exe.is_file().then(|| Packaged { exe, ffmpeg: resources.join("ffmpeg") })
 }
 
@@ -99,7 +104,7 @@ fn command(app: &AppHandle) -> Command {
             let root = repo_root();
             let python = python
                 .map(PathBuf::from)
-                .unwrap_or_else(|| root.join(".venv").join("Scripts").join("python.exe"));
+                .unwrap_or_else(|| root.join(platform::here::venv_python()));
             let mut cmd = Command::new(python);
             cmd.args(["-m", "backend.main"]).current_dir(root);
             cmd
@@ -159,6 +164,8 @@ pub fn start(app: AppHandle) {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000);
     }
+    #[cfg(unix)]
+    crate::group::lead_own_group(&mut cmd);
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
@@ -183,6 +190,8 @@ pub fn start(app: AppHandle) {
                 eprintln!("cannot put the backend in a job object; stop() will kill its process tree instead");
             }
         }
+        #[cfg(unix)]
+        crate::group::end_previous(&mut inner.child);
         inner.child = Some(child);
     }
     let tail = Arc::new(Mutex::new(Vec::<u8>::new()));

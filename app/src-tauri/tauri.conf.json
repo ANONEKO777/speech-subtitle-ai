@@ -31,7 +31,9 @@
   "bundle": {
     "active": true,
     "targets": [
-      "nsis"
+      "nsis",
+      "app",
+      "dmg"
     ],
     "createUpdaterArtifacts": true,
     "icon": [
@@ -49,6 +51,10 @@
       "../../installer/THIRD_PARTY.md": "THIRD_PARTY.md",
       "../../LICENSE": "LICENSE",
       "../../installer/LICENSE-whisper.cpp.txt": "licenses/LICENSE-whisper.cpp.txt"
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "signingIdentity": "-"
     },
     "windows": {
       "webviewInstallMode": {

@@ -513,6 +513,10 @@ button.danger {
   gap: var(--space-2);
 }
 
+.profile-title strong {
+  word-break: keep-all;
+}
+
 button.link {
   align-self: flex-start;
   color: var(--accent);

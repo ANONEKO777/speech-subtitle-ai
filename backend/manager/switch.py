@@ -18,6 +18,8 @@ class MissingAsset:
     id: str
     type: str
     size_bytes: int
+    local_build: bool = False
+    """The program is built on this machine by a script, not downloaded."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,7 +36,8 @@ def requirements(ctx: ManagerContext, profile_id: ProfileId) -> Requirements:
         assert found is not None
         if not ctx.inventory.is_installed(asset_id):
             kind = "runtime" if isinstance(found, Runtime) else "model"
-            missing.append(MissingAsset(asset_id, kind, found.size_bytes))
+            local_build = isinstance(found, Runtime) and found.is_local_build
+            missing.append(MissingAsset(asset_id, kind, found.size_bytes, local_build))
     return Requirements(tuple(missing), sum(m.size_bytes for m in missing))
 
 

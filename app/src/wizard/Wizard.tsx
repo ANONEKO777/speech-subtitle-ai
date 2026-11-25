@@ -16,7 +16,9 @@ import { bytes, mib, speed } from "../manage/format";
 import { JobRow } from "../manage/JobRow";
 import type { DownloadJob, LicenseEntry, ProfileId } from "../manage/types";
 import { useDownloads } from "../manage/useDownloads";
-import { CPU_NOTICE, SelfTestPanel } from "../settings/HardwareSection";
+import { SelfTestPanel, cpuNotice } from "../settings/HardwareSection";
+import { chipOrGpu, isCpuProfile, isMac } from "../manage/hardwareText";
+import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
 import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
 export const VC_REDIST_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist";
 import { downloadPlan } from "./plan";
@@ -53,7 +55,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
         const jobs = await downloadProfileAssets(backend);
         const plan = downloadPlan(view, selected);
         const extra = await Promise.all(
-          plan.items.filter((i) => i.fallback).map((i) => startAsset(backend, { id: i.id, type: i.type === "model" ? "model" : "runtime" })),
+          plan.items.filter((i) => i.fallback && !i.localBuild).map((i) => startAsset(backend, { id: i.id, type: i.type === "model" ? "model" : "runtime" })),
         );
         if (!alive) return;
         downloads.refresh();
@@ -234,6 +236,13 @@ function OverallLine({ jobs }: { jobs: readonly DownloadJob[] }) {
   );
 }
 
+/** "兩" and "三" read as Taiwan speech does; a larger count stays a digit. */
+const othersText = (n: number): string => (n === 2 ? "兩" : n === 3 ? "三" : String(n));
+
+/** The table lists what to download and, on a Mac, the program the build script makes. The heading says which of the two it holds. */
+const assetsTitle = (downloads: number, builds: number): string =>
+  builds === 0 ? "會下載的項目" : downloads === 0 ? "要自行建置的項目" : "要下載或自行建置的項目";
+
 function Choose({
   state,
   licenses,
@@ -251,17 +260,20 @@ function Choose({
   const hw = view.hardware;
   const plan = downloadPlan(view, selected);
   const option = view.profiles.find((p) => p.id === selected);
+  const others = view.profiles.length - 1;
+  const downloads = toDownload(plan.items);
+  const builds = toBuild(plan.items);
   const tight = hw.diskFreeMib !== null && plan.totalBytes > hw.diskFreeMib * 1024 * 1024;
   return (
     <div data-testid="wizard-choose">
       <div className="detected" data-testid="wizard-hardware">
         <span>
-          <strong data-testid="wizard-gpu">{hw.gpuName ?? "沒有偵測到 NVIDIA 顯示卡"}</strong>
-          {hw.vramMib !== null && <> · 顯示記憶體 {mib(hw.vramMib)}</>}
-          {hw.driverVersion && <> · 驅動 {hw.driverVersion}</>}
+          <strong data-testid="wizard-gpu">{chipOrGpu(hw).value}</strong>
+          {!isMac(hw) && hw.vramMib !== null && <> · 顯示記憶體 {mib(hw.vramMib)}</>}
+          {!isMac(hw) && hw.driverVersion && <> · 驅動 {hw.driverVersion}</>}
         </span>
         <span className="sub">
-          記憶體 {mib(hw.ramMib)} · 磁碟可用 {mib(hw.diskFreeMib)}
+          {isMac(hw) ? "統一記憶體" : "記憶體"} {mib(hw.ramMib)} · 磁碟可用 {mib(hw.diskFreeMib)}
         </span>
       </div>
       {view.vcRuntimeMissing && (
@@ -271,7 +283,7 @@ function Choose({
         </div>
       )}
       <p data-testid="wizard-recommended">
-        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外兩個。
+        建議使用 <strong>{PROFILE_NAME[view.recommended.id]}</strong> 設定檔。你也可以改選下面另外{othersText(others)}個。
       </p>
       <div className="wizard-profiles" role="radiogroup" aria-label="設定檔">
         {view.profiles.map((p) => (
@@ -286,7 +298,7 @@ function Choose({
             onClick={() => onSelect(p.id)}
           >
             <span className="profile-title">
-              {p.id === "cpu" ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
+              {isCpuProfile(p.id) ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
               <strong>{PROFILE_NAME[p.id]}</strong>
               {p.recommended && <span className="chip-tag rec">建議</span>}
             </span>
@@ -299,11 +311,11 @@ function Choose({
       {option?.recommendCloud && (
         <p className="note cloud" data-testid="wizard-cpu-note">
           <Cloud className="icon" aria-hidden />
-          {CPU_NOTICE}
+          {cpuNotice(option.id)}
         </p>
       )}
 
-      <h3>會下載的項目</h3>
+      <h3 data-testid="wizard-assets-title">{assetsTitle(downloads.length, builds.length)}</h3>
       {plan.items.length === 0 ? (
         <p className="sub" data-testid="wizard-assets-empty">
           這個設定檔需要的項目都已安裝，直接做自檢。
@@ -326,10 +338,11 @@ function Choose({
                     <span className="asset-id">{item.id}</span>
                     <span className="sub">
                       {item.type === "model" ? "模型" : "執行檔"}
+                      {item.localBuild ? `，${LOCAL_BUILD_TEXT}` : ""}
                       {item.fallback ? "，GPU 失敗時改用 CPU 的備援" : ""}
                     </span>
                   </td>
-                  <td>{bytes(item.sizeBytes)}</td>
+                  <td>{item.localBuild ? "—" : bytes(item.sizeBytes)}</td>
                   <td>
                     {lic ? (
                       <ExternalLink href={lic.licenseUrl} testId={`wizard-license-${item.id}`}>
@@ -346,7 +359,7 @@ function Choose({
         </table>
       )}
       <p className="sub" data-testid="wizard-total">
-        共 {bytes(plan.totalBytes)}
+        {downloads.length === 0 && builds.length > 0 ? "沒有要下載的項目" : `共 ${bytes(plan.totalBytes)}`}
         {hw.diskFreeMib !== null && `，磁碟可用 ${mib(hw.diskFreeMib)}`}
       </p>
       {tight && (
@@ -358,7 +371,7 @@ function Choose({
 
       <div className="dialog-buttons start sticky-actions">
         <button type="button" className="primary" data-testid="wizard-start" onClick={onStart}>
-          {plan.items.length === 0 ? "開始自檢" : "下載並開始"}
+          {downloads.length === 0 ? "開始自檢" : "下載並開始"}
         </button>
         <button type="button" className="ghost" data-testid="wizard-skip" onClick={onSkip}>
           略過，之後在設定裡處理
