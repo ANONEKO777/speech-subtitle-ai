@@ -81,9 +81,21 @@ fn packaged(app: &AppHandle) -> Option<Packaged> {
     if std::env::current_exe().is_ok_and(|exe| in_build_tree(&exe)) {
         return None;
     }
-    let resources = app.path().resource_dir().ok()?;
+    packaged_in(&app.path().resource_dir().ok()?)
+}
+
+fn packaged_in(resources: &Path) -> Option<Packaged> {
     let exe = resources.join("backend").join(platform::here::packaged_backend());
     exe.is_file().then(|| Packaged { exe, ffmpeg: resources.join("ffmpeg") })
+}
+
+/// The repository's own interpreter running the backend, for `tauri dev`. `python` is the
+/// `VST_BACKEND_PYTHON` override.
+fn dev_command(python: Option<std::ffi::OsString>, root: PathBuf) -> Command {
+    let python = python.map(PathBuf::from).unwrap_or_else(|| root.join(platform::here::venv_python()));
+    let mut cmd = Command::new(python);
+    cmd.args(["-m", "backend.main"]).current_dir(root);
+    cmd
 }
 
 /// `VST_BACKEND_PYTHON` wins (the drivers use it), then the packaged executable, then the
@@ -100,15 +112,7 @@ fn command(app: &AppHandle) -> Command {
             }
             cmd
         }
-        (python, _) => {
-            let root = repo_root();
-            let python = python
-                .map(PathBuf::from)
-                .unwrap_or_else(|| root.join(platform::here::venv_python()));
-            let mut cmd = Command::new(python);
-            cmd.args(["-m", "backend.main"]).current_dir(root);
-            cmd
-        }
+        (python, _) => dev_command(python, repo_root()),
     };
     if let Some(dir) = std::env::var_os("VST_PROJECTS") {
         cmd.arg("--projects").arg(dir);
@@ -153,6 +157,28 @@ const MAX_RESTARTS: u32 = 5;
 /// count again, so five crashes over days of uptime do not leave it dead for good.
 const HEALTHY_FOR: std::time::Duration = std::time::Duration::from_secs(10 * 60);
 
+/// Takes `child` as the running backend. A backend that is still in the slot (one that died after
+/// it was ready) is ended first, with its group, so the new one does not start beside programs
+/// the old one left. A child that arrives after `stop()` is ended instead and `false` is returned.
+fn adopt(inner: &mut Inner, mut child: Child) -> bool {
+    if inner.stopped {
+        let _ = child.kill();
+        let _ = child.wait();
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        inner.job = job::Job::adopt(&child);
+        if inner.job.is_none() {
+            eprintln!("cannot put the backend in a job object; stop() will kill its process tree instead");
+        }
+    }
+    #[cfg(unix)]
+    crate::group::end_previous(&mut inner.child);
+    inner.child = Some(child);
+    true
+}
+
 pub fn start(app: AppHandle) {
     if app.state::<BackendState>().0.lock().unwrap().stopped {
         return;
@@ -175,24 +201,8 @@ pub fn start(app: AppHandle) {
     };
     let stdout = child.stdout.take().expect("piped");
     let stderr = child.stderr.take().expect("piped");
-    {
-        let state = app.state::<BackendState>();
-        let mut inner = state.0.lock().unwrap();
-        if inner.stopped {
-            let _ = child.kill();
-            let _ = child.wait();
-            return;
-        }
-        #[cfg(windows)]
-        {
-            inner.job = job::Job::adopt(&child);
-            if inner.job.is_none() {
-                eprintln!("cannot put the backend in a job object; stop() will kill its process tree instead");
-            }
-        }
-        #[cfg(unix)]
-        crate::group::end_previous(&mut inner.child);
-        inner.child = Some(child);
+    if !adopt(&mut app.state::<BackendState>().0.lock().unwrap(), child) {
+        return;
     }
     let tail = Arc::new(Mutex::new(Vec::<u8>::new()));
     let tail_writer = Arc::clone(&tail);
@@ -311,6 +321,106 @@ mod tests {
     #[test]
     fn a_binary_built_in_this_crate_is_a_developer_build() {
         assert!(in_build_tree(&std::env::current_exe().unwrap()));
+    }
+
+    fn long_lived() -> Command {
+        #[cfg(unix)]
+        let mut cmd = {
+            let mut cmd = Command::new("sh");
+            cmd.args(["-c", "sleep 60 & echo up; wait"]);
+            crate::group::lead_own_group(&mut cmd);
+            cmd
+        };
+        #[cfg(windows)]
+        let mut cmd = {
+            let mut cmd = Command::new("ping");
+            cmd.args(["-n", "60", "127.0.0.1"]);
+            cmd
+        };
+        cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null());
+        cmd
+    }
+
+    #[test]
+    fn a_child_that_arrives_after_stop_is_ended_and_not_kept() {
+        let mut inner = Inner { stopped: true, ..Inner::default() };
+        let child = long_lived().spawn().unwrap();
+
+        assert!(!adopt(&mut inner, child));
+        assert!(inner.child.is_none());
+    }
+
+    #[test]
+    fn a_new_child_takes_the_slot() {
+        let mut inner = Inner::default();
+        let child = long_lived().spawn().unwrap();
+        let pid = child.id();
+
+        assert!(adopt(&mut inner, child));
+        assert_eq!(inner.child.as_ref().map(Child::id), Some(pid));
+        let mut kept = inner.child.take().unwrap();
+        let _ = kept.kill();
+        let _ = kept.wait();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn adopting_a_new_backend_ends_the_group_of_the_one_it_replaces() {
+        let mut old = long_lived().spawn().unwrap();
+        let mut up = [0u8; 3];
+        old.stdout.take().unwrap().read_exact(&mut up).unwrap();
+        let group = old.id() as libc::pid_t;
+        let _ = old.kill();
+        let mut inner = Inner { child: Some(old), ..Inner::default() };
+        // SAFETY: signal 0 only checks that the group can be signalled.
+        let exists = |g| unsafe { libc::killpg(g, 0) == 0 };
+        assert!(exists(group), "the old leader died but its sleep must still be there");
+
+        let new = long_lived().spawn().unwrap();
+        let new_pid = new.id();
+        assert!(adopt(&mut inner, new));
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while exists(group) && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        assert!(!exists(group), "the replaced backend left programs of its group running");
+        assert_eq!(inner.child.as_ref().map(Child::id), Some(new_pid));
+        let mut kept = inner.child.take().unwrap();
+        crate::group::end(&mut kept);
+        let _ = kept.wait();
+    }
+
+    #[test]
+    fn the_packaged_backend_is_found_by_the_name_of_this_system() {
+        let resources = std::env::temp_dir().join(format!("vst-packaged-{}", std::process::id()));
+        let backend = resources.join("backend");
+        std::fs::create_dir_all(&backend).unwrap();
+        assert!(packaged_in(&resources).is_none());
+        std::fs::write(backend.join(platform::here::packaged_backend()), b"x").unwrap();
+
+        let found = packaged_in(&resources).unwrap();
+        std::fs::remove_dir_all(&resources).unwrap();
+
+        assert_eq!(found.exe, backend.join(platform::here::packaged_backend()));
+        assert_eq!(found.ffmpeg, resources.join("ffmpeg"));
+    }
+
+    #[test]
+    fn the_developer_command_runs_the_virtual_environment_python_of_this_system() {
+        let root = PathBuf::from("repo");
+        let cmd = dev_command(None, root.clone());
+
+        assert_eq!(cmd.get_program(), root.join(platform::here::venv_python()).as_os_str());
+        assert_eq!(cmd.get_args().collect::<Vec<_>>(), ["-m", "backend.main"]);
+        assert_eq!(cmd.get_current_dir(), Some(root.as_path()));
+    }
+
+    #[test]
+    fn an_explicit_python_beats_the_virtual_environment() {
+        let cmd = dev_command(Some("custom-python".into()), PathBuf::from("repo"));
+
+        assert_eq!(cmd.get_program(), "custom-python");
     }
 
     #[test]

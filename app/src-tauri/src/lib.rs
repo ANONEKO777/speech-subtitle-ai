@@ -187,7 +187,11 @@ mod tests {
 
         assert_eq!(as_file, platform::reveal(platform::Os::CURRENT, &file, true));
         assert_eq!(as_dir, platform::reveal(platform::Os::CURRENT, &dir, false));
-        assert_ne!(as_file, as_dir);
+        if platform::Os::CURRENT == platform::Os::Other {
+            assert_eq!(as_file, as_dir, "a file manager that cannot select opens the folder that holds the file");
+        } else {
+            assert_ne!(as_file, as_dir);
+        }
     }
 }
 
