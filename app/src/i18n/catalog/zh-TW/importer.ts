@@ -6,7 +6,7 @@ export const importer = {
   "import.targetAria": "字幕語言",
   "import.sourceTitle": "影片裡的人說的語言",
   "import.source": "影片語言",
-  "import.pathPlaceholder": "影片的完整路徑，例如 D:\talks\talk.mp4",
+  "import.pathPlaceholder": "影片的完整路徑，例如 D:\\talks\\talk.mp4",
   "import.pick": "選擇檔案",
   "import.go": "匯入",
   "import.targetExperimental": "{name}（實驗性）",

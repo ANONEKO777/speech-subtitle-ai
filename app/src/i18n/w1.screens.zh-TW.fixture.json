@@ -1,0 +1,669 @@
+{
+ "hardware on a PC: switching, downloading and the self-test": [
+  {
+   "pc": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。目前使用建議缺少 2 項，要下載 1.94 GB使用中8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用這個設定檔自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "pc switched": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。建議缺少 2 項，要下載 1.94 GB使用這個設定檔8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。目前使用缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用中改回自動：依硬體使用建議的設定檔前往設定 LLM 來源（雲端）已切換到 只用 CPU。Low disk space還缺 2 項，共 1.50 GB：whisper-large-v3-turbo（模型，1.49 GB）whispercpp-b5454-win-cpu（執行檔，8.58 MB）下載缺少的項目自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "pc downloading": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。建議缺少 2 項，要下載 1.94 GB使用這個設定檔8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。目前使用缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用中改回自動：依硬體使用建議的設定檔前往設定 LLM 來源（雲端）已切換到 只用 CPU。Low disk space還缺 2 項，共 1.50 GB：whisper-large-v3-turbo（模型，1.49 GB）whispercpp-b5454-win-cpu（執行檔，8.58 MB）whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次總進度 25%全部取消自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "pc self-test fallback": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。目前使用建議缺少 2 項，要下載 1.94 GB使用中8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用這個設定檔已切換到 只用 CPU。Low disk space還缺 2 項，共 1.94 GB：whisper-large-v3-turbo（模型，1.49 GB）whispercpp-b5454-win-cuda（執行檔，458 MB）whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次總進度 25%全部取消自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢GPU 後端失敗，已改用 CPUCUDA failed to start語音辨識 · asr-rt · cuda · 正常（1.5 秒）LLM · llm-rt · cuda · 失敗（1.5 秒）：driver too old",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "pc self-test failed": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。目前使用建議缺少 2 項，要下載 1.94 GB使用中8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用這個設定檔已切換到 只用 CPU。Low disk space還缺 2 項，共 1.94 GB：whisper-large-v3-turbo（模型，1.49 GB）whispercpp-b5454-win-cuda（執行檔，458 MB）whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次總進度 25%全部取消自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢自檢沒有通過Nothing started語音辨識 · asr-rt · cuda · 失敗（1.5 秒）：driver too old",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "pc self-test passed": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。目前使用建議缺少 2 項，要下載 1.94 GB使用中8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用這個設定檔已切換到 只用 CPU。Low disk space還缺 2 項，共 1.94 GB：whisper-large-v3-turbo（模型，1.49 GB）whispercpp-b5454-win-cuda（執行檔，458 MB）whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次總進度 25%全部取消自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢自檢通過，使用 GPU4.2 秒語音辨識 · asr-rt · cuda · 正常（1.5 秒）LLM · llm-rt · cuda · 正常（1.5 秒）",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "hardware on a Mac: chip, local build and the processor-only notice": [
+  {
+   "mac": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體晶片Apple M3統一記憶體36.0 GB磁碟可用空間488 GB建議的設定檔：Apple 晶片 32 GB 以上為什麼這樣建議fitsApple 晶片 32 GB 以上適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal）。目前使用建議缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用中Apple 晶片 32 GB 以上（同時執行）適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯同時使用 GPU（Metal），較吃記憶體。需要自己確認這台 Mac 撐得住再選。缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用這個設定檔Apple 晶片 16 GB適合 16 GB 的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal），LLM 的內容長度較短。缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用這個設定檔Apple 晶片只用處理器記憶體不足 16 GB 時使用，全部用處理器，速度慢很多。缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用這個設定檔自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "mac switched": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體晶片Apple M3統一記憶體36.0 GB磁碟可用空間488 GB建議的設定檔：Apple 晶片 32 GB 以上為什麼這樣建議fitsApple 晶片 32 GB 以上適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal）。建議缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用這個設定檔Apple 晶片 32 GB 以上（同時執行）適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯同時使用 GPU（Metal），較吃記憶體。需要自己確認這台 Mac 撐得住再選。缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用這個設定檔Apple 晶片 16 GB適合 16 GB 的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal），LLM 的內容長度較短。缺少 2 項，要下載 1.53 GB；另有 1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）使用這個設定檔Apple 晶片只用處理器記憶體不足 16 GB 時使用，全部用處理器，速度慢很多。目前使用1 項要在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用中改回自動：依硬體使用建議的設定檔前往設定 LLM 來源（雲端）已切換到 Apple 晶片只用處理器。還缺的項目要在這台 Mac 上自行建置：whispercpp-b5454-macos-metal（執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md））自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "hardware with a fallback banner": [
+  {
+   "banner": {
+    "text": "硬體與效能App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。偵測到的硬體顯示卡RTX 4090顯示記憶體24.0 GB驅動程式596.36記憶體64.0 GB磁碟可用空間488 GB建議的設定檔：24 GB 顯示卡為什麼這樣建議fits24 GB 顯示卡適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。建議缺少 2 項，要下載 1.94 GB使用這個設定檔8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。缺少 2 項，要下載 1.94 GB使用這個設定檔只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。目前使用缺少 2 項，要下載 1.50 GBCPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。使用中改回自動：依硬體使用建議的設定檔前往設定 LLM 來源（雲端）自檢用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。目前使用 CPU：CUDA failed to start執行自檢",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "LLM source: Ollama, cloud, the test result and the saved note": [
+  {
+   "builtin": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。測試連線儲存",
+    "attrs": [
+     "aria-label=LLM 來源"
+    ]
+   },
+   "ollama": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。Ollama 網址模型名稱請輸入 Ollama 的模型名稱，例如 qwen3:8b測試連線儲存",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=例如 qwen3:8b"
+    ]
+   },
+   "cloud": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址請輸入網址模型名稱請輸入模型名稱API 金鑰（只能寫入，儲存後不會再顯示）請輸入 API 金鑰我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。要先勾選同意，才能儲存雲端來源測試連線儲存",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=貼上 API 金鑰"
+    ]
+   },
+   "cloud with an http address": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址雲端網址必須使用 https（本機位址除外）模型名稱請輸入模型名稱API 金鑰（只能寫入，儲存後不會再顯示）請輸入 API 金鑰我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。要先勾選同意，才能儲存雲端來源測試連線儲存",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=貼上 API 金鑰"
+    ]
+   },
+   "tested": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址模型名稱API 金鑰（只能寫入，儲存後不會再顯示）我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。測試連線儲存連線成功網址：https://api.example.com/v1Reached it可用的模型：gpt-x、gpt-y",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=貼上 API 金鑰"
+    ]
+   },
+   "test failed": {
+    "text": "LLM 來源目前使用：內建 llama-server設定檔有問題：settings.json is damaged內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址模型名稱API 金鑰（只能寫入，儲存後不會再顯示）我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。測試連線儲存連線失敗Connection refused",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=貼上 API 金鑰"
+    ]
+   },
+   "saved": {
+    "text": "LLM 來源目前使用：雲端服務（雲端，內容會離開這台電腦）內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址模型名稱API 金鑰（只能寫入，儲存後不會再顯示）我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。測試連線儲存連線失敗Connection refused已儲存。",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=已儲存金鑰；要更換再輸入"
+    ]
+   },
+   "url moved": {
+    "text": "LLM 來源目前使用：雲端服務（雲端，內容會離開這台電腦）內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。內容會離開這台電腦選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。服務網址模型名稱API 金鑰（只能寫入，儲存後不會再顯示）網址已變更，已儲存的金鑰不會送到新網址，請重新輸入 API 金鑰我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。測試連線儲存",
+    "attrs": [
+     "aria-label=LLM 來源",
+     "placeholder=https://api.example.com/v1",
+     "placeholder=已儲存金鑰；要更換再輸入"
+    ]
+   }
+  }
+ ],
+ "licenses": [
+  {
+   "table": {
+    "text": "第三方授權App 另外下載的每個模型與執行檔，各自的授權與來源。連結會用瀏覽器開啟。本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg a35157abb9，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。名稱版本授權連結whisper-large-v3-turbo模型1MIT授權全文下載來源whispercpp-b5454-win-cuda執行檔b5454MIT授權全文下載來源whispercpp-b5454-macos-metal執行檔b5454MIT授權全文下載來源",
+    "attrs": [
+     "title=1",
+     "title=b5454",
+     "title=b5454"
+    ]
+   }
+  }
+ ],
+ "updates: every phase": [
+  {
+   "idle": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新",
+    "attrs": []
+   },
+   "checking": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新正在檢查更新…",
+    "attrs": []
+   },
+   "up to date": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新已是最新版（0.1.0）。",
+    "attrs": []
+   },
+   "up to date, no version": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新已是最新版。",
+    "attrs": []
+   },
+   "available": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新有新版 0.2.0（目前 0.1.0）。Faster export下載更新",
+    "attrs": []
+   },
+   "downloading": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新正在下載 0.2.0，請稍候…",
+    "attrs": []
+   },
+   "downloaded": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新0.2.0 已下載，簽章驗證通過。安裝時程式會關閉並重新開啟。安裝並重新啟動",
+    "attrs": []
+   },
+   "installing": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新正在啟動安裝程式…",
+    "attrs": []
+   }
+  }
+ ],
+ "update checks that fail": [
+  {
+   "nonsense": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新更新檢查回傳了看不懂的結果。",
+    "attrs": []
+   },
+   "unknown": {
+    "text": "檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新更新沒有完成。",
+    "attrs": []
+   }
+  }
+ ],
+ "the settings page frame": [
+  {
+   "update": {
+    "text": "設定模型與執行環境硬體與效能LLM 來源第三方授權檢查更新語言檢查更新只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。檢查更新",
+    "attrs": [
+     "aria-label=設定"
+    ]
+   },
+   "language": {
+    "text": "設定模型與執行環境硬體與效能LLM 來源第三方授權檢查更新語言介面語言選擇視窗使用的語言。變更會立刻套用，不需要重新啟動。視窗語言 這只改變視窗上的文字。影片的語音語言和字幕語言維持你的設定。",
+    "attrs": [
+     "aria-label=設定"
+    ]
+   },
+   "llm": {
+    "text": "設定模型與執行環境硬體與效能LLM 來源第三方授權檢查更新語言LLM 來源目前使用：內建 llama-server內建 llama-server全程在本機執行，不連網。Ollama連到你自己的 Ollama，通常也在本機。雲端服務OpenAI 相容的網址與金鑰。內容會離開這台電腦。測試連線儲存",
+    "attrs": [
+     "aria-label=設定",
+     "aria-label=LLM 來源"
+    ]
+   }
+  }
+ ],
+ "the subtitle bar of the player": [
+  {
+   "bar": {
+    "text": "原文Chinese雙語241.4Chinese在上",
+    "attrs": [
+     "aria-label=字幕語言",
+     "title=字幕大小",
+     "aria-label=字幕大小",
+     "title=字幕顏色",
+     "aria-label=字幕顏色",
+     "title=行距",
+     "aria-label=行距",
+     "title=雙語時Chinese放在原文上方"
+    ]
+   }
+  }
+ ],
+ "the import header": [
+  {
+   "with a picker": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕ChineseKorean（實驗性）選擇檔案匯入",
+    "attrs": [
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "aria-label=字幕語言",
+     "title=選擇檔案"
+    ]
+   },
+   "one target": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入",
+    "attrs": [
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   },
+   "without a picker": {
+    "text": "選擇檔案匯入",
+    "attrs": [
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the line under the toolbar": [
+  {
+   "japanese note": {
+    "text": "日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。",
+    "attrs": []
+   },
+   "mixed note and the experimental hint, in the player": {
+    "text": "影片語言英文日文日文與英文混合（這台電腦沒有安裝混合語言所需的模型）日英混合影片目前只輸出繁體中文字幕，需要 Qwen3 模型檔（24 GB 的模型組會安裝）。實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。",
+    "attrs": [
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=這台電腦沒有安裝混合語言所需的模型"
+    ]
+   },
+   "detecting": {
+    "text": "正在偵測影片語言…",
+    "attrs": []
+   },
+   "sure, same language": {
+    "text": "日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文（信心 82%）",
+    "attrs": []
+   },
+   "sure, another language": {
+    "text": "偵測到：日文（信心 82%）這部影片聽起來是日文，目前選的是英文改成日文",
+    "attrs": []
+   },
+   "unsure": {
+    "text": "日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。可能是日文（信心 40%），請確認影片語言",
+    "attrs": []
+   },
+   "mixed": {
+    "text": "日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文與英文混合（日文 82%、英文 18%）",
+    "attrs": []
+   },
+   "mixed that this machine cannot process": {
+    "text": "偵測到：日文與英文混合（日文 82%、英文 18%）。這台電腦無法處理混合語言，先選日文，另一種語言的部分可能翻不好這部影片大部分是日文，目前選的是英文改成日文",
+    "attrs": []
+   },
+   "mostly Japanese, English picked": {
+    "text": "偵測到：日文與英文混合（日文 82%、英文 18%）這部影片大部分是日文，目前選的是英文改成日文",
+    "attrs": []
+   }
+  }
+ ],
+ "the progress screen": [
+  {
+   "waiting": {
+    "text": "等待後端開始0%擷取音訊偵測語音語音辨識斷句翻譯成Korean輸出字幕重點摘要",
+    "attrs": []
+   },
+   "extracting audio": {
+    "text": "擷取音訊（1/7）30%擷取音訊偵測語音語音辨識斷句翻譯成Korean輸出字幕重點摘要",
+    "attrs": []
+   },
+   "recognizing speech": {
+    "text": "語音辨識（3/7）30%擷取音訊偵測語音語音辨識斷句翻譯成Korean輸出字幕重點摘要",
+    "attrs": []
+   },
+   "translating": {
+    "text": "翻譯成Korean（5/7）30%這部影片已經辨識並斷好句，只會重新翻譯成Korean，不會重跑語音辨識與斷句。擷取音訊偵測語音語音辨識斷句翻譯成Korean輸出字幕重點摘要",
+    "attrs": []
+   },
+   "done": {
+    "text": "100%擷取音訊偵測語音語音辨識斷句翻譯成Korean輸出字幕重點摘要",
+    "attrs": []
+   }
+  }
+ ],
+ "the app while it starts": [
+  {
+   "starting": {
+    "text": "影片語言英文日文日文與英文混合字幕zh-TW選擇檔案匯入正在啟動後端…",
+    "attrs": [
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the app when the backend fails": [
+  {
+   "failed": {
+    "text": "影片語言英文日文日文與英文混合字幕zh-TW選擇檔案匯入Port 1 is taken",
+    "attrs": [
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the app while it checks the models": [
+  {
+   "checking": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入正在檢查模型…",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the home screen with a queue chip and its toasts": [
+  {
+   "home": {
+    "text": "1/2影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 1/2：剩餘約 12 分鐘",
+     "aria-label=佇列 1/2",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   },
+   "home with a detected language": {
+    "text": "1/2影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕ChineseKorean（實驗性）選擇檔案匯入日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文與英文混合（日文 70%、英文 30%）。這台電腦無法處理混合語言，先選日文，另一種語言的部分可能翻不好匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 1/2：剩餘約 12 分鐘",
+     "aria-label=佇列 1/2",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "aria-label=字幕語言",
+     "title=選擇檔案"
+    ]
+   },
+   "queue finished": {
+    "text": "0/1影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕ChineseKorean（實驗性）選擇檔案匯入日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文與英文混合（日文 70%、英文 30%）。這台電腦無法處理混合語言，先選日文，另一種語言的部分可能翻不好匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒佇列已全部處理完：2 項完成，1 項失敗，1 項取消查看佇列",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 0/1",
+     "aria-label=佇列 0/1",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "aria-label=字幕語言",
+     "title=選擇檔案",
+     "aria-label=關閉"
+    ]
+   },
+   "queue finished, one": {
+    "text": "0/1影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕ChineseKorean（實驗性）選擇檔案匯入日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文與英文混合（日文 70%、英文 30%）。這台電腦無法處理混合語言，先選日文，另一種語言的部分可能翻不好匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒佇列已全部處理完：1 項完成查看佇列",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 0/1",
+     "aria-label=佇列 0/1",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "aria-label=字幕語言",
+     "title=選擇檔案",
+     "aria-label=關閉"
+    ]
+   },
+   "added to the queue": {
+    "text": "0/1影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕ChineseKorean（實驗性）選擇檔案匯入日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。偵測到：日文與英文混合（日文 70%、英文 30%）。這台電腦無法處理混合語言，先選日文，另一種語言的部分可能翻不好匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒added已加入 3 項到佇列查看佇列",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 0/1",
+     "aria-label=佇列 0/1",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "aria-label=字幕語言",
+     "title=選擇檔案",
+     "aria-label=關閉"
+    ]
+   }
+  }
+ ],
+ "the home screen when an import fails": [
+  {
+   "error": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入The file is not there",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the processing screen and what follows": [
+  {
+   "importing": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入正在處理p1.mp4C:/invented/p1.mp4等待後端開始0%擷取音訊偵測語音語音辨識斷句翻譯成Chinese輸出字幕重點摘要取消",
+    "attrs": [
+     "title=回到媒體庫",
+     "aria-label=媒體庫",
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   },
+   "importing, translating": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入正在處理p1.mp4C:/invented/p1.mp4翻譯成Chinese（5/7）50%擷取音訊偵測語音語音辨識斷句翻譯成Chinese輸出字幕重點摘要取消",
+    "attrs": [
+     "title=回到媒體庫",
+     "aria-label=媒體庫",
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   },
+   "played after an import: edits notice": {
+    "text": "重新翻譯後已保留 1 條手動修改；2 條修改因原文已變而沒有套用，仍存在專案資料夾的 edits 檔",
+    "attrs": []
+   },
+   "header while playing": {
+    "text": "選擇檔案匯入原文Chinese雙語241.4Chinese在上",
+    "attrs": [
+     "title=回到媒體庫",
+     "aria-label=媒體庫",
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=選擇檔案",
+     "aria-label=字幕語言",
+     "title=字幕大小",
+     "aria-label=字幕大小",
+     "title=字幕顏色",
+     "aria-label=字幕顏色",
+     "title=行距",
+     "aria-label=行距",
+     "title=雙語時Chinese放在原文上方"
+    ]
+   }
+  }
+ ],
+ "the processing screen when it fails": [
+  {
+   "failed": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入處理失敗：Out of memory",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the processing screen when the connection drops": [
+  {
+   "lost": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入處理失敗：與後端的連線中斷，處理已停止。後端可能已結束，請重新啟動程式。",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   }
+  }
+ ],
+ "the opened video: the notice and the blocked add": [
+  {
+   "notice and blocked": {
+    "text": "這部影片先前以日文處理，已直接播放這部影片正在處理中，等它完成後才能新增字幕語言",
+    "attrs": []
+   },
+   "header": {
+    "text": "0/1選擇檔案匯入原文Chinese雙語241.4Chinese在上",
+    "attrs": [
+     "title=回到媒體庫",
+     "aria-label=媒體庫",
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=佇列 0/1：剩餘約 12 分鐘",
+     "aria-label=佇列 0/1",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=選擇檔案",
+     "aria-label=字幕語言",
+     "title=字幕大小",
+     "aria-label=字幕大小",
+     "title=字幕顏色",
+     "aria-label=字幕顏色",
+     "title=行距",
+     "aria-label=行距",
+     "title=雙語時Chinese放在原文上方"
+    ]
+   }
+  }
+ ],
+ "the settings button, the library button and the drop hint": [
+  {
+   "drop hint": {
+    "text": "影片語言英文日文日文與英文混合（混合語言需要顯示卡，這台電腦目前以 CPU 執行）字幕Chinese選擇檔案匯入匯入一部演講影片貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。後端已就緒放開滑鼠，匯入這個檔案",
+    "attrs": [
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=影片裡的人說的語言",
+     "aria-label=影片語言",
+     "title=混合語言需要顯示卡，這台電腦目前以 CPU 執行",
+     "title=字幕要翻成的語言",
+     "title=選擇檔案"
+    ]
+   },
+   "toolbar while a video is open": {
+    "text": "選擇檔案匯入原文Chinese雙語241.4Chinese在上",
+    "attrs": [
+     "title=回到媒體庫",
+     "aria-label=媒體庫",
+     "title=批次加入：一次加入多個影片或資料夾",
+     "aria-label=批次加入",
+     "title=設定：模型、硬體、LLM 來源、授權",
+     "aria-label=設定",
+     "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+     "title=選擇檔案",
+     "aria-label=字幕語言",
+     "title=字幕大小",
+     "aria-label=字幕大小",
+     "title=字幕顏色",
+     "aria-label=字幕顏色",
+     "title=行距",
+     "aria-label=行距",
+     "title=雙語時Chinese放在原文上方"
+    ]
+   }
+  }
+ ]
+}
