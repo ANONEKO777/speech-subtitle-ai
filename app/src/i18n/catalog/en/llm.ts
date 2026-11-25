@@ -2,6 +2,7 @@ export const llm = {
   "llm.title": "LLM source",
   "llm.cloudNotice": "If you choose a cloud LLM, the video's transcript and translation are sent to the cloud service you enter and leave this computer. Make sure you trust that service and that the video's content may be sent out.",
   "llm.builtin": "Built-in llama-server",
+  "llm.ollama": "Ollama",
   "llm.builtinHint": "Runs entirely on this computer, with no internet connection.",
   "llm.ollamaHint": "Connects to your own Ollama, usually on this computer too.",
   "llm.cloud": "Cloud service",

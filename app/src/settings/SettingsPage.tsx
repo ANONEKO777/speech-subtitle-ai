@@ -14,15 +14,14 @@ import { UpdateSection } from "./UpdateSection";
 
 export type Section = "models" | "hardware" | "llm" | "licenses" | "update" | "language";
 
-/** A label is a literal until its wave moves it into the catalog, then a `key`. */
-type NavItem = { id: Section; icon: typeof Cpu } & ({ label: string } | { key: PlainKey });
+type NavItem = { id: Section; icon: typeof Cpu; key: PlainKey };
 
 const SECTIONS: readonly NavItem[] = [
-  { id: "models", label: "模型與執行環境", icon: HardDrive },
-  { id: "hardware", label: "硬體與效能", icon: Cpu },
-  { id: "llm", label: "LLM 來源", icon: Sparkles },
-  { id: "licenses", label: "第三方授權", icon: FileBadge },
-  { id: "update", label: "檢查更新", icon: RefreshCw },
+  { id: "models", key: "settings.nav.models", icon: HardDrive },
+  { id: "hardware", key: "hw.title", icon: Cpu },
+  { id: "llm", key: "llm.title", icon: Sparkles },
+  { id: "licenses", key: "lic.title", icon: FileBadge },
+  { id: "update", key: "update.title", icon: RefreshCw },
   { id: "language", key: "language.nav", icon: Languages },
 ];
 
@@ -33,8 +32,8 @@ export function SettingsPage({ backend, initial = "models" }: { backend: Backend
   const downloads = useDownloads(backend);
   return (
     <div className="settings-page" data-testid="settings-page">
-      <nav className="settings-nav" aria-label="設定">
-        <h1>設定</h1>
+      <nav className="settings-nav" aria-label={t("settings.title")}>
+        <h1>{t("settings.title")}</h1>
         {SECTIONS.map((item) => {
           const { id, icon: Icon } = item;
           return (
@@ -47,7 +46,7 @@ export function SettingsPage({ backend, initial = "models" }: { backend: Backend
               onClick={() => setSection(id)}
             >
               <Icon className="icon" aria-hidden />
-              {"key" in item ? t(item.key) : item.label}
+              {t(item.key)}
             </button>
           );
         })}

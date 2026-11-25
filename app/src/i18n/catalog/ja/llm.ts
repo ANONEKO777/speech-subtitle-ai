@@ -5,6 +5,7 @@ export const llm = {
   "llm.title": "LLM ソース",
   "llm.cloudNotice": "クラウドの LLM を選ぶと、動画の文字起こしと翻訳の内容が、入力したクラウドサービスに送信され、このコンピューターの外に出ます。そのサービスを信頼でき、動画の内容を外部に送ってよいことを確認してください。",
   "llm.builtin": "内蔵 llama-server",
+  "llm.ollama": "Ollama",
   "llm.builtinHint": "すべてこのコンピューター上で動作し、インターネットには接続しません。",
   "llm.ollamaHint": "お使いの Ollama に接続します。通常は同じコンピューター上にあります。",
   "llm.cloud": "クラウドサービス",

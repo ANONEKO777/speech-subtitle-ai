@@ -4,6 +4,7 @@ export const llm = {
   "llm.title": "LLM 來源",
   "llm.cloudNotice": "選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。",
   "llm.builtin": "內建 llama-server",
+  "llm.ollama": "Ollama",
   "llm.builtinHint": "全程在本機執行，不連網。",
   "llm.ollamaHint": "連到你自己的 Ollama，通常也在本機。",
   "llm.cloud": "雲端服務",

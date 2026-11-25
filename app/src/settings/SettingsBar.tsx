@@ -1,12 +1,14 @@
 import { ALargeSmall, ArrowUpDown, type LucideIcon, Palette, UnfoldVertical } from "lucide-react";
 import type { CSSProperties } from "react";
+import type { Translate } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
 import type { SubtitleMode } from "../player/cues";
 import type { Settings } from "./settings";
 
-const modes = (langName: string): ReadonlyArray<readonly [SubtitleMode, string]> => [
-  ["en", "原文"],
+const modes = (langName: string, t: Translate): ReadonlyArray<readonly [SubtitleMode, string]> => [
+  ["en", t("bar.original")],
   ["zh", langName],
-  ["both", "雙語"],
+  ["both", t("bar.both")],
 ];
 
 interface SliderProps {
@@ -51,11 +53,12 @@ interface Props {
 }
 
 export function SettingsBar({ langName, settings, onChange }: Props) {
+  const { t } = useT();
   const set = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
   return (
     <div className="settings">
-      <div className="seg" role="group" aria-label="字幕語言">
-        {modes(langName).map(([mode, label]) => (
+      <div className="seg" role="group" aria-label={t("bar.language")}>
+        {modes(langName, t).map(([mode, label]) => (
           <button
             key={mode}
             type="button"
@@ -70,7 +73,7 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
       <div className="tools">
         <Slider
           icon={ALargeSmall}
-          label="字幕大小"
+          label={t("bar.size")}
           testid="font-size"
           min={14}
           max={64}
@@ -78,12 +81,12 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
           shown={String(settings.fontSize)}
           onChange={(fontSize) => set({ fontSize })}
         />
-        <label className="control" title="字幕顏色">
+        <label className="control" title={t("bar.color")}>
           <Palette className="icon" aria-hidden />
           <input
             type="color"
             className="swatch"
-            aria-label="字幕顏色"
+            aria-label={t("bar.color")}
             data-testid="font-color"
             value={settings.color}
             onChange={(e) => set({ color: e.target.value })}
@@ -91,7 +94,7 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
         </label>
         <Slider
           icon={UnfoldVertical}
-          label="行距"
+          label={t("bar.lineHeight")}
           min={1}
           max={2.2}
           step={0.1}
@@ -99,9 +102,9 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
           shown={settings.lineHeight.toFixed(1)}
           onChange={(lineHeight) => set({ lineHeight })}
         />
-        <label className="control toggle" title={`雙語時${langName}放在原文上方`}>
+        <label className="control toggle" title={t("bar.firstTitle", { name: langName })}>
           <ArrowUpDown className="icon" aria-hidden />
-          <span className="collapsible">{langName}在上</span>
+          <span className="collapsible">{t("bar.first", { name: langName })}</span>
           <input
             type="checkbox"
             role="switch"

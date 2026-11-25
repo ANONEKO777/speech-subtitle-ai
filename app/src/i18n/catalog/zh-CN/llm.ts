@@ -5,6 +5,7 @@ export const llm = {
   "llm.title": "LLM 来源",
   "llm.cloudNotice": "选择云端 LLM 后，视频的逐字稿与翻译内容会发送到你填写的云端服务，离开这台电脑。请确认你信任这个服务，且视频内容允许外传。",
   "llm.builtin": "内置 llama-server",
+  "llm.ollama": "Ollama",
   "llm.builtinHint": "全程在本机运行，不联网。",
   "llm.ollamaHint": "连接到你自己的 Ollama，通常也在本机。",
   "llm.cloud": "云端服务",
