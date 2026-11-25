@@ -34,6 +34,8 @@ export interface Asset {
   readonly licenseUrl: string;
   /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
   readonly localBuild: boolean;
+  /** A local build found on PATH or in Homebrew: `path` says where. The app does not own it and refuses to delete it. */
+  readonly foundOutsideRuntimes: boolean;
 }
 
 export interface Inventory {

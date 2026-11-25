@@ -18,6 +18,12 @@ LOCAL_BUILD_MESSAGE = (
 )
 
 
+FOUND_ELSEWHERE_MESSAGE = (
+    "{program} 是在 {where} 找到的，不在 App 的執行檔資料夾（{folder}）裡，"
+    "所以 App 沒有刪它。要移除請自己處理（用 Homebrew 裝的就用 brew uninstall）。"
+)
+
+
 class NotInstallable(ValueError):
     pass
 
@@ -43,6 +49,17 @@ def _find_local_build(runtime: Runtime, storage: Storage) -> Path | None:
     name = Path(runtime.executable).name
     found = shutil.which(name) or shutil.which(name, path=os.pathsep.join(HOMEBREW_DIRS))
     return Path(found) if found else None
+
+
+def found_outside_runtimes(runtime: Runtime, storage: Storage) -> Path | None:
+    """Where a built-on-the-machine program was found when that is not its own runtimes folder
+    (PATH or Homebrew). The app does not own that file and never deletes it."""
+    if not runtime.is_local_build:
+        return None
+    found = _find_local_build(runtime, storage)
+    if found is None or found.is_relative_to(storage.runtime_dir(runtime)):
+        return None
+    return found
 
 
 def program_of(runtime: Runtime, storage: Storage) -> Path:

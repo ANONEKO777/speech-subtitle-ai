@@ -83,6 +83,7 @@ const asset = (id: string, type: Asset["type"], over: Partial<Asset> = {}): Asse
   license: "MIT",
   licenseUrl: "https://spdx.org/licenses/MIT.html",
   localBuild: false,
+  foundOutsideRuntimes: false,
   ...over,
 });
 

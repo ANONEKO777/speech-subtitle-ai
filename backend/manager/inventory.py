@@ -25,7 +25,7 @@ from backend.manager.profiles import (
     required_assets,
 )
 from backend.manager.registry import Model, Registry, Runtime
-from backend.manager.runtimes import program_of, runtime_executable
+from backend.manager.runtimes import found_outside_runtimes, program_of, runtime_executable
 from backend.manager.storage import Storage
 
 
@@ -79,6 +79,9 @@ class Entry:
     license_url: str
     local_build: bool
     """A runtime this machine builds with a script. It has no download, so the size is 0."""
+    found_outside_runtimes: bool
+    """A local build that was found on PATH or in Homebrew. `path` says where; the app does not own
+    it and refuses to delete it."""
 
 
 def asset(registry: Registry, asset_id: str) -> Model | Runtime | None:
@@ -185,6 +188,8 @@ class Inventory:
             license=found.license,
             license_url=found.license_url,
             local_build=isinstance(found, Runtime) and found.is_local_build,
+            found_outside_runtimes=isinstance(found, Runtime)
+            and found_outside_runtimes(found, self.storage) is not None,
         )
 
     def _path(self, found: Model | Runtime, installed: bool) -> str | None:

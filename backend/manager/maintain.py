@@ -13,7 +13,13 @@ from backend.manager.inventory import Entry, active_assets, asset
 from backend.manager.manifest import Record
 from backend.manager.models import delete_model, model_plan
 from backend.manager.registry import Model, Runtime
-from backend.manager.runtimes import NotInstallable, delete_runtime, runtime_plan
+from backend.manager.runtimes import (
+    FOUND_ELSEWHERE_MESSAGE,
+    NotInstallable,
+    delete_runtime,
+    found_outside_runtimes,
+    runtime_plan,
+)
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +61,18 @@ def active_ids(ctx: ManagerContext) -> frozenset[str]:
 def delete_asset(ctx: ManagerContext, asset_id: str, force: bool, reason: str) -> None:
     """Delete one asset, refusing when something still needs it. `force` overrides the refusal and
     needs a reason, which is logged."""
+    found = asset(ctx.registry, asset_id)
+    if isinstance(found, Runtime):
+        elsewhere = found_outside_runtimes(found, ctx.storage)
+        if elsewhere is not None:
+            raise Refused(
+                FOUND_ELSEWHERE_MESSAGE.format(
+                    program=elsewhere.name,
+                    where=elsewhere.parent,
+                    folder=ctx.storage.runtime_dir(found),
+                ),
+                status=400,
+            )
     blockers = ctx.inventory.blockers(asset_id, active_ids(ctx))
     if blockers:
         if not force:
@@ -67,7 +85,6 @@ def delete_asset(ctx: ManagerContext, asset_id: str, force: bool, reason: str) -
                 status=422,
             )
         log.warning("forced delete of %s over %s: %s", asset_id, blockers, reason.strip())
-    found = asset(ctx.registry, asset_id)
     try:
         if isinstance(found, Model):
             delete_model(asset_id, ctx.registry, ctx.storage)

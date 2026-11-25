@@ -6,10 +6,11 @@ export type RowAction = "download" | "resume" | "verify" | "repair" | "redownloa
 
 /** The actions a row offers, from what is on disk and what is downloading. A program this machine builds
  * for itself has nothing to download, verify or fetch again (the backend refuses all three), so it offers
- * only delete once it is there. */
+ * only delete once it is there, and not even that when it was found outside the runtimes folder (PATH,
+ * Homebrew): the app does not own that file and the backend refuses to delete it. */
 export function rowActions(asset: Asset, job: DownloadJob | undefined, update?: UpdateItem): RowAction[] {
   if (job && isActive(job)) return ["cancel"];
-  if (asset.localBuild) return asset.state === "installed" ? ["delete"] : [];
+  if (asset.localBuild) return asset.state === "installed" && !asset.foundOutsideRuntimes ? ["delete"] : [];
   switch (asset.state) {
     case "installing":
       return ["cancel"];

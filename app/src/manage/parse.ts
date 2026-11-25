@@ -65,6 +65,7 @@ export function parseAsset(raw: unknown): Asset {
     license: str(o, "license"),
     licenseUrl: str(o, "license_url"),
     localBuild: bool(o, "local_build"),
+    foundOutsideRuntimes: bool(o, "found_outside_runtimes"),
   };
 }
 
