@@ -47,6 +47,20 @@ The app looks for it in the folder above first, then on `PATH`, then in `/opt/ho
 
 ## Steps
 
+0. Check the Mac before you install anything. This reads the machine and changes nothing (no
+   `sudo`, nothing written):
+
+   ```
+   bash scripts/mac/preflight.sh
+   ```
+
+   It prints the chip, macOS version, memory, free disk space and which tools are present (with
+   versions), then one plain line per problem in Chinese and a last line with the count. Copy the
+   whole block and send it back. It stops at once on an Intel Mac, on Linux, or in a terminal that
+   runs under Rosetta. You can fetch the file on its own before step 3 if you have no clone yet.
+   It was written on Windows and tested only against fake `uname`, `sw_vers`, `sysctl` and `df`
+   programs, not on a Mac.
+
 1. Install the Xcode command line tools (gives you `git`, the compiler and Metal headers):
 
    ```
@@ -82,8 +96,8 @@ The app looks for it in the folder above first, then on `PATH`, then in `/opt/ho
    Metal and the shaders embedded, builds only `whisper-cli`, and copies it into place. To try
    another tag set `WHISPER_CPP_TAG=<tag>` before the command. The tag and the Metal switches
    have not been run by the author; if the build fails, the last lines of cmake's output say why.
-   The first-run wizard and the hardware page list this program as "在這台 Mac 上自行建置" (built on this
-   Mac), with no size and not counted as a download, until the script has run.
+   The first-run wizard, the hardware page and the Models page list this program as "在這台 Mac 上自行建置"
+   (built on this Mac), with no size and not counted as a download, until the script has run.
 
 5. Start the local service and download the runtimes and models for your profile. The service
    prints `READY port=<n> token=<t>`:
