@@ -61,7 +61,10 @@ get a newer one.
    It prints the chip, macOS version, memory, free disk space and which tools are present (with
    versions), then one plain line per problem in Chinese and a last line with the count. Copy the
    whole block and send it back. It stops at once on an Intel Mac, on Linux, or in a terminal that
-   runs under Rosetta. You can fetch the file on its own before step 3 if you have no clone yet.
+   runs under Rosetta. If you have no clone yet, copy `scripts/mac/preflight.sh` to the Mac by hand (AirDrop, a USB
+   stick or a mail attachment) and run `bash preflight.sh`; it needs nothing else. It reports less
+   than 20 GB of free disk as a problem; that limit is a rough allowance for the runtimes, the
+   models and the build files, not a measured figure.
    It was written on Windows and tested only against fake `uname`, `sw_vers`, `sysctl` and `df`
    programs, not on a Mac.
 
