@@ -20,6 +20,14 @@ describe("resolveLocale", () => {
     expect(resolveLocale("auto", [tag], ALL)).toBe("zh-CN");
   });
 
+  it.each(["zh-Hans-HK", "zh-Hans-TW", "zh-Hans-MO"])("lets the script decide before the region: %s is Simplified", (tag) => {
+    expect(resolveLocale("auto", [tag], ALL)).toBe("zh-CN");
+  });
+
+  it.each(["zh-Hant-CN", "zh-Hant-SG", "zh-Hant-HK"])("lets the script decide before the region: %s is Traditional", (tag) => {
+    expect(resolveLocale("auto", [tag], ALL)).toBe("zh-TW");
+  });
+
   it("follows Japanese once it is released", () => {
     expect(resolveLocale("auto", ["ja-JP"], ALL)).toBe("ja");
   });

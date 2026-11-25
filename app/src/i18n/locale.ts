@@ -37,7 +37,9 @@ export function localeFromTag(tag: string): Locale | null {
     case "ja":
       return "ja";
     case "zh":
-      return parts.some((p) => p === "hant" || p === "tw" || p === "hk" || p === "mo") ? "zh-TW" : "zh-CN";
+      if (parts.includes("hant")) return "zh-TW";
+      if (parts.includes("hans")) return "zh-CN";
+      return parts.some((p) => p === "tw" || p === "hk" || p === "mo") ? "zh-TW" : "zh-CN";
     default:
       return null;
   }
