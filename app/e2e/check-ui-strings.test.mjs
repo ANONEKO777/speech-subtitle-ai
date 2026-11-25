@@ -29,6 +29,15 @@ describe("what counts as a user-facing literal", () => {
     ]);
   });
 
+  it("counts a Latin phrase written as a plain string expression in an attribute", () => {
+    expect(kinds("const a = <button title={\"Close the window\"} aria-label={'Close it'} alt={`A chart`} />;")).toEqual([
+      "attribute title:Close the window",
+      "attribute aria-label:Close it",
+      "attribute alt:A chart",
+    ]);
+    expect(kinds('const a = <i title={"GPU"} data-testid={"a b"} title={name} aria-label={"關閉"} />;')).toEqual(["string:關閉"]);
+  });
+
   it("counts a Latin phrase in JSX text, and leaves names, units and identifiers alone", () => {
     expect(kinds("const a = <p>Hello world</p>;")).toEqual(["text:Hello world"]);
     expect(kinds('const a = <p>Ollama</p>; const b = <i title="GPU" data-testid="a b" className="x y" />; const c = <b>{n}</b>;')).toEqual([]);

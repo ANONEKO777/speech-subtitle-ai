@@ -11,6 +11,15 @@
 //   - JSX text, or a title, aria-label, placeholder or alt attribute, with a Latin phrase that is
 //     not one identifier-like token ("Hello world" counts, "Ollama" and "GPU" do not)
 // Single Latin words are left out on purpose: brand names and units would drown the signal.
+//
+// Known limits, kept on purpose so the scanner stays small:
+//   - Latin text in code (setError("Could not save"), new Error("...")) is never counted. Code
+//     strings are checked for CJK only, so a new English-only string in code passes.
+//   - A unicode escape (backslash, u, four hex digits) of a CJK character is not CJK to the scanner.
+//   - A Latin phrase in an attribute expression is counted only when the expression is one plain
+//     string, as in title={"Close"}. A ternary or a template with ${} is not.
+//   - The count is per file. Swapping one literal for another in the same file leaves the count
+//     equal and passes, and so does moving one out of a file while adding one to it.
 
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
@@ -22,6 +31,8 @@ const baselinePath = join(root, "i18n-baseline.json");
 
 const CJK = /[　-ヿ㐀-䶿一-鿿＀-￯]/;
 const USER_ATTRS = new Set(["title", "aria-label", "placeholder", "alt"]);
+
+const PLAIN_STRING_EXPRESSION = /^\{\s*(?:(["'])((?:\\.|(?!\1)[^\\\n])*)\1|`([^`$\\]*)`)\s*\}/;
 
 const isPhrase = (text) => {
   const t = text.replace(/\s+/g, " ").trim();
@@ -210,8 +221,15 @@ export function scan(src, { jsx }) {
         i = close + 1;
         if (CJK.test(value) || (USER_ATTRS.has(name[0]) && isPhrase(value))) add(start, `attribute ${name[0]}`, value);
       } else if (src[i] === "{") {
-        i++;
-        scanCode("}");
+        const phrase = USER_ATTRS.has(name[0]) ? PLAIN_STRING_EXPRESSION.exec(src.slice(i)) : null;
+        const value = phrase && (phrase[2] ?? phrase[3]);
+        if (phrase && !CJK.test(value) && isPhrase(value)) {
+          add(i, `attribute ${name[0]}`, value);
+          i += phrase[0].length;
+        } else {
+          i++;
+          scanCode("}");
+        }
       } else if (src[i] === "<") scanElement();
     }
     let text = "";
