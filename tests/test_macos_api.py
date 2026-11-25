@@ -191,15 +191,22 @@ def test_fetching_what_a_mac_profile_misses_skips_the_runtime_built_on_the_machi
     assert submitted == missing - {WHISPER}
 
 
+def fake_which(monkeypatch: pytest.MonkeyPatch, on_path: Path | str | None) -> None:
+    """`shutil.which` finds `on_path` on PATH and nothing in the Homebrew folders."""
+
+    def which(name: str, mode: int = 0, path: str | None = None) -> str | None:
+        return str(on_path) if on_path is not None and path is None else None
+
+    monkeypatch.setattr(shutil, "which", which)
+
+
 def test_a_whisper_found_on_path_is_listed_with_where_and_the_delete_leaves_it_alone(
     client: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     program = tmp_path / "homebrew" / "whisper-cli"
     program.parent.mkdir()
     program.write_bytes(b"x")
-    monkeypatch.setattr(
-        shutil, "which", lambda name, mode=0, path=None: str(program) if path is None else None
-    )
+    fake_which(monkeypatch, program)
 
     row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
     plain = client.delete(f"/api/runtimes/{WHISPER}")
@@ -224,7 +231,7 @@ def test_a_whisper_in_the_runtimes_folder_is_not_marked_and_the_delete_removes_i
     folder = client.ctx.storage.runtime_dir(MAC.runtimes[WHISPER])
     (folder).mkdir(parents=True)
     (folder / "whisper-cli").write_bytes(b"x")
-    monkeypatch.setattr(shutil, "which", lambda *a, **k: "/opt/homebrew/bin/whisper-cli")
+    fake_which(monkeypatch, "/opt/homebrew/bin/whisper-cli")
 
     row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
     reply = client.delete(f"/api/runtimes/{WHISPER}", params={"force": True, "reason": "x" * 20})
@@ -237,7 +244,7 @@ def test_a_whisper_in_the_runtimes_folder_is_not_marked_and_the_delete_removes_i
 def test_a_missing_whisper_is_not_marked_as_found_elsewhere(
     client: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(shutil, "which", lambda *a, **k: None)
+    fake_which(monkeypatch, None)
 
     row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
 
