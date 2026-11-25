@@ -1,6 +1,6 @@
 <div align="center">
 
-[繁體中文](README.md) | [English](README.en.md) | **简体中文** | [日本語](README.ja.md)
+[English](README.md) | [繁體中文](README.zh-TW.md) | **简体中文** | [日本語](README.ja.md)
 
 # Video Subtitle Translator（字幕翻译）
 
@@ -148,7 +148,7 @@
 需要 Python 3.11 以上和 [uv](https://docs.astral.sh/uv/)、Node.js 和 npm、Rust 和 MSVC 工具链（Tauri 2 的前置要求），以及 ffmpeg。
 
 ```powershell
-git clone https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai.git
+git clone https://github.com/ANONEKO777/speech-subtitle-ai.git
 cd speech-subtitle-ai
 
 uv sync                                   # 后端环境，创建 .venv
