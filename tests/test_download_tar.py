@@ -39,11 +39,12 @@ def dir_entry(name: str, mode: int = 0o755) -> Entry:
     return add
 
 
-def link_entry(name: str, target: str, *, hard: bool = False) -> Entry:
+def link_entry(name: str, target: str, *, hard: bool = False, mode: int = 0o644) -> Entry:
     def add(tar: tarfile.TarFile) -> None:
         info = tarfile.TarInfo(name)
         info.type = tarfile.LNKTYPE if hard else tarfile.SYMTYPE
         info.linkname = target
+        info.mode = mode
         tar.addfile(info)
 
     return add
@@ -156,6 +157,60 @@ def test_a_member_never_keeps_write_access_for_the_group_or_others(
     assert asked["open-data"] == 0o644
     assert asked["group-write"] == 0o644
     assert asked["hard-copy"] & 0o022 == 0
+
+
+def test_a_folder_the_archive_made_unreadable_is_still_one_this_program_can_use(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: dict[str, int] = {}
+    real = Path.chmod
+
+    def chmod(self: Path, mode: int, **kwargs: bool) -> None:
+        asked[self.name] = mode
+        real(self, mode, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", chmod)
+    archive = make_tar(
+        tmp_path / "rt.tar.gz",
+        dir_entry("write-only", 0o200),
+        file_entry("write-only/inside", b"x", 0o644),
+        dir_entry("closed", 0o000),
+        dir_entry("sticky", 0o2755),
+        file_entry("sealed", b"x", 0o000),
+    )
+
+    unpack_to(archive, tmp_path / "out")
+
+    assert asked["write-only"] == 0o700
+    assert asked["closed"] == 0o700
+    assert asked["sticky"] == 0o755
+    assert asked["sealed"] == 0o600
+    assert (tmp_path / "out" / "write-only" / "inside").read_bytes() == b"x"
+
+
+def test_a_hard_link_never_keeps_set_user_id_or_write_for_others_from_its_own_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: dict[str, int] = {}
+    real = Path.chmod
+
+    def chmod(self: Path, mode: int, **kwargs: bool) -> None:
+        asked[self.name] = mode
+        real(self, mode, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", chmod)
+    archive = make_tar(
+        tmp_path / "rt.tar.gz",
+        file_entry("source", b"x", 0o755),
+        link_entry("risky", "source", hard=True, mode=0o4777),
+        link_entry("plain", "source", hard=True, mode=0o444),
+    )
+
+    unpack_to(archive, tmp_path / "out")
+
+    assert asked["risky"] == 0o755
+    assert asked["plain"] == 0o644
+    assert (tmp_path / "out" / "risky").read_bytes() == b"x"
 
 
 @pytest.mark.parametrize(

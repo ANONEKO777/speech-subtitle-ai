@@ -750,6 +750,21 @@ def test_a_server_that_only_makes_guards_in_workers_still_gets_the_handlers_at_s
     assert installed == [signal.SIGTERM, signal.SIGINT]
 
 
+def test_a_closed_terminal_stops_the_children_because_sighup_is_one_of_the_signals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr(process_guard, "_signals_hooked", False)
+    monkeypatch.setattr(signal, "SIGHUP", 1, raising=False)
+    installed: list[int] = []
+    monkeypatch.setattr(signal, "signal", lambda number, handler: installed.append(number))
+    monkeypatch.setattr(signal, "getsignal", lambda number: signal.SIG_DFL)
+
+    process_guard.stop_children_on_signals()
+
+    assert installed == [signal.SIGTERM, 1]
+
+
 def test_the_handlers_are_left_out_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     installed, _ = fake_signals(monkeypatch)
     monkeypatch.setattr("sys.platform", "win32")
