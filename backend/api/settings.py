@@ -17,6 +17,7 @@ from backend.manager.settings import (
     LlmSettings,
     LlmSource,
     SettingsError,
+    UiLanguage,
 )
 
 router = APIRouter(prefix="/api", tags=["settings"])
@@ -49,6 +50,8 @@ class SettingsBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     llm: LlmBody | None = None
     registry_url: str | None = None
+    ui_language: UiLanguage | None = None
+    """Omit to keep the saved language of the window."""
 
 
 def _llm_json(ctx: Context, llm: LlmSettings) -> dict[str, Any]:
@@ -67,6 +70,7 @@ def view(ctx: Context) -> dict[str, Any]:
     return {
         "llm": _llm_json(ctx, current.llm),
         "registry_url": current.registry_url,
+        "ui_language": current.ui_language.value,
         "cloud_consent_text": CLOUD_CONSENT_TEXT,
         "problem": ctx.settings.problem,
         "storage": get_storage(ctx),
@@ -89,7 +93,8 @@ def put_settings(body: SettingsBody, ctx: Context) -> dict[str, Any]:
     try:
         llm = body.llm.settings() if body.llm else current.llm
         registry_url = body.registry_url if "registry_url" in sent else current.registry_url
-        updated = AppSettings(current.profile, llm, registry_url or None)
+        ui_language = body.ui_language or current.ui_language
+        updated = AppSettings(current.profile, llm, registry_url or None, ui_language)
         key = body.llm.api_key if body.llm else None
         if llm.source is LlmSource.CLOUD and not (key or (key is None and _key_saved(ctx))):
             raise SettingsError("an API key is required for a cloud LLM")
