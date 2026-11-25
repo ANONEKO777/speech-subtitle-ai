@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Any
 
 from zh_z0_common import (
@@ -41,6 +43,18 @@ E5 = WORK / "e5"
 
 def unspaced_zh(code: str) -> bool:
     return False if code == "zh" else source_langs.is_spaced(code)
+
+
+def prompted(
+    original: Callable[[Sequence[Path], Sequence[Path], str], list[str]], prompt: str
+) -> Callable[[Sequence[Path], Sequence[Path], str], list[str]]:
+    """`original` with a whisper `--prompt` after the program name."""
+
+    def command(inputs: Sequence[Path], outputs: Sequence[Path], language: str) -> list[str]:
+        built = original(inputs, outputs, language)
+        return [built[0], "--prompt", prompt, *built[1:]]
+
+    return command
 
 
 def main() -> int:
@@ -70,10 +84,7 @@ def main() -> int:
     wav = folder / "window.wav"
     engine = make_engine(WHISPER_ID if args.engine == "whisper" else CRISPASR_ID)
     if args.prompt:
-        original = engine.command
-        engine.command = lambda i, o, lang: (lambda c: [c[0], "--prompt", args.prompt, *c[1:]])(
-            original(i, o, lang)
-        )
+        setattr(engine, "command", prompted(engine.command, args.prompt))  # noqa: B010
     onnx = storage().models_root / "silero-vad-onnx-v6.2.3" / "silero_vad.onnx"
     chunks = vad.split(wav, onnx)
     words = transcribe_chunks(engine, wav, chunks, args.lang)
