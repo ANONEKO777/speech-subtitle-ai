@@ -18,6 +18,7 @@ import { type Action, isArrow, keyAction } from "./shortcuts";
 import { adjacentCue, clampOffset, playClock, startOnVideo } from "./transport";
 import { useActiveCue } from "./useActiveCue";
 import { useBurn } from "./useBurn";
+import { useIdle } from "./useIdle";
 import { useOffset } from "./useOffset";
 import { useToast } from "./useToast";
 import { useTransport } from "./useTransport";
@@ -92,10 +93,8 @@ export function Player(props: Props) {
   const [status, setStatus] = useState<string | null>(notice);
   const [helpOpen, setHelpOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [idle, setIdle] = useState(false);
   const [osd, setOsd] = useState<string | null>(null);
   const osdTimer = useRef(0);
-  const idleTimer = useRef(0);
   const { toast, show: showToast, hide: hideToast } = useToast();
 
   const editing = useCueEditing(backend, projectId, lang, loaded);
@@ -302,12 +301,7 @@ export function Player(props: Props) {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  const wake = () => {
-    setIdle(false);
-    window.clearTimeout(idleTimer.current);
-    idleTimer.current = window.setTimeout(() => setIdle(true), IDLE_MS);
-  };
-  useEffect(() => () => window.clearTimeout(idleTimer.current), []);
+  const { idle, wake } = useIdle(stage, IDLE_MS);
 
   const lines: Array<{ side: "src" | "zh"; lang: string; text: string }> = [];
   if (cue && settings.mode !== "zh") lines.push({ side: "src", lang: cue.lang, text: cue.src });
