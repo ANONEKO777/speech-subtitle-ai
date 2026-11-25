@@ -1,20 +1,28 @@
 import { asRecord } from "../api/client";
+import { type Translate, tZhTW } from "../i18n";
 
 export const STEPS = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type Step = (typeof STEPS)[number];
 
-export const STEP_LABEL: Record<Step, string> = {
-  audio: "擷取音訊",
-  vad: "偵測語音",
-  asr: "語音辨識",
-  segment: "斷句",
-  translate: "翻譯",
-  export: "輸出字幕",
-  summarize: "重點摘要",
-};
-
 /** The name of a step for a run that translates into `target`: 翻譯成繁體中文, 翻譯成English. */
-export const stepLabel = (step: Step, target: string): string => (step === "translate" ? `翻譯成${target}` : STEP_LABEL[step]);
+export const stepLabel = (step: Step, target: string, t: Translate = tZhTW): string => {
+  switch (step) {
+    case "translate":
+      return t("progress.translateTo", { target });
+    case "audio":
+      return t("progress.step.audio");
+    case "vad":
+      return t("progress.step.vad");
+    case "asr":
+      return t("progress.step.asr");
+    case "segment":
+      return t("progress.step.segment");
+    case "export":
+      return t("progress.step.export");
+    case "summarize":
+      return t("progress.step.summarize");
+  }
+};
 
 /** The steps a run that only adds a language redoes. The speech steps are kept from the first run. */
 export const ADD_TARGET_STEPS: readonly Step[] = ["translate", "export", "summarize"];
@@ -23,7 +31,8 @@ export type JobView =
   | { readonly kind: "waiting" }
   | { readonly kind: "running"; readonly step: Step | null; readonly stepFraction: number; readonly overall: number }
   | { readonly kind: "done"; readonly edits: EditsReport }
-  | { readonly kind: "failed"; readonly error: string }
+  /** `disconnected` is set when the event stream dropped: the window says so in its own language. */
+  | { readonly kind: "failed"; readonly error: string; readonly disconnected?: true }
   | { readonly kind: "cancelled" };
 
 /** What the run did with the cues a person had corrected: put back over the new translation, or no longer fitting it. */
@@ -57,7 +66,7 @@ export function reduceJob(view: JobView, event: string, data: unknown): JobView 
       return { kind: "cancelled" };
     case "disconnected":
       if (view.kind === "done" || view.kind === "failed" || view.kind === "cancelled") return view;
-      return { kind: "failed", error: "與後端的連線中斷，處理已停止。後端可能已結束，請重新啟動程式。" };
+      return { kind: "failed", error: "connection lost", disconnected: true };
     default:
       return view;
   }

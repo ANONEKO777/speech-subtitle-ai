@@ -1,5 +1,6 @@
 import { asRecord } from "../api/client";
 import { type SourceLang, parseSourceLang } from "../api/sourceLang";
+import { type Translate, tZhTW } from "../i18n";
 
 export const STEP_ORDER = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type QueueStep = (typeof STEP_ORDER)[number];
@@ -267,13 +268,13 @@ export function overall(items: readonly BatchItem[]): Overall {
 }
 
 /** "約 12 分鐘", "約 2 小時 5 分", or "不到 1 分鐘". */
-export function formatEta(seconds: number): string {
-  if (seconds < 45) return "不到 1 分鐘";
+export function formatEta(seconds: number, t: Translate = tZhTW): string {
+  if (seconds < 45) return t("eta.under");
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `約 ${minutes} 分鐘`;
+  if (minutes < 60) return t("eta.minutes", { n: minutes });
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return m === 0 ? `約 ${h} 小時` : `約 ${h} 小時 ${m} 分`;
+  return m === 0 ? t("eta.hours", { n: h }) : t("eta.hoursMinutes", { h, m });
 }
 
 /** Whole seconds left until `deadlineMs`, never below 0. */

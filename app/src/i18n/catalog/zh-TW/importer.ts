@@ -39,6 +39,7 @@ export const importer = {
   "detect.hintMostly": "這部影片大部分是{heard}，目前選的是{choice}",
   "detect.hintSounds": "這部影片聽起來是{heard}，目前選的是{choice}",
   "detect.switch": "改成{source}",
+  "progress.stepOf": "{label}（{index}/{total}）",
   "progress.waiting": "等待後端開始",
   "progress.rerun": "這部影片已經辨識並斷好句，只會重新翻譯成{target}，不會重跑語音辨識與斷句。",
   "progress.translateTo": "翻譯成{target}",

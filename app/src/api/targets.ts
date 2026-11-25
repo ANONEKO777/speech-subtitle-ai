@@ -1,3 +1,4 @@
+import { tZhTW } from "../i18n";
 import type { LanguageInfo } from "./client";
 import type { SourceLang } from "./sourceLang";
 
@@ -60,11 +61,9 @@ export function targetsFor(set: TargetSource, source: SourceLang, wanted: readon
   return kept.length > 0 ? kept : [targetFor(set, source, wanted[0] ?? "")];
 }
 
-export const EXPERIMENTAL = "實驗性";
-
-/** What a person is told once they pick a language that is not yet judged. */
-export const EXPERIMENTAL_HINT =
-  "實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。";
+/** Traditional Chinese, for the batch dialog and the player until W3 moves them to `t("targets.experimental")` and `t("targets.experimentalHint")`. */
+export const EXPERIMENTAL = tZhTW("targets.experimental");
+export const EXPERIMENTAL_HINT = tZhTW("targets.experimentalHint");
 
 export const targetName = (set: TargetSource, source: SourceLang, code: string): string =>
   targetsOf(set, source).find((t) => t.code === code)?.nativeName ?? set.languages.find((l) => l.code === code)?.nativeName ?? code;

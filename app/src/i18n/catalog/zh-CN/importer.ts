@@ -40,6 +40,7 @@ export const importer = {
   "detect.hintMostly": "这部视频大部分是{heard}，目前选的是{choice}",
   "detect.hintSounds": "这部视频听起来是{heard}，目前选的是{choice}",
   "detect.switch": "改成{source}",
+  "progress.stepOf": "{label}（{index}/{total}）",
   "progress.waiting": "等待后端开始",
   "progress.rerun": "这部视频已经识别并断好句，只会重新翻译成{target}，不会重跑语音识别与断句。",
   "progress.translateTo": "翻译成{target}",

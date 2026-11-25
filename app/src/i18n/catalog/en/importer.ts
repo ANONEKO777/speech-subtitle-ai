@@ -37,6 +37,7 @@ export const importer = {
   "detect.hintMostly": "Most of this video is {heard}, but you picked {choice}.",
   "detect.hintSounds": "This video sounds like {heard}, but you picked {choice}.",
   "detect.switch": "Switch to {source}",
+  "progress.stepOf": "{label} ({index}/{total})",
   "progress.waiting": "Waiting for the backend to start",
   "progress.rerun": "This video has already been transcribed and split into sentences. Only the translation into {target} will run again; speech recognition and sentence splitting are not repeated.",
   "progress.translateTo": "Translating into {target}",

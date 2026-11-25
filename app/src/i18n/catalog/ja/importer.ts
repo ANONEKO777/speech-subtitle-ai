@@ -40,6 +40,7 @@ export const importer = {
   "detect.hintMostly": "この動画の大部分は{heard}ですが、現在は{choice}を選んでいます",
   "detect.hintSounds": "この動画は{heard}のようですが、現在は{choice}を選んでいます",
   "detect.switch": "{source}に変更",
+  "progress.stepOf": "{label}（{index}/{total}）",
   "progress.waiting": "バックエンドの開始を待っています",
   "progress.rerun": "この動画はすでに音声認識と文の分割が済んでいるため、{target}への翻訳だけをやり直します。音声認識と文の分割は再実行されません。",
   "progress.translateTo": "{target}に翻訳",

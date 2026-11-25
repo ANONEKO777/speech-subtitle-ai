@@ -1,3 +1,4 @@
+import { useT } from "../i18n/I18nProvider";
 import { ADD_TARGET_STEPS, type JobView, STEPS, stepLabel } from "./job";
 
 interface Props {
@@ -9,13 +10,14 @@ interface Props {
 }
 
 export function ProgressBar({ view, target, addsTarget = false }: Props) {
+  const { t } = useT();
   const running = view.kind === "running" ? view : null;
   const percent = Math.round((view.kind === "done" ? 1 : (running?.overall ?? 0)) * 100);
   const stepIndex = running?.step ? STEPS.indexOf(running.step) + 1 : 0;
   const label = running?.step
-    ? `${stepLabel(running.step, target)}（${stepIndex}/${STEPS.length}）`
+    ? t("progress.stepOf", { label: stepLabel(running.step, target, t), index: stepIndex, total: STEPS.length })
     : view.kind === "waiting"
-      ? "等待後端開始"
+      ? t("progress.waiting")
       : "";
   return (
     <div className="progress">
@@ -32,7 +34,7 @@ export function ProgressBar({ view, target, addsTarget = false }: Props) {
       </div>
       {addsTarget && (
         <p className="progress-note" data-testid="rerun-note">
-          這部影片已經辨識並斷好句，只會重新翻譯成{target}，不會重跑語音辨識與斷句。
+          {t("progress.rerun", { target })}
         </p>
       )}
       <ol className="steps">
@@ -42,7 +44,7 @@ export function ProgressBar({ view, target, addsTarget = false }: Props) {
             data-state={view.kind === "done" || i + 1 < stepIndex ? "done" : i + 1 === stepIndex ? "current" : "todo"}
             data-kept={addsTarget && !ADD_TARGET_STEPS.includes(step)}
           >
-            {stepLabel(step, target)}
+            {stepLabel(step, target, t)}
           </li>
         ))}
       </ol>
