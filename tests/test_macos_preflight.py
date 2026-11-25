@@ -20,7 +20,10 @@ DOC = ROOT / "docs" / "MACOS.md"
 
 def working_bash() -> str | None:
     found = shutil.which("bash")
-    if found is None or subprocess.run([found, "-c", "true"], capture_output=True).returncode:
+    if found is None:
+        return None
+    probe = 'd="$(mktemp -d)" && [ -d "$d" ] && command -v awk sed head dirname grep && rm -rf "$d"'
+    if subprocess.run([found, "-c", probe], capture_output=True).returncode:
         return None
     return found
 
