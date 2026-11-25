@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import io
 import json
 import re
 import sys
@@ -194,6 +195,9 @@ def run(out: Path, opencc_label: str) -> None:
 
 
 def report(paths: list[Path]) -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
     merged: dict[str, Any] = {}
     corpus_info: dict[str, Any] = {}
     for path in paths:

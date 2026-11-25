@@ -18,9 +18,9 @@ foreign audience. The Chinese line is Traditional by default, characters only, n
 - Two videos from the operator, kept outside the repository; their rights belong to their authors and the
   operator. (a) The anime explainer "詳解【來自深淵】的全部七層！動漫界獨一份的超神設定": Traditional
   burned-in subtitles, fast speech, music, many names; a stress test. (b) The conference talk "[2025 TGDF]
-  從概念設計到虛幻引擎，在前期階段探索遊戲視覺的可能性 (陳族維)": 55 min, one speaker, slides; the picture
+  從概念設計到虛幻引擎，在前期階段探索遊戲視覺的可能性": 55 min, slides; the picture
   shows only the session title at the bottom, so it has no subtitles of the speech; it is the typical case.
-  This document holds numbers and excerpts of at most 12 characters from them. No frames, no transcripts.
+  This document holds numbers and excerpts of at most 14 characters from them. No frames, no transcripts.
 - A Taiwanese-voice proxy: 120 sentences of the repository's own zh-TW text read by the Windows voice
   `Microsoft Hanhan Desktop` (874 s). Clean synthetic speech: it shows which script an engine writes for a
   Taiwan voice, not how accurate it is on a real speaker.
@@ -53,8 +53,11 @@ loading included, one run per row, each utterance as a chunk.
   ran with nothing else on the PC: whisper 0.0168, 0.0157, 0.0156; Qwen3 0.0281, 0.0290, 0.0293; Qwen3
   without aligner 0.0219, 0.0217, 0.0218 (spread under 6%). Rounds 1 and 2 ran while I was scoring and
   linting at the same time: whisper 0.0178 and 0.0211, Qwen3 0.0306 and 0.0497, without aligner 0.0246 and
-  0.0487. The earlier 1.6x variance was my own concurrent CPU load (the quiet rounds repeat; I did not
-  profile it). Quiet-round medians, measured: whisper 0.0157, Qwen3 0.029, Qwen3 without aligner 0.0218.
+  0.0487. The earlier 1.6x variance was most likely my own concurrent CPU load (inferred: the quiet rounds repeat; I
+  did not profile it). An independent remeasure on a PC that was not quiet (22 to 38% CPU from other work,
+  two rounds) got whisper 0.0260 then 0.0179 and Qwen3 0.0338 then 0.0311, and the same memory (+2.26 GB and
+  +7.04 GB): the order and the memory are confirmed, the absolute RTF is not exact on a loaded machine, so
+  read the speed figures as low to medium confidence. Quiet-round medians, measured: whisper 0.0157, Qwen3 0.029, Qwen3 without aligner 0.0218.
   The aligner costs +0.007 RTF (+33%) and +2.5 GB. All are far faster than real time (one hour of audio in
   1 to 2 minutes). Whisper's limiter is token decoding and sampling on the CPU: 78% of its time (sample 84 s
   plus batch decode 88 s of 221 s on the full run), encode 11%, model load 4%, GPU load mean 36%. Qwen3's GPU
@@ -80,26 +83,40 @@ characters of the repository's own Traditional text (lines with kana or Simplifi
 
 | converter (licence, install) | `s2t` | `s2tw` | `s2twp` | wording changed to Taiwan terms (of 38), `s2t` / `s2tw` / `s2twp` |
 |---|---|---|---|---|
-| `opencc` 1.4.2, native (Apache-2.0; wheels cp311 win_amd64 2.89 MB, macOS x86_64 2.15 MB, arm64 2.05 MB: no build step) | 0.99% | 0.28% | 1.13% | 1 / 1 / 29 |
-| `opencc-purepy` 1.5.2, pure Python (MIT; one wheel, 1.41 MB, no binary) | 0.25% | 0.26% | 1.07% | 1 / 1 / 27 |
-| `opencc-python-reimplemented` 0.1.7, pure Python (Apache-2.0, 2023; same module name `opencc`) | 1.00% | 0.29% | 1.18% | 1 / 1 / 28 |
-| `zhconv-rs` 0.4.2 (GPL-2.0-or-later; wheels 1.2 MB), `zh-hant` / `zh-tw` | 0.22% | 0.25% | | 1 / 11 |
+| `opencc` 1.4.2, native (Apache-2.0; wheels cp311 win_amd64 2.89 MB, macOS x86_64 2.15 MB, arm64 2.05 MB: no build step) | 0.99% | 0.28% | 1.13% | 0 / 0 / 28 |
+| `opencc-purepy` 1.5.2, pure Python (code MIT; the bundled dictionaries in `opencc_purepy/dicts/` carry their own Apache-2.0 LICENSE; one wheel, 1.41 MB, no binary) | 0.25% | 0.26% | 1.07% | 0 / 0 / 26 |
+| `opencc-python-reimplemented` 0.1.7, pure Python (Apache-2.0, 2023; same module name `opencc`) | 1.00% | 0.29% | 1.18% | 0 / 0 / 27 |
+| `zhconv-rs` 0.4.2 (GPL-2.0-or-later; wheels 1.2 MB), `zh-hant` / `zh-tw` | 0.22% | 0.25% | | 0 / 10 (inferred: the 手机 control removed) |
 
 - The earlier "1.00%" row was the reimplemented package, not the native one: the two have the same module
   name and my report merge let one overwrite the other. Rerun with separate names: native `s2t` 0.99%,
   `s2tw` 0.28%. Native `s2t` writes variant forms that Taiwan does not use (為 as 爲 x108, 裡 as 裏 x70, 啟 as
-  啓, 才 as 纔); `s2tw` fixes them and changes characters only, not words. `s2twp` replaces vocabulary (27 to
-  29 of 38 terms) and is not wanted. measured.
+  啓, 才 as 纔); `s2tw` fixes them and changes characters only, not words. `s2twp` replaces vocabulary (26 to
+  28 of 38 terms) and is not wanted. measured. Correction after independent verification: my script first
+  printed 1 for `s2t` and `s2tw`; that was 手机 to 手機, a character conversion counted as wording, so plain
+  `s2t` and `s2tw` change no wording (0 of 38), and the `s2twp` counts are the verifier's 28, 26 and 27. The column `zh_z0_convert.py report` prints still includes that control, so it reads 1 higher than these numbers.
 - On 945 recognised utterances `s2tw` differs from `s2t` in 36.3% (variant characters: 爲 to 為 x230, 裏 to 裡
   x58, 羣 to 群 x57, 着 to 著 x45), and `s2twp` differs from `s2tw` in 15.4% (wording: 項目 to 專案, 博客 to 部落格,
   信息 to 資訊). measured. Where converters disagree (the one-to-many places): 著/着 x45, 佈/布 x24, 裡/里 x19,
   臺/台 x18, 週/周 x17, 佔/占 x14. `zhconv-rs` turns 裡 into 里 43 times in the round trip, a visible error.
   The hard subs of the anime video themselves mix 着 and 里 into Traditional text, so real Traditional is not
   uniform. Speed is not a limit: 400,000 characters per second or more for every converter. measured.
-- Recommendation (inferred): convert with `opencc-purepy` `s2t` (MIT, no native code in the installer, 0.25%
-  round trip, writes 裡 and 麵), or native `opencc` `s2tw` (Apache-2.0, 0.28%) if a native wheel is acceptable
-  in the PyInstaller bundle; never `s2twp`, never `zhconv-rs` (GPL, 裡 to 里). A switch keeps the recognised
-  text for people who want it.
+- 台灣 or 臺灣 (decision for the operator). The largest round-trip difference is 台 to 臺 (41 of purepy
+  `s2t`'s 84; the same 41 for every OpenCC `s2t` and `s2tw` configuration, measured): all four OpenCC
+  configurations (native and pure Python, `s2t` and `s2tw`) write 臺灣 for 台灣, while `zhconv-rs` `zh-hant`
+  keeps 台. In Taiwan 台灣 is the usual written form and 臺灣 the formal one (inferred), so a viewer sees a
+  visible difference. The default is the converter's output (臺灣); a one-line post-fix from 臺灣 to 台灣 is
+  cheap, but its effect on real Taiwanese subtitles was not measured. `opencc-purepy` `s2t` and `s2tw` differ
+  in only about 0.5% of the recognised outputs, because purepy's `s2t` already writes the Taiwan-standard
+  forms; native `s2t` does not (爲, 裏, 啓).
+- Recommendation (inferred; the verifier would also ship `s2tw`): convert with `opencc-purepy` `s2tw` (code
+  MIT, dictionaries Apache-2.0, no native code in the installer, 0.26% round trip), or native `opencc`
+  `s2tw` (Apache-2.0, 0.28%) if a native wheel is acceptable in the PyInstaller bundle; never `s2twp`, never
+  `zhconv-rs` (GPL, 裡 to 里). `s2tw` writes the Taiwan-standard character forms and has no phrase table. A
+  switch keeps the recognised text for people who want it. Licence check before shipping:
+  `THIRD-PARTY-NOTICES.md` needs the MIT notice of the code and the Apache-2.0 notice of the bundled
+  dictionaries for `opencc-purepy`; for native `opencc` it needs its Apache-2.0 LICENSE and AUTHORS and the
+  same check of the dictionary data in the wheel (not checked beyond the package metadata).
 
 ## 4. E3 sizes and length
 
@@ -109,8 +126,11 @@ characters of the repository's own Traditional text (lines with kana or Simplifi
   characters, p90 19, max 20, always one line). Talk: Qwen3 4.60, whisper 4.12 Han characters per speech second.
 - `CueRules` (measured on the app's cue builder over the anime video's Qwen3 words, 600 s, 130 cues): the
   Japanese values `max_line_chars=40` (20 full-width) and `max_cps=14.0` give cues of 21 characters p50 / 33 p90
-  / 38 max, 3.8 s p50, speed p90 6.1 and max 7.4 characters per second, 0 violations, half the cues on two
-  lines. Narrower lines (32, 28) give more two-line cues (98 and 109 of 133 and 146). Start with
+  / 38 max, 3.8 s p50, half the cues on two lines. The informative figure is speed: p90 6.1 and
+  max 7.4 characters per second against the limit 14.0, so the limit never binds (a limit of 10 gives 124 cues
+  of the same shape). The checker's "0 violations" only tests the builder against its own rules and is not
+  evidence. 14.0 is a Japanese carry-over that works because Mandarin speech is slower than the limit; it
+  was not tuned for Chinese. Narrower lines (32, 28) give more two-line cues (98 and 109 of 133 and 146). Start with
   **40 / 14.0**; the hard subs of the video use one line of at most 20 characters. On the talk the builder
   gives 13.8 cues per minute, 24 characters p50 / 40 p90 / 66 max (measured).
 - Summary sizing (the Japanese row has 1.2 and 2.0). `chars_per_token`: measured with the Qwen3-8B tokenizer
@@ -139,7 +159,10 @@ characters of the repository's own Traditional text (lines with kana or Simplifi
 | standin | anime ASR cues | Japanese | 1.26 | 1.54 | 1.86 | 0 | 11 |
 | standin | anime hard-sub lines | Japanese | 1.25 | 1.77 | 2.10 | 0 | 2 |
 
-  Short lines (the hard subs, 13 characters) have the larger ratios. By the P25 rule (1.5 times the largest
+  The ratios divide by the source length including the line break of two-line cues, so they are up to about 5%
+  low for those cues (anime ASR English p90 prints 4.18, 4.29 without the break; standin 4.35, 4.42); the
+  `Density` limits below come from the hard-sub set, which has no line breaks, and are unaffected. Short lines
+  (the hard subs, 13 characters) have the larger ratios. By the P25 rule (1.5 times the largest
   p90, slack 8): English `Density(7.4, 8, 0.3)`, Japanese `Density(2.7, 8, 0.4)` (inferred; the minimum
   ratios are a guess). A failed English cue is a name the model leaves in Chinese characters, which the
   app's English check rejects four times; the route's `LEAVE_EMPTY` handles it. No English reply held kana
@@ -196,13 +219,18 @@ OCR (`Windows.Media.Ocr`, zh-Hant-TW, already installed) read plain backgrounds 
 
 | run | CER vs hard subs | script written | cue start error p50 / p90 | reference starts within 0.5 s | cue chars p50 / p90 / max |
 |---|---|---|---|---|---|
-| whisper, tokens merged as the shipped code does (`is_spaced("zh")` true) | 19.2% | Simplified | 1.36 / 1.71 s | 7% | 16 / 24 / 118 |
+| whisper, tokens merged as the shipped code does (`is_spaced("zh")` true) | 19.2% (artifact, see below) | Simplified | 1.36 / 1.71 s | 7% | 16 / 24 / 118 |
 | whisper, unspaced (as a `zh` row would make it) | 6.89% | Simplified | 0.54 / 1.67 s | 28% | 20 / 32 / 35 |
 | Qwen3 `-l zh` | 6.77% | Simplified | 0.06 / 0.17 s | 61% | 21 / 33 / 38 |
 | Qwen3 `-l zh-Hant` | 6.89% | 28 Traditional, 193 Simplified characters | 0.06 / 0.17 s | 61% | 21 / 33 / 38 |
 
-- The unspaced `zh` row is mandatory: with the shipped spaced default whisper's Chinese tokens merge into one
-  118-character word and CER rises from 6.89% to 19.2% (the P22 bug again). measured.
+- The unspaced `zh` row is mandatory: with the shipped spaced default whisper's Chinese tokens merge into 197
+  words, the longest of 118 characters (the P22 bug again), and the stretch-scored CER rises from 6.89% to
+  19.2%. That rise is a scoring artifact: the recognised text is almost the same (2679 against 2682
+  characters), and the scorer assigns each word to a hard-sub stretch by its midpoint, so a 118-character
+  word lands in the wrong stretch. The real harm is timing and cue building: start error p50 1.36 s and a
+  118-character cue. It is not a recognition failure. The conclusion (an unspaced row is needed) stands.
+  measured.
 - Qwen3's aligner times cues about 9 times closer to the hard subs than whisper's tokens (start error p50 0.06
   against 0.54 s), measured on this one video. The hard subs mix a few mainland forms (里, 着) into Traditional.
 - Names (this video's Chinese through the converter and Qwen3-8B; `draft` prompt; 11 names, accepted
@@ -221,9 +249,9 @@ OCR (`Windows.Media.Ocr`, zh-Hant-TW, already installed) read plain backgrounds 
 | 孤兒院 | 2 | 2 | 2 | correct |
 | 巨人之杯 | 2 | 2 | 1 | Giant's Cup; 巨人のグラス |
 
-  So the model turns names into transliterations in English: 7 of 14 names had no accepted English rendering
+  So the model turns names into transliterations in English: 7 of 11 names had no accepted English rendering
   (pinyin readings such as Liko and Qing Di, or a translated common noun), while kanji names survive in
-  Japanese (2 of 14 had no accepted Japanese rendering, both spelling variants: アピス and オーセン; three
+  Japanese (2 of 11 had no accepted Japanese rendering, both spelling variants: アピス and オーセン; three
   more were missed in one of two cues).
   A glossary with aliases is needed, as P25 and P30 did for Japanese. The ASR itself garbles some names
   (驅形獸 for the creature, 利可 for 莉可). One anime cue stays in Chinese characters after four tries.
@@ -254,16 +282,20 @@ engine. Cues (the app's builder, 40 / 14.0): Qwen3 13.8 per minute, 24 character
    FLEURS, the anime video and one talk). **Qwen3 only** would make Chinese 24 GB-only (inferred from the
    profiles in the plan). A per-profile choice costs one row of engine selection (inferred).
 2. **Conversion.** Always convert the recognised text to Traditional characters after recognition (no engine
-   setting is reliable: measured). `opencc-purepy` `s2t` (MIT, no native code, 0.25% round trip) or native
-   `opencc` `s2tw` (Apache-2.0, 0.28%); never `s2twp` (changes wording), never `zhconv-rs` (GPL, 裡 to 里).
+   setting is reliable: measured). `opencc-purepy` `s2tw` (code MIT, dictionaries Apache-2.0, no native code, 0.26% round
+   trip) or native `opencc` `s2tw` (Apache-2.0, 0.28%), both notices in THIRD-PARTY-NOTICES; the 台灣 or 臺灣
+   form is the operator's choice (section 3); never `s2twp` (changes wording), never `zhconv-rs` (GPL, 裡 to 里).
    This is inferred from the round-trip and wording numbers above.
-3. **Unspaced `zh` row is mandatory** (measured: CER 6.89% unspaced against 19.2% with the shipped spaced
-   default). `CueRules(max_line_chars=40, unspaced=True, max_cps=14.0)` (measured on 130 cues);
+3. **Unspaced `zh` row is mandatory** (measured: with the shipped spaced default whisper's tokens merge into
+   a 118-character word, cue start error p50 1.36 s against 0.54 s, and the stretch-scored CER is 19.2%
+   against 6.89%, an artifact of assigning words by midpoint; the text itself is almost unchanged).
+   `CueRules(max_line_chars=40, unspaced=True, max_cps=14.0)` (the limit never binds: max 7.4 characters per
+   second on 130 cues; not tuned for Chinese);
    `chars_per_token` 1.3 (measured), `chars_per_word` 1.7 (guess); English `Density(7.4, 8, 0.3)`, Japanese
    `Density(2.7, 8, 0.4)` (inferred from p90 of 319 cues per target); route-level `needs_script` and a kana
    requirement for Japanese (measured: 11 of 130 kana-free replies with the English-source prompt).
 4. **Names.** Ship a glossary with aliases and a source-prompt rule for Chinese-reading names, because English
-   output turns names into pinyin readings (measured: 7 of 14 names without an accepted English rendering).
+   output turns names into pinyin readings (measured: 7 of 11 names without an accepted English rendering).
 5. **Detection.** Add `zh` to `LANGUAGES` with the existing 5 s method and filters (measured on read speech;
    a talk with English asides will read as mixed).
 
@@ -278,11 +310,14 @@ engine. Cues (the app's builder, 40 / 14.0): Qwen3 13.8 per minute, 24 character
   timed but not scored for CER; the Qwen3 speed limiter was not profiled.
 - The Taiwanese-wording check of the converted text (`zh_tw` term tables stay out of the path by design).
 - Burn-in fonts, macOS, CPU-profile speed, Cantonese, Chinese and English code-switching talks.
-- Only one anime window (10 min of 34), one talk, one machine (RTX 4090).
+- Only one anime window (10 min of 34), one talk, one machine (RTX 4090) shared with other work, so the
+  speed numbers are low to medium confidence. How often 臺 occurs in real Taiwanese subtitles (the 台灣 or
+  臺灣 post-fix) was not checked.
 
 ## 10. Rerun
 
-Use the repository's Python with `PYTHONPATH=<repo>;<repo>/scripts`, and scratch environments for the
+Use the repository's Python with `PYTHONPATH=<repo>;<repo>/scripts` (set `ZH_Z0_DATA` and `ZH_Z0_WORK` when the
+data is not under the main checkout's `.work/zh-z0`), and scratch environments for the
 converters (`uv venv .work/zh-z0/venv-native`, `uv pip install opencc opencc-purepy zhconv-rs`; and
 `venv-reimpl` with `opencc-python-reimplemented`). Commands, in order: `zh_z0_data.py fetch` then `extract`;
 `sh scripts/zh_z0_run_e1.sh`; `zh_z0_score.py <tags>` (and `--pair a b`); `zh_z0_convert.py run --out X`

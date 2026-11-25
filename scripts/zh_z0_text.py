@@ -1,10 +1,13 @@
-"""Text, paths and FLEURS manifests for the Z0 scripts. No engine imports, so a scratch
+"""Text, paths and FLEURS manifests for the Z0 scripts. `ZH_Z0_DATA` names the data folder and
+`ZH_Z0_WORK` the work folder; the default is `<main checkout>/.work/zh-z0` found from any worktree.
+No engine imports, so a scratch
 environment that only holds a converter package can run the scoring scripts."""
 
 from __future__ import annotations
 
 import csv
 import json
+import os
 import unicodedata
 import wave
 from collections.abc import Sequence
@@ -14,8 +17,8 @@ from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT.parents[1] if ROOT.parent.name == ".worktrees" else ROOT
-WORK = MAIN / ".work" / "zh-z0"
-DATA = WORK / "data"
+WORK = Path(os.environ.get("ZH_Z0_WORK") or MAIN / ".work" / "zh-z0")
+DATA = Path(os.environ.get("ZH_Z0_DATA") or WORK / "data")
 RUNS = WORK / "runs"
 FLEURS_LANGS = {"zh": "cmn_hans_cn", "ja": "ja_jp", "ko": "ko_kr", "en": "en_us"}
 SAMPLE_RATE = 16000

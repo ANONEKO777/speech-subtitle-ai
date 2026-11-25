@@ -27,7 +27,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
-from zh_z0_text import WORK, edit_distance, is_han, keep_letters, percentile, read_json
+from zh_z0_text import ROOT, WORK, edit_distance, is_han, keep_letters, percentile, read_json
 
 E6 = WORK / "e6"
 STRETCHES = 20
@@ -58,7 +58,7 @@ def text_in(words: list[list[Any]], start_s: float, end_s: float) -> str:
 def compare(tags: list[str]) -> None:
     opencc = cast("Any", importlib.import_module("opencc"))
     t2s = cast("Convert", opencc.OpenCC("t2s").convert)
-    sys.path.insert(0, str(WORK.parents[1]))
+    sys.path.insert(0, str(ROOT))
     from backend.core.zh_tw import SIMPLIFIED_ONLY
 
     runs = {tag: cast("dict[str, Any]", read_json(E6 / f"{tag}.json")) for tag in tags}

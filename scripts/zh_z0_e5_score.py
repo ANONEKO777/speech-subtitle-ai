@@ -23,7 +23,7 @@ import sys
 from collections.abc import Callable
 from typing import Any, cast
 
-from zh_z0_text import WORK, edit_distance, is_han, keep_letters, percentile, read_json
+from zh_z0_text import ROOT, WORK, edit_distance, is_han, keep_letters, percentile, read_json
 
 E5 = WORK / "e5"
 MERGE = {98: 99, 102: 103}
@@ -59,7 +59,7 @@ def spans(rows: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
 
 
 def script_counts(text: str, t2s: Convert) -> tuple[int, int]:
-    sys.path.insert(0, str(WORK.parents[1]))
+    sys.path.insert(0, str(ROOT))
     from backend.core.zh_tw import SIMPLIFIED_ONLY
 
     traditional = sum(1 for c in text if is_han(c) and t2s(c) != c)
