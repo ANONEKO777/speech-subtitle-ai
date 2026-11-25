@@ -5,7 +5,7 @@
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
 
 use crate::platform;
@@ -73,7 +73,7 @@ fn ensure_supported() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn update_check(app: AppHandle, pending: tauri::State<'_, Pending>) -> Result<Checked, String> {
+pub async fn update_check<R: Runtime>(app: AppHandle<R>, pending: tauri::State<'_, Pending>) -> Result<Checked, String> {
     ensure_supported()?;
     let mut builder = app.updater_builder().timeout(CHECK_TIMEOUT);
     if let Some(url) = endpoint_override()? {
@@ -165,6 +165,20 @@ mod tests {
             assert!(text.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)), "{text}");
             assert!(!text.contains("JSON") && !text.contains("expected") && !text.contains("platform"), "{text}");
         }
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn the_update_check_command_refuses_before_it_reaches_the_network_on_a_system_without_updates() {
+        let app = tauri::test::mock_builder()
+            .manage(Pending::default())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let handle = app.handle().clone();
+
+        let answer = tauri::async_runtime::block_on(update_check(handle.clone(), handle.state::<Pending>()));
+
+        assert_eq!(answer.err().as_deref(), Some(NO_UPDATES));
     }
 
     #[test]

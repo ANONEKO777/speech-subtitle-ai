@@ -51,4 +51,10 @@ describe("parseAsset", () => {
     expect(parseAsset(row({ local_build: false })).localBuild).toBe(false);
     expect(parseAsset(row({})).localBuild).toBe(false);
   });
+
+  it("reads whether the program was found outside the runtimes folder, and not without the flag", () => {
+    expect(parseAsset(row({ found_outside_runtimes: true })).foundOutsideRuntimes).toBe(true);
+    expect(parseAsset(row({ found_outside_runtimes: false })).foundOutsideRuntimes).toBe(false);
+    expect(parseAsset(row({})).foundOutsideRuntimes).toBe(false);
+  });
 });

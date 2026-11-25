@@ -43,9 +43,30 @@ The app's data folder on a Mac is `~/Library/Application Support/video-subtitle-
 
 whisper.cpp publishes no ready-made macOS program, so `whisper-cli` is built once on your Mac.
 The app looks for it in the folder above first, then on `PATH`, then in `/opt/homebrew/bin` and
-`/usr/local/bin`. If it is missing, the program stops with a message that names the script.
+`/usr/local/bin`. If it is missing, the program stops with a message that names the script. A copy
+found on `PATH` or in a Homebrew folder is listed on the Models page with the folder it was found in
+and no delete button, because the app only deletes what is in its own runtimes folder. "Check for
+updates" has nothing to check for a program built on the Mac: build it again with the script to
+get a newer one.
 
 ## Steps
+
+0. Check the Mac before you install anything. This reads the machine and changes nothing (no
+   `sudo`, nothing written):
+
+   ```
+   bash scripts/mac/preflight.sh
+   ```
+
+   It prints the chip, macOS version, memory, free disk space and which tools are present (with
+   versions), then one plain line per problem in Chinese and a last line with the count. Copy the
+   whole block and send it back. It stops at once on an Intel Mac, on Linux, or in a terminal that
+   runs under Rosetta. If you have no clone yet, copy `scripts/mac/preflight.sh` to the Mac by hand (AirDrop, a USB
+   stick or a mail attachment) and run `bash preflight.sh`; it needs nothing else. It reports less
+   than 20 GB of free disk as a problem; that limit is a rough allowance for the runtimes, the
+   models and the build files, not a measured figure.
+   It was written on Windows and tested only against fake `uname`, `sw_vers`, `sysctl` and `df`
+   programs, not on a Mac.
 
 1. Install the Xcode command line tools (gives you `git`, the compiler and Metal headers):
 
@@ -82,8 +103,8 @@ The app looks for it in the folder above first, then on `PATH`, then in `/opt/ho
    Metal and the shaders embedded, builds only `whisper-cli`, and copies it into place. To try
    another tag set `WHISPER_CPP_TAG=<tag>` before the command. The tag and the Metal switches
    have not been run by the author; if the build fails, the last lines of cmake's output say why.
-   The first-run wizard and the hardware page list this program as "在這台 Mac 上自行建置" (built on this
-   Mac), with no size and not counted as a download, until the script has run.
+   The first-run wizard, the hardware page and the Models page list this program as "在這台 Mac 上自行建置"
+   (built on this Mac), with no size and not counted as a download, until the script has run.
 
 5. Start the local service and download the runtimes and models for your profile. The service
    prints `READY port=<n> token=<t>`:
@@ -188,9 +209,17 @@ stay.
 
 - Nobody has built or run this on a Mac. The Mac-specific code was checked by unit tests only.
   Two files of the desktop shell, `group.rs` and `platform.rs`, were type-checked for
-  `aarch64-apple-darwin`, and `group.rs` was run under Linux. The whole shell crate was not
-  compiled for macOS, because the machine that checked it has no macOS C compiler. That the whole
-  crate compiles on a Mac is the first thing P37d shows. Every item under "What only a Mac can
+  `aarch64-apple-darwin`. The whole shell crate was not compiled for macOS, because the machine that
+  checked it has no macOS C compiler. That the whole crate compiles on a Mac is the first thing P37d
+  shows.
+- What did run, on Debian Linux (under WSL, with the Tauri system packages installed there): the
+  whole shell crate with `cargo check --all-targets` (no errors, no warnings) and `cargo test` (44
+  tests passed). That covers the Unix-only code that Windows skips: the process group and its
+  SIGTERM then SIGKILL (`group.rs`), the replaced backend ending the group of the one it replaces
+  (`adopt` in `sidecar.rs`), the packaged-backend and virtual-environment command paths, and the
+  update check refusing a system without updates. Linux is not macOS: nothing here proves a macOS
+  call (`open -R`, `pmset`, Gatekeeper, WebKit, the Metal programs), the macOS kernel's signal and
+  process-group behaviour, or the file locations on a Mac. Every item under "What only a Mac can
   prove" is still open.
 - A copy of the app for other people. Without a paid Apple Developer account the app cannot be
   notarized, so each person who receives it must do the "Open Anyway" steps above, and a later macOS

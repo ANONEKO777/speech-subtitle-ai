@@ -5,6 +5,7 @@ The registry is the shipped one filtered to macOS; nothing is downloaded and no 
 from __future__ import annotations
 
 import dataclasses
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -188,3 +189,63 @@ def test_fetching_what_a_mac_profile_misses_skips_the_runtime_built_on_the_machi
     assert WHISPER not in submitted
     assert "llama.cpp-b12068-macos-metal" in submitted
     assert submitted == missing - {WHISPER}
+
+
+def fake_which(monkeypatch: pytest.MonkeyPatch, on_path: Path | str | None) -> None:
+    """`shutil.which` finds `on_path` on PATH and nothing in the Homebrew folders."""
+
+    def which(name: str, mode: int = 0, path: str | None = None) -> str | None:
+        return str(on_path) if on_path is not None and path is None else None
+
+    monkeypatch.setattr(shutil, "which", which)
+
+
+def test_a_whisper_found_on_path_is_listed_with_where_and_the_delete_leaves_it_alone(
+    client: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    program = tmp_path / "homebrew" / "whisper-cli"
+    program.parent.mkdir()
+    program.write_bytes(b"x")
+    fake_which(monkeypatch, program)
+
+    row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
+    plain = client.delete(f"/api/runtimes/{WHISPER}")
+    forced = client.delete(f"/api/runtimes/{WHISPER}", params={"force": True, "reason": "x" * 20})
+
+    assert (row["state"], row["found_outside_runtimes"], row["path"]) == (
+        "installed",
+        True,
+        str(program),
+    )
+    for reply in (plain, forced):
+        assert reply.status_code == 400
+        assert reply.json()["detail"]["can_force"] is False
+        assert "沒有刪它" in reply.json()["detail"]["message"]
+        assert str(program.parent) in reply.json()["detail"]["message"]
+    assert program.read_bytes() == b"x"
+
+
+def test_a_whisper_in_the_runtimes_folder_is_not_marked_and_the_delete_removes_it(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = client.ctx.storage.runtime_dir(MAC.runtimes[WHISPER])
+    (folder).mkdir(parents=True)
+    (folder / "whisper-cli").write_bytes(b"x")
+    fake_which(monkeypatch, "/opt/homebrew/bin/whisper-cli")
+
+    row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
+    reply = client.delete(f"/api/runtimes/{WHISPER}", params={"force": True, "reason": "x" * 20})
+
+    assert (row["state"], row["found_outside_runtimes"]) == ("installed", False)
+    assert reply.status_code == 204
+    assert not folder.exists()
+
+
+def test_a_missing_whisper_is_not_marked_as_found_elsewhere(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_which(monkeypatch, None)
+
+    row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
+
+    assert (row["state"], row["found_outside_runtimes"]) == ("not_installed", False)

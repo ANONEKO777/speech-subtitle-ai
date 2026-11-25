@@ -1,16 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { macInventory, windowsInventory } from "../manage/screens.fixture";
-import type { Inventory } from "../manage/types";
+import type { Inventory, UpdateReport } from "../manage/types";
 import { ModelsSection } from "./ModelsSection";
 
-const mocks = vi.hoisted(() => ({ inventory: null as Inventory | null }));
+const mocks = vi.hoisted(() => ({ inventory: null as Inventory | null, updates: null as UpdateReport | null }));
 
 vi.mock("../manage/api", async (orig) => ({
   ...(await orig<typeof import("../manage/api")>()),
   fetchInventory: vi.fn(() => Promise.resolve(mocks.inventory)),
+  checkUpdates: vi.fn(() => Promise.resolve(mocks.updates)),
 }));
 
 const backend = { port: 1, token: "t" } as Backend;
@@ -53,5 +54,46 @@ describe("the Models page", () => {
     expect(screen.queryByTestId("act-whispercpp-b5454-macos-metal-redownload")).toBeNull();
     expect(screen.queryByTestId("inv-whispercpp-b5454-macos-metal-build")).toBeNull();
     expect(screen.getByTestId("inv-whispercpp-b5454-macos-metal").textContent).toContain("781 KB");
+  });
+  const builtIn = (over: Partial<Inventory["assets"][number]>): Inventory => {
+    const inv = macInventory();
+    const built = inv.assets[0];
+    if (!built) throw new Error("fixture");
+    return { ...inv, assets: [{ ...built, state: "installed", sizeOnDisk: 800_000, shaState: "unchecked", ...over }] };
+  };
+  const checked = (status: "unknown" | "current"): UpdateReport => ({ message: "已檢查", items: [{ id: "whispercpp-b5454-macos-metal", status, installable: true, message: "" }] });
+
+  it("says where a program found on PATH came from and offers no delete, since the app will not remove it", async () => {
+    await show(builtIn({ path: "/opt/homebrew/bin/whisper-cli", foundOutsideRuntimes: true }));
+    const row = screen.getByTestId("inv-whispercpp-b5454-macos-metal");
+    expect(row.textContent).toContain("/opt/homebrew/bin/whisper-cli");
+    expect(screen.getByTestId("inv-whispercpp-b5454-macos-metal-elsewhere").textContent).toContain("App 不會刪它");
+    expect(screen.queryByTestId("act-whispercpp-b5454-macos-metal-delete")).toBeNull();
+  });
+
+  it("does not call a program built here up to date after the update check, and points to the script", async () => {
+    mocks.updates = checked("unknown");
+    await show(builtIn({ path: "/r/whisper-cli" }));
+    fireEvent.click(screen.getByTestId("check-updates"));
+    const line = await waitFor(() => screen.getByTestId("inv-whispercpp-b5454-macos-metal-update"));
+    expect(line.textContent).toBe("自行建置的程式沒有更新檢查，要換新版請重新執行 scripts/mac/build_whisper_cli.sh");
+    expect(screen.getByTestId("inv-whispercpp-b5454-macos-metal").textContent).not.toContain("已是最新");
+    expect(screen.queryByTestId("inv-whispercpp-b5454-macos-metal-elsewhere")).toBeNull();
+  });
+
+  it("does not send a program found elsewhere to a script that would build a second copy", async () => {
+    mocks.updates = checked("unknown");
+    await show(builtIn({ path: "/opt/homebrew/bin/whisper-cli", foundOutsideRuntimes: true }));
+    fireEvent.click(screen.getByTestId("check-updates"));
+    const line = await waitFor(() => screen.getByTestId("inv-whispercpp-b5454-macos-metal-update"));
+    expect(line.textContent).toBe("沒有更新檢查");
+  });
+
+  it("keeps saying already up to date on a Windows row after the update check", async () => {
+    mocks.updates = { message: "已檢查", items: [{ id: "whisper-large-v3-turbo", status: "current", installable: true, message: "" }] };
+    await show(windowsInventory());
+    fireEvent.click(screen.getByTestId("check-updates"));
+    const line = await waitFor(() => screen.getByTestId("inv-whisper-large-v3-turbo-update"));
+    expect(line.textContent).toBe("已是最新");
   });
 });

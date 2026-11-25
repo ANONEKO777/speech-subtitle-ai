@@ -14,7 +14,7 @@ import {
 } from "../manage/api";
 import { fraction, isActive, stateLabel } from "../manage/downloads";
 import { bytes, shortVersion, speed } from "../manage/format";
-import { LOCAL_BUILD_TEXT } from "../manage/localBuild";
+import { LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT, LOCAL_BUILD_ELSEWHERE_TEXT, LOCAL_BUILD_NO_UPDATE_TEXT, LOCAL_BUILD_TEXT } from "../manage/localBuild";
 import type { Downloads } from "../manage/useDownloads";
 import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/types";
 import { DeleteDialog } from "./DeleteDialog";
@@ -218,6 +218,11 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                           {asset.path}
                         </span>
                       )}
+                      {asset.foundOutsideRuntimes && (
+                        <span className="sub" data-testid={`inv-${asset.id}-elsewhere`}>
+                          {LOCAL_BUILD_ELSEWHERE_TEXT}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="chip-state" data-state={asset.state} data-testid={`inv-${asset.id}-state`}>
@@ -247,7 +252,15 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       </span>
                       {update && update.status !== "not_installed" && (
                         <span className={`sub ${update.status === "update_available" ? "ok" : ""}`} data-testid={`inv-${asset.id}-update`} title={update.message}>
-                          {update.status === "update_available" ? (update.installable ? "有新版" : "有新版（需更新 App）") : "已是最新"}
+                          {asset.localBuild
+                            ? asset.foundOutsideRuntimes
+                              ? LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT
+                              : LOCAL_BUILD_NO_UPDATE_TEXT
+                            : update.status === "update_available"
+                              ? update.installable
+                                ? "有新版"
+                                : "有新版（需更新 App）"
+                              : "已是最新"}
                         </span>
                       )}
                     </td>

@@ -21,6 +21,7 @@ const asset = (over: Partial<Asset> = {}): Asset => ({
   license: "MIT",
   licenseUrl: "https://x",
   localBuild: false,
+  foundOutsideRuntimes: false,
   ...over,
 });
 const job = (state: DownloadJob["state"]): DownloadJob => ({
@@ -52,6 +53,10 @@ describe("row actions", () => {
     expect(rowActions(asset({ ...built, state: "not_installed" }), undefined)).toEqual([]);
     expect(rowActions(asset({ ...built, state: "installed" }), undefined)).toEqual(["delete"]);
     expect(rowActions(asset({ type: "runtime", state: "not_installed" }), undefined)).toEqual(["download"]);
+  });
+
+  it("offers nothing for a program found on PATH or in Homebrew, because the app will not delete it", () => {
+    expect(rowActions(asset({ type: "runtime", localBuild: true, foundOutsideRuntimes: true, state: "installed" }), undefined)).toEqual([]);
   });
 
   it("offers only cancel while a job runs", () => {
