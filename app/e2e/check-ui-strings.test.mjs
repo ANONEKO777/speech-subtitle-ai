@@ -35,7 +35,12 @@ describe("what counts as a user-facing literal", () => {
       "attribute aria-label:Close it",
       "attribute alt:A chart",
     ]);
-    expect(kinds('const a = <i title={"GPU"} data-testid={"a b"} title={name} aria-label={"關閉"} />;')).toEqual(["string:關閉"]);
+    expect(kinds('const a = <i title={"GPU"} data-testid={"abc def"} title={name} aria-label={"關閉"} />;')).toEqual(["string:關閉"]);
+  });
+
+  it("leaves a data attribute alone even when it holds a Latin phrase, and a title built with ${} (a known limit)", () => {
+    expect(kinds('const a = <i data-testid={"abc def"} data-label="abc def" />;')).toEqual([]);
+    expect(kinds("const a = <i title={`Close ${n} windows`} />;")).toEqual([]);
   });
 
   it("counts a Latin phrase in JSX text, and leaves names, units and identifiers alone", () => {
