@@ -2,7 +2,7 @@
 
 Video Subtitle Translator is free software under the GNU Affero General Public License, version 3 or later (AGPL-3.0-or-later). The full text is in `LICENSE` in the install folder.
 
-**Source code of this application:** https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai
+**Source code of this application:** https://github.com/ANONEKO777/speech-subtitle-ai
 
 If you use a modified copy of this program over a network, AGPL section 13 requires you to offer its users the source of your modified version.
 

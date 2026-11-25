@@ -70,7 +70,7 @@ const server = createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/octet-stream", "Content-Length": goodBytes.length });
     res.write(goodBytes.subarray(0, 4096));
   } else if (req.url === "/users/sign_in") {
-    res.writeHead(200, { "Content-Type": "text/html" }).end("<html><body>Sign in to GitLab</body></html>");
+    res.writeHead(200, { "Content-Type": "text/html" }).end("<html><body>Sign in</body></html>");
   } else if (req.url === "/good-setup.exe" || req.url === "/evil-setup.exe") {
     res.writeHead(200, { "Content-Type": "application/octet-stream" }).end(req.url.startsWith("/good") ? goodBytes : evilBytes);
   } else {

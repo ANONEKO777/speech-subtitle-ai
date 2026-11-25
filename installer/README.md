@@ -20,7 +20,7 @@ To publish a build:
 2. `powershell -File installer/build.ps1 -UpdateBaseUrl https://<where the files will be>/ -Notes "<what changed>"` writes `installer/build/latest.json`. The `url` inside it is `<UpdateBaseUrl>/<installer file name>`.
 3. Upload `latest.json` and `app/src-tauri/target/release/bundle/nsis/*-setup.exe` to that folder, and make `endpoints` in `tauri.conf.json` point at `<UpdateBaseUrl>/latest.json`.
 
-The address must work without signing in: an anonymous request has to get the JSON (or the installer) itself, not a login page. A page that is not JSON shows the person "更新來源回傳的不是更新資訊（網址可能已失效，或需要先登入）". The hosting place is the project owner's decision; this repository does not create or change anything on GitLab.
+The address must work without signing in: an anonymous request has to get the JSON (or the installer) itself, not a login page. A page that is not JSON shows the person "更新來源回傳的不是更新資訊（網址可能已失效，或需要先登入）". The released app reads `https://github.com/ANONEKO777/speech-subtitle-ai/releases/latest/download/latest.json`, so publishing a build means creating a GitHub release for the tag that has `latest.json` and the `*-setup.exe` as its files and passing `-UpdateBaseUrl https://github.com/ANONEKO777/speech-subtitle-ai/releases/download/<tag>/`. Nothing in this repository creates a release or uploads anything by itself, and no workflow holds the signing key. Apps installed from a build made before this change still look at the old address and need one manual install of a newer build.
 
 `VST_UPDATE_URL` replaces the configured address for one run (the e2e drivers use it). The public key still decides what installs.
 

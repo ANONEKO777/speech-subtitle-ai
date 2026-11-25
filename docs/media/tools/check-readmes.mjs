@@ -3,7 +3,7 @@
 // node docs/media/tools/check-readmes.mjs   (run from the repository root)
 import { existsSync, readFileSync, statSync } from "node:fs";
 
-const FILES = ["README.md", "README.en.md", "README.zh-CN.md", "README.ja.md"];
+const FILES = ["README.md", "README.zh-TW.md", "README.zh-CN.md", "README.ja.md"];
 const failures = [];
 const fail = (file, what) => failures.push(`${file}: ${what}`);
 

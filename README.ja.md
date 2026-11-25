@@ -1,6 +1,6 @@
 <div align="center">
 
-[繁體中文](README.md) | [English](README.en.md) | [简体中文](README.zh-CN.md) | **日本語**
+[English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | **日本語**
 
 # Video Subtitle Translator
 
@@ -148,7 +148,7 @@ SRT（原文、訳文、バイリンガル）、ASS、VTT、そして Markdown �
 必要なものは、Python 3.11 以降と [uv](https://docs.astral.sh/uv/)、Node.js と npm、Rust と MSVC ツールチェーン（Tauri 2 の前提条件）、そして ffmpeg です。
 
 ```powershell
-git clone https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai.git
+git clone https://github.com/ANONEKO777/speech-subtitle-ai.git
 cd speech-subtitle-ai
 
 uv sync                                   # バックエンド環境（.venv）

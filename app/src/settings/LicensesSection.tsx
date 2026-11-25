@@ -5,7 +5,7 @@ import { ExternalLink } from "../manage/ExternalLink";
 import { shortVersion } from "../manage/format";
 import type { LicenseEntry } from "../manage/types";
 
-export const PROJECT_URL = "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai";
+export const PROJECT_URL = "https://github.com/ANONEKO777/speech-subtitle-ai";
 const FFMPEG_SOURCE_URL = "https://github.com/FFmpeg/FFmpeg/tree/a35157abb96167fd7308edc92b55408d5bb084b0";
 const FFMPEG_BUILD_URL = "https://github.com/BtbN/FFmpeg-Builds";
 const LGPL_URL = "https://spdx.org/licenses/LGPL-3.0-or-later.html";

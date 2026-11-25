@@ -9,7 +9,7 @@ use url::Url;
 
 use crate::platform::{self, Launch};
 
-pub const PROJECT_URL: &str = "https://cggitlab.chinesegamer.net/abcd1997/speech-subtitle-ai";
+pub const PROJECT_URL: &str = "https://github.com/ANONEKO777/speech-subtitle-ai";
 const SPDX_HOST: &str = "spdx.org";
 /// The Microsoft page the wizard sends people to for the Visual C++ runtime.
 const MICROSOFT_HOST: &str = "learn.microsoft.com";
@@ -174,7 +174,7 @@ mod tests {
         let hosts: Vec<String> = allowed_hosts().into_iter().collect();
         assert_eq!(
             hosts,
-            ["cggitlab.chinesegamer.net", "docs.nvidia.com", "github.com", "huggingface.co", "learn.microsoft.com", "spdx.org"]
+            ["docs.nvidia.com", "github.com", "huggingface.co", "learn.microsoft.com", "spdx.org"]
         );
     }
 }
