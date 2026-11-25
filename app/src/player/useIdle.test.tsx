@@ -76,6 +76,20 @@ describe("useIdle", () => {
     expect(document.activeElement).not.toBe(button);
   });
 
+  it("a key other than Tab does not make the focus keyboard-owned", () => {
+    const { stage, button } = stageWithButton();
+    const { result } = renderHook(() => useIdle({ current: stage }, MS));
+    act(() => {
+      button.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      button.focus();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+      result.current.wake();
+    });
+    act(() => void vi.advanceTimersByTime(MS));
+    expect(document.activeElement).not.toBe(button);
+  });
+
   it("leaves focus alone when it is outside the controls", () => {
     const { stage, outside } = stageWithButton();
     const { result } = renderHook(() => useIdle({ current: stage }, MS));
