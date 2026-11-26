@@ -271,7 +271,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td className="size-cell">
                       <span>{asset.localBuild && asset.sizeOnDisk === null ? "—" : bytes(asset.sizeOnDisk ?? asset.sizeBytes, locale)}</span>
                       {asset.sizeOnDisk === null && !asset.localBuild && <span className="sub">{t("models.downloadSize")}</span>}
                     </td>

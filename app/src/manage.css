@@ -799,7 +799,7 @@ input[type="password"]::-ms-reveal {
 
 /* English runs longer than the Chinese these tables were tuned on. Scoped so the zh-TW pixels stay as they were. */
 :root:lang(en) table.inv .sub.ok,
-:root:lang(en) table.inv td:nth-child(4) .sub {
+:root:lang(en) table.inv .size-cell .sub {
   white-space: normal;
 }
 
