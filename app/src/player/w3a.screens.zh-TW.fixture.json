@@ -1,0 +1,1038 @@
+{
+ "the control bar and its menus": [
+  {
+   "bar": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "speed menu": {
+    "text": "0:002:001×0.5×0.75×1×1.25×1.5×1.75×2×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "offset popup": {
+    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "more menu": {
+    "text": "0:002:001×+0.0 s截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：預設鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=預設資料夾",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "playing": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=暫停 (Space)",
+     "aria-label=暫停 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "muted": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=暫停 (Space)",
+     "aria-label=暫停 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=取消靜音 (M)",
+     "aria-label=取消靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   }
+  }
+ ],
+ "the control bar with the options turned on": [
+  {
+   "more menu, burn on, folder set": {
+    "text": "0:002:001×+0.0 s✓截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：C:/Shots鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖，燒入字幕 (S)",
+     "aria-label=截圖，燒入字幕 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=C:/Shots",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "offset popup, no offset": {
+    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖，燒入字幕 (S)",
+     "aria-label=截圖，燒入字幕 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   }
+  }
+ ],
+ "the help overlay": [
+  {
+   "help": {
+    "text": "0:002:001×+0.0 s鍵盤快捷鍵Space/K播放或暫停←/→倒退或快轉 5 秒J/L倒退或快轉 10 秒0–9跳到影片的 0% 到 90%↑/↓音量加或減M靜音[/]播放速度降低或提高,/.上一格或下一格（會暫停）Ctrl+←/→跳到上一句或下一句字幕AA-B 循環：設 A 點、設 B 點、取消Z/X字幕提早或延後 0.1 秒S截圖（依設定是否燒入字幕）Shift+S截圖，燒入字幕的選擇與設定相反F全螢幕P子母畫面</>上一部或下一部（播放佇列）Ctrl+Z復原上一次字幕修改?顯示或關閉這份說明Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "aria-label=鍵盤快捷鍵",
+     "aria-label=關閉",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "help from the more menu": {
+    "text": "鍵盤快捷鍵Space/K播放或暫停←/→倒退或快轉 5 秒J/L倒退或快轉 10 秒0–9跳到影片的 0% 到 90%↑/↓音量加或減M靜音[/]播放速度降低或提高,/.上一格或下一格（會暫停）Ctrl+←/→跳到上一句或下一句字幕AA-B 循環：設 A 點、設 B 點、取消Z/X字幕提早或延後 0.1 秒S截圖（依設定是否燒入字幕）Shift+S截圖，燒入字幕的選擇與設定相反F全螢幕P子母畫面</>上一部或下一部（播放佇列）Ctrl+Z復原上一次字幕修改?顯示或關閉這份說明",
+    "attrs": [
+     "aria-label=鍵盤快捷鍵",
+     "aria-label=關閉"
+    ]
+   }
+  }
+ ],
+ "the lines the player says over the video": [
+  {
+   "seek forward": {
+    "text": "+5 秒",
+    "attrs": []
+   },
+   "seek back": {
+    "text": "−10 秒",
+    "attrs": []
+   },
+   "seek to a part": {
+    "text": "50%",
+    "attrs": []
+   },
+   "volume up": {
+    "text": "音量 100%",
+    "attrs": []
+   },
+   "mute": {
+    "text": "靜音",
+    "attrs": []
+   },
+   "unmute": {
+    "text": "音量 100%",
+    "attrs": []
+   },
+   "speed up": {
+    "text": "速度 1.25×",
+    "attrs": []
+   },
+   "speed down": {
+    "text": "速度 1×",
+    "attrs": []
+   },
+   "next frame": {
+    "text": "下一格",
+    "attrs": []
+   },
+   "previous frame": {
+    "text": "上一格",
+    "attrs": []
+   },
+   "loop A": {
+    "text": "A 點 0:20",
+    "attrs": []
+   },
+   "loop A-B": {
+    "text": "A-B 循環 0:20 – 0:40",
+    "attrs": []
+   },
+   "loop off": {
+    "text": "A-B 循環已取消",
+    "attrs": []
+   },
+   "offset later": {
+    "text": "字幕 +0.1 秒",
+    "attrs": []
+   },
+   "offset later again": {
+    "text": "字幕 +0.2 秒",
+    "attrs": []
+   },
+   "offset earlier": {
+    "text": "字幕 +0.1 秒",
+    "attrs": []
+   },
+   "offset earlier, below zero": {
+    "text": "字幕 +0.0 秒",
+    "attrs": []
+   },
+   "offset earlier, further below zero": {
+    "text": "字幕 −0.1 秒",
+    "attrs": []
+   },
+   "next subtitle": {
+    "text": "第 2 句",
+    "attrs": []
+   },
+   "previous subtitle": {
+    "text": "第 2 句",
+    "attrs": []
+   },
+   "no next subtitle": {
+    "text": "沒有下一句",
+    "attrs": []
+   },
+   "no previous subtitle": {
+    "text": "沒有上一句",
+    "attrs": []
+   },
+   "speed from the menu": {
+    "text": "速度 1.5×",
+    "attrs": []
+   }
+  }
+ ],
+ "the toasts": [
+  {
+   "resumed": {
+    "text": "已從 1:00 繼續從頭播放",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "screenshot saved and copied": {
+    "text": "截圖已存到 C:/Shots/still.png，已複製到剪貼簿開啟資料夾",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "open folder failed": {
+    "text": "無法開啟資料夾：no such folder",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "screenshot saved, not copied": {
+    "text": "截圖已存到 C:/Shots/still.png（無法複製到剪貼簿）開啟資料夾",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "screenshot failed": {
+    "text": "截圖失敗：ffmpeg stopped",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "picture-in-picture": {
+    "text": "子母畫面只有影片，字幕仍在主視窗",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "picture-in-picture failed": {
+    "text": "無法開啟子母畫面：not allowed",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "full screen failed": {
+    "text": "無法進入全螢幕：blocked",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "choosing the folder failed": {
+    "text": "無法選擇資料夾：dialog refused",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   }
+  }
+ ],
+ "the burned-in export": [
+  {
+   "full and clip entries": {
+    "text": "MP4 燒入字幕（整部）",
+    "attrs": []
+   },
+   "clip entry": {
+    "text": "MP4 燒入字幕（從目前位置 30 秒）",
+    "attrs": []
+   },
+   "progress": {
+    "text": "正在把字幕燒進影片10%取消",
+    "attrs": []
+   },
+   "done": {
+    "text": "已匯出燒入字幕的影片 C:/Shots/out.mp4開啟資料夾",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "failed": {
+    "text": "匯出失敗：disk full",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   },
+   "cancelled": {
+    "text": "已取消匯出",
+    "attrs": [
+     "aria-label=關閉"
+    ]
+   }
+  }
+ ],
+ "the progress card of a burn": [
+  {
+   "running": {
+    "text": "正在把字幕燒進影片42%取消",
+    "attrs": []
+   },
+   "error": {
+    "text": "匯出出了問題ffmpeg stopped",
+    "attrs": []
+   }
+  }
+ ],
+ "a video the player cannot play": [
+  {
+   "unplayable": {
+    "text": "這個 MKV 檔無法在內建播放器播放。請先轉成 H.264/AAC 的 MP4（proxy）再匯入。字幕仍可在右側清單查看。",
+    "attrs": []
+   }
+  }
+ ],
+ "the side column: subtitles, failures and edits": [
+  {
+   "cue list": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "only the failed ones": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "add a language menu": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）新增字幕語言，只會重新翻譯，不會重跑語音辨識。English textSpanish text實驗性實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "aria-label=翻譯失敗",
+     "title=按兩下或 F2 編輯",
+     "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
+     "aria-label=翻譯失敗"
+    ]
+   },
+   "blocked add, two edits, no failures": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.已修改 2 條，重新翻譯時會保留",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=A job is running",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯",
+     "aria-label=已手動修改",
+     "title=按兩下或 F2 編輯"
+    ]
+   }
+  }
+ ],
+ "the side column: other tabs": [
+  {
+   "no edits": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.按兩下字幕可以編輯",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言",
+     "title=按兩下或 F2 編輯",
+     "title=按兩下或 F2 編輯",
+     "title=按兩下或 F2 編輯"
+    ]
+   },
+   "summary, degraded": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）這份摘要沒有通過語言檢查，可能夾雜錯字或其他語言的字，建議重新產生。Overview of the talk按兩下字幕可以編輯",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言"
+    ]
+   },
+   "library tab": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）library stub按兩下字幕可以編輯",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言"
+    ]
+   },
+   "queue tab": {
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）queue stub按兩下字幕可以編輯",
+    "attrs": [
+     "aria-label=播放位置",
+     "title=上一部 (<)",
+     "aria-label=上一部 (<)",
+     "title=播放 (Space)",
+     "aria-label=播放 (Space)",
+     "title=下一部 (>)",
+     "aria-label=下一部 (>)",
+     "title=上一句字幕 (Ctrl+←)",
+     "aria-label=上一句字幕 (Ctrl+←)",
+     "title=下一句字幕 (Ctrl+→)",
+     "aria-label=下一句字幕 (Ctrl+→)",
+     "title=靜音 (M)",
+     "aria-label=靜音 (M)",
+     "aria-label=音量",
+     "title=播放速度 ([ ])",
+     "title=A-B 循環 (A)",
+     "aria-label=A-B 循環 (A)",
+     "title=字幕時間微調 (Z / X)",
+     "title=截圖 (S)",
+     "aria-label=截圖 (S)",
+     "title=子母畫面 (P)",
+     "aria-label=子母畫面 (P)",
+     "title=全螢幕 (F)",
+     "aria-label=全螢幕 (F)",
+     "title=更多設定",
+     "aria-label=更多設定",
+     "title=復原上一次修改 (Ctrl+Z)",
+     "aria-label=復原上一次修改",
+     "title=Korean",
+     "aria-label=顯示的語言",
+     "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
+     "aria-label=新增字幕語言"
+    ]
+   }
+  }
+ ],
+ "the library": [
+  {
+   "empty": {
+    "text": "還沒有處理完成的影片。匯入並處理一部影片後，會出現在這裡。",
+    "attrs": []
+   },
+   "with a queue, recent and all": {
+    "text": "播放佇列1A talk with a very long title that keeps going and going on the same line.mp42b.mp43gone最近開啟A talk with a very long title that keeps going and going on the same line.mp410:00日文影片ChineseKoreanb.mp410:00日英混合Chinese找不到影片檔所有影片全部加入佇列A talk with a very long title that keeps going and going on the same line.mp410:00日文影片ChineseKoreanb.mp410:00日英混合Chinese找不到影片檔c.mp4—Chinese",
+    "attrs": [
+     "aria-label=播放佇列",
+     "aria-label=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "aria-label=最近開啟",
+     "title=A talk with a very long title that keeps going and going on the same line.mp4",
+     "title=影片語言",
+     "title=上次看到 5:00",
+     "title=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "title=b.mp4",
+     "title=影片語言",
+     "title=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "aria-label=所有影片",
+     "title=A talk with a very long title that keeps going and going on the same line.mp4",
+     "title=影片語言",
+     "title=上次看到 5:00",
+     "title=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "title=b.mp4",
+     "title=影片語言",
+     "title=移出播放佇列",
+     "aria-label=移出播放佇列",
+     "title=c.mp4",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列"
+    ]
+   },
+   "without a queue": {
+    "text": "最近開啟A talk with a very long title that keeps going and going on the same line.mp410:00日文影片ChineseKoreanb.mp410:00日英混合Chinese找不到影片檔所有影片全部加入佇列A talk with a very long title that keeps going and going on the same line.mp410:00日文影片ChineseKoreanb.mp410:00日英混合Chinese找不到影片檔c.mp4—Chinese",
+    "attrs": [
+     "aria-label=最近開啟",
+     "title=A talk with a very long title that keeps going and going on the same line.mp4",
+     "title=影片語言",
+     "title=上次看到 5:00",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列",
+     "title=b.mp4",
+     "title=影片語言",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列",
+     "aria-label=所有影片",
+     "title=A talk with a very long title that keeps going and going on the same line.mp4",
+     "title=影片語言",
+     "title=上次看到 5:00",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列",
+     "title=b.mp4",
+     "title=影片語言",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列",
+     "title=c.mp4",
+     "title=加入播放佇列",
+     "aria-label=加入播放佇列"
+    ]
+   }
+  }
+ ]
+}
