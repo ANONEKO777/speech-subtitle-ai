@@ -1,5 +1,6 @@
 import { type ReactNode, createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
 import { type PluralTranslate, type Translate, plural, t } from ".";
+import { setWindowTitle } from "./windowTitle";
 import { HTML_LANG, type Locale, UNMANAGED_LOCALE, type UiLanguage, readMirror, resolveLocale, writeMirror } from "./locale";
 
 interface I18n {
@@ -18,6 +19,9 @@ export function I18nProvider({ children, initial, browserLanguages }: { children
   const locale = resolveLocale(uiLanguage, languages);
   useLayoutEffect(() => {
     document.documentElement.lang = HTML_LANG[locale];
+    const title = t(locale, "app.title");
+    document.title = title;
+    void setWindowTitle(title);
   }, [locale]);
   const setUiLanguage = useCallback((next: UiLanguage) => {
     setState(next);

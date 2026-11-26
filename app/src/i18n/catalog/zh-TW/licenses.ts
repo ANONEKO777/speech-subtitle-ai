@@ -9,6 +9,8 @@ export const licenses = {
   "lic.ffmpeg.b": "組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：",
   "lic.ffmpeg.c": "，組建腳本：",
   "lic.ffmpeg.d": "。完整聲明在安裝資料夾的 THIRD_PARTY.md。",
+  "lic.ffmpegMac.a": "此程式不內附 FFmpeg，而是使用你用 Homebrew 安裝的那一份，授權依那一份而定。請見 ",
+  "lic.ffmpegMac.b": "。",
   "lic.name": "名稱",
   "lic.version": "版本",
   "lic.license": "授權",

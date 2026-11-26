@@ -4,6 +4,7 @@ export const shell = {
   "common.cancel": "取消",
   "common.close": "關閉",
   "common.listSeparator": "、",
+  "app.title": "字幕翻譯",
   "app.starting": "正在啟動後端…",
   "app.checkingModels": "正在檢查模型…",
   "app.ready": "後端已就緒",

@@ -30,8 +30,9 @@ import { classifyPath } from "./batch/paths";
 import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
-import { shortName } from "./export/exports";
+import type { Translate } from "./i18n";
 import { useT } from "./i18n/I18nProvider";
+import { languageName } from "./i18n/languageName";
 import { ImportPanel } from "./import/ImportPanel";
 import { SourceBar } from "./import/SourceBar";
 import { useDetections, useSettledPath } from "./import/useDetections";
@@ -86,8 +87,8 @@ const editsNotice = ({ kept, unmatched }: EditsReport, { t, plural }: Pick<Retur
   return parts.length > 0 ? parts.join(t("edits.join")) : null;
 };
 
-const playingName = (screen: Extract<Screen, { kind: "playing" }>) =>
-  screen.languages.find((l) => l.code === screen.lang)?.nativeName ?? screen.lang;
+const playingName = (screen: Extract<Screen, { kind: "playing" }>, t: Translate) =>
+  languageName(t, screen.lang, screen.languages.find((l) => l.code === screen.lang)?.nativeName);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1);
@@ -294,7 +295,7 @@ export function App() {
         setLibrary(items);
         setLanguageSet(set);
         setSourceLang((picked) => usableSource(picked, set.unavailable));
-        setLanguageNames(new Map(set.languages.map((l) => [l.code, shortName(l.nativeName)])));
+        setLanguageNames(new Map(set.languages.map((l) => [l.code, languageName(t, l.code, l.nativeName)])));
         setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
       },
       () => undefined,
@@ -481,7 +482,7 @@ export function App() {
             onPath={setTypedPath}
           />
           {screen.kind === "playing" && (
-            <SettingsBar langName={shortName(playingName(screen))} settings={settings} onChange={setSettings} />
+            <SettingsBar langName={playingName(screen, t)} settings={settings} onChange={setSettings} />
           )}
         </header>
         <SourceBar
@@ -542,7 +543,7 @@ export function App() {
           <Importing
             backend={backend}
             screen={importing}
-            targetLabel={shortName(targetName(languageSet, sourceLang, importing.target ?? languageSet.defaultCode))}
+            targetLabel={languageName(t, importing.target ?? languageSet.defaultCode, targetName(languageSet, sourceLang, importing.target ?? languageSet.defaultCode))}
             onDone={finishImport}
             onStop={stopImport}
           />

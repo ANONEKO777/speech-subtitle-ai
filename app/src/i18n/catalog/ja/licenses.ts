@@ -10,6 +10,8 @@ export const licenses = {
   "lic.ffmpeg.b": " ビルド、GPL および nonfree コンポーネントは含まない）が同梱されています。独立した ffmpeg.exe と DLL としてインストールフォルダーの ffmpeg サブフォルダーに置かれ、ご自身で置き換えられます。FFmpeg のソースコード：",
   "lic.ffmpeg.c": "、ビルドスクリプト：",
   "lic.ffmpeg.d": "。完全な表記は、インストールフォルダーの THIRD_PARTY.md にあります。",
+  "lic.ffmpegMac.a": "このアプリには FFmpeg は含まれません。Homebrew でインストールしたものを使い、ライセンスはそのコピーに付属するものに従います。詳しくは ",
+  "lic.ffmpegMac.b": "。",
   "lic.name": "名前",
   "lic.version": "バージョン",
   "lic.license": "ライセンス",
