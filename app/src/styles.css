@@ -1883,6 +1883,16 @@ kbd {
   pointer-events: none;
 }
 
+/* the English toolbar words are wider than the Chinese ones, and the video path box gets what is left: without these the player's box is 41 px at 960 and 88 at 1280, under the 66 and 130 it must keep */
+:root:lang(en) header .seg button,
+:root:lang(en) header .import button {
+  padding-inline: 7px;
+}
+
+:root:lang(en) header {
+  column-gap: var(--space-3);
+}
+
 /* narrow window: the toolbar stays on one row. Collapsed words stay as tooltips and accessible names. */
 @media (max-width: 1150px) {
   header {

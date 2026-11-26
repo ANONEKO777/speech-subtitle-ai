@@ -308,7 +308,7 @@ describe("what the English window says", () => {
 describe("a Mac", () => {
   it("is shown a Mac path in the import box, in each language", () => {
     separator("/");
-    expect(render(wrap("en", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("Full path to the video, e.g. /Users/me/Movies/talk.mp4");
+    expect(render(wrap("en", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("Video path, e.g. /Users/me/Movies/talk.mp4");
     cleanup();
     expect(render(wrap("zh-TW", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("影片的完整路徑，例如 /Users/me/Movies/talk.mp4");
   });
