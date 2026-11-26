@@ -5,8 +5,8 @@ import type { Backend } from "../api/client";
 import { useT } from "../i18n/I18nProvider";
 import { fetchInventory, fetchMove, fetchSettings, setModelsDir, startMove } from "../manage/api";
 import { bytes } from "../manage/format";
-import { isWindowsPath } from "../manage/pathStyle";
 import type { MoveStatus, StorageView } from "../manage/types";
+import { isMacShell } from "../platform";
 
 type Step =
   | { readonly step: "view" }
@@ -107,7 +107,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
         <input
           className="text-input"
           data-testid="models-dir-input"
-          placeholder={storage ? t(isWindowsPath(storage.modelsDir) ? "storage.placeholder.win" : "storage.placeholder.posix") : undefined}
+          placeholder={t(isMacShell() ? "storage.placeholder.posix" : "storage.placeholder.win")}
           value={draft}
           disabled={running}
           onChange={(e) => setDraft(e.target.value)}

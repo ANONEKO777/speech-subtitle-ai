@@ -3,7 +3,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { bytes, mib, speed } from "../manage/format";
-import { isWindowsPath } from "../manage/pathStyle";
 import { macInventory, macView, windowsView } from "../manage/screens.fixture";
 import type { SettingsView } from "../manage/types";
 import { ModelsSection } from "../models-page/ModelsSection";
@@ -21,7 +20,7 @@ vi.mock("../manage/api", async (orig) => ({
   fetchProfile: () => Promise.resolve(mocks.profile),
   fetchLicenses: () => Promise.resolve([]),
   fetchInventory: () => Promise.resolve(mocks.inventory),
-  fetchSettings: () => Promise.resolve(mocks.settings),
+  fetchSettings: () => (typeof mocks.settings === "function" ? mocks.settings() : Promise.resolve(mocks.settings)),
   fetchMove: () => Promise.resolve(mocks.move),
 }));
 
@@ -74,35 +73,41 @@ describe("English wording that no other test pins", () => {
   });
 });
 
-describe("the example folder follows the machine's path style", () => {
-  const placeholder = async (modelsDir: string) => {
-    mocks.settings = settings(modelsDir);
+describe("the example folder follows the platform of the window", () => {
+  const shell = window as unknown as { __TAURI_INTERNALS__?: unknown };
+  afterEach(() => {
+    delete shell.__TAURI_INTERNALS__;
+  });
+
+  const placeholder = async (settingsResult: () => Promise<unknown>, locale: "en" | "zh-TW" = "en") => {
+    mocks.settings = settingsResult;
     mocks.move = idle;
     render(
-      <I18nProvider initial="en">
+      <I18nProvider initial={locale}>
         <StorageCard backend={backend} onChanged={() => undefined} />
       </I18nProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId("models-dir").textContent).toBe(modelsDir));
     return (screen.getByTestId("models-dir-input") as HTMLInputElement).placeholder;
   };
 
-  it("shows a drive-letter example for a Windows folder", async () => {
-    expect(await placeholder("C:\\Users\\me\\models")).toBe("New models folder, for example E:\\vst-models");
+  it("shows a drive-letter example on Windows", async () => {
+    shell.__TAURI_INTERNALS__ = { plugins: { path: { sep: "\\" } } };
+    expect(await placeholder(() => Promise.resolve(settings("C:\\Users\\me\\models")))).toBe("New models folder, for example E:\\vst-models");
   });
 
-  it("shows no drive letter for a Mac folder", async () => {
-    const text = await placeholder("/Users/me/Library/Application Support/models");
+  it("shows no drive letter on a Mac", async () => {
+    shell.__TAURI_INTERNALS__ = { plugins: { path: { sep: "/" } } };
+    const text = await placeholder(() => Promise.resolve(settings("/Users/me/Library/Application Support/models")));
     expect(text).toBe("New models folder, for example /Volumes/Models/vst-models");
     expect(text).not.toContain("E:");
   });
 
-  it("tells drive letters and shares from POSIX paths", () => {
-    expect(isWindowsPath("C:/m")).toBe(true);
-    expect(isWindowsPath("D:\\models")).toBe(true);
-    expect(isWindowsPath("\\\\nas\\share")).toBe(true);
-    expect(isWindowsPath("/Users/me")).toBe(false);
-    expect(isWindowsPath("models")).toBe(false);
+  it("shows the example while the settings load and after they fail to load", async () => {
+    expect(await placeholder(() => new Promise(() => undefined), "zh-TW")).toBe("新的模型資料夾，例如 E:\\vst-models");
+    cleanup();
+    expect(await placeholder(() => Promise.reject(new Error("offline")), "zh-TW")).toBe("新的模型資料夾，例如 E:\\vst-models");
+    await waitFor(() => screen.getByText("offline"));
+    expect((screen.getByTestId("models-dir-input") as HTMLInputElement).placeholder).toBe("新的模型資料夾，例如 E:\\vst-models");
   });
 });
 
