@@ -2,6 +2,7 @@ mod folders;
 #[cfg(unix)]
 mod group;
 mod links;
+mod notice;
 mod platform;
 mod sidecar;
 mod updater;
@@ -31,13 +32,14 @@ fn allow(app: &AppHandle, path: &Path) -> Result<(), String> {
 }
 
 /// Opens the native file dialog and lets the asset protocol serve the one file picked. The dialog
-/// runs here, not in the page, so a page script cannot forge a pick.
+/// runs here, not in the page, so a page script cannot forge a pick. The page gives only the
+/// filter's name, in the language of the window.
 #[tauri::command]
-async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>) -> Result<Option<String>, String> {
+async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>, filter_name: String) -> Result<Option<String>, String> {
     let Some(file) = app
         .dialog()
         .file()
-        .add_filter("影片與音訊", &MEDIA)
+        .add_filter(filter_name, &MEDIA)
         .blocking_pick_file()
     else {
         return Ok(None);
@@ -51,11 +53,11 @@ async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>) -> Result<
 /// Opens the native file dialog for several files and returns their paths. The backend reads
 /// them itself when they are queued, so nothing is added to the asset scope here.
 #[tauri::command]
-async fn pick_videos(app: AppHandle) -> Result<Vec<String>, String> {
+async fn pick_videos(app: AppHandle, filter_name: String) -> Result<Vec<String>, String> {
     let files = app
         .dialog()
         .file()
-        .add_filter("影片與音訊", &MEDIA)
+        .add_filter(filter_name, &MEDIA)
         .blocking_pick_files()
         .unwrap_or_default();
     files

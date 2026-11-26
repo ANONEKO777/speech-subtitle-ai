@@ -12,6 +12,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::notice::{self, Notice, Said};
 use crate::platform;
 
 #[derive(Clone, Serialize)]
@@ -149,6 +150,27 @@ fn kill_tree(pid: u32) {
 /// How much of the backend's stderr is kept to explain a failed start.
 const STDERR_KEEP: usize = 64 * 1024;
 
+/// A backend that stops before it is ready names its own sentences on lines with this prefix
+/// (`notice_lines` in `backend/core/notices.py`).
+const NOTICE_PREFIX: &str = "VST_NOTICE ";
+
+/// What the window shows for a backend that ended before it was ready: what it printed, without
+/// the notice lines, and those notices beside it. A line that does not parse stays in the output.
+fn exited_early(output: &str) -> Said {
+    let mut printed = String::new();
+    let mut inner = Vec::new();
+    for line in output.split_inclusive('\n') {
+        let sent = line.strip_prefix(NOTICE_PREFIX);
+        match sent.and_then(|json| serde_json::from_str::<Notice>(json.trim_end()).ok()) {
+            Some(notice) => inner.push(notice),
+            None => printed.push_str(line),
+        }
+    }
+    let mut said = notice::BACKEND_EXITED_EARLY.with(&[("detail", &printed)]);
+    said.notices.extend(inner);
+    said
+}
+
 /// A backend that dies after it was ready is started again this many times. The queue is on disk,
 /// so a restart resumes the running item, and the page follows the new port and token.
 const MAX_RESTARTS: u32 = 5;
@@ -195,7 +217,8 @@ pub fn start(app: AppHandle) {
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
-            let _ = app.emit("backend-failed", format!("無法啟動後端：{e}"));
+            let said = notice::BACKEND_SPAWN_FAILED.with(&[("error", &e.to_string())]);
+            let _ = app.emit("backend-failed", said);
             return;
         }
     };
@@ -236,7 +259,7 @@ pub fn start(app: AppHandle) {
         if app.state::<BackendState>().ready().is_none() {
             std::thread::sleep(std::time::Duration::from_millis(200));
             let text = String::from_utf8_lossy(&tail.lock().unwrap()).into_owned();
-            let _ = app.emit("backend-failed", format!("後端在就緒前就結束了。\n{text}"));
+            let _ = app.emit("backend-failed", exited_early(&text));
             return;
         }
         let again = {
@@ -257,7 +280,7 @@ pub fn start(app: AppHandle) {
             std::thread::sleep(std::time::Duration::from_millis(500));
             start(app);
         } else if !app.state::<BackendState>().0.lock().unwrap().stopped {
-            let _ = app.emit("backend-failed", "後端已停止，重新啟動多次仍失敗。請關閉並重新開啟應用程式。".to_string());
+            let _ = app.emit("backend-failed", notice::BACKEND_STOPPED.say());
         }
     });
 }
@@ -317,6 +340,28 @@ mod job {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_backend_that_ends_early_sends_its_output_without_the_notice_lines_and_the_notices_beside_it() {
+        let line = r#"VST_NOTICE {"code": "platform.unsupported", "params": {"system": "Linux"}, "message": "Not here."}"#;
+        let said = exited_early(&format!("starting\r\n{line}\r\nerror: Not here.\r\n"));
+
+        assert_eq!(said.message, "The backend stopped before it was ready.\nstarting\r\nerror: Not here.\r\n");
+        assert_eq!(
+            said.notices.iter().map(|n| n.code.as_str()).collect::<Vec<_>>(),
+            ["shell.backend.exitedEarly", "platform.unsupported"]
+        );
+        assert_eq!(said.notices[0].message, said.message);
+        assert_eq!(said.notices[1].message, "Not here.");
+    }
+
+    #[test]
+    fn a_line_that_only_looks_like_a_notice_stays_in_the_output() {
+        let said = exited_early("VST_NOTICE not json\n");
+
+        assert_eq!(said.notices.len(), 1);
+        assert!(said.message.ends_with("VST_NOTICE not json\n"));
+    }
 
     #[test]
     fn a_binary_built_in_this_crate_is_a_developer_build() {
