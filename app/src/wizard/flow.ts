@@ -1,5 +1,8 @@
 import type { DownloadJob, ProfileId, ProfileView, SelfTest } from "../manage/types";
 
+/** What went wrong, as the screen words it: backend or shell text shown as it came, or a failed download the screen names. */
+export type WizardError = string | { readonly assetId: string; readonly message: string | null };
+
 export type WizardState =
   | { readonly step: "detect" }
   | { readonly step: "detect-failed"; readonly error: string }
@@ -11,7 +14,7 @@ export type WizardState =
       readonly phase: "starting" | "running" | "cancelled" | "failed";
       readonly jobIds: readonly string[];
       readonly jobs: readonly DownloadJob[];
-      readonly error: string | null;
+      readonly error: WizardError | null;
     }
   | { readonly step: "selftest"; readonly view: ProfileView; readonly selected: ProfileId }
   | {
@@ -36,7 +39,7 @@ export type WizardEvent =
   | { readonly type: "retry" }
   | { readonly type: "back" }
   | { readonly type: "selfTested"; readonly test: SelfTest }
-  | { readonly type: "selfTestFailed"; readonly error: string }
+  | { readonly type: "selfTestFailed"; readonly error: string | null }
   | { readonly type: "rerunSelfTest" }
   | { readonly type: "finish" }
   | { readonly type: "skip" };
@@ -52,7 +55,7 @@ function afterPoll(state: Downloading, polled: readonly DownloadJob[]): WizardSt
   const mine = polled.filter((j) => state.jobIds.includes(j.id));
   const failed = mine.find((j) => j.state === "failed");
   if (failed) {
-    return { ...state, jobs: mine, phase: "failed", error: `${failed.assetId}：${failed.failure?.message ?? "下載失敗"}` };
+    return { ...state, jobs: mine, phase: "failed", error: { assetId: failed.assetId, message: failed.failure?.message ?? null } };
   }
   if (mine.some((j) => j.state === "cancelled")) return { ...state, jobs: mine, phase: "cancelled", error: null };
   if (mine.length === state.jobIds.length && mine.every((j) => j.state === "done")) {

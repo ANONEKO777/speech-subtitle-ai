@@ -1,11 +1,4 @@
 {
   "initial": 660,
-  "files": {
-    "src/models-page/DeleteDialog.tsx": 17,
-    "src/models-page/ModelsSection.tsx": 36,
-    "src/models-page/StorageCard.tsx": 17,
-    "src/models-page/rules.ts": 9,
-    "src/wizard/Wizard.tsx": 56,
-    "src/wizard/flow.ts": 2
-  }
+  "files": {}
 }

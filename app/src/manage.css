@@ -350,9 +350,60 @@ button.danger {
   min-width: 220px;
 }
 
+/*
+ * At the narrowest window the table scrolls sideways; the actions stay on screen and the other columns pass under them.
+ * Only while it scrolls: an opaque sticky cell renders its text a shade differently, and a table that fits keeps its pixels.
+ */
+.table-wrap {
+  container-type: scroll-state;
+}
+
+@container scroll-state(scrollable: inline) {
+  table.inv .actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--surface-1);
+  }
+}
+
+/*
+ * The divider, while more table is to the right. A pseudo-element because Edge paints no box-shadow on a cell of a
+ * border-collapse table. The sticky cell above is its containing block (scrollable right implies scrollable inline).
+ */
+@container scroll-state(scrollable: right) {
+  table.inv .actions-cell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: var(--hairline-strong);
+  }
+}
+
+@supports not (container-type: scroll-state) {
+  table.inv .actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--surface-1);
+  }
+}
+
 .note-line {
   margin-top: var(--space-1);
   line-height: 1.5;
+}
+
+/*
+ * A download's failure is backend text of any length (the SHA256 one holds two 64-character hashes), so it wraps inside
+ * the 220 px column (less the cell's padding). Not every note: that would move zh-TW pixels at 1280.
+ */
+.actions-cell .note-line.job-failure {
+  max-width: 196px;
+  overflow-wrap: anywhere;
 }
 
 .inline-job {
@@ -776,4 +827,19 @@ input[type="password"]::-ms-reveal {
   margin-top: var(--space-3);
   padding: var(--space-3) 0 var(--space-4);
   background: linear-gradient(to top, var(--surface-1) 72%, transparent);
+}
+
+/* English runs longer than the Chinese these tables were tuned on. Scoped so the zh-TW pixels stay as they were. */
+:root:lang(en) table.inv .sub.ok,
+:root:lang(en) table.inv .size-cell .sub {
+  white-space: normal;
+}
+
+:root:lang(en) .vc-note {
+  display: block;
+}
+
+/* Only the title that carries a chip: wrapping every title would put a long name under its icon. */
+:root:lang(en) .wizard-profiles .profile-title:has(.chip-tag) {
+  flex-wrap: wrap;
 }

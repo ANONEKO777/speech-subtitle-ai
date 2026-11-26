@@ -8,10 +8,12 @@ import { importer } from "./importer";
 import { languages } from "./languages";
 import { licenses } from "./licenses";
 import { llm } from "./llm";
+import { models } from "./models";
 import { player } from "./player";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { summary } from "./summary";
 import { update } from "./update";
+import { wizard } from "./wizard";
 
-export const zhTW = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...player, ...settings, ...shell, ...summary, ...update } satisfies Record<Key, string>;
+export const zhTW = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;

@@ -59,7 +59,7 @@ export const hardware = {
   "hw.cpuNotice.cpu": "The CPU profile has no GPU acceleration, so the built-in local LLM will be much slower. {advice}",
   "localBuild.text": "built on this Mac by running {script}; see docs/MACOS.md",
   "localBuild.elsewhere": "Not built by the app. It was found in a PATH or Homebrew folder. The app will not delete it; remove it yourself if you want it gone.",
-  "localBuild.noUpdate": "Programs you build yourself have no update check. To get a newer version, run {script} again.",
+  "localBuild.noUpdate": "Runtimes you build yourself have no update check. To get a newer version, run {script} again.",
   "localBuild.elsewhereNoUpdate": "No update check",
   "download.state.queued": "Waiting",
   "download.state.resumed": "Downloading (resumed)",

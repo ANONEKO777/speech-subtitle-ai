@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { tZhTW } from "../i18n";
 import { chipOrGpu, deviceLabel, isCpuProfile, isMac } from "./hardwareText";
 import { parseProfileView } from "./parse";
-import { PROFILE_BLURB, PROFILE_NAME } from "./profileText";
+import { profileBlurb, profileName } from "./profileText";
 import { PROFILE_IDS } from "./types";
 
 const mac = {
@@ -41,20 +42,20 @@ describe("hardware text", () => {
   it("shows the chip on a Mac and the graphics card on a PC", () => {
     const hw = parseProfileView(macView(mac)).hardware;
     expect(isMac(hw)).toBe(true);
-    expect(chipOrGpu(hw)).toEqual({ label: "晶片", value: "Apple M3 Pro" });
+    expect(chipOrGpu(hw, tZhTW)).toEqual({ label: "晶片", value: "Apple M3 Pro" });
     const pcHw = parseProfileView({ ...macView(pc), recommended: { id: "gpu-24gb", label: "x", why: "y" }, active: { id: "gpu-24gb", label: "x", source: "user", device: "cuda" }, profiles: [] }).hardware;
-    expect(chipOrGpu(pcHw)).toEqual({ label: "顯示卡", value: "RTX 4090" });
+    expect(chipOrGpu(pcHw, tZhTW)).toEqual({ label: "顯示卡", value: "RTX 4090" });
   });
 
   it("does not claim an NVIDIA card is missing on a Mac with no chip name", () => {
     const hw = parseProfileView(macView({ ...mac, chip: null })).hardware;
-    expect(chipOrGpu(hw).value).not.toContain("NVIDIA");
+    expect(chipOrGpu(hw, tZhTW).value).not.toContain("NVIDIA");
   });
 
   it("calls Metal the GPU and only an unknown device the CPU", () => {
-    expect(deviceLabel("cuda")).toBe("GPU");
-    expect(deviceLabel("metal")).toBe("GPU（Metal）");
-    expect(deviceLabel("cpu")).toBe("CPU");
+    expect(deviceLabel("cuda", tZhTW)).toBe("GPU");
+    expect(deviceLabel("metal", tZhTW)).toBe("GPU（Metal）");
+    expect(deviceLabel("cpu", tZhTW)).toBe("CPU");
   });
 
   it("reads a Mac profile view, whose profile ids the page used to reject", () => {
@@ -65,8 +66,8 @@ describe("hardware text", () => {
 
   it("has a name, a blurb and a CPU flag for every profile id", () => {
     for (const id of PROFILE_IDS) {
-      expect(PROFILE_NAME[id].length).toBeGreaterThan(0);
-      expect(PROFILE_BLURB[id].length).toBeGreaterThan(0);
+      expect(profileName(id, tZhTW).length).toBeGreaterThan(0);
+      expect(profileBlurb(id, tZhTW).length).toBeGreaterThan(0);
     }
     expect(PROFILE_IDS.filter(isCpuProfile)).toEqual(["cpu", "apple-cpu"]);
   });

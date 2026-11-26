@@ -1,0 +1,561 @@
+{
+ "wizard: detecting and a failed detection": [
+  {
+   "detecting": {
+    "text": "第一次使用準備好翻譯需要的模型正在偵測這台電腦的硬體…",
+    "attrs": []
+   },
+   "detection failed": {
+    "text": "第一次使用準備好翻譯需要的模型Backend is not ready略過",
+    "attrs": []
+   }
+  }
+ ],
+ "wizard: the profile step on a PC": [
+  {
+   "recommended": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 488 GB建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-win-cuda執行檔458 MBMITwhispercpp-b5454-win-cpu執行檔，GPU 失敗時改用 CPU 的備援8.58 MB—共 1.95 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "cpu picked, with the cloud advice": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 488 GB建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。會下載的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-win-cpu執行檔8.58 MB—共 1.50 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "8 GB picked": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 488 GB建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-win-cuda執行檔458 MBMITwhispercpp-b5454-win-cpu執行檔，GPU 失敗時改用 CPU 的備援8.58 MB—共 1.95 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "wizard: a PC that is short of everything": [
+  {
+   "no vc runtime, tight disk, unknown memory": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090記憶體 — · 磁碟可用 0.98 GB這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請先到 Microsoft 下載並安裝 vc_redist.x64.exe，裝好後再按「下載並開始」。建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。這台電腦可能不夠用8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-win-cuda執行檔458 MBMITwhispercpp-b5454-win-cpu執行檔，GPU 失敗時改用 CPU 的備援8.58 MB—共 1.95 GB，磁碟可用 0.98 GB磁碟空間可能不夠，下載可能會失敗。下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "wizard: a PC that has everything": [
+  {
+   "nothing missing, disk unknown": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 —建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目這個設定檔需要的項目都已安裝，直接做自檢。共 0 B開始自檢略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "wizard: the profile step on a Mac": [
+  {
+   "recommended": {
+    "text": "第一次使用準備好翻譯需要的模型Apple M3統一記憶體 36.0 GB · 磁碟可用 488 GB建議使用 Apple 晶片 32 GB 以上 設定檔。你也可以改選下面另外三個。Apple 晶片 32 GB 以上建議適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal）。Apple 晶片 32 GB 以上（同時執行）適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯同時使用 GPU（Metal），較吃記憶體。需要自己確認這台 Mac 撐得住再選。Apple 晶片 16 GB適合 16 GB 的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal），LLM 的內容長度較短。Apple 晶片只用處理器記憶體不足 16 GB 時使用，全部用處理器，速度慢很多。要下載或自行建置的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-macos-metal執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）—MITllama-b8000-macos-metal執行檔38.1 MB—共 1.53 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "processor only picked": {
+    "text": "第一次使用準備好翻譯需要的模型Apple M3統一記憶體 36.0 GB · 磁碟可用 488 GB建議使用 Apple 晶片 32 GB 以上 設定檔。你也可以改選下面另外三個。Apple 晶片 32 GB 以上建議適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal）。Apple 晶片 32 GB 以上（同時執行）適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯同時使用 GPU（Metal），較吃記憶體。需要自己確認這台 Mac 撐得住再選。Apple 晶片 16 GB適合 16 GB 的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal），LLM 的內容長度較短。Apple 晶片只用處理器記憶體不足 16 GB 時使用，全部用處理器，速度慢很多。這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。要下載或自行建置的項目項目大小授權whisper-large-v3-turbo模型1.49 GBMITwhispercpp-b5454-macos-metal執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）—MITllama-b8000-macos-metal執行檔38.1 MB—共 1.53 GB，磁碟可用 488 GB下載並開始略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   },
+   "only the local build is missing": {
+    "text": "第一次使用準備好翻譯需要的模型Apple M3統一記憶體 36.0 GB · 磁碟可用 488 GB建議使用 Apple 晶片 32 GB 以上 設定檔。你也可以改選下面另外三個。Apple 晶片 32 GB 以上建議適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal）。Apple 晶片 32 GB 以上（同時執行）適合 32 GB 以上的 Apple 晶片 Mac，語音辨識與翻譯同時使用 GPU（Metal），較吃記憶體。需要自己確認這台 Mac 撐得住再選。Apple 晶片 16 GB適合 16 GB 的 Apple 晶片 Mac，語音辨識與翻譯輪流使用 GPU（Metal），LLM 的內容長度較短。Apple 晶片只用處理器記憶體不足 16 GB 時使用，全部用處理器，速度慢很多。要自行建置的項目項目大小授權whispercpp-b5454-macos-metal執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）—MIT沒有要下載的項目，磁碟可用 488 GB開始自檢略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "wizard: the download": [
+  {
+   "starting": {
+    "text": "第一次使用準備好翻譯需要的模型正在開始下載…略過",
+    "attrs": []
+   },
+   "running, no job listed yet": {
+    "text": "第一次使用準備好翻譯需要的模型下載中。可以隨時取消，之後會從中斷的地方續傳。取消下載略過",
+    "attrs": []
+   },
+   "running": {
+    "text": "第一次使用準備好翻譯需要的模型下載中。可以隨時取消，之後會從中斷的地方續傳。總進度 42%（839 MB / 1.95 GB） · 4.77 MB/s取消下載略過whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次whispercpp-b5454-win-cuda檢查 SHA256100%458 MB / 458 MB—whispercpp-b5454-win-cpu等待中0%0 B / 8.58 MB—",
+    "attrs": []
+   },
+   "cancelled": {
+    "text": "第一次使用準備好翻譯需要的模型已取消。已下載的部分會保留，按「繼續下載」會從中斷處續傳。總進度 42%（839 MB / 1.95 GB） · 4.77 MB/s繼續下載返回略過whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次whispercpp-b5454-win-cuda檢查 SHA256100%458 MB / 458 MB—whispercpp-b5454-win-cpu等待中0%0 B / 8.58 MB—",
+    "attrs": []
+   },
+   "failed": {
+    "text": "第一次使用準備好翻譯需要的模型下載沒有完成。總進度 25%（1.12 GB / 4.47 GB） · 9.54 MB/swhisper-large-v3-turbo：The server closed the connection重試返回略過whisper-large-v3-turbo失敗25%381 MB / 1.49 GB從 95.4 MB 續傳The server closed the connectionwhisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次",
+    "attrs": []
+   },
+   "could not start": {
+    "text": "第一次使用準備好翻譯需要的模型下載沒有完成。Disk is read-only重試返回略過",
+    "attrs": []
+   },
+   "failed, no reason given": {
+    "text": "第一次使用準備好翻譯需要的模型下載沒有完成。總進度 25%（1.12 GB / 4.47 GB） · 9.54 MB/swhisper-large-v3-turbo：下載失敗重試返回略過whisper-large-v3-turbo失敗25%381 MB / 1.49 GB從 95.4 MB 續傳whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次whisper-large-v3-turbo下載中（已續傳）25%381 MB / 1.49 GB4.77 MB/s從 95.4 MB 續傳重試 2 次",
+    "attrs": []
+   }
+  }
+ ],
+ "wizard: the self-test": [
+  {
+   "running": {
+    "text": "第一次使用準備好翻譯需要的模型下載完成。正在實際啟動語音辨識與 LLM 做自檢，約 5 秒。自檢中，約需 5 到 10 秒…",
+    "attrs": []
+   },
+   "passed": {
+    "text": "第一次使用準備好翻譯需要的模型自檢通過，使用 GPU4.2 秒語音辨識 · asr-rt · cuda · 正常（1.5 秒）LLM · llm-rt · cuda · 正常（1.5 秒）開始使用重新自檢換設定檔",
+    "attrs": []
+   },
+   "failed": {
+    "text": "第一次使用準備好翻譯需要的模型自檢沒有通過Nothing started語音辨識 · asr-rt · cuda · 失敗（1.5 秒）：driver too old重新自檢換設定檔先略過",
+    "attrs": []
+   },
+   "no result": {
+    "text": "第一次使用準備好翻譯需要的模型自檢沒有回報結果重新自檢換設定檔先略過",
+    "attrs": []
+   },
+   "crashed": {
+    "text": "第一次使用準備好翻譯需要的模型Self-test crashed重新自檢換設定檔先略過",
+    "attrs": []
+   },
+   "back to the profiles": {
+    "text": "第一次使用準備好翻譯需要的模型RTX 4090 · 顯示記憶體 24.0 GB · 驅動 596.36記憶體 64.0 GB · 磁碟可用 488 GB建議使用 24 GB 顯示卡 設定檔。你也可以改選下面另外兩個。24 GB 顯示卡建議適合 RTX 4090 這類 24 GB 顯示卡，語音辨識與翻譯都用 GPU。8 GB 顯示卡適合 8 GB 顯示卡，語音辨識與翻譯輪流用 GPU，LLM 的內容長度較短。只用 CPU沒有可用的 NVIDIA 顯示卡時使用，全部用處理器，速度慢很多。會下載的項目這個設定檔需要的項目都已安裝，直接做自檢。共 0 B，磁碟可用 488 GB開始自檢略過，之後在設定裡處理",
+    "attrs": [
+     "aria-label=設定檔"
+    ]
+   }
+  }
+ ],
+ "models: the table with every kind of row": [
+  {
+   "every row": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除qwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中—下載中（已續傳） 33% · 95.4 MB / 286 MB · 2.86 MB/s—登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   },
+   "after the update check": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新Checked the registry名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 1有新版1.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu更新驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 1有新版（需更新 App）4.66 GB——驗證修復重新下載刪除qwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…已是最新496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中—下載中（已續傳） 33% · 95.4 MB / 286 MB · 2.86 MB/s—登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1自行建置的程式沒有更新檢查，要換新版請重新執行 scripts/mac/build_whisper_cli.sh781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1沒有更新檢查781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=A newer file is listed",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=Needs a newer app",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   }
+  }
+ ],
+ "models: the loading and failing states": [
+  {
+   "loading": {
+    "text": "模型與執行環境正在讀取…模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新",
+    "attrs": []
+   },
+   "could not read": {
+    "text": "模型與執行環境正在讀取…模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新Backend is not ready",
+    "attrs": []
+   },
+   "update check failed": {
+    "text": "模型與執行環境已安裝 1 項，共 1.49 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新Error: No network名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/w.bin已安裝SHA256 相符未記錄登錄版本 11.49 GB——驗證修復重新下載刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MIT未安裝——登錄版本 1458 MB下載大小——下載",
+    "attrs": [
+     "title=C:/m/w.bin",
+     "title=1",
+     "title=1"
+    ]
+   }
+  }
+ ],
+ "models: the row actions": [
+  {
+   "verified, still corrupt": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 相符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除SHA256 相符，檔案完整qwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中——登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   },
+   "repaired, with a reason": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除修復：redownload（SHA256 mismatch）qwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中——登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   },
+   "repaired, no reason": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除修復：noneqwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中——登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   },
+   "refused": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除Another download is running；whisper-large-v3-turbo is downloadingqwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中——登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   },
+   "working": {
+    "text": "模型與執行環境已安裝 6 項，共 4.47 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/whisper-large-v3-turbo.bin已安裝SHA256 相符1登錄版本 11.49 GBgpu-24gbgpu-8gb目前使用whispercpp-b5454-win-cuda（已安裝）whispercpp-b5454-win-cpu驗證修復重新下載刪除qwen3-8b-q4_k_m模型 · llm · MITC:/m/qwen3-8b-q4_k_m.gguf已安裝SHA256 不符未記錄登錄版本 14.66 GB——驗證修復重新下載刪除重新下載中…qwen3-asr-1.7b模型 · asr · MITC:/m/qwen3-asr.part下載到一半——登錄版本 1668 MB——續傳刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MITC:/r/whispercpp-b5454-win-cuda已安裝安裝時已驗證01234567…登錄版本 01234567…496 MBgpu-24gb目前使用—修復重新下載刪除llama.cpp-b12068-win-cuda執行檔 · whisper.cpp · MIT下載中——登錄版本 1286 MB下載大小gpu-24gbcpu—取消下載whispercpp-b5454-win-cpu執行檔 · whisper.cpp · MIT未安裝——登錄版本 18.58 MB下載大小cpu—下載crispasr-v0.8.49-win-cuda執行檔 · whisper.cpp · MITC:/r/crispasr已安裝尚未驗證2登錄版本 186.8 MB——修復重新下載刪除whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT/r/llama-server已安裝尚未驗證b8000登錄版本 1781 KB——刪除whisper-cli-homebrew執行檔 · whisper.cpp · MIT/opt/homebrew/bin/whisper-cli不是 App 建置的，是在 PATH 或 Homebrew 的資料夾找到的。App 不會刪它，要移除請自己處理。已安裝尚未驗證b5454登錄版本 1781 KB——",
+    "attrs": [
+     "title=C:/m/whisper-large-v3-turbo.bin",
+     "title=1",
+     "title=1",
+     "title=C:/m/qwen3-8b-q4_k_m.gguf",
+     "title=1",
+     "title=C:/m/qwen3-asr.part",
+     "title=1",
+     "title=C:/r/whispercpp-b5454-win-cuda",
+     "title=0123456789abcdef0123",
+     "title=0123456789abcdef9999",
+     "title=1",
+     "title=1",
+     "title=C:/r/crispasr",
+     "title=2",
+     "title=1",
+     "title=1",
+     "title=/r/llama-server",
+     "title=b8000",
+     "title=1",
+     "title=/opt/homebrew/bin/whisper-cli",
+     "title=b5454",
+     "title=1"
+    ]
+   }
+  }
+ ],
+ "models: the delete dialog": [
+  {
+   "confirm with a warning": {
+    "text": "刪除 whisper-large-v3-turbo會從磁碟移除 1.49 GB（C:/m/whisper-large-v3-turbo.bin）。之後可以再下載。注意：The active profile needs it取消刪除",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉"
+    ]
+   },
+   "refused, force allowed": {
+    "text": "刪除 whisper-large-v3-turboThis item is in useThe active profile needs itA download is using it仍要刪除的話，可以強制刪除。強制刪除要寫下原因，原因會記在日誌。取消強制刪除…",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉"
+    ]
+   },
+   "force, no reason yet": {
+    "text": "刪除 whisper-large-v3-turboThis item is in useThe active profile needs itA download is using it強制刪除的原因（至少 8 個字）取消強制刪除",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉",
+     "placeholder=例如：要換成新版重新下載"
+    ]
+   },
+   "force, reason too short": {
+    "text": "刪除 whisper-large-v3-turboThis item is in useThe active profile needs itA download is using it強制刪除的原因（至少 8 個字）請輸入至少 8 個字的原因，會記錄在日誌取消強制刪除",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉",
+     "placeholder=例如：要換成新版重新下載"
+    ]
+   },
+   "force, reason ready": {
+    "text": "刪除 whisper-large-v3-turboThis item is in useThe active profile needs itA download is using it強制刪除的原因（至少 8 個字）取消強制刪除",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉",
+     "placeholder=例如：要換成新版重新下載"
+    ]
+   },
+   "force failed": {
+    "text": "刪除 whisper-large-v3-turboThe file is locked by another program關閉",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉"
+    ]
+   },
+   "confirm, plain": {
+    "text": "刪除 whisper-large-v3-turbo會從磁碟移除 1.43 MB（C:/m/whisper-large-v3-turbo.bin）。之後可以再下載。取消刪除",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉"
+    ]
+   },
+   "refused with nothing to force": {
+    "text": "刪除 whisper-large-v3-turboThis item is in use關閉",
+    "attrs": [
+     "aria-label=刪除 whisper-large-v3-turbo",
+     "aria-label=關閉"
+    ]
+   },
+   "confirm, no size": {
+    "text": "刪除 loose-model會從磁碟移除（C:/m/x.bin）。之後可以再下載。取消刪除",
+    "attrs": [
+     "aria-label=刪除 loose-model",
+     "aria-label=關閉"
+    ]
+   },
+   "refused, cannot force": {
+    "text": "刪除 loose-modelThis item is in useThe active profile needs itA download is using it這個項目現在不能刪除。取消",
+    "attrs": [
+     "aria-label=刪除 loose-model",
+     "aria-label=關閉"
+    ]
+   },
+   "confirm, no size and no path": {
+    "text": "刪除 loose-model會從磁碟移除。之後可以再下載。取消刪除",
+    "attrs": [
+     "aria-label=刪除 loose-model",
+     "aria-label=關閉"
+    ]
+   }
+  }
+ ],
+ "models: the models folder": [
+  {
+   "default folder": {
+    "text": "模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…",
+    "attrs": [
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "confirm": {
+    "text": "模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…現有的模型不會自動搬到新資料夾。目前有 2 個已安裝的模型（6.15 GB）在原資料夾。只變更資料夾的話，它們會留在原處，App 在新資料夾裡會顯示為「未安裝」。新資料夾：E:/vst-models搬移現有模型並切換只變更資料夾，不搬移取消",
+    "attrs": [
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "could not change": {
+    "text": "模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…Folder is not writable",
+    "attrs": [
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "changed, with a warning": {
+    "text": "模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…The folder is on a network drive",
+    "attrs": [
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "cancelled": {
+    "text": "模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…",
+    "attrs": [
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   }
+  }
+ ],
+ "models: a custom folder and the move": [
+  {
+   "running": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…搬移中 25%：1 / 3 個檔案，477 MB / 1.86 GBAntivirus may slow this down",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "done": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "done, one file": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "failed": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "failed, no reason": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "move could not start": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…Target is not empty",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   },
+   "move started": {
+    "text": "模型資料夾D:/models自訂的資料夾選擇…變更…搬移中 25%：1 / 3 個檔案，477 MB / 1.86 GB",
+    "attrs": [
+     "title=D:/models",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models"
+    ]
+   }
+  }
+ ],
+ "models: the page as the settings page frames it": [
+  {
+   "models page": {
+    "text": "設定模型與執行環境硬體與效能LLM 來源第三方授權檢查更新語言模型資料夾C:/m預設位置（使用者資料夾內）選擇…變更…模型與執行環境已安裝 1 項，共 1.49 GB。模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。檢查更新名稱狀態版本大小使用於相依操作whisper-large-v3-turbo模型 · asr · MITC:/m/w.bin已安裝SHA256 相符未記錄登錄版本 11.49 GB——驗證修復重新下載刪除whispercpp-b5454-win-cuda執行檔 · whisper.cpp · MIT未安裝——登錄版本 1458 MB下載大小——下載",
+    "attrs": [
+     "aria-label=設定",
+     "title=C:/m",
+     "placeholder=新的模型資料夾，例如 E:\\vst-models",
+     "title=C:/m/w.bin",
+     "title=1",
+     "title=1"
+    ]
+   }
+  }
+ ],
+ "models: a Mac with a local build": [
+  {
+   "mac models": {
+    "text": "名稱狀態版本大小使用於相依操作whispercpp-b5454-macos-metal執行檔 · whisper.cpp · MIT在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md）未安裝——登錄版本 1———llama-b8000-macos-metal執行檔 · whisper.cpp · MIT未安裝——登錄版本 138.1 MB下載大小——下載",
+    "attrs": [
+     "title=1",
+     "title=1"
+    ]
+   }
+  }
+ ]
+}

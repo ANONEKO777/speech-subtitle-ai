@@ -1,3 +1,4 @@
+import type { Translate } from "../i18n";
 import type { Refusal } from "../manage/api";
 import { isActive } from "../manage/downloads";
 import type { Asset, DownloadJob, UpdateItem } from "../manage/types";
@@ -28,8 +29,8 @@ export function rowActions(asset: Asset, job: DownloadJob | undefined, update?: 
 
 export const MIN_REASON = 8;
 
-export const forceReasonError = (reason: string): string | null =>
-  reason.trim().length >= MIN_REASON ? null : `請輸入至少 ${MIN_REASON} 個字的原因，會記錄在日誌`;
+export const forceReasonError = (reason: string, t: Translate): string | null =>
+  reason.trim().length >= MIN_REASON ? null : t("delete.reasonShort", { min: MIN_REASON });
 
 export type DeleteStep =
   | { readonly step: "confirm" }
@@ -59,27 +60,27 @@ export function reduceDelete(state: DeleteStep, event: DeleteEvent): DeleteStep 
   }
 }
 
-export function stateText(asset: Asset): string {
+export function stateText(asset: Asset, t: Translate): string {
   switch (asset.state) {
     case "installed":
-      return "已安裝";
+      return t("models.state.installed");
     case "partial":
-      return "下載到一半";
+      return t("models.state.partial");
     case "installing":
-      return "下載中";
+      return t("models.state.installing");
     case "not_installed":
-      return "未安裝";
+      return t("models.state.notInstalled");
   }
 }
 
-export function shaText(asset: Asset): string {
+export function shaText(asset: Asset, t: Translate): string {
   switch (asset.shaState) {
     case "verified":
-      return asset.shaScope === "archive_at_install" ? "安裝時已驗證" : "SHA256 相符";
+      return asset.shaScope === "archive_at_install" ? t("models.sha.atInstall") : t("models.sha.matches");
     case "unchecked":
-      return "尚未驗證";
+      return t("models.sha.unchecked");
     case "corrupt":
-      return "SHA256 不符";
+      return t("models.sha.mismatch");
     case "not_installed":
       return "—";
   }

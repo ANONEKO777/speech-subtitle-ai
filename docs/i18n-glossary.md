@@ -105,6 +105,29 @@ The machine translation of `zh-CN` follows the mainland column of the table abov
 | product name | 字幕翻譯 | Video Subtitle Translator | The window title, the page title and the queue notification. |
 | current profile | 使用中 | Current profile | The disabled button of the profile in use. The chip beside it says "In use" (目前使用). |
 
+## W2: the first-run wizard and the models page
+
+Terms the wizard and the models page added. The zh-TW column is the text those screens already used.
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| first run | 第一次使用 | First run | The small heading above the wizard title. |
+| item | 項目 | item | One model or one runtime in the download table. |
+| built on this computer | 自行建置 | build on this computer | A runtime a Mac builds with a script. Never "compile". |
+| resume (a download) | 續傳, 繼續下載 | Resume, Resume download | "Resume" in a table row, "Resume download" on the wizard button. |
+| download again | 重新下載 | Download again | The button for a file that is already there. Not "re-download". |
+| verify | 驗證 | Verify | Checks the SHA256 of a model file. |
+| repair | 修復 | Repair | |
+| listed version | 登錄版本 | Listed version | The version the app's model list names, next to the version on disk. Not "registry", which is internal. |
+| used by | 使用於 | Used by | The profiles that use the item. |
+| needed by | 相依 | Needed by | The other items that need this one. |
+| in use | 目前使用 | In use | In the models table, an item the current profile uses. The same words as the hardware page's chip (W1b). |
+| partly downloaded | 下載到一半 | Incomplete | A download that stopped before the end. The status chip has to stay short, so it does not say "Partly downloaded". |
+| SHA256 matches | SHA256 相符, SHA256 不符 | SHA256 matches, SHA256 does not match | |
+| force delete | 強制刪除 | Force delete | Needs a written reason of at least 8 characters, which goes to the log. |
+| models folder | 模型資料夾 | Models folder | Where the downloaded models live. |
+| Visual C++ Redistributable | Visual C++ 可轉散發套件 | Visual C++ Redistributable | Microsoft's name in English. |
+
 ## W3a (the player)
 
 The terms of the player, its side column, the library and the help overlay.
