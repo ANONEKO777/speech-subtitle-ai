@@ -43,6 +43,17 @@ describe("I18nProvider", () => {
     expect(document.documentElement.lang).toBe("en");
   });
 
+  it("names the page and the window in the language it starts with and follows a change", () => {
+    render(
+      <I18nProvider initial="zh-TW">
+        <Probe />
+      </I18nProvider>,
+    );
+    expect(document.title).toBe("字幕翻譯");
+    fireEvent.click(screen.getByTestId("to-en"));
+    expect(document.title).toBe("Video Subtitle Translator");
+  });
+
   it("re-renders at once when the language changes, and mirrors the choice", () => {
     render(
       <I18nProvider initial="zh-TW">
