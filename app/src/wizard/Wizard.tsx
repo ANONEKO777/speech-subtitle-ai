@@ -195,9 +195,9 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
         {state.step === "result" && (
           <div data-testid="wizard-result">
             {state.test && <SelfTestPanel result={state.test} running={false} />}
-            {(state.error !== null || state.test === null) && (
+            {(state.error || state.test === null) && (
               <p className="note bad" role="alert" data-testid="wizard-error">
-                {state.error ?? t("wizard.noResult")}
+                {state.error || t("wizard.noResult")}
               </p>
             )}
             <div className="dialog-buttons start">

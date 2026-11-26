@@ -25,6 +25,9 @@ vi.mock("../manage/api", async (orig) => ({
   verifyAsset: () => Promise.resolve({}),
   repairAsset: () => Promise.resolve({ action: "redownload", reason: "SHA256 mismatch", job: null }),
   redownload: () => new Promise(() => undefined),
+  chooseProfile: () => Promise.resolve({ profile: mocks.profile, warnings: [] }),
+  downloadProfileAssets: () => Promise.resolve([]),
+  runSelfTest: () => Promise.reject(new Error("")),
 }));
 
 const backend = { port: 1, token: "t" } as Backend;
@@ -180,5 +183,21 @@ describe("the models page re-words its row notes when the language changes", () 
     await screen.findByText("Downloading again…");
     fireEvent.click(screen.getByTestId("to-zh"));
     expect(screen.getByText("重新下載中…")).toBeTruthy();
+  });
+});
+
+describe("a self-test that fails with no message", () => {
+  it("says the self-test reported nothing instead of an empty alert", async () => {
+    const view = windowsView();
+    mocks.profile = { ...view, profiles: view.profiles.map((p) => ({ ...p, missing: [], downloadBytes: 0 })) };
+    render(
+      <I18nProvider initial="en">
+        <Wizard backend={backend} onExit={() => undefined} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("wizard-choose"));
+    fireEvent.click(screen.getByTestId("wizard-start"));
+    await screen.findByTestId("wizard-result");
+    expect(screen.getByTestId("wizard-error").textContent).toBe("The self-test did not report a result.");
   });
 });
