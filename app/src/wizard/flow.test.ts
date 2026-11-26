@@ -3,6 +3,7 @@ import type { DownloadJob, ProfileOption, ProfileView, SelfTest } from "../manag
 import { needsWizard } from "./firstRun";
 import { downloadPlan } from "./plan";
 import { type WizardEvent, type WizardState, initialWizard, reduceWizard } from "./flow";
+import { plainText } from "../i18n/said";
 
 const option = (id: ProfileOption["id"], over: Partial<ProfileOption> = {}): ProfileOption => ({
   id,
@@ -37,7 +38,7 @@ const job = (id: string, state: DownloadJob["state"], failure: DownloadJob["fail
   note: null,
   failure,
 });
-const test = (over: Partial<SelfTest> = {}): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 6, message: "ok", ...over });
+const test = (over: Partial<SelfTest> = {}): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 6, message: plainText("ok"), ...over });
 
 const run = (events: WizardEvent[], from: WizardState = initialWizard) => events.reduce(reduceWizard, from);
 const toDownload: WizardEvent[] = [{ type: "loaded", view }, { type: "start" }];
@@ -66,9 +67,9 @@ describe("first-run wizard", () => {
   });
 
   it("falls back to the CPU with the reason and still lets the person go on", () => {
-    const fallback = test({ device: "cpu", fallback: { reason: "CUDA failed to initialise" }, message: "The CPU backend is used instead." });
+    const fallback = test({ device: "cpu", fallback: { reason: plainText("CUDA failed to initialise") }, message: plainText("The CPU backend is used instead.") });
     const s = run([...toDownload, { type: "started", jobIds: ["1"] }, { type: "polled", jobs: [job("1", "done")] }, { type: "selfTested", test: fallback }]);
-    expect(s).toMatchObject({ step: "result", test: { device: "cpu", fallback: { reason: "CUDA failed to initialise" } } });
+    expect(s).toMatchObject({ step: "result", test: { device: "cpu", fallback: { reason: plainText("CUDA failed to initialise") } } });
     expect(reduceWizard(s, { type: "finish" }).step).toBe("finished");
   });
 
@@ -77,7 +78,7 @@ describe("first-run wizard", () => {
     expect(reduceWizard(s, { type: "finish" })).toBe(s);
     expect(reduceWizard(s, { type: "rerunSelfTest" }).step).toBe("selftest");
     expect(reduceWizard(s, { type: "back" }).step).toBe("choose");
-    const broken = run([...toDownload, { type: "started", jobIds: [] }, { type: "selfTestFailed", error: "x" }]);
+    const broken = run([...toDownload, { type: "started", jobIds: [] }, { type: "selfTestFailed", error: plainText("x") }]);
     expect(reduceWizard(broken, { type: "finish" })).toBe(broken);
   });
 
@@ -114,8 +115,8 @@ describe("first-run wizard", () => {
   });
 
   it("reports a failed detection and recovers when it loads again", () => {
-    const failed = run([{ type: "loadFailed", error: "no backend" }]);
-    expect(failed).toMatchObject({ step: "detect-failed", error: "no backend" });
+    const failed = run([{ type: "loadFailed", error: plainText("no backend") }]);
+    expect(failed).toMatchObject({ step: "detect-failed", error: plainText("no backend") });
     expect(reduceWizard(failed, { type: "loaded", view }).step).toBe("choose");
   });
 });

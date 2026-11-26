@@ -6,6 +6,7 @@ import { ExternalLink } from "../manage/ExternalLink";
 import { isMacShell } from "../platform";
 import { shortVersion } from "../manage/format";
 import type { LicenseEntry } from "../manage/types";
+import { type Said, said, word } from "../i18n/notice";
 
 export const PROJECT_URL = "https://github.com/ANONEKO777/speech-subtitle-ai";
 const FFMPEG_SOURCE_URL = "https://github.com/FFmpeg/FFmpeg/tree/a35157abb96167fd7308edc92b55408d5bb084b0";
@@ -49,11 +50,11 @@ function BundledNotice() {
 }
 
 export function LicensesSection({ backend }: { backend: Backend }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [entries, setEntries] = useState<readonly LicenseEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   useEffect(() => {
-    void fetchLicenses(backend).then(setEntries, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    void fetchLicenses(backend).then(setEntries, (e: unknown) => setError(said(e)));
   }, [backend]);
   return (
     <section className="panel" data-testid="licenses-section" aria-labelledby="lic-title">
@@ -66,7 +67,7 @@ export function LicensesSection({ backend }: { backend: Backend }) {
       <BundledNotice />
       {error && (
         <p className="note bad" role="alert">
-          {error}
+          {word(error, locale)}
         </p>
       )}
       {entries && (

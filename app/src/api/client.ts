@@ -2,6 +2,7 @@ import { type Translate, tZhTW } from "../i18n";
 import type { Cue } from "../player/cues";
 import { DEFAULT_SOURCE, type SourceLang, type Unavailable, parseSourceLang, parseUnavailable } from "./sourceLang";
 import { type SourceTargets, parseSourceTargets } from "./targets";
+import { type Notice, parseNotices } from "../i18n/said";
 
 export interface Backend {
   readonly port: number;
@@ -43,6 +44,8 @@ export class ApiError extends Error {
     readonly problems: readonly CueProblem[] = [],
     /** The `detail` of the error body, for callers that read more than the message. */
     readonly detail: unknown = null,
+    /** The notices inside `message`, so the window can word it (`i18n/notice.ts`). */
+    readonly notices: readonly Notice[] = [],
   ) {
     super(message);
   }
@@ -71,7 +74,8 @@ export async function call(b: Backend, path: string, init: RequestInit = {}): Pr
 
 function apiError(status: number, statusText: string, body: unknown): ApiError {
   const detail = asRecord(body)?.["detail"];
-  if (typeof detail === "string") return new ApiError(status, detail, [], detail);
+  const notices = parseNotices(asRecord(body)?.["notices"]);
+  if (typeof detail === "string") return new ApiError(status, detail, [], detail, notices);
   const o = asRecord(detail);
   const list = Array.isArray(o?.["problems"]) ? (o["problems"] as unknown[]) : [];
   const problems = list.flatMap((item): CueProblem[] => {
@@ -80,7 +84,7 @@ function apiError(status: number, statusText: string, body: unknown): ApiError {
     const other = p["other"];
     return [{ id: p["id"], code: p["code"], message: String(p["message"] ?? ""), other: typeof other === "number" ? other : null }];
   });
-  return new ApiError(status, typeof o?.["message"] === "string" ? o["message"] : statusText, problems, detail);
+  return new ApiError(status, typeof o?.["message"] === "string" ? o["message"] : statusText, problems, detail, notices);
 }
 
 async function callText(b: Backend, path: string): Promise<string> {

@@ -11,6 +11,7 @@ import { useDetections } from "../import/useDetections";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
 import { baseName, classifyPath } from "./paths";
 import { TargetChoice } from "./TargetChoice";
+import { type Said, said, word } from "../i18n/notice";
 
 interface Row extends AddEntry {
   readonly key: string;
@@ -75,7 +76,7 @@ function RowDetect({ found, row, unavailable, onSwitch }: {
 }
 
 export function AddDialog({ backend, languages, initial, onClose, onAdded }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [defaultSource, setDefaultSource] = useState<SourceLang>(initial[0]?.source ?? "en");
   const [defaultLangs, setDefaultLangs] = useState<readonly string[]>(() =>
     targetsFor(languages, initial[0]?.source ?? "en", initial[0]?.langs ?? [languages.defaultCode]),
@@ -83,7 +84,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   const [seq, setSeq] = useState(initial.length);
   const [rows, setRows] = useState<readonly Row[]>(() => initial.map((e, i) => ({ ...e, key: `r${i}` })));
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const [skipped, setSkipped] = useState<readonly Skipped[]>([]);
 
   const notes = [
@@ -126,7 +127,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   }, [found, languages]);
 
   async function addFiles() {
-    append((await pickVideos()).map((path) => ({ path, langs: defaultLangs, source: defaultSource })));
+    append((await pickVideos(t("shell.mediaFilter"))).map((path) => ({ path, langs: defaultLangs, source: defaultSource })));
   }
   async function addFolder() {
     const path = await pickFolder();
@@ -146,7 +147,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
       setRows([]);
       onAdded(result.added);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     } finally {
       setBusy(false);
     }
@@ -270,7 +271,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
         )}
         {error && (
           <p className="error" role="alert" data-testid="add-error">
-            {error}
+            {word(error, locale)}
           </p>
         )}
         <div className="add-foot">

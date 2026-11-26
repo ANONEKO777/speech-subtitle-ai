@@ -6,6 +6,7 @@ export const shell = {
   "common.close": "关闭",
   "common.listSeparator": "、",
   "app.title": "字幕翻译",
+  "shell.mediaFilter": "视频和音频",
   "app.starting": "正在启动后端…",
   "app.checkingModels": "正在检查模型…",
   "app.ready": "后端已就绪",

@@ -24,6 +24,7 @@ import { I18nProvider } from "./I18nProvider";
 import { type Translate, t } from ".";
 import type { Locale } from "./locale";
 import { NOT_ENGLISH } from "./notEnglish";
+import { plainText, type Said } from "./said";
 
 /**
  * Every W1 screen rendered in each released language. Traditional Chinese must equal what the screens
@@ -33,7 +34,7 @@ import { NOT_ENGLISH } from "./notEnglish";
  */
 
 const mocks = vi.hoisted(() => ({
-  status: { kind: "ready" } as { kind: string; backend?: { port: number; token: string }; message?: string },
+  status: { kind: "ready" } as { kind: string; backend?: { port: number; token: string }; error?: Said },
   profile: null as unknown,
   change: null as unknown,
   selfTests: [] as unknown[],
@@ -178,8 +179,8 @@ const withActive = (view: ProfileView, id: ProfileView["active"]["id"], missing?
   profiles: view.profiles.map((p) => ({ ...p, active: p.id === id, ...(p.id === id && missing ? { missing, downloadBytes: 0 } : {}) })),
 });
 
-const run = (over: Partial<SelfTest>): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 4.2, message: "ok", ...over });
-const stage = (name: string, ok: boolean) => ({ stage: name, runtimeId: `${name}-rt`, device: "cuda", installed: true, ok, seconds: 1.5, detail: "driver too old" });
+const run = (over: Partial<SelfTest>): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 4.2, message: plainText("ok"), ...over });
+const stage = (name: string, ok: boolean) => ({ stage: name, runtimeId: `${name}-rt`, device: "cuda", installed: true, ok, seconds: 1.5, detail: plainText("driver too old") });
 
 const llmView = (over: Partial<SettingsView["llm"]> = {}, problem: string | null = null): SettingsView => ({
   uiLanguage: "zh-TW",
@@ -204,8 +205,8 @@ const SCREENS: Record<string, Screen> = {
     mocks.change = { profile: withActive(windowsView(), "cpu"), warnings: ["Low disk space"] };
     mocks.jobs = [job];
     mocks.selfTests = [
-      run({ stages: [stage("asr", true), stage("llm", false)], fallback: { reason: "CUDA failed to start" } }),
-      run({ ok: false, stages: [stage("asr", false)], message: "Nothing started" }),
+      run({ stages: [stage("asr", true), stage("llm", false)], fallback: { reason: plainText("CUDA failed to start") } }),
+      run({ ok: false, stages: [stage("asr", false)], message: plainText("Nothing started") }),
       run({ stages: [stage("asr", true), stage("llm", true)] }),
     ];
     const list = [job];
@@ -238,7 +239,7 @@ const SCREENS: Record<string, Screen> = {
     shot("mac switched", container);
   },
   "hardware with a fallback banner": async (shot, locale) => {
-    mocks.profile = { ...withActive(windowsView(), "cpu"), fallback: { reason: "CUDA failed to start" } };
+    mocks.profile = { ...withActive(windowsView(), "cpu"), fallback: { reason: plainText("CUDA failed to start") } };
     const { container } = render(wrap(locale, <HardwareSection backend={backend} downloads={downloads()} onOpenLlm={() => undefined} />));
     await screen.findByTestId("fallback-banner");
     shot("banner", container);
@@ -258,11 +259,11 @@ const SCREENS: Record<string, Screen> = {
     typeInto("cloud-model", "gpt-x");
     typeInto("cloud-key", "sk-test");
     click("cloud-consent");
-    mocks.test = { ok: true, url: "https://api.example.com/v1", detail: "Reached it", models: ["gpt-x", "gpt-y"] } satisfies LlmTest;
+    mocks.test = { ok: true, url: "https://api.example.com/v1", detail: plainText("Reached it"), models: ["gpt-x", "gpt-y"] } satisfies LlmTest;
     click("llm-test");
     await screen.findByTestId("llm-test-result");
     shot("tested", container);
-    mocks.test = { ok: false, url: "", detail: "Connection refused", models: [] } satisfies LlmTest;
+    mocks.test = { ok: false, url: "", detail: plainText("Connection refused"), models: [] } satisfies LlmTest;
     click("llm-test");
     await waitFor(() => expect(screen.getByTestId("llm-test-result").getAttribute("data-ok")).toBe("false"));
     shot("test failed", container);
@@ -463,7 +464,7 @@ const APP_SCREENS: Record<string, Screen> = {
     shot("starting", container);
   },
   "the app when the backend fails": async (shot, locale) => {
-    mocks.status = { kind: "failed", message: "Port 1 is taken" };
+    mocks.status = { kind: "failed", error: plainText("Port 1 is taken") };
     const { container } = render(wrap(locale, <App />));
     shot("failed", container);
   },
@@ -532,7 +533,7 @@ const APP_SCREENS: Record<string, Screen> = {
     typeInto("video-path", "C:/invented/p1.mp4");
     click("import");
     await screen.findByTestId("importing");
-    mocks.jobView = { kind: "failed", error: "Out of memory" };
+    mocks.jobView = { kind: "failed", error: plainText("Out of memory") };
     rerender(wrap(locale, <App />));
     await screen.findByTestId("error");
     shot("failed", container);

@@ -9,6 +9,7 @@ import { languages } from "./languages";
 import { licenses } from "./licenses";
 import { llm } from "./llm";
 import { models } from "./models";
+import { notices } from "./notices";
 import { player } from "./player";
 import { settings } from "./settings";
 import { shell } from "./shell";
@@ -16,4 +17,4 @@ import { summary } from "./summary";
 import { update } from "./update";
 import { wizard } from "./wizard";
 
-export const ja = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;
+export const ja = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...notices, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;

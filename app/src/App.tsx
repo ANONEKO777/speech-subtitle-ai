@@ -6,7 +6,6 @@ import { DEFAULT_SOURCE, type SourceLang, sourceLabel, usableSource } from "./ap
 import { isExperimentalTarget, targetFor, targetLanguage, targetsOf } from "./api/targets";
 import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
 import {
-  ApiError,
   type Backend,
   type CueFailures,
   type LanguageInfo,
@@ -30,7 +29,9 @@ import { classifyPath } from "./batch/paths";
 import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
+import type { Translate } from "./i18n";
 import { useT } from "./i18n/I18nProvider";
+import { type Said, said, word } from "./i18n/notice";
 import { languageName } from "./i18n/languageName";
 import type { Locale } from "./i18n/locale";
 import { ImportPanel } from "./import/ImportPanel";
@@ -54,8 +55,21 @@ import { Wizard } from "./wizard/Wizard";
 import { LinkedText } from "./manage/LinkedText";
 import { KEY, parseSettings } from "./settings/settings";
 
+/** Why the window went home. `processing` is a job that failed, and a null `reason` is its lost connection. */
+interface ImportError {
+  readonly processing: boolean;
+  readonly reason: Said | null;
+}
+
+const importErrorText = ({ processing, reason }: ImportError, t: Translate, locale: Locale): string => {
+  const worded = reason === null ? t("errors.backendLost") : word(reason, locale);
+  return processing ? t("app.processingFailed", { reason: worded }) : worded;
+};
+
+const failedImport = (error: unknown): Screen => ({ kind: "idle", error: { processing: false, reason: said(error) } });
+
 type Screen =
-  | { readonly kind: "idle"; readonly error?: string }
+  | { readonly kind: "idle"; readonly error?: ImportError }
   | { readonly kind: "settings" }
   | {
       readonly kind: "importing";
@@ -90,7 +104,6 @@ const editsNotice = ({ kept, unmatched }: EditsReport, { t, plural }: Pick<Retur
 const playingName = (screen: Extract<Screen, { kind: "playing" }>, locale: Locale) =>
   languageName(locale, screen.languages.find((l) => l.code === screen.lang) ?? { code: screen.lang });
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1);
 
 function Importing({
@@ -105,15 +118,15 @@ function Importing({
   /** The name of the language the run translates into. */
   targetLabel: string;
   onDone: (edits: EditsReport) => void;
-  onStop: (error?: string) => void;
+  onStop: (error?: ImportError) => void;
 }) {
   const { t } = useT();
   const view = useJob(backend, screen.jobId);
   useEffect(() => {
     if (view.kind === "done") onDone(view.edits);
-    if (view.kind === "failed") onStop(t("app.processingFailed", { reason: view.disconnected ? t("errors.backendLost") : view.error }));
+    if (view.kind === "failed") onStop({ processing: true, reason: view.disconnected ? null : view.error });
     if (view.kind === "cancelled") onStop();
-  }, [view, onDone, onStop, t]);
+  }, [view, onDone, onStop]);
   return (
     <section className="importing" data-testid="importing">
       <div className="card importing-card">
@@ -228,10 +241,10 @@ export function App() {
         const loaded = await load(backend, screen.projectId, code);
         setScreen({ ...screen, lang: code, loaded, notice: null });
       } catch (e) {
-        setScreen({ ...screen, notice: t("app.switchLanguageFailed", { reason: message(e) }) });
+        setScreen({ ...screen, notice: t("app.switchLanguageFailed", { reason: word(said(e), locale) }) });
       }
     },
-    [backend, screen, load, t],
+    [backend, screen, load, t, locale],
   );
 
   const startImport = useCallback(
@@ -251,7 +264,7 @@ export function App() {
         const jobId = project.activeJob ?? (await startJob(backend, project.id, plan.source, plan.target, t));
         setScreen({ kind: "importing", videoPath, projectId: project.id, jobId, target: plan.target, addsTarget: plan.addsTarget });
       } catch (e) {
-        setScreen({ kind: "idle", error: e instanceof ApiError ? e.message : message(e) });
+        setScreen(failedImport(e));
       }
     },
     [backend, show, languageSet, t],
@@ -264,10 +277,10 @@ export function App() {
         const jobId = await startJob(backend, screen.projectId, screen.sourceLang, code, t);
         setScreen({ kind: "importing", videoPath: screen.videoPath, projectId: screen.projectId, jobId, target: code, addsTarget: true });
       } catch (e) {
-        setScreen({ ...screen, notice: t("app.addTargetFailed", { reason: e instanceof ApiError ? e.message : message(e) }) });
+        setScreen({ ...screen, notice: t("app.addTargetFailed", { reason: word(said(e), locale) }) });
       }
     },
-    [backend, screen, t],
+    [backend, screen, t, locale],
   );
 
   const chooseSource = useCallback((code: SourceLang) => {
@@ -391,13 +404,13 @@ export function App() {
     (edits: EditsReport) => {
       if (backend && importing) {
         show(backend, importing.videoPath, importing.projectId, editsNotice(edits, texts), importing.target).catch((e: unknown) =>
-          setScreen({ kind: "idle", error: message(e) }),
+          setScreen(failedImport(e)),
         );
       }
     },
     [backend, importing, show, texts],
   );
-  const stopImport = useCallback((error?: string) => setScreen({ kind: "idle", ...(error ? { error } : {}) }), []);
+  const stopImport = useCallback((error?: ImportError) => setScreen({ kind: "idle", ...(error ? { error } : {}) }), []);
 
   if (backend && firstRun === "wizard") {
     return (
@@ -504,7 +517,7 @@ export function App() {
         )}
         {status.kind === "failed" && (
           <pre className="error" role="alert" data-testid="backend-failed">
-            {status.message}
+            {word(status.error, locale)}
           </pre>
         )}
         {backend && firstRun === "checking" && (
@@ -535,7 +548,7 @@ export function App() {
           <p className="error" role="alert" data-testid="error">
             <TriangleAlert className="icon" aria-hidden />
             <span>
-              <LinkedText text={screen.error} />
+              <LinkedText text={importErrorText(screen.error, t, locale)} />
             </span>
           </p>
         )}

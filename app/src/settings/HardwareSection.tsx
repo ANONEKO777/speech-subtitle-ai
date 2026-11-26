@@ -12,19 +12,21 @@ import { localBuildText, toBuild, toDownload } from "../manage/localBuild";
 import { profileBlurb, profileName } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
+import type { Locale } from "../i18n/locale";
+import { type Said, said, word } from "../i18n/notice";
 
 /** The notice under a processor-only profile. A Mac has no NVIDIA card to be missing and its GPU is Metal, so it says what this profile gives up. */
 export const cpuNotice = (id: ProfileId, t: Translate): string =>
   t(id === "apple-cpu" ? "hw.cpuNotice.apple" : "hw.cpuNotice.cpu", { advice: t("hw.cloudAdvice") });
 
-export function selfTestText(result: SelfTest, t: Translate): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
-  if (result.ok && result.fallback) return { tone: "warn", title: t("selftest.fellBack"), body: result.fallback.reason };
+export function selfTestText(result: SelfTest, t: Translate, locale: Locale): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
+  if (result.ok && result.fallback) return { tone: "warn", title: t("selftest.fellBack"), body: word(result.fallback.reason, locale) };
   if (result.ok) return { tone: "ok", title: t("selftest.passed", { device: deviceLabel(result.device, t) }), body: t("selftest.seconds", { seconds: result.seconds.toFixed(1) }) };
-  return { tone: "bad", title: t("selftest.failed"), body: result.message };
+  return { tone: "bad", title: t("selftest.failed"), body: word(result.message, locale) };
 }
 
 export function SelfTestPanel({ result, running }: { result: SelfTest | null; running: boolean }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   if (running) {
     return (
       <p className="note" data-testid="selftest-running">
@@ -34,7 +36,7 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
     );
   }
   if (!result) return null;
-  const text = selfTestText(result, t);
+  const text = selfTestText(result, t, locale);
   return (
     <div className={`callout ${text.tone}`} data-testid="selftest-result" data-ok={result.ok} data-device={result.device} data-fallback={result.fallback !== null}>
       {text.tone === "ok" ? <CircleCheck className="icon" aria-hidden /> : <TriangleAlert className="icon" aria-hidden />}
@@ -54,7 +56,7 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
                   status: s.ok ? t("selftest.stage.ok") : t("selftest.stage.failed"),
                   seconds: s.seconds.toFixed(1),
                 })}
-                {s.ok ? "" : t("selftest.stageDetail", { detail: s.detail })}
+                {s.ok ? "" : t("selftest.stageDetail", { detail: word(s.detail, locale) })}
               </li>
             ))}
           </ul>
@@ -84,7 +86,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const texts = useT();
   const { t, plural, locale } = texts;
   const [view, setView] = useState<ProfileView | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const [switched, setSwitched] = useState<{ readonly id: ProfileId; readonly warnings: readonly string[]; readonly jobIds: readonly string[] } | null>(null);
   const [test, setTest] = useState<SelfTest | null>(null);
   const [testing, setTesting] = useState(false);
@@ -94,7 +96,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
     try {
       setView(await fetchProfile(backend));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   }, [backend]);
 
@@ -117,7 +119,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
       setSwitched({ id: change.profile.active.id, warnings: change.warnings, jobIds: [] });
       setTest(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     } finally {
       setBusy(false);
     }
@@ -130,7 +132,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
       setSwitched((s) => (s ? { ...s, jobIds: jobs.map((j) => j.id) } : s));
       downloads.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   };
 
@@ -141,7 +143,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
       setTest(await runSelfTest(backend));
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     } finally {
       setTesting(false);
     }
@@ -163,7 +165,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
 
       {error && (
         <p className="note bad" role="alert" data-testid="hw-error">
-          {error}
+          {word(error, locale)}
         </p>
       )}
 
@@ -316,7 +318,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
             <p className="muted">{t("hw.selfTestHint")}</p>
             {view.fallback && !test && (
               <p className="note warn" data-testid="fallback-banner">
-                {t("hw.fallback", { reason: view.fallback.reason })}
+                {t("hw.fallback", { reason: word(view.fallback.reason, locale) })}
               </p>
             )}
             <button type="button" data-testid="selftest-run" disabled={testing} onClick={() => void selfTest()}>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Asset, DownloadJob } from "../manage/types";
 import { tZhTW } from "../i18n";
 import { forceReasonError, reduceDelete, rowActions, shaText } from "./rules";
+import { plainText } from "../i18n/said";
 
 const asset = (over: Partial<Asset> = {}): Asset => ({
   id: "whisper",
@@ -72,7 +73,7 @@ describe("row actions", () => {
 });
 
 describe("delete flow", () => {
-  const refusal = { message: "needed", blockers: ["the active profile needs it"], canForce: true };
+  const refusal = { message: plainText("needed"), blockers: ["the active profile needs it"], canForce: true };
 
   it("shows the blockers and lets the person force with a reason", () => {
     let s = reduceDelete({ step: "confirm" }, { type: "refused", refusal });
@@ -85,9 +86,9 @@ describe("delete flow", () => {
   });
 
   it("offers no force when the backend does not", () => {
-    const locked = { message: "C:/m/a.bin is in use. Close the program that holds it.", blockers: [], canForce: false };
+    const locked = { message: plainText("C:/m/a.bin is in use. Close the program that holds it."), blockers: [], canForce: false };
     expect(reduceDelete({ step: "confirm" }, { type: "refused", refusal: locked })).toEqual({ step: "failed", message: locked.message });
-    const noForce = { message: "x", blockers: ["b"], canForce: false };
+    const noForce = { message: plainText("x"), blockers: ["b"], canForce: false };
     const s = reduceDelete({ step: "confirm" }, { type: "refused", refusal: noForce });
     expect(reduceDelete(s, { type: "wantForce" })).toBe(s);
   });

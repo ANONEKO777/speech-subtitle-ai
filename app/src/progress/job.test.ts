@@ -16,7 +16,7 @@ describe("reduceJob", () => {
   });
 
   it("reports a failure with its message", () => {
-    expect(reduceJob(WAITING, "failed", { error: "boom" })).toEqual({ kind: "failed", error: "boom" });
+    expect(reduceJob(WAITING, "failed", { error: "boom" })).toEqual({ kind: "failed", error: { text: "boom", notices: [] } });
   });
 
   it("fails with a message when the stream drops", () => {

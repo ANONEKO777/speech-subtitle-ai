@@ -1,5 +1,6 @@
 import { ApiError, type Backend, asRecord, base, call } from "./client";
 import { type SourceLang, parseSourceLang } from "./sourceLang";
+import { type Said, saidField } from "../i18n/said";
 
 export interface LibraryItem {
   readonly id: string;
@@ -134,10 +135,10 @@ export interface BurnView {
   readonly state: BurnState;
   readonly percent: number;
   readonly output: string;
-  readonly error: string | null;
+  readonly error: Said | null;
 }
 
-const burnView = (body: unknown): BurnView => {
+export const burnViewOf = (body: unknown): BurnView => {
   const o = asRecord(body);
   const state = o?.["state"];
   if (typeof o?.["id"] !== "string" || (state !== "running" && state !== "done" && state !== "failed" && state !== "cancelled")) {
@@ -148,7 +149,7 @@ const burnView = (body: unknown): BurnView => {
     state,
     percent: num(o["percent"]),
     output: typeof o["output"] === "string" ? o["output"] : "",
-    error: typeof o["error"] === "string" ? o["error"] : null,
+    error: typeof o["error"] === "string" ? saidField(o, "error") : null,
   };
 };
 
@@ -164,11 +165,11 @@ export async function startBurn(
     start_s: req.startS,
     duration_s: req.durationS,
   });
-  return burnView(await call(b, `/api/projects/${projectId}/burn`, { method: "POST", body }));
+  return burnViewOf(await call(b, `/api/projects/${projectId}/burn`, { method: "POST", body }));
 }
 
 export async function fetchBurn(b: Backend, id: string): Promise<BurnView> {
-  return burnView(await call(b, `/api/burns/${id}`));
+  return burnViewOf(await call(b, `/api/burns/${id}`));
 }
 
 export async function cancelBurn(b: Backend, id: string): Promise<void> {

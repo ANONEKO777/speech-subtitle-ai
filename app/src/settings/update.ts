@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { asRecord } from "../api/client";
 import { type Translate, tZhTW } from "../i18n";
+import { type Said, said } from "../i18n/said";
 
 export type Checked =
   | { readonly state: "upToDate"; readonly current: string }
@@ -16,9 +17,9 @@ export function parseChecked(raw: unknown, t: Translate = tZhTW): Checked {
   throw new Error(t("errors.updateUnreadable"));
 }
 
-/** The shell still turns every failure into a plain zh-TW sentence (W4 moves it to codes), so a rejection is shown as it is. */
-export const reasonOf = (e: unknown, t: Translate = tZhTW): string =>
-  typeof e === "string" ? e : e instanceof Error ? e.message : t("errors.updateIncomplete");
+/** What the shell (`{ message, notices }`) or the invoke layer said, or null for a rejection that says nothing. */
+export const reasonOf = (e: unknown): Said | null =>
+  typeof e === "string" || e instanceof Error || typeof asRecord(e)?.["message"] === "string" ? said(e) : null;
 
 export const updateCheck = async (t: Translate = tZhTW): Promise<Checked> => parseChecked(await invoke("update_check"), t);
 export const updateDownload = (): Promise<void> => invoke("update_download");

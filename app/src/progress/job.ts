@@ -1,5 +1,6 @@
 import { asRecord } from "../api/client";
 import { type Translate, tZhTW } from "../i18n";
+import { type Said, plainText, saidField } from "../i18n/said";
 
 export const STEPS = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type Step = (typeof STEPS)[number];
@@ -32,7 +33,7 @@ export type JobView =
   | { readonly kind: "running"; readonly step: Step | null; readonly stepFraction: number; readonly overall: number }
   | { readonly kind: "done"; readonly edits: EditsReport }
   /** `disconnected` is set when the event stream dropped: the window says so in its own language. */
-  | { readonly kind: "failed"; readonly error: string; readonly disconnected?: true }
+  | { readonly kind: "failed"; readonly error: Said; readonly disconnected?: true }
   | { readonly kind: "cancelled" };
 
 /** What the run did with the cues a person had corrected: put back over the new translation, or no longer fitting it. */
@@ -61,12 +62,12 @@ export function reduceJob(view: JobView, event: string, data: unknown): JobView 
       return { kind: "done", edits: { kept: count("edits_kept"), unmatched: count("edits_unmatched") } };
     }
     case "failed":
-      return { kind: "failed", error: typeof o?.["error"] === "string" ? o["error"] : "unknown error" };
+      return { kind: "failed", error: typeof o?.["error"] === "string" ? saidField(o, "error") : plainText("unknown error") };
     case "cancelled":
       return { kind: "cancelled" };
     case "disconnected":
       if (view.kind === "done" || view.kind === "failed" || view.kind === "cancelled") return view;
-      return { kind: "failed", error: "connection lost", disconnected: true };
+      return { kind: "failed", error: plainText("connection lost"), disconnected: true };
     default:
       return view;
   }

@@ -8,6 +8,7 @@ import { deleteAsset, refusalOf } from "../manage/api";
 import { bytes } from "../manage/format";
 import type { Asset } from "../manage/types";
 import { MIN_REASON, type DeleteStep, forceReasonError, reduceDelete } from "./rules";
+import { word } from "../i18n/notice";
 
 interface Props {
   readonly backend: Backend;
@@ -69,7 +70,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
         {state.step === "refused" && (
           <div data-testid="delete-refused">
             <p className="note bad" role="alert" data-testid="delete-message">
-              {state.refusal.message}
+              {word(state.refusal.message, locale)}
             </p>
             {state.refusal.blockers.length > 0 && (
               <ul className="blockers" data-testid="delete-blockers">
@@ -88,7 +89,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
 
         {state.step === "force" && (
           <div data-testid="delete-force">
-            <p className="note bad">{state.refusal.message}</p>
+            <p className="note bad">{word(state.refusal.message, locale)}</p>
             {state.refusal.blockers.length > 0 && (
               <ul className="blockers">
                 {state.refusal.blockers.map((b) => (
@@ -118,7 +119,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
 
         {state.step === "failed" && (
           <p className="note bad" role="alert" data-testid="delete-failed">
-            {state.message}
+            {word(state.message, locale)}
           </p>
         )}
 

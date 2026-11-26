@@ -3,6 +3,7 @@ import type { BurnView } from "../api/library";
 import { useT } from "../i18n/I18nProvider";
 import { SHORTCUTS } from "./shortcuts";
 import type { ToastData } from "./useToast";
+import { type Said, word } from "../i18n/notice";
 
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useT();
@@ -68,8 +69,8 @@ export function Toast({ toast, onClose }: { toast: ToastData | null; onClose: ()
   );
 }
 
-export function BurnCard({ view, error, onCancel }: { view: BurnView | null; error: string | null; onCancel: () => void }) {
-  const { t } = useT();
+export function BurnCard({ view, error, onCancel }: { view: BurnView | null; error: Said | null; onCancel: () => void }) {
+  const { t, locale } = useT();
   if (view?.state !== "running" && !error) return null;
   return (
     <div className="burn-card" data-testid="burn-progress" role="status">
@@ -78,7 +79,7 @@ export function BurnCard({ view, error, onCancel }: { view: BurnView | null; err
         {view?.state === "running" && <span className="num" data-testid="burn-percent">{view.percent.toFixed(0)}%</span>}
       </div>
       {error ? (
-        <p className="burn-error">{error}</p>
+        <p className="burn-error">{word(error, locale)}</p>
       ) : (
         <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view?.percent ?? 0}>
           <div className="bar-fill" style={{ width: `${view?.percent ?? 0}%` }} />

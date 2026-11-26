@@ -23,6 +23,7 @@ import type {
   UpdateReport,
 } from "./types";
 import { PROFILE_IDS } from "./types";
+import { saidField } from "../i18n/said";
 
 type Rec = Record<string, unknown>;
 
@@ -148,7 +149,7 @@ export function parseProfileView(raw: unknown): ProfileView {
       device: str(act, "device"),
     },
     profiles: list(o["profiles"]).map(parseOption),
-    fallback: fb ? { reason: str(fb, "reason") } : null,
+    fallback: fb ? { reason: saidField(fb, "reason") } : null,
   };
 }
 
@@ -161,7 +162,7 @@ const stage = (raw: unknown): StageResult => {
     installed: bool(o, "installed"),
     ok: bool(o, "ok"),
     seconds: num(o, "seconds"),
-    detail: str(o, "detail"),
+    detail: saidField(o, "detail"),
   };
 };
 
@@ -173,9 +174,9 @@ export function parseSelfTest(raw: unknown): SelfTest | null {
     ok: bool(o, "ok"),
     device: str(o, "device"),
     stages: list(o["stages"]).map(stage),
-    fallback: fb ? { reason: str(fb, "reason") } : null,
+    fallback: fb ? { reason: saidField(fb, "reason") } : null,
     seconds: num(o, "seconds"),
-    message: str(o, "message"),
+    message: saidField(o, "message"),
   };
 }
 
@@ -203,7 +204,7 @@ export function parseSettings(raw: unknown): SettingsView {
 
 export const parseLlmTest = (raw: unknown): LlmTest => {
   const o = rec(raw);
-  return { ok: bool(o, "ok"), url: str(o, "url"), detail: str(o, "detail"), models: strings(o["models"]) };
+  return { ok: bool(o, "ok"), url: str(o, "url"), detail: saidField(o, "detail"), models: strings(o["models"]) };
 };
 
 const updateItem = (raw: unknown): UpdateItem => {

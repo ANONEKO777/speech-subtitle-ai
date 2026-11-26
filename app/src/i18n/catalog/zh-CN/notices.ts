@@ -1,0 +1,31 @@
+// Machine translation (Taiwan source to mainland terms). No native speaker has read it.
+import type { notices as en } from "../en/notices";
+
+export const notices = {
+  "notice.fonts.missingGlyphs": "字体 {font} 缺少这些字的字形：{chars}，烧录出来的字幕会变成空白方块。请安装包含这些字的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.fonts.missingTargetGlyphs": "字体 {font} 缺少{language}字幕需要的字形：{chars}，烧录出来的字幕会变成空白方块。请安装支持{language}的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.fonts.noJapaneseMac": "这台 Mac 没有可以显示日语字幕的字体（试过 {fonts}），烧录出来的日语会变成空白方块。请用“字体册”安装日语字体（例如 Hiragino Sans 或 Yu Gothic）后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.fonts.noJapaneseWindows": "这台电脑没有可以显示日语字幕的字体（试过 {fonts}），烧录出来的日语会变成空白方块。请在“设置 > 个性化 > 字体”中安装日语字体（例如 Yu Gothic 或 Meiryo），或在“设置 > 系统 > 可选功能”中添加日语补充字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.fonts.noTargetFont": "这台电脑没有可以显示{language}字幕的字体（试过 {fonts}），烧录出来的字幕会变成空白方块。请安装支持{language}的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.platform.unsupported": "本程序只支持 Windows（64 位）和搭载 Apple 芯片的 Mac（M1 及以后），检测到的是 {system} {machine}，目前不支持 Intel 版 Mac 和 Linux。",
+  "notice.render.noH264Mac": "这台 Mac 上的 ffmpeg 没有可用的 H.264 编码器，无法把字幕烧录进视频。请在终端中运行 brew install ffmpeg 安装完整版的 ffmpeg 后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.render.noH264Windows": "这台电脑的 Windows 没有 H.264 编码器，无法把字幕烧录进视频。请在“设置 > 系统 > 可选功能”中安装“媒体功能包”（仅 Windows N 或 KN 版需要），或运行 Windows 更新后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
+  "notice.runtime.foundElsewhere": "{program} 是在 {where} 找到的，不在 App 的运行程序文件夹（{folder}）里，所以 App 没有删除它。如需移除请自行处理（用 Homebrew 安装的请用 brew uninstall）。",
+  "notice.runtime.localBuild": "{engine} 在这个平台没有现成的程序可下载，需要在这台电脑上自行编译一次：请在项目文件夹中运行 {script}（步骤见 docs/MACOS.md）。编译好的 {program} 会放在 {folder}，放在 PATH 上也能找到。",
+  "notice.runtime.vcMissing": "这台电脑缺少 Microsoft Visual C++ 可再发行组件包（x64），语音识别和翻译程序无法启动。请到 {url} 下载并安装“vc_redist.x64.exe”，装好后再试一次。",
+  "notice.secrets.cloudKeyUnavailable": "此版本在 Mac 上还不能保存云端 API 密钥。请改用本机模型（默认）或 Ollama；保存云端密钥的功能以后再添加。",
+  "notice.shell.backend.exitedEarly": "后端在就绪前就结束了。\n{detail}",
+  "notice.shell.backend.spawnFailed": "无法启动后端：{error}",
+  "notice.shell.backend.stopped": "后端已停止，多次重新启动仍然失败。请关闭并重新打开应用程序。",
+  "notice.shell.update.badSignature": "下载的更新文件签名不符，已放弃，不会安装。请到项目网页重新下载安装程序。",
+  "notice.shell.update.badUrl": "VST_UPDATE_URL 不是有效的网址。",
+  "notice.shell.update.checkFirst": "请先检查更新。",
+  "notice.shell.update.incomplete": "更新没有完成。请稍后再试，或到项目网页重新下载安装程序。",
+  "notice.shell.update.noSource": "此版本没有设置更新来源，无法检查更新。",
+  "notice.shell.update.notDownloaded": "更新文件还没有下载完成。",
+  "notice.shell.update.notUpdateInfo": "更新来源返回的不是更新信息（网址可能已失效，或需要先登录）。请稍后再试，或到项目网页重新下载安装程序。",
+  "notice.shell.update.stalled": "更新文件下载到一半就没有再收到数据，已经放弃。请确认网络连接，然后再按一次“下载”。",
+  "notice.shell.update.timeout": "更新服务器没有在 10 秒内响应。请稍后再试。",
+  "notice.shell.update.unreachable": "无法连接更新服务器。请确认网络连接，稍后再试。",
+  "notice.shell.update.unsupported": "此平台还没有自动更新。请到项目网页下载新版安装程序，直接替换现有的应用程序。",
+} satisfies Record<keyof typeof en, string>;

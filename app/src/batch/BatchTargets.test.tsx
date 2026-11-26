@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BatchPanel } from "./BatchPanel";
 import { EMPTY_BATCH, type Batch, type BatchItem } from "./model";
+import { plainText } from "../i18n/said";
 
 const calls: string[] = [];
 vi.mock("./api", async (orig) => ({
@@ -30,7 +31,7 @@ const item = (id: string, lang: string, state: BatchItem["state"], error: string
   progress: state === "done" ? 1 : 0,
   etaS: null,
   attempts: 1,
-  error,
+  error: error === null ? null : plainText(error),
   audioS: 60,
 });
 
