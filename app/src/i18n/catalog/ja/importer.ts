@@ -8,6 +8,7 @@ export const importer = {
   "import.sourceTitle": "動画で話されている言語",
   "import.source": "動画の言語",
   "import.pathPlaceholder": "動画のフルパス（例：D:\\talks\\talk.mp4）",
+  "import.pathPlaceholderMac": "動画のフルパス（例：/Users/me/Movies/talk.mp4）",
   "import.pick": "ファイルを選択",
   "import.go": "インポート",
   "import.targetExperimental": "{name}（試験的）",

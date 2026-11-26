@@ -8,6 +8,7 @@ export const importer = {
   "import.sourceTitle": "视频里的人说的语言",
   "import.source": "视频语言",
   "import.pathPlaceholder": "视频的完整路径，例如 D:\\talks\\talk.mp4",
+  "import.pathPlaceholderMac": "视频的完整路径，例如 /Users/me/Movies/talk.mp4",
   "import.pick": "选择文件",
   "import.go": "导入",
   "import.targetExperimental": "{name}（实验性）",

@@ -655,6 +655,7 @@ header:has(.queue-chip) .slider {
 .progress {
   width: 100%;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -662,14 +663,18 @@ header:has(.queue-chip) .slider {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: var(--space-3);
 }
 
 .step-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-weight: var(--weight-medium);
 }
 
 .percent {
+  flex: none;
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: var(--weight-semibold);
@@ -703,6 +708,8 @@ header:has(.queue-chip) .slider {
 }
 
 .steps li {
+  max-width: 112px;
+  overflow-wrap: anywhere;
   padding-top: var(--space-2);
   border-top: 2px solid var(--surface-3);
   color: var(--text-faint);
@@ -718,6 +725,11 @@ header:has(.queue-chip) .slider {
   border-color: var(--accent);
   color: var(--text);
   font-weight: var(--weight-medium);
+}
+
+/* the seven English step names are wider than the Chinese ones the card was drawn for */
+:root:lang(en) .importing {
+  width: min(780px, 94%);
 }
 
 /* player */
@@ -2575,11 +2587,11 @@ kbd {
 }
 
 :root:lang(en) .target-pick select {
-  width: 104px;
+  width: 152px;
 }
 
 :root:lang(en) .target-pick select[data-experimental="true"] {
-  width: 168px;
+  width: 190px;
 }
 
 .progress-note {

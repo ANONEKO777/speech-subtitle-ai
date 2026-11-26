@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { pickVideo } from "../api/backend";
 import { SOURCE_LANGS, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
 import type { Target } from "../api/targets";
-import { shortName } from "../export/exports";
 import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
+import { languageName } from "../i18n/languageName";
+import { isMacShell } from "../platform";
 
 interface PickProps {
   readonly busy: boolean;
@@ -22,8 +23,10 @@ interface TargetProps {
   readonly onTarget: (code: string) => void;
 }
 
-const targetText = (target: Target, t: Translate) =>
-  target.experimental ? t("import.targetExperimental", { name: shortName(target.nativeName) }) : shortName(target.nativeName);
+const targetText = (target: Target, t: Translate) => {
+  const name = languageName(t, target.code, target.nativeName);
+  return target.experimental ? t("import.targetExperimental", { name }) : name;
+};
 
 /**
  * The language the subtitles are translated into. One the backend has not judged says so in its option.
@@ -130,7 +133,7 @@ export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, targe
           data-testid="video-path"
           value={path}
           onChange={(e) => setPath(e.target.value)}
-          placeholder={t("import.pathPlaceholder")}
+          placeholder={isMacShell() ? t("import.pathPlaceholderMac") : t("import.pathPlaceholder")}
           spellCheck={false}
         />
       </div>
