@@ -1,3 +1,4 @@
+import { type PlainKey, type Translate, tZhTW } from "../i18n";
 import type { Cue } from "../player/cues";
 
 /** The longest a cue may last. The backend enforces the same limit (`cue_edits.MAX_CUE_MS`). */
@@ -12,14 +13,14 @@ export interface Draft {
 export type ProblemCode = "empty" | "end_before_start" | "too_long" | "overlap" | "out_of_order";
 
 /** What the backend's codes mean to the person editing, for the ones the checks above did not catch first. */
-export const BACKEND_PROBLEM: Readonly<Record<string, string>> = {
-  empty: "文字不能是空的",
-  end_before_start: "結束時間早於開始時間",
-  too_long: "超過 7 秒的上限",
-  overlap: "與相鄰的字幕重疊",
-  out_of_order: "開始時間早於上一條",
-  english_changed: "原文不能修改，只能改譯文和時間",
-  bad_text: "文字有多餘的空白或換行",
+export const BACKEND_PROBLEM: Readonly<Record<string, PlainKey>> = {
+  empty: "editor.problem.empty",
+  end_before_start: "editor.problem.endBeforeStart",
+  too_long: "editor.problem.tooLong",
+  overlap: "editor.problem.overlap",
+  out_of_order: "editor.problem.outOfOrder",
+  english_changed: "editor.problem.sourceLocked",
+  bad_text: "editor.problem.badText",
 };
 
 /** One text per line, with no blank lines and no spaces around a line, which is how the backend stores a cue. */
@@ -46,26 +47,26 @@ const clockText = (ms: number) => {
  * Mirrors the rules of the backend, which still checks them: a collision is reported on the cue
  * being edited.
  */
-export function validateDraft(cues: readonly Cue[], index: number, draft: Draft): Problem | null {
+export function validateDraft(cues: readonly Cue[], index: number, draft: Draft, t: Translate = tZhTW): Problem | null {
   const cue = cues[index];
   if (!cue) return null;
-  if (draft.zh.trim() === "" && cue.zh !== "") return { code: "empty", message: "文字不能是空的" };
-  if (draft.endMs < draft.startMs) return { code: "end_before_start", message: "結束時間早於開始時間" };
+  if (draft.zh.trim() === "" && cue.zh !== "") return { code: "empty", message: t("editor.problem.empty") };
+  if (draft.endMs < draft.startMs) return { code: "end_before_start", message: t("editor.problem.endBeforeStart") };
   if (draft.endMs - draft.startMs > MAX_CUE_MS) {
     const seconds = ((draft.endMs - draft.startMs) / 1000).toFixed(1);
-    return { code: "too_long", message: `長 ${seconds} 秒，超過 7 秒的上限` };
+    return { code: "too_long", message: t("editor.tooLong", { seconds }) };
   }
   const before = cues[index - 1];
   if (before && draft.startMs < before.startMs) {
-    return { code: "out_of_order", message: `開始時間早於上一條（${clockText(before.startMs)}）` };
+    return { code: "out_of_order", message: t("editor.outOfOrder", { time: clockText(before.startMs) }) };
   }
   const reach = cues.slice(0, index).reduce((end, c) => Math.max(end, c.endMs), 0);
   if (draft.startMs < reach) {
-    return { code: "overlap", message: `與上一條重疊，上一條到 ${formatClock(reach)} 才結束` };
+    return { code: "overlap", message: t("editor.overlapBefore", { time: formatClock(reach) }) };
   }
   const after = cues[index + 1];
   if (after && draft.endMs > after.startMs) {
-    return { code: "overlap", message: `與下一條重疊，下一條從 ${formatClock(after.startMs)} 開始` };
+    return { code: "overlap", message: t("editor.overlapAfter", { time: formatClock(after.startMs) }) };
   }
   return null;
 }

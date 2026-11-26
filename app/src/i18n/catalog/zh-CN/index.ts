@@ -1,5 +1,8 @@
 import type { Key } from "../index";
+import { batch } from "./batch";
+import { editor } from "./editor";
 import { errors } from "./errors";
+import { exports } from "./export";
 import { hardware } from "./hardware";
 import { importer } from "./importer";
 import { languages } from "./languages";
@@ -9,7 +12,8 @@ import { models } from "./models";
 import { player } from "./player";
 import { settings } from "./settings";
 import { shell } from "./shell";
+import { summary } from "./summary";
 import { update } from "./update";
 import { wizard } from "./wizard";
 
-export const zhCN = { ...errors, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...player, ...settings, ...shell, ...update, ...wizard } satisfies Record<Key, string>;
+export const zhCN = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;

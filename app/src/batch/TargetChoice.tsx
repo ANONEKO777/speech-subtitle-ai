@@ -1,7 +1,9 @@
 import { ChevronDown } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { EXPERIMENTAL, type Target } from "../api/targets";
-import { shortName } from "../export/exports";
+import type { Target } from "../api/targets";
+import { useT } from "../i18n/I18nProvider";
+import { type Locale, UNMANAGED_LOCALE } from "../i18n/locale";
+import { langName } from "./lang";
 
 interface Props {
   readonly targets: readonly Target[];
@@ -13,13 +15,14 @@ interface Props {
 }
 
 /** What the closed control says: the first language and how many more are picked. */
-export function choiceSummary(targets: readonly Target[], value: readonly string[]): string {
-  const names = targets.filter((t) => value.includes(t.code)).map((t) => shortName(t.nativeName));
+export function choiceSummary(targets: readonly Target[], value: readonly string[], locale: Locale = UNMANAGED_LOCALE): string {
+  const names = targets.filter((x) => value.includes(x.code)).map((x) => langName(x.code, targets, locale));
   return names.length > 1 ? `${names[0] ?? ""} +${names.length - 1}` : (names[0] ?? "");
 }
 
 /** Picks one or more languages for a video. The last one picked cannot be taken away, so a video always has a target. */
 export function TargetChoice({ targets, value, onChange, label, testid }: Props) {
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>({});
@@ -44,7 +47,7 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
 
   const toggle = (code: string) => {
     const next = value.includes(code) ? value.filter((c) => c !== code) : [...value, code];
-    const ordered = targets.map((t) => t.code).filter((c) => next.includes(c));
+    const ordered = targets.map((x) => x.code).filter((c) => next.includes(c));
     if (ordered.length > 0) onChange(ordered);
   };
   const several = targets.length > 1;
@@ -70,27 +73,27 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
         disabled={!several}
         onClick={openList}
       >
-        <span>{choiceSummary(targets, value)}</span>
-        {targets.some((t) => t.experimental && value.includes(t.code)) && (
+        <span>{choiceSummary(targets, value, locale)}</span>
+        {targets.some((x) => x.experimental && value.includes(x.code)) && (
           <span className="chip-exp" data-testid={`${testid}-experimental`}>
-            {EXPERIMENTAL}
+            {t("targets.experimental")}
           </span>
         )}
         {several && <ChevronDown className="icon chevron" aria-hidden />}
       </button>
       {open && (
         <div className="target-choice-list" style={place} role="group" aria-label={label} data-testid={`${testid}-list`}>
-          {targets.map((t) => (
-            <label key={t.code}>
+          {targets.map((x) => (
+            <label key={x.code}>
               <input
                 type="checkbox"
-                data-testid={`${testid}-${t.code}`}
-                checked={value.includes(t.code)}
-                disabled={value.length === 1 && value.includes(t.code)}
-                onChange={() => toggle(t.code)}
+                data-testid={`${testid}-${x.code}`}
+                checked={value.includes(x.code)}
+                disabled={value.length === 1 && value.includes(x.code)}
+                onChange={() => toggle(x.code)}
               />
-              <span>{shortName(t.nativeName)}</span>
-              {t.experimental && <span className="chip-exp">{EXPERIMENTAL}</span>}
+              <span>{langName(x.code, targets, locale)}</span>
+              {x.experimental && <span className="chip-exp">{t("targets.experimental")}</span>}
             </label>
           ))}
         </div>

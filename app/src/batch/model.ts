@@ -1,19 +1,19 @@
 import { asRecord } from "../api/client";
 import { type SourceLang, parseSourceLang } from "../api/sourceLang";
-import { type Translate, tZhTW } from "../i18n";
+import { type PlainKey, type Translate, tZhTW } from "../i18n";
 
 export const STEP_ORDER = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type QueueStep = (typeof STEP_ORDER)[number];
 
 /** Step names for a queue row. The language is on the row, so the translate step does not name one. */
-export const STEP_NAME: Record<QueueStep, string> = {
-  audio: "擷取音訊",
-  vad: "偵測語音",
-  asr: "語音辨識",
-  segment: "斷句",
-  translate: "翻譯",
-  export: "輸出字幕",
-  summarize: "重點摘要",
+export const STEP_NAME: Record<QueueStep, PlainKey> = {
+  audio: "progress.step.audio",
+  vad: "progress.step.vad",
+  asr: "progress.step.asr",
+  segment: "progress.step.segment",
+  translate: "batch.step.translate",
+  export: "progress.step.export",
+  summarize: "progress.step.summarize",
 };
 
 export type ItemState = "queued" | "running" | "paused" | "done" | "failed" | "cancelled";

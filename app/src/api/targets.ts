@@ -1,4 +1,3 @@
-import { tZhTW } from "../i18n";
 import type { NamedLanguage } from "../i18n/languageName";
 import type { LanguageInfo } from "./client";
 import type { SourceLang } from "./sourceLang";
@@ -61,10 +60,6 @@ export function targetsFor(set: TargetSource, source: SourceLang, wanted: readon
   const kept = targetsOf(set, source).filter((t) => wanted.includes(t.code)).map((t) => t.code);
   return kept.length > 0 ? kept : [targetFor(set, source, wanted[0] ?? "")];
 }
-
-/** Traditional Chinese, for the batch dialog and the player until W3 moves them to `t("targets.experimental")` and `t("targets.experimentalHint")`. */
-export const EXPERIMENTAL = tZhTW("targets.experimental");
-export const EXPERIMENTAL_HINT = tZhTW("targets.experimentalHint");
 
 /** The backend's record of a target language, or its bare code when the backend does not list it. */
 export const targetLanguage = (set: TargetSource, source: SourceLang, code: string): NamedLanguage =>

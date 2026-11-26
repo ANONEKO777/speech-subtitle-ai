@@ -1,8 +1,10 @@
 import { Fragment } from "react";
+import { useT } from "../i18n/I18nProvider";
 import { clock } from "../player/CueList";
 import { type Block, type Inline, parseSummary } from "./parse";
 
 function Inlines({ parts, onSeek }: { readonly parts: readonly Inline[]; readonly onSeek: (seconds: number) => void }) {
+  const { t } = useT();
   return parts.map((part, i) => {
     switch (part.kind) {
       case "bold":
@@ -15,7 +17,7 @@ function Inlines({ parts, onSeek }: { readonly parts: readonly Inline[]; readonl
             className="chapter-time"
             data-testid="chapter-time"
             data-seconds={part.seconds}
-            title={`跳到 ${clock(part.seconds * 1000)}`}
+            title={t("summary.jump", { time: clock(part.seconds * 1000) })}
             onClick={() => onSeek(part.seconds)}
           >
             {part.label}
@@ -69,10 +71,11 @@ interface Props {
 }
 
 export function SummaryView({ markdown, onSeek }: Props) {
+  const { t } = useT();
   if (markdown === null) {
     return (
       <div className="summary-empty" data-testid="summary-empty">
-        這個語言還沒有重點摘要。
+        {t("summary.empty")}
       </div>
     );
   }

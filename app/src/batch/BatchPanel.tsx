@@ -22,12 +22,15 @@ import {
   setQueuePaused,
 } from "./api";
 import { DEFAULT_SOURCE, sourceTag } from "../api/sourceLang";
+import type { PlainKey } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
 import { isExperimental, langName } from "./lang";
 import {
   type Batch,
   type BatchItem,
   type ItemState,
   type OnDone,
+  type PowerAction,
   STEP_NAME,
   STEP_ORDER,
   actionsFor,
@@ -40,13 +43,13 @@ import {
 import { baseName } from "./paths";
 import { LinkedText } from "../manage/LinkedText";
 
-const STATE_LABEL: Record<ItemState, string> = {
-  queued: "等待中",
-  running: "處理中",
-  paused: "已暫停",
-  done: "完成",
-  failed: "失敗",
-  cancelled: "已取消",
+const STATE_LABEL: Record<ItemState, PlainKey> = {
+  queued: "batch.state.queued",
+  running: "batch.state.running",
+  paused: "batch.state.paused",
+  done: "batch.state.done",
+  failed: "batch.state.failed",
+  cancelled: "batch.state.cancelled",
 };
 
 interface Props {
@@ -69,6 +72,7 @@ interface Drag {
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }: Props) {
+  const { t } = useT();
   const total = overall(batch.items);
   const run = (p: Promise<unknown>) => void p.catch((e: unknown) => onError(message(e)));
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -144,24 +148,24 @@ export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }
           <strong data-testid="batch-count">
             {total.finished}/{total.total}
           </strong>
-          <span>項已處理</span>
+          <span>{t("batch.processed")}</span>
           <span className="batch-eta" data-testid="batch-eta">
-            {total.etaS !== null ? `剩餘${formatEta(total.etaS)}` : total.active ? "預估時間：完成第一項後提供" : ""}
+            {total.etaS !== null ? t("batch.left", { eta: formatEta(total.etaS, t) }) : total.active ? t("batch.etaLater") : ""}
           </span>
         </div>
         <div className="batch-tools">
           <button type="button" data-testid="batch-add" onClick={onAdd}>
             <ListPlus className="icon" aria-hidden />
-            加入
+            {t("batch.add")}
           </button>
           <button
             type="button"
             data-testid="batch-pause"
-            title={batch.paused ? "繼續處理佇列" : "暫停佇列（目前這項會先做完）"}
+            title={batch.paused ? t("batch.resumeTitle") : t("batch.pauseTitle")}
             onClick={() => run(setQueuePaused(backend, !batch.paused))}
           >
             {batch.paused ? <CirclePlay className="icon" aria-hidden /> : <CirclePause className="icon" aria-hidden />}
-            {batch.paused ? "繼續佇列" : "暫停佇列"}
+            {batch.paused ? t("batch.resume") : t("batch.pause")}
           </button>
           <button
             type="button"
@@ -171,7 +175,7 @@ export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }
             onClick={() => run(removeFinished(backend))}
           >
             <Trash2 className="icon" aria-hidden />
-            清除已完成
+            {t("batch.clear")}
           </button>
         </div>
         <div
@@ -188,17 +192,17 @@ export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }
       {batch.link !== "live" && batch.loaded && (
         <p className="batch-link" role="status" data-testid="batch-link">
           <TriangleAlert className="icon" aria-hidden />
-          與後端的連線中斷，正在重新連線…（佇列存在磁碟上，不會遺失）
+          {t("batch.reconnecting")}
         </p>
       )}
       {batch.paused && (
         <p className="batch-note" data-testid="batch-paused-note">
-          佇列已暫停，不會開始新的項目。
+          {t("batch.pausedNote")}
         </p>
       )}
       {batch.items.length === 0 ? (
         <p className="batch-empty" data-testid="batch-empty">
-          佇列是空的。按「加入」選擇多個影片或一個資料夾，排好之後可以放著讓它跑完。
+          {t("batch.empty")}
         </p>
       ) : (
         <ul className="batch-list" ref={list} data-testid="batch-list" data-dragging={drag !== null}>
@@ -242,23 +246,24 @@ interface RowProps {
 }
 
 const ACTION = {
-  pause: { label: "暫停", icon: CirclePause },
-  resume: { label: "繼續", icon: CirclePlay },
-  cancel: { label: "取消", icon: X },
-  retry: { label: "重試", icon: RotateCcw },
-  remove: { label: "移除", icon: Trash2 },
-} as const;
+  pause: { label: "batch.action.pause", icon: CirclePause },
+  resume: { label: "batch.action.resume", icon: CirclePlay },
+  cancel: { label: "common.cancel", icon: X },
+  retry: { label: "batch.action.retry", icon: RotateCcw },
+  remove: { label: "batch.action.remove", icon: Trash2 },
+} as const satisfies Record<string, { label: PlainKey; icon: unknown }>;
 
 function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, onDragStart, onNudge }: RowProps) {
+  const { t, locale } = useT();
   const percent = Math.round(item.progress * 100);
   const stepIndex = item.step ? STEP_ORDER.indexOf(item.step) + 1 : 0;
   const detail =
     item.state === "running"
       ? item.step
-        ? `${STEP_NAME[item.step]}（${stepIndex}/${STEP_ORDER.length}）`
-        : "準備中"
+        ? t("batch.stepOf", { step: t(STEP_NAME[item.step]), i: stepIndex, n: STEP_ORDER.length })
+        : t("batch.preparing")
       : item.state === "queued" && item.attempts > 0
-        ? "等待續跑"
+        ? t("batch.retryWaiting")
         : "";
   return (
     <li className="batch-row" data-row-id={item.id} data-testid={`qrow-${item.id}`} data-state={item.state} data-next-target={nextTarget} data-dragging={dragging}>
@@ -266,7 +271,7 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
         type="button"
         className="ghost icon-button drag-handle"
         data-testid={`qdrag-${item.id}`}
-        aria-label="拖曳以重新排序（或按上下鍵）"
+        aria-label={t("batch.drag")}
         disabled={!canDrag}
         onPointerDown={canDrag ? onDragStart : undefined}
         onKeyDown={(e) => {
@@ -282,7 +287,7 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
         type="button"
         className="ghost batch-name"
         data-testid={`qopen-${item.id}`}
-        title={item.state === "done" ? `${item.videoPath}\n按一下在播放器開啟` : item.videoPath}
+        title={item.state === "done" ? t("batch.openTitle", { path: item.videoPath }) : item.videoPath}
         disabled={item.state !== "done"}
         onClick={onOpen}
       >
@@ -290,16 +295,16 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
       </button>
       <span className="batch-lang" data-testid={`qlang-${item.id}`}>
         {item.sourceLang !== DEFAULT_SOURCE && (
-          <span className="chip-src" data-testid={`qsrc-${item.id}`} title="影片語言">
-            {sourceTag(item.sourceLang)}
+          <span className="chip-src" data-testid={`qsrc-${item.id}`} title={t("import.source")}>
+            {sourceTag(item.sourceLang, t)}
           </span>
         )}
-        {langName(item.lang, languages)}
-        {isExperimental(item.lang, languages) && <span className="chip-exp">實驗性</span>}
+        {langName(item.lang, languages, locale)}
+        {isExperimental(item.lang, languages) && <span className="chip-exp">{t("targets.experimental")}</span>}
       </span>
       <span className="batch-status">
         <span className="batch-state" data-testid={`qstate-${item.id}`} data-state={item.state}>
-          {STATE_LABEL[item.state]}
+          {t(STATE_LABEL[item.state])}
         </span>
         <span className="batch-step" data-testid={`qstep-${item.id}`}>
           {detail}
@@ -318,11 +323,12 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
         )}
       </span>
       <span className="batch-eta-item" data-testid={`qeta-${item.id}`}>
-        {item.etaS !== null ? formatEta(item.etaS) : ""}
+        {item.etaS !== null ? formatEta(item.etaS, t) : ""}
       </span>
       <span className="batch-actions">
         {actionsFor(item.state).map((a) => {
-          const { label, icon: Icon } = ACTION[a];
+          const label = t(ACTION[a].label);
+          const Icon = ACTION[a].icon;
           return (
             <button
               key={a}
@@ -350,11 +356,18 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
   );
 }
 
-const ON_DONE_LABEL: Record<OnDone, string> = { notify: "只通知我（預設）", sleep: "讓電腦睡眠", shutdown: "關機" };
+const ON_DONE_LABEL: Record<OnDone, PlainKey> = { notify: "batch.onDone.notify", sleep: "batch.onDone.sleep", shutdown: "batch.onDone.shutdown" };
+
+/** The safety text of each power action: that it is armed, the warning, what happens, and the consent. */
+const POWER_TEXT: Record<PowerAction, { readonly armed: PlainKey; readonly head: PlainKey; readonly body: PlainKey; readonly agree: PlainKey }> = {
+  sleep: { armed: "batch.armed.sleep", head: "batch.warn.sleep.head", body: "batch.warn.sleep.body", agree: "batch.agree.sleep" },
+  shutdown: { armed: "batch.armed.shutdown", head: "batch.warn.shutdown.head", body: "batch.warn.shutdown.body", agree: "batch.agree.shutdown" },
+};
 const ON_DONE_KEYS: readonly OnDone[] = ["notify", "sleep", "shutdown"];
 
 function OnDoneSetting({ backend, batch, onError }: { backend: Backend; batch: Batch; onError: (m: string) => void }) {
-  const [pending, setPending] = useState<OnDone | null>(null);
+  const { t } = useT();
+  const [pending, setPending] = useState<PowerAction | null>(null);
   const [agree, setAgree] = useState(false);
   const save = (onDone: OnDone, allowPower: boolean) =>
     void putSettings(backend, { onDone, allowPower })
@@ -364,14 +377,13 @@ function OnDoneSetting({ backend, batch, onError }: { backend: Backend; batch: B
         setAgree(false);
       });
   const current = batch.settings;
-  const powered = current.onDone !== "notify" && current.allowPower;
-  const word = (a: OnDone) => (a === "sleep" ? "睡眠" : "關機");
+  const armed = current.onDone !== "notify" && current.allowPower ? current.onDone : null;
   return (
     <div className="ondone" data-testid="ondone">
       <label>
         <span className="ondone-label">
           <Power className="icon" aria-hidden />
-          佇列全部完成後
+          {t("batch.onDone.label")}
         </span>
         <select
           className="lang-select"
@@ -388,35 +400,34 @@ function OnDoneSetting({ backend, batch, onError }: { backend: Backend; batch: B
         >
           {ON_DONE_KEYS.map((k) => (
             <option key={k} value={k}>
-              {ON_DONE_LABEL[k]}
+              {t(ON_DONE_LABEL[k])}
             </option>
           ))}
         </select>
       </label>
-      {powered && !pending && (
+      {armed && !pending && (
         <p className="ondone-armed" data-testid="ondone-armed">
           <Moon className="icon" aria-hidden />
-          已啟用：全部完成後會{current.onDone === "sleep" ? "讓電腦睡眠" : "關機"}，之前有 60 秒倒數可以取消。
+          {t(POWER_TEXT[armed].armed)}
         </p>
       )}
       {pending && (
         <div className="ondone-warn" role="alert" data-testid="ondone-warn">
           <p>
             <TriangleAlert className="icon" aria-hidden />
-            <b>{word(pending)}會中斷電腦上的其他工作。</b>
-            佇列跑完後，電腦會先倒數 60 秒，可以按「取消」阻止；沒有取消就會
-            {pending === "sleep" ? "進入睡眠，睡眠期間不會有任何處理。" : "關機，未儲存的資料會遺失。"}
+            <b>{t(POWER_TEXT[pending].head)}</b>
+            {t(POWER_TEXT[pending].body)}
           </p>
           <label className="ondone-agree">
             <input type="checkbox" data-testid="ondone-agree" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            我了解，並同意佇列完成後{word(pending)}
+            {t(POWER_TEXT[pending].agree)}
           </label>
           <div className="ondone-buttons">
             <button type="button" className="ghost" onClick={() => setPending(null)}>
-              取消
+              {t("common.cancel")}
             </button>
             <button type="button" className="primary" data-testid="ondone-confirm" disabled={!agree} onClick={() => save(pending, true)}>
-              啟用
+              {t("batch.enable")}
             </button>
           </div>
         </div>

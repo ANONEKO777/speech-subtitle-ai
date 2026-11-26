@@ -34,7 +34,9 @@ const PINS: Record<PluralBase, Pin> = {
     one: "1 edit was not applied because its source text changed, and it is still in the edits file in the project folder",
     other: "2 edits were not applied because their source text changed, and they are still in the edits file in the project folder",
   },
-  "queue.added": { args: {}, one: "1 item added to the queue", other: "2 items added to the queue" },
+  "queue.added": { args: {}, one: "1 item added to the batch", other: "2 items added to the batch" },
+  "batch.countdown.sleepAfter": { args: {}, one: "second.", other: "seconds." },
+  "batch.countdown.shutdownAfter": { args: {}, one: "second.", other: "seconds." },
   "player.foot.edited": {
     args: {},
     one: "1 subtitle edited. Edits are kept when you translate again.",

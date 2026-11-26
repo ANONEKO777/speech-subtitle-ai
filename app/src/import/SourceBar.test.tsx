@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EXPERIMENTAL_HINT } from "../api/targets";
+import { tZhTW } from "../i18n";
 import { SourceBar } from "./SourceBar";
 
 afterEach(cleanup);
@@ -11,7 +11,7 @@ const base = { playing: false, busy: false, sourceLang: "en" as const, unavailab
 describe("the line under the toolbar", () => {
   it("says the picked subtitle language is not yet judged, when it is not", () => {
     render(<SourceBar {...base} experimentalPick />);
-    expect(screen.getByTestId("target-hint").textContent).toBe(EXPERIMENTAL_HINT);
+    expect(screen.getByTestId("target-hint").textContent).toBe(tZhTW("targets.experimentalHint"));
   });
 
   it("is not there when there is nothing to say", () => {

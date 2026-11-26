@@ -2154,6 +2154,13 @@ kbd {
   white-space: nowrap;
 }
 
+/* English language names and tags ("Japanese + English", "Traditional Chinese") are wider than the Chinese ones: in the side column's narrow row the chip wraps instead of pushing the row past the column */
+:root:lang(en) .batch-lang {
+  flex-wrap: wrap;
+  white-space: normal;
+  border-radius: var(--radius-md);
+}
+
 .chip-exp {
   padding: 0 5px;
   border-radius: var(--radius-pill);
@@ -2241,6 +2248,37 @@ kbd {
     grid-template-areas:
       "drag name lang status prog eta acts"
       ". err err err err err err";
+  }
+
+  /* "Processing" beside "Recognizing speech (3/7)" is wider than the status column, so the English step has its own line */
+  :root:lang(en) .batch-status {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+/* In the one-column row (the side column) an English language chip beside the file name leaves the name no width, so the chip takes a line of its own. The after-batch choice drops under its label for the same reason. */
+@container (max-width: 759.98px) {
+  :root:lang(en) .batch-row {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "drag name acts"
+      ". lang lang"
+      ". status status"
+      ". prog eta"
+      ". err err";
+  }
+
+  :root:lang(en) .batch-lang {
+    justify-self: start;
+  }
+
+  :root:lang(en) .batch-actions {
+    justify-self: end;
+  }
+
+  :root:lang(en) .ondone > label {
+    flex-wrap: wrap;
   }
 }
 

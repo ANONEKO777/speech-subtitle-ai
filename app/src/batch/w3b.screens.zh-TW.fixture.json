@@ -1,0 +1,322 @@
+{
+ "the queue, empty": {
+  "empty": {
+   "text": "0/0項已處理加入暫停佇列清除已完成佇列是空的。按「加入」選擇多個影片或一個資料夾，排好之後可以放著讓它跑完。佇列全部完成後只通知我（預設）讓電腦睡眠關機",
+   "attrs": [
+    "title=暫停佇列（目前這項會先做完）"
+   ]
+  }
+ },
+ "the queue with an item in every state": {
+  "list": {
+   "text": "2/7項已處理剩餘約 25 分鐘加入暫停佇列清除已完成queued-long-talk-name.mp4繁體中文等待中約 25 分鐘retrying-long-talk-name.mp4日文影片繁體中文等待中等待續跑running-long-talk-name.mp4日英混合한국어實驗性處理中翻譯（5/7）50%約 10 分鐘starting-long-talk-name.mp4ไทย處理中準備中0%paused-long-talk-name.mp4简体中文已暫停done-long-talk-name.mp4日文影片English完成100%failed-long-talk-name.mp4繁體中文失敗CUDA error: out of memory. See https://example.com/helpcancelled-long-talk-name.mp4繁體中文已取消佇列全部完成後只通知我（預設）讓電腦睡眠關機",
+   "attrs": [
+    "title=暫停佇列（目前這項會先做完）",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/queued-long-talk-name.mp4",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/retrying-long-talk-name.mp4",
+    "title=影片語言",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/running-long-talk-name.mp4",
+    "title=影片語言",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/starting-long-talk-name.mp4",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/paused-long-talk-name.mp4",
+    "title=繼續",
+    "aria-label=繼續",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/done-long-talk-name.mp4\n按一下在播放器開啟",
+    "title=影片語言",
+    "title=移除",
+    "aria-label=移除",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/failed-long-talk-name.mp4",
+    "title=重試",
+    "aria-label=重試",
+    "title=移除",
+    "aria-label=移除",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/cancelled-long-talk-name.mp4",
+    "title=重試",
+    "aria-label=重試",
+    "title=移除",
+    "aria-label=移除"
+   ]
+  }
+ },
+ "the queue before the first estimate": {
+  "no estimate": {
+   "text": "0/1項已處理預估時間：完成第一項後提供",
+   "attrs": []
+  }
+ },
+ "the queue paused and reconnecting": {
+  "paused": {
+   "text": "0/2項已處理剩餘約 25 分鐘加入繼續佇列清除已完成與後端的連線中斷，正在重新連線…（佇列存在磁碟上，不會遺失）佇列已暫停，不會開始新的項目。queued-long-talk-name.mp4繁體中文等待中約 25 分鐘retrying-long-talk-name.mp4日文影片繁體中文等待中等待續跑佇列全部完成後只通知我（預設）讓電腦睡眠關機",
+   "attrs": [
+    "title=繼續處理佇列",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/queued-long-talk-name.mp4",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消",
+    "aria-label=拖曳以重新排序（或按上下鍵）",
+    "title=C:/videos/retrying-long-talk-name.mp4",
+    "title=影片語言",
+    "title=暫停",
+    "aria-label=暫停",
+    "title=取消",
+    "aria-label=取消"
+   ]
+  }
+ },
+ "the queue set to sleep or shut down": {
+  "armed sleep": {
+   "text": "佇列全部完成後只通知我（預設）讓電腦睡眠關機已啟用：全部完成後會讓電腦睡眠，之前有 60 秒倒數可以取消。",
+   "attrs": []
+  },
+  "armed shutdown": {
+   "text": "佇列全部完成後只通知我（預設）讓電腦睡眠關機已啟用：全部完成後會關機，之前有 60 秒倒數可以取消。",
+   "attrs": []
+  }
+ },
+ "the consent to sleep or shut down": {
+  "consent sleep": {
+   "text": "佇列全部完成後只通知我（預設）讓電腦睡眠關機睡眠會中斷電腦上的其他工作。佇列跑完後，電腦會先倒數 60 秒，可以按「取消」阻止；沒有取消就會進入睡眠，睡眠期間不會有任何處理。我了解，並同意佇列完成後睡眠取消啟用",
+   "attrs": []
+  },
+  "consent shutdown": {
+   "text": "佇列全部完成後只通知我（預設）讓電腦睡眠關機關機會中斷電腦上的其他工作。佇列跑完後，電腦會先倒數 60 秒，可以按「取消」阻止；沒有取消就會關機，未儲存的資料會遺失。我了解，並同意佇列完成後關機取消啟用",
+   "attrs": []
+  }
+ },
+ "the countdown before sleep or shutdown": {
+  "countdown sleep": {
+   "text": "佇列已全部完成電腦將在 42 秒後進入睡眠。取消，不要睡眠",
+   "attrs": [
+    "aria-label=倒數"
+   ]
+  },
+  "countdown shutdown": {
+   "text": "佇列已全部完成電腦將在 42 秒後關機。取消，不要關機",
+   "attrs": [
+    "aria-label=倒數"
+   ]
+  }
+ },
+ "the batch dialog, empty": {
+  "empty": {
+   "text": "加入佇列選擇多個檔案選擇資料夾影片語言英文日文日文與英文混合字幕語言繁體中文套用到全部選擇影片檔或資料夾，也可以直接把多個檔案拖到視窗上。取消加入佇列",
+   "attrs": [
+    "aria-label=加入佇列",
+    "aria-label=關閉",
+    "aria-label=預設影片語言",
+    "aria-label=預設字幕語言"
+   ]
+  }
+ },
+ "the batch dialog with several files, a folder and the language guesses": {
+  "detecting": {
+   "text": "加入佇列選擇多個檔案選擇資料夾影片語言英文日文日文與英文混合字幕語言繁體中文 +1實驗性套用到全部日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。 實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。first-talk.mp4C:/videos/first-talk.mp4正在偵測影片語言…英文日文日文與英文混合繁體中文 +1實驗性second-talk.mkvC:/videos/second-talk.mkv英文日文日文與英文混合繁體中文 +1實驗性a folderC:/videos/a folder含子資料夾英文日文日文與英文混合繁體中文 +1實驗性取消加入佇列（3）",
+   "attrs": [
+    "aria-label=加入佇列",
+    "aria-label=關閉",
+    "aria-label=預設影片語言",
+    "aria-label=預設字幕語言",
+    "title=C:/videos/first-talk.mp4",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除",
+    "title=C:/videos/second-talk.mkv",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除",
+    "title=C:/videos/a folder",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除"
+   ]
+  },
+  "guessed": {
+   "text": "加入佇列選擇多個檔案選擇資料夾影片語言英文日文日文與英文混合字幕語言繁體中文 +1實驗性套用到全部日文影片可以同時有幾種字幕語言，之後再加一種只會重新翻譯，不會重跑語音辨識。 實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。first-talk.mp4C:/videos/first-talk.mp4偵測到：日文（信心 90%）這部影片聽起來是英文，目前選的是日文改成英文英文日文日文與英文混合繁體中文 +1實驗性second-talk.mkvC:/videos/second-talk.mkv英文日文日文與英文混合繁體中文 +1實驗性a folderC:/videos/a folder含子資料夾英文日文日文與英文混合繁體中文 +1實驗性取消加入佇列（3）",
+   "attrs": [
+    "aria-label=加入佇列",
+    "aria-label=關閉",
+    "aria-label=預設影片語言",
+    "aria-label=預設字幕語言",
+    "title=C:/videos/first-talk.mp4",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除",
+    "title=C:/videos/second-talk.mkv",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除",
+    "title=C:/videos/a folder",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除"
+   ]
+  },
+  "target list": {
+   "text": "繁體中文简体中文English한국어實驗性ไทย",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  }
+ },
+ "the batch dialog after the backend skipped or refused": {
+  "skipped": {
+   "text": "加入佇列選擇多個檔案選擇資料夾影片語言英文日文日文與英文混合字幕語言繁體中文套用到全部選擇影片檔或資料夾，也可以直接把多個檔案拖到視窗上。broken.mp4：Not a video file關閉加入佇列",
+   "attrs": [
+    "aria-label=加入佇列",
+    "aria-label=關閉",
+    "aria-label=預設影片語言",
+    "aria-label=預設字幕語言"
+   ]
+  },
+  "refused": {
+   "text": "加入佇列選擇多個檔案選擇資料夾影片語言英文日文日文與英文混合字幕語言繁體中文套用到全部broken.mp4C:/videos/broken.mp4英文日文日文與英文混合繁體中文The disk is full取消加入佇列（1）",
+   "attrs": [
+    "aria-label=加入佇列",
+    "aria-label=關閉",
+    "aria-label=預設影片語言",
+    "aria-label=預設字幕語言",
+    "title=C:/videos/broken.mp4",
+    "aria-label=影片語言",
+    "aria-label=字幕語言",
+    "aria-label=移除"
+   ]
+  }
+ },
+ "the subtitle language choice": {
+  "open": {
+   "text": "繁體中文 +2實驗性繁體中文简体中文English한국어實驗性ไทย",
+   "attrs": [
+    "aria-label=x",
+    "aria-label=x"
+   ]
+  }
+ },
+ "the cue editor and each refusal": {
+  "editing": {
+   "text": "開始結束Two.Second one.Enter 儲存 · Shift+Enter 換行 · Esc 取消",
+   "attrs": [
+    "aria-label=字幕文字",
+    "title=原文是翻譯與摘要的來源，不能在這裡修改"
+   ]
+  },
+  "bad time": {
+   "text": "時間格式為 分:秒.毫秒，例如 1:05.250",
+   "attrs": []
+  },
+  "empty": {
+   "text": "文字不能是空的",
+   "attrs": []
+  },
+  "end before start": {
+   "text": "結束時間早於開始時間",
+   "attrs": []
+  },
+  "too long": {
+   "text": "長 7.5 秒，超過 7 秒的上限",
+   "attrs": []
+  },
+  "out of order": {
+   "text": "開始時間早於上一條（0:01）",
+   "attrs": []
+  },
+  "overlaps the one before": {
+   "text": "與上一條重疊，上一條到 0:02.000 才結束",
+   "attrs": []
+  },
+  "overlaps the one after": {
+   "text": "與下一條重疊，下一條從 0:05.000 開始",
+   "attrs": []
+  },
+  "source locked": {
+   "text": "原文不能修改，只能改譯文和時間",
+   "attrs": []
+  }
+ },
+ "the cue editor when the backend refuses": {
+  "a problem code": {
+   "text": "文字有多餘的空白或換行",
+   "attrs": []
+  },
+  "a busy project": {
+   "text": "專案正被工作使用，暫時不能儲存（A job is running）",
+   "attrs": []
+  },
+  "no backend": {
+   "text": "無法連線到後端（connection refused）",
+   "attrs": []
+  }
+ },
+ "the undo that the backend refuses": {
+  "failure": {
+   "text": "無法復原：無法連線到後端（connection refused）",
+   "attrs": []
+  }
+ },
+ "the export menu and what each entry reports": {
+  "closed": {
+   "text": "匯出",
+   "attrs": []
+  },
+  "open": {
+   "text": "匯出SRT 原文SRT 繁體中文SRT 雙語ASS 雙語VTT 雙語摘要 summary.md",
+   "attrs": []
+  },
+  "saved": {
+   "text": "已匯出 C:/out/talk.zh-TW.srt",
+   "attrs": []
+  },
+  "cancelled": {
+   "text": "已取消匯出",
+   "attrs": []
+  },
+  "failed": {
+   "text": "匯出失敗：Access denied",
+   "attrs": []
+  },
+  "no summary": {
+   "text": "匯出失敗：這個語言還沒有摘要",
+   "attrs": []
+  }
+ },
+ "the summary and its empty state": {
+  "summary": {
+   "text": "A talk about compilersThe speaker argues that parsers are easy.Chapters00:12 Opening1:05:30 Closing remarksA plain paragraph.",
+   "attrs": [
+    "title=跳到 00:12",
+    "title=跳到 1:05:30"
+   ]
+  },
+  "empty": {
+   "text": "這個語言還沒有重點摘要。",
+   "attrs": []
+  }
+ }
+}

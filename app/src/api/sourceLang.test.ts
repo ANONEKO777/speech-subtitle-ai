@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SOURCE_NOTES, cueMark, parseSourceLang, parseUnavailable, sourceLabel, sourceTag, usableSource } from "./sourceLang";
+import { cueMark, parseSourceLang, parseUnavailable, sourceLabel, sourceNote, sourceTag, usableSource } from "./sourceLang";
+import { tZhTW } from "../i18n";
 
 describe("the mixed Japanese and English choice", () => {
   it("is a source language with its own label and tag", () => {
@@ -11,12 +12,12 @@ describe("the mixed Japanese and English choice", () => {
   });
 
   it("tells a Japanese talk it can hold several subtitle languages, and no longer says Traditional Chinese only", () => {
-    expect(SOURCE_NOTES["ja"]).toContain("只會重新翻譯");
-    expect(SOURCE_NOTES["ja"]).not.toContain("只輸出繁體中文");
+    expect(sourceNote("ja", tZhTW)).toContain("只會重新翻譯");
+    expect(sourceNote("ja", tZhTW)).not.toContain("只輸出繁體中文");
   });
 
   it("says it needs the Qwen3 model files, not only the 24 GB profile", () => {
-    expect(SOURCE_NOTES["ja+en"]).toContain("Qwen3");
+    expect(sourceNote("ja+en", tZhTW)).toContain("Qwen3");
   });
 
   it("marks a Japanese cue 日 and an English cue 英", () => {

@@ -432,6 +432,7 @@ describe("English wording of the player", () => {
   it("reads as the product's English on the lines a person meets most", async () => {
     const { container } = await loaded("en");
     const bar = harvest(container);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Subtitles", "Summary", "Library", "Batch2"]);
     expect(bar.attrs).toContain("title=Play (Space)");
     expect(bar.attrs).toContain("title=Previous subtitle (Ctrl+←)");
     expect(bar.attrs).toContain("title=Playback speed ([ ])");

@@ -84,7 +84,7 @@ export const player = {
   "player.tab.cues": "Subtitles",
   "player.tab.summary": "Summary",
   "player.tab.library": "Library",
-  "player.tab.queue": "Queue",
+  "player.tab.queue": "Batch",
   "player.undo": "Undo last edit",
   "player.undoTitle": "Undo last edit (Ctrl+Z)",
   "player.langs": "Subtitle language",
