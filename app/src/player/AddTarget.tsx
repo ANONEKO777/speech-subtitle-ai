@@ -1,7 +1,8 @@
 import { Languages } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { EXPERIMENTAL, EXPERIMENTAL_HINT, type Target } from "../api/targets";
-import { shortName } from "../export/exports";
+import type { Target } from "../api/targets";
+import { useT } from "../i18n/I18nProvider";
+import { languageLabel } from "./langName";
 
 interface Props {
   /** The languages the video can still be translated into. */
@@ -13,6 +14,7 @@ interface Props {
 
 /** A menu of the subtitle languages this project lacks. Picking one translates the project again, without redoing the speech steps. */
 export function AddTarget({ targets, blocked, onAdd }: Props) {
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -39,8 +41,8 @@ export function AddTarget({ targets, blocked, onAdd }: Props) {
         type="button"
         className="ghost icon-button"
         data-testid="add-target"
-        title={blocked ?? "新增字幕語言：只重新翻譯，不重跑語音辨識"}
-        aria-label="新增字幕語言"
+        title={blocked ?? t("player.addTargetTitle")}
+        aria-label={t("player.addTarget")}
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={blocked !== null}
@@ -51,19 +53,19 @@ export function AddTarget({ targets, blocked, onAdd }: Props) {
       </button>
       {open && (
         <div className="menu-list add-target-list" role="menu" data-testid="add-target-list">
-          <p className="menu-note">新增字幕語言，只會重新翻譯，不會重跑語音辨識。</p>
-          {targets.map((t) => (
-            <button key={t.code} type="button" role="menuitem" data-testid={`add-target-${t.code}`} onClick={() => {
+          <p className="menu-note">{t("player.addTargetNote")}</p>
+          {targets.map((target) => (
+            <button key={target.code} type="button" role="menuitem" data-testid={`add-target-${target.code}`} onClick={() => {
               setOpen(false);
-              onAdd(t.code);
+              onAdd(target.code);
             }}>
-              {shortName(t.nativeName)}
-              {t.experimental && <span className="chip-exp">{EXPERIMENTAL}</span>}
+              {languageLabel(target, locale)}
+              {target.experimental && <span className="chip-exp">{t("targets.experimental")}</span>}
             </button>
           ))}
-          {targets.some((t) => t.experimental) && (
+          {targets.some((target) => target.experimental) && (
             <p className="menu-note" data-testid="add-target-hint">
-              {EXPERIMENTAL_HINT}
+              {t("targets.experimentalHint")}
             </p>
           )}
         </div>

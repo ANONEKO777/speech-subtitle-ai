@@ -1,16 +1,18 @@
 import { TriangleAlert, Undo2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { LanguageInfo } from "../api/client";
-import { EXPERIMENTAL, type Target } from "../api/targets";
+import type { Target } from "../api/targets";
 import type { CueEditing } from "../editor/useCueEditing";
 import { ExportMenu, type ExportAction } from "../export/ExportMenu";
-import { type ExportItem, shortName } from "../export/exports";
+import type { ExportItem } from "../export/exports";
+import { useT } from "../i18n/I18nProvider";
 import { SummaryView } from "../summary/SummaryView";
 import type { Backend } from "../api/client";
 import { AddTarget } from "./AddTarget";
 import { CueList } from "./CueList";
 import type { Cue, SubtitleMode } from "./cues";
 import { type FailedKind, failureSummary } from "./failures";
+import { languageLabel } from "./langName";
 
 export type Tab = "cues" | "summary" | "library" | "queue";
 
@@ -48,12 +50,13 @@ interface Props {
   readonly onSeekSeconds: (seconds: number) => void;
 }
 
-const TAB_LABEL: Record<Tab, string> = { cues: "字幕", summary: "摘要", library: "媒體庫", queue: "佇列" };
 
 export function SidePanel(p: Props) {
+  const { t, plural, locale } = useT();
   const { editing } = p;
   const [onlyFailed, setOnlyFailed] = useState(false);
-  const target = shortName(p.languages.find((l) => l.code === p.lang)?.nativeName ?? p.lang);
+  const shown = p.languages.find((l) => l.code === p.lang);
+  const target = shown ? languageLabel(shown, locale) : p.lang;
   const { cues, edited, undo } = editing.state;
   const note = editing.failure ?? p.status;
   return (
@@ -69,7 +72,7 @@ export function SidePanel(p: Props) {
               aria-selected={p.tab === tab}
               onClick={() => p.onTab(tab)}
             >
-              {TAB_LABEL[tab]}
+              {t(`player.tab.${tab}`)}
               {tab === "queue" && p.batchBadge && (
                 <span className="tab-badge" data-testid="queue-badge">
                   {p.batchBadge}
@@ -83,8 +86,8 @@ export function SidePanel(p: Props) {
             type="button"
             className="ghost icon-button"
             data-testid="undo"
-            title="復原上一次修改 (Ctrl+Z)"
-            aria-label="復原上一次修改"
+            title={t("player.undoTitle")}
+            aria-label={t("player.undo")}
             disabled={undo.length === 0}
             onClick={() => void editing.undo()}
           >
@@ -95,20 +98,19 @@ export function SidePanel(p: Props) {
       </div>
       {(p.languages.length > 1 || p.addable.length > 0) && (
         <div className="side-langs" data-testid="side-langs">
-          <span className="side-langs-label">字幕語言</span>
+          <span className="side-langs-label">{t("player.langs")}</span>
           {p.languages.length > 1 && (
             <select
               className="lang-select"
               data-testid="lang-select"
-              aria-label="顯示的語言"
+              aria-label={t("player.langShown")}
               title={p.languages.find((l) => l.code === p.lang)?.name}
               value={p.lang}
               onChange={(e) => p.onLang(e.target.value)}
             >
               {p.languages.map((l) => (
                 <option key={l.code} value={l.code}>
-                  {shortName(l.nativeName)}
-                  {p.experimental.has(l.code) ? `（${EXPERIMENTAL}）` : ""}
+                  {p.experimental.has(l.code) ? t("import.targetExperimental", { name: languageLabel(l, locale) }) : languageLabel(l, locale)}
                 </option>
               ))}
             </select>
@@ -119,9 +121,9 @@ export function SidePanel(p: Props) {
       {p.tab === "cues" && p.failed.size > 0 && (
         <div className="failed-note" role="status" data-testid="failed-note" data-count={p.failed.size}>
           <TriangleAlert className="icon" aria-hidden />
-          <span data-testid="failed-summary">{failureSummary(p.failed, target)}</span>
+          <span data-testid="failed-summary">{failureSummary(p.failed, target, { t, plural })}</span>
           <button type="button" className="ghost" data-testid="failed-filter" aria-pressed={onlyFailed} onClick={() => setOnlyFailed((v) => !v)}>
-            {onlyFailed ? "顯示全部" : "只看這些"}
+            {onlyFailed ? t("player.failedShowAll") : t("player.failedOnly")}
           </button>
         </div>
       )}
@@ -155,7 +157,7 @@ export function SidePanel(p: Props) {
             <>
               {p.summaryDegraded && (
                 <p className="summary-notice" role="status" data-testid="summary-degraded">
-                  這份摘要沒有通過語言檢查，可能夾雜錯字或其他語言的字，建議重新產生。
+                  {t("player.summaryDegraded")}
                 </p>
               )}
               <SummaryView markdown={p.summary} onSeek={p.onSeekSeconds} />
@@ -164,7 +166,7 @@ export function SidePanel(p: Props) {
         </div>
       )}
       <div className="side-foot" role="status" data-testid="side-status" data-has-note={note !== null}>
-        {note ?? (edited.size > 0 ? `已修改 ${edited.size} 條，重新翻譯時會保留` : "按兩下字幕可以編輯")}
+        {note ?? (edited.size > 0 ? plural("player.foot.edited", edited.size) : t("player.foot.hint"))}
       </div>
     </aside>
   );

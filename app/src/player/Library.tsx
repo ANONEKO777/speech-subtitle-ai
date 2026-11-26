@@ -1,5 +1,6 @@
 import { Clock, Film, ListPlus, ListX, Play, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../i18n/I18nProvider";
 import type { Backend } from "../api/client";
 import { type LibraryItem, fetchThumbnail } from "../api/library";
 import { DEFAULT_SOURCE, sourceTag } from "../api/sourceLang";
@@ -54,6 +55,7 @@ function Thumb({ backend, id }: { backend: Backend; id: string }) {
 }
 
 function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: boolean; kind: "recent" | "lib" }) {
+  const { t } = useT();
   const resume = item.positionS > 5 && item.positionS < item.durationS - 10;
   return (
     <li className="lib-card" data-testid={`${kind}-${item.id}`} data-current={item.id === p.currentId} data-missing={!item.exists}>
@@ -66,8 +68,8 @@ function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: 
           <span className="lib-sub">
             <span className="num">{item.durationS > 0 ? playClock(item.durationS) : "—"}</span>
             {item.sourceLang !== DEFAULT_SOURCE && (
-              <span className="chip chip-src" data-testid={`${kind}-src-${item.id}`} title="影片語言">
-                {sourceTag(item.sourceLang)}
+              <span className="chip chip-src" data-testid={`${kind}-src-${item.id}`} title={t("player.lib.sourceLang")}>
+                {sourceTag(item.sourceLang, t)}
               </span>
             )}
             {item.langs.map((l) => (
@@ -78,12 +80,12 @@ function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: 
             {!item.exists && (
               <span className="lib-missing">
                 <TriangleAlert className="icon" aria-hidden />
-                找不到影片檔
+                {t("player.lib.missing")}
               </span>
             )}
           </span>
           {resume && (
-            <span className="lib-progress" title={`上次看到 ${playClock(item.positionS)}`}>
+            <span className="lib-progress" title={t("player.lib.stoppedAt", { time: playClock(item.positionS) })}>
               <span style={{ width: `${(item.positionS / item.durationS) * 100}%` }} />
             </span>
           )}
@@ -94,8 +96,8 @@ function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: 
         type="button"
         className="ghost icon-button"
         data-testid={`${kind}-queue-${item.id}`}
-        title={queued ? "移出播放佇列" : "加入播放佇列"}
-        aria-label={queued ? "移出播放佇列" : "加入播放佇列"}
+        title={queued ? t("player.lib.queueRemove") : t("player.lib.queueAdd")}
+        aria-label={queued ? t("player.lib.queueRemove") : t("player.lib.queueAdd")}
         aria-pressed={queued}
         onClick={() => (queued ? p.onDequeue(item.id) : p.onEnqueue(item.id))}
       >
@@ -106,21 +108,22 @@ function Card({ item, p, queued, kind }: { item: LibraryItem; p: Props; queued: 
 }
 
 export function Library(p: Props) {
+  const { t } = useT();
   const recent = [...p.items].filter((i) => i.openedAtMs > 0).slice(0, 4);
   const byId = new Map(p.items.map((i) => [i.id, i]));
   const queued = new Set(p.queue.ids);
   if (p.items.length === 0) {
     return (
       <p className="side-empty" data-testid="library-empty">
-        還沒有處理完成的影片。匯入並處理一部影片後，會出現在這裡。
+        {t("player.lib.empty")}
       </p>
     );
   }
   return (
     <div className="library" data-testid="library">
       {p.queue.ids.length > 0 && (
-        <section aria-label="播放佇列">
-          <h3>播放佇列</h3>
+        <section aria-label={t("player.lib.queue")}>
+          <h3>{t("player.lib.queue")}</h3>
           <ol className="queue" data-testid="queue-list">
             {p.queue.ids.map((id, i) => {
               const item = byId.get(id);
@@ -130,7 +133,7 @@ export function Library(p: Props) {
                     <span className="num">{i + 1}</span>
                     <span className="lib-title">{item?.title ?? id}</span>
                   </button>
-                  <button type="button" className="ghost icon-button" aria-label="移出播放佇列" onClick={() => p.onDequeue(id)}>
+                  <button type="button" className="ghost icon-button" aria-label={t("player.lib.queueRemove")} onClick={() => p.onDequeue(id)}>
                     <ListX className="icon" aria-hidden />
                   </button>
                 </li>
@@ -140,10 +143,10 @@ export function Library(p: Props) {
         </section>
       )}
       {recent.length > 0 && (
-        <section aria-label="最近開啟">
+        <section aria-label={t("player.lib.recent")}>
           <h3>
             <Clock className="icon" aria-hidden />
-            最近開啟
+            {t("player.lib.recent")}
           </h3>
           <ul className="lib-grid" data-testid="recent-list">
             {recent.map((item) => (
@@ -152,12 +155,12 @@ export function Library(p: Props) {
           </ul>
         </section>
       )}
-      <section aria-label="所有影片">
+      <section aria-label={t("player.lib.all")}>
         <h3>
-          所有影片
+          {t("player.lib.all")}
           <button type="button" className="ghost" data-testid="queue-all" onClick={p.onQueueAll}>
             <ListPlus className="icon" aria-hidden />
-            全部加入佇列
+            {t("player.lib.queueAll")}
           </button>
         </h3>
         <ul className="lib-grid" data-testid="library-list">

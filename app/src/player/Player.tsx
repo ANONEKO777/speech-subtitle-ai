@@ -6,7 +6,8 @@ import { MIXED, type SourceLang } from "../api/sourceLang";
 import type { Target } from "../api/targets";
 import { type Look, type Playback, takeStill } from "../api/library";
 import { type Loaded, useCueEditing } from "../editor/useCueEditing";
-import { exportItems, shortName } from "../export/exports";
+import { exportItems } from "../export/exports";
+import { useT } from "../i18n/I18nProvider";
 import type { Settings } from "../settings/settings";
 import { useSummary } from "../summary/useSummary";
 import { Controls } from "./Controls";
@@ -14,6 +15,7 @@ import { BurnCard, HelpOverlay, Toast } from "./Overlays";
 import { SidePanel, type Tab } from "./SidePanel";
 import type { Cue } from "./cues";
 import { openFailures } from "./failures";
+import { languageLabel } from "./langName";
 import { type Action, isArrow, keyAction } from "./shortcuts";
 import { adjacentCue, clampOffset, playClock, startOnVideo } from "./transport";
 import { useActiveCue } from "./useActiveCue";
@@ -78,6 +80,7 @@ function ownsKey(target: EventTarget | null, key: string): boolean {
 }
 
 export function Player(props: Props) {
+  const { t: translate, locale } = useT();
   const { backend, projectId, videoPath, sourceLang, settings, onSettings, languages, lang, onLang, loaded, notice, playback } = props;
   const video = useRef<HTMLVideoElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -117,7 +120,7 @@ export function Player(props: Props) {
     projectId,
     savedPosition: playback.positionS,
     onResumed: (at) =>
-      showToast({ text: `已從 ${playClock(at)} 繼續`, action: { label: "從頭播放", run: () => video.current && (video.current.currentTime = 0) } }),
+      showToast({ text: translate("player.resumed", { time: playClock(at) }), action: { label: translate("player.restart"), run: () => video.current && (video.current.currentTime = 0) } }),
     onEnded: () => {
       if (props.hasNextVideo) props.onStep(1);
     },
@@ -127,7 +130,8 @@ export function Player(props: Props) {
   useEffect(() => () => window.clearTimeout(osdTimer.current), []);
 
   const undo = editing.undo;
-  const label = shortName(languages.find((l) => l.code === lang)?.nativeName ?? lang);
+  const shownLanguage = languages.find((l) => l.code === lang);
+  const label = shownLanguage ? languageLabel(shownLanguage, locale) : lang;
 
   const look = useCallback((): Look => {
     const v = video.current;
@@ -141,7 +145,10 @@ export function Player(props: Props) {
     };
   }, [settings.mode, settings.zhFirst, settings.fontSize, settings.color]);
 
-  const fail = useCallback((what: string, e: unknown) => showToast({ text: `${what}：${e instanceof Error ? e.message : String(e)}`, error: true }), [showToast]);
+  const fail = useCallback(
+    (what: (reason: string) => string, e: unknown) => showToast({ text: what(e instanceof Error ? e.message : String(e)), error: true }),
+    [showToast],
+  );
 
   const shoot = useCallback(
     async (burn: boolean) => {
@@ -154,24 +161,30 @@ export function Player(props: Props) {
           .then(() => true)
           .catch(() => false);
         showToast({
-          text: `截圖已存到 ${still.path}${copied ? "，已複製到剪貼簿" : "（無法複製到剪貼簿）"}`,
-          action: { label: "開啟資料夾", run: () => void openFolder(still.path).catch((e: unknown) => fail("無法開啟資料夾", e)) },
+          text: translate(copied ? "player.shot.copied" : "player.shot.notCopied", { path: still.path }),
+          action: {
+            label: translate("player.openFolder"),
+            run: () => void openFolder(still.path).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), e)),
+          },
         });
       } catch (e) {
-        fail("截圖失敗", e);
+        fail((reason) => translate("player.err.shot", { reason }), e);
       }
     },
-    [backend, projectId, lang, settings.outputDir, look, showToast, fail],
+    [backend, projectId, lang, settings.outputDir, look, showToast, fail, translate],
   );
 
   const burn = useBurn(backend, (view) => {
     if (view.state === "done") {
       showToast({
-        text: `已匯出燒入字幕的影片 ${view.output}`,
-        action: { label: "開啟資料夾", run: () => void openFolder(view.output).catch((e: unknown) => fail("無法開啟資料夾", e)) },
+        text: translate("player.burn.done", { path: view.output }),
+        action: {
+          label: translate("player.openFolder"),
+          run: () => void openFolder(view.output).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), e)),
+        },
       });
-    } else if (view.state === "failed") fail("匯出失敗", view.error ?? "");
-    else showToast({ text: "已取消匯出" });
+    } else if (view.state === "failed") fail((reason) => translate("player.err.export", { reason }), view.error ?? "");
+    else showToast({ text: translate("player.burn.cancelled") });
   });
   const startBurn = (clip: boolean) =>
     void burn.start(projectId, {
@@ -201,15 +214,15 @@ export function Player(props: Props) {
     const now = (video.current?.currentTime ?? 0) * 1000;
     const i = adjacentCue(cues, offsetMs, now, dir);
     const target = i === null ? undefined : cues[i];
-    if (!target) return say(dir > 0 ? "沒有下一句" : "沒有上一句");
+    if (!target) return say(dir > 0 ? translate("player.osd.noNext") : translate("player.osd.noPrev"));
     seekCue(target);
-    say(`第 ${(i ?? 0) + 1} 句`);
+    say(translate("player.osd.line", { n: (i ?? 0) + 1 }));
   };
 
   const nudgeOffset = (delta: number) => {
     const next = clampOffset(offsetMs + delta);
     changeOffset(next);
-    say(`字幕 ${next >= 0 ? "+" : "−"}${(Math.abs(next) / 1000).toFixed(1)} 秒`);
+    say(translate("player.osd.offset", { delta: `${next >= 0 ? "+" : "−"}${(Math.abs(next) / 1000).toFixed(1)}` }));
   };
 
   const togglePip = async () => {
@@ -217,16 +230,16 @@ export function Player(props: Props) {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else {
         await video.current?.requestPictureInPicture();
-        showToast({ text: "子母畫面只有影片，字幕仍在主視窗" });
+        showToast({ text: translate("player.pipNote") });
       }
     } catch (e) {
-      fail("無法開啟子母畫面", e);
+      fail((reason) => translate("player.err.pip", { reason }), e);
     }
   };
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
-    else void stage.current?.requestFullscreen().catch((e: unknown) => fail("無法進入全螢幕", e));
+    else void stage.current?.requestFullscreen().catch((e: unknown) => fail((reason) => translate("player.err.fullscreen", { reason }), e));
   };
 
   const run = (a: Action) => {
@@ -375,7 +388,7 @@ export function Player(props: Props) {
             onPickFolder={() =>
               void pickFolder().then(
                 (dir) => dir && onSettings({ outputDir: dir }),
-                (e: unknown) => fail("無法選擇資料夾", e),
+                (e: unknown) => fail((reason) => translate("player.err.pickFolder", { reason }), e),
               )
             }
             onHelp={() => setHelpOpen(true)}
@@ -384,7 +397,7 @@ export function Player(props: Props) {
         </div>
         {unplayable && (
           <div className="notice" role="alert" data-testid="unplayable">
-            這個 {extension(videoPath).toUpperCase()} 檔無法在內建播放器播放。請先轉成 H.264/AAC 的 MP4（proxy）再匯入。字幕仍可在右側清單查看。
+            {translate("player.unplayable", { ext: extension(videoPath).toUpperCase() })}
           </div>
         )}
         <div className="subtitle" data-testid="subtitle" style={subtitleStyle}>
@@ -416,8 +429,8 @@ export function Player(props: Props) {
         summaryDegraded={summary?.degraded ?? false}
         exports={exportItems(videoPath, lang, label, sourceLang)}
         actions={[
-          { id: "burn-full", label: "MP4 燒入字幕（整部）", run: () => startBurn(false), disabled: burn.view?.state === "running" },
-          { id: "burn-clip", label: `MP4 燒入字幕（從目前位置 ${CLIP_S} 秒）`, run: () => startBurn(true), disabled: burn.view?.state === "running" },
+          { id: "burn-full", label: translate("player.burn.full"), run: () => startBurn(false), disabled: burn.view?.state === "running" },
+          { id: "burn-clip", label: translate("player.burn.clip", { seconds: CLIP_S }), run: () => startBurn(true), disabled: burn.view?.state === "running" },
         ]}
         status={status}
         onStatus={setStatus}
