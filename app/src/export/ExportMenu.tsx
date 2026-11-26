@@ -2,7 +2,8 @@ import { ChevronDown, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { saveExport } from "../api/backend";
 import type { Backend } from "../api/client";
-import { type ExportItem } from "./exports";
+import { useT } from "../i18n/I18nProvider";
+import { type ExportItem, NoSummary } from "./exports";
 
 /** A menu entry that starts something instead of saving a file. */
 export interface ExportAction {
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function ExportMenu({ backend, projectId, items, actions = [], onResult }: Props) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -40,9 +42,10 @@ export function ExportMenu({ backend, projectId, items, actions = [], onResult }
     setBusy(true);
     try {
       const path = await saveExport(item.file, await item.text(backend, projectId));
-      onResult(path ? `已匯出 ${path}` : "已取消匯出");
+      onResult(path ? t("export.done", { path }) : t("export.cancelled"));
     } catch (e) {
-      onResult(`匯出失敗：${e instanceof Error ? e.message : String(e)}`);
+      const reason = e instanceof NoSummary ? t("export.noSummary") : e instanceof Error ? e.message : String(e);
+      onResult(t("export.failed", { reason }));
     } finally {
       setBusy(false);
     }
@@ -69,7 +72,7 @@ export function ExportMenu({ backend, projectId, items, actions = [], onResult }
         onClick={() => setOpen((v) => !v)}
       >
         <Download className="icon" aria-hidden />
-        匯出
+        {t("export.button")}
         <ChevronDown className="icon chevron" aria-hidden />
       </button>
       {open && (
@@ -83,7 +86,7 @@ export function ExportMenu({ backend, projectId, items, actions = [], onResult }
               autoFocus={item === items[0]}
               onClick={() => void run(item)}
             >
-              {item.label}
+              {item.label(t)}
             </button>
           ))}
           {actions.map((action) => (

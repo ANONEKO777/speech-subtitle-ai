@@ -20,12 +20,6 @@ export const sourceNote = (code: SourceLang, t: Translate): string | undefined =
   return key === undefined ? undefined : t(key);
 };
 
-/** The notes in Traditional Chinese, for the batch dialog until W3 moves it to `sourceNote`. */
-export const SOURCE_NOTES: Readonly<Partial<Record<SourceLang, string>>> = {
-  ja: sourceNote("ja", tZhTW),
-  "ja+en": sourceNote("ja+en", tZhTW),
-};
-
 export const parseSourceLang = (value: unknown): SourceLang =>
   SOURCE_LANGS.find((l) => l.code === value)?.code ?? DEFAULT_SOURCE;
 
