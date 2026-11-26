@@ -180,7 +180,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                 <th>{t("models.col.size")}</th>
                 <th>{t("models.col.usedBy")}</th>
                 <th>{t("models.col.neededBy")}</th>
-                <th>{t("models.col.actions")}</th>
+                <th className="actions-cell">{t("models.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
