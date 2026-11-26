@@ -2587,11 +2587,11 @@ kbd {
 }
 
 :root:lang(en) .target-pick select {
-  width: 104px;
+  width: 152px;
 }
 
 :root:lang(en) .target-pick select[data-experimental="true"] {
-  width: 168px;
+  width: 190px;
 }
 
 .progress-note {
