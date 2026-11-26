@@ -23,6 +23,7 @@ import type { DownloadJob, LlmTest, ProfileView, SelfTest, SettingsView } from "
 import { I18nProvider } from "./I18nProvider";
 import { type Translate, t } from ".";
 import type { Locale } from "./locale";
+import { NOT_ENGLISH } from "./notEnglish";
 
 /**
  * Every W1 screen rendered in each released language. Traditional Chinese must equal what the screens
@@ -147,7 +148,6 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]/;
 
 const FIXTURE = "src/i18n/w1.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W1_FIXTURE"] === "write";
@@ -613,8 +613,8 @@ describe.each(["zh-TW", "en"] as const)("W1 screens in %s", (locale) => {
       recorded[locale]![name] = seen as never;
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
-          expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
-          for (const a of h.attrs) expect(CJK.test(a), `${name} / ${label}: ${a}`).toBe(false);
+          expect(NOT_ENGLISH.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
+          for (const a of h.attrs) expect(NOT_ENGLISH.test(a), `${name} / ${label}: ${a}`).toBe(false);
         }
         return;
       }
