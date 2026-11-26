@@ -97,6 +97,14 @@ A change to a zh-TW string in a wave that only moves strings is a bug. A wording
 
 The machine translation of `zh-CN` follows the mainland column of the table above (视频, 文件, 程序, 内存, 显卡, 鼠标, 窗口, 界面, 设置, 保存, 服务器, 默认, 用户, 信息). `ja` uses the usual katakana terms (ファイル, フォルダー, ダウンロード, インストール, ウィンドウ, プロファイル, 設定). W5 reads both against this file and adds the terms of W2 to W4 that the table does not have yet.
 
+## W1b: language names, product name, platform
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| language names | the native name (繁體中文, 日本語, 한국어, Español) | the English name (Traditional Chinese, Japanese, Korean, Spanish) | A language is named in the language of the window, from `lang.<code>` in the catalog. Only the interface-language picker shows each language in its own script. |
+| product name | 字幕翻譯 | Video Subtitle Translator | The window title, the page title and the queue notification. |
+| current profile | 使用中 | Current profile | The disabled button of the profile in use. The chip beside it says "In use" (目前使用). |
+
 ## W2: the first-run wizard and the models page
 
 Terms the wizard and the models page added. The zh-TW column is the text those screens already used.

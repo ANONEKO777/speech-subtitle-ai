@@ -19,7 +19,7 @@ export const hardware = {
   "hw.inUse": "In use",
   "hw.recommendedTag": "Recommended",
   "hw.mayNotFit": "May not fit this computer",
-  "hw.useActive": "In use",
+  "hw.useActive": "Current profile",
   "hw.use": "Use this profile",
   "hw.auto": "Switch back to automatic: use the profile recommended for the hardware",
   "hw.gotoLlm": "Go to LLM source settings (cloud)",

@@ -5,6 +5,7 @@ export const importer = {
   "import.sourceTitle": "Language spoken in the video",
   "import.source": "Video language",
   "import.pathPlaceholder": "Full path to the video, e.g. D:\\talks\\talk.mp4",
+  "import.pathPlaceholderMac": "Full path to the video, e.g. /Users/me/Movies/talk.mp4",
   "import.pick": "Choose file",
   "import.go": "Import",
   "import.targetExperimental": "{name} (experimental)",

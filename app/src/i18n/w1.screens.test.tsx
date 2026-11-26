@@ -339,8 +339,8 @@ const SCREENS: Record<string, Screen> = {
       { code: "ja", available: true, reason: null },
     ];
     const targets = [
-      { code: "zh-TW", name: "Traditional Chinese", nativeName: "Chinese", experimental: false },
-      { code: "ko", name: "Korean", nativeName: "Korean", experimental: true },
+      { code: "zh-TW", name: "Traditional Chinese", nativeName: "繁體中文（台灣）", experimental: false },
+      { code: "ko", name: "Korean", nativeName: "한국어", experimental: true },
     ];
     const unavailable = parseUnavailable(sources, said(locale));
     const props = { busy: false, sourceLang: "ja" as const, unavailable, onSourceLang: () => undefined, targets, target: "ko", onTarget: () => undefined, onImport: () => undefined, onPath: () => undefined };
@@ -397,11 +397,11 @@ const language = (code: string, name: string, native: string, quality = "stable"
 const target = (code: string, name: string, native: string, experimental = false) => ({ code, name, native_name: native, experimental });
 const languagesReply = {
   default: "zh-TW",
-  languages: [language("zh-TW", "Traditional Chinese", "Chinese"), language("en", "English", "English"), language("ko", "Korean", "Korean", "experimental")],
+  languages: [language("zh-TW", "Traditional Chinese", "繁體中文（台灣）"), language("en", "English", "English"), language("ko", "Korean", "한국어", "experimental")],
   sources: [
-    { code: "en", available: true, targets: [target("zh-TW", "Traditional Chinese", "Chinese")] },
-    { code: "ja", available: true, targets: [target("zh-TW", "Traditional Chinese", "Chinese"), target("ko", "Korean", "Korean", true)] },
-    { code: "ja+en", available: false, reason: "cpu", targets: [target("zh-TW", "Traditional Chinese", "Chinese")] },
+    { code: "en", available: true, targets: [target("zh-TW", "Traditional Chinese", "繁體中文（台灣）")] },
+    { code: "ja", available: true, targets: [target("zh-TW", "Traditional Chinese", "繁體中文（台灣）"), target("ko", "Korean", "한국어", true)] },
+    { code: "ja+en", available: false, reason: "cpu", targets: [target("zh-TW", "Traditional Chinese", "繁體中文（台灣）")] },
   ],
 };
 const projectReply = (over: object) => ({
