@@ -35,7 +35,7 @@ describe("English wording that no other test pins", () => {
   it("names two and three other profiles in words and more in digits", () => {
     expect(t("en", "wizard.others.two")).toBe("two");
     expect(t("en", "wizard.others.three")).toBe("three");
-    expect(t("en", "wizard.recommended.post", { others: "two" })).toBe(". You can also choose from the other two below.");
+    expect(t("en", "wizard.recommended.post", { others: "two" })).toBe(". You can also choose one of the other two below.");
   });
 
   it("says item or items installed, and file or files moved", () => {
@@ -56,7 +56,7 @@ describe("English wording that no other test pins", () => {
     await waitFor(() => screen.getByTestId("wizard-choose"));
     expect(screen.getByTestId("wizard-start").textContent).toBe("Download and start");
     expect(screen.getByTestId("wizard-skip").textContent).toBe("Skip and set up later in Settings");
-    expect(screen.getByTestId("wizard-recommended").textContent).toBe("We recommend the profile 24 GB GPU. You can also choose from the other two below.");
+    expect(screen.getByTestId("wizard-recommended").textContent).toBe("Recommended profile: 24 GB GPU. You can also choose one of the other two below.");
     expect(screen.getByTestId("wizard-total").textContent).toMatch(/^Total [\d.]+ GB, free disk space 488 GB$/);
   });
 

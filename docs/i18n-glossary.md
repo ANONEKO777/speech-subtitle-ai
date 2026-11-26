@@ -118,10 +118,10 @@ Terms the wizard and the models page added. The zh-TW column is the text those s
 | download again | 重新下載 | Download again | The button for a file that is already there. Not "re-download". |
 | verify | 驗證 | Verify | Checks the SHA256 of a model file. |
 | repair | 修復 | Repair | |
-| registry version | 登錄版本 | Registry version | The version the app's model list ships, next to the version on disk. |
+| listed version | 登錄版本 | Listed version | The version the app's model list names, next to the version on disk. Not "registry", which is internal. |
 | used by | 使用於 | Used by | The profiles that use the item. |
 | needed by | 相依 | Needed by | The other items that need this one. |
-| in the current profile | 目前使用 | In the current profile | In the models table. The hardware page says "In use" for a profile. |
+| in use | 目前使用 | In use | In the models table, an item the current profile uses. The same words as the hardware page's chip (W1b). |
 | partly downloaded | 下載到一半 | Incomplete | A download that stopped before the end. The status chip has to stay short, so it does not say "Partly downloaded". |
 | SHA256 matches | SHA256 相符, SHA256 不符 | SHA256 matches, SHA256 does not match | |
 | force delete | 強制刪除 | Force delete | Needs a written reason of at least 8 characters, which goes to the log. |
