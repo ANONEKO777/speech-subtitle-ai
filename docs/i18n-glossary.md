@@ -117,9 +117,9 @@ The terms of the player, its side column, the library and the help overlay.
 | screenshot | 截圖 | screenshot | |
 | picture-in-picture | 子母畫面 | picture-in-picture | |
 | full screen | 全螢幕 | full screen | Two words. "Exit full screen". |
-| A-B loop | A-B 循環 | A-B loop | "Point A" is the start, "Point B" the end. |
+| A-B loop | A-B 循環 | A-B loop | "Point A" is the start, "Point B" the end. The on-screen line after the first press reads "Point A set at 0:12". |
 | frame | 格 | frame | "Next frame", "Previous frame". |
-| burn in | 燒入 | burn into | "Burn subtitles into screenshots", "MP4 with burned-in subtitles". |
+| burn in | 燒入 | burn into | A verb on every menu entry: "Burn subtitles into screenshots", "Burn subtitles into MP4 (whole video)", "Burn subtitles into MP4 (next 30 s)". |
 | edited by hand | 手動修改 | edited by hand | A subtitle the person corrected. "{n} subtitles edited" in the footer. |
 | left empty | 留空 | left empty | A subtitle the translator could not do and left blank. |
 | video file | 影片檔 | video file | |
