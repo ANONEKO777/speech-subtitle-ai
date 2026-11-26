@@ -367,9 +367,19 @@ button.danger {
   }
 }
 
+/*
+ * The divider, while more table is to the right. A pseudo-element because Edge paints no box-shadow on a cell of a
+ * border-collapse table. The sticky cell above is its containing block (scrollable right implies scrollable inline).
+ */
 @container scroll-state(scrollable: right) {
-  table.inv .actions-cell {
-    box-shadow: -1px 0 0 var(--hairline-strong), -8px 0 12px -8px rgb(0 0 0 / 0.6);
+  table.inv .actions-cell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: var(--hairline-strong);
   }
 }
 

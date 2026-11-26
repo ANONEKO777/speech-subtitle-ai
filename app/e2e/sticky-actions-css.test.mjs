@@ -38,4 +38,14 @@ describe("the stylesheet keeps the models table's Actions column on screen", () 
       expect(rule).toContain("background: var(--surface-1);");
     },
   );
+
+  // A box-shadow here is in the computed style but never painted: the table is border-collapse.
+  it("draws the divider as a one pixel pseudo-element, only while more table is to the right", () => {
+    const head = "table.inv .actions-cell::before";
+    expect(blocks(css, head)).toHaveLength(1);
+    const rule = bodyOf(bodyOf(css, "@container scroll-state(scrollable: right)"), head);
+    for (const line of ['content: "";', "position: absolute;", "top: 0;", "bottom: 0;", "left: 0;", "width: 1px;", "background: var(--hairline-strong);"]) {
+      expect(rule).toContain(line);
+    }
+  });
 });
