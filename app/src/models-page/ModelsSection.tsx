@@ -1,6 +1,7 @@
 import { CircleAlert, Download, HardDriveDownload, RefreshCw, RotateCcw, ShieldCheck, Trash2, Wrench, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Backend, ApiError } from "../api/client";
+import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
 import {
   cancelDownload,
@@ -21,9 +22,25 @@ import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/type
 import { DeleteDialog } from "./DeleteDialog";
 import { type RowAction, rowActions, shaText, stateText } from "./rules";
 
-interface Note {
-  readonly text: string;
-  readonly bad: boolean;
+/** What a row action left to say. Kept as data and worded at render, so a language switch re-words it. */
+type Note =
+  | { readonly kind: "verified"; readonly ok: boolean }
+  | { readonly kind: "repaired"; readonly action: string; readonly reason: string }
+  | { readonly kind: "refused"; readonly message: string; readonly blockers: readonly string[] };
+
+type Working = Exclude<RowAction, "delete">;
+
+const isBad = (note: Note): boolean => (note.kind === "verified" ? !note.ok : note.kind === "refused");
+
+function noteText(note: Note, t: Translate): string {
+  switch (note.kind) {
+    case "verified":
+      return note.ok ? t("models.verify.ok") : t("models.verify.bad", { repair: t("models.action.repair") });
+    case "repaired":
+      return note.reason ? t("models.repaired.reason", { action: note.action, reason: note.reason }) : t("models.repaired", { action: note.action });
+    case "refused":
+      return [note.message, ...note.blockers].join(t("models.blockerSeparator"));
+  }
 }
 
 const ACTION_ICON: Record<RowAction, typeof Download> = {
@@ -41,7 +58,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
   const { t, plural, locale } = useT();
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<ReadonlyMap<string, string>>(new Map());
+  const [busy, setBusy] = useState<ReadonlyMap<string, Working>>(new Map());
   const [notes, setNotes] = useState<ReadonlyMap<string, Note>>(new Map());
   const [updates, setUpdates] = useState<UpdateReport | null>(null);
   const [checking, setChecking] = useState(false);
@@ -72,10 +89,10 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       else next.delete(id);
       return next;
     });
-  const setWorking = (id: string, label: string | null) =>
+  const setWorking = (id: string, action: Working | null) =>
     setBusy((prev) => {
       const next = new Map(prev);
-      if (label) next.set(id, label);
+      if (action) next.set(id, action);
       else next.delete(id);
       return next;
     });
@@ -86,7 +103,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       return;
     }
     setNote(asset.id, null);
-    setWorking(asset.id, t(`models.working.${action}`));
+    setWorking(asset.id, action);
     try {
       switch (action) {
         case "download":
@@ -105,12 +122,12 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
         case "verify": {
           await verifyAsset(backend, asset.id);
           const fresh = (await fetchInventory(backend)).assets.find((a) => a.id === asset.id);
-          setNote(asset.id, { text: fresh?.shaState === "verified" ? t("models.verify.ok") : t("models.verify.bad", { repair: t("models.action.repair") }), bad: fresh?.shaState !== "verified" });
+          setNote(asset.id, { kind: "verified", ok: fresh?.shaState === "verified" });
           break;
         }
         case "repair": {
           const r = await repairAsset(backend, asset.id);
-          setNote(asset.id, { text: r.reason ? t("models.repaired.reason", { action: r.action, reason: r.reason }) : t("models.repaired", { action: r.action }), bad: false });
+          setNote(asset.id, { kind: "repaired", action: r.action, reason: r.reason });
           break;
         }
       }
@@ -118,7 +135,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       await reload();
     } catch (e) {
       const r = refusalOf(e);
-      setNote(asset.id, { text: [r.message, ...r.blockers].join(t("models.blockerSeparator")), bad: true });
+      setNote(asset.id, { kind: "refused", message: r.message, blockers: r.blockers });
     } finally {
       setWorking(asset.id, null);
     }
@@ -300,10 +317,10 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                           );
                         })}
                       </div>
-                      {working && <span className="sub">{working}</span>}
+                      {working && <span className="sub">{t(`models.working.${working}`)}</span>}
                       {note && (
-                        <span className={`sub note-line ${note.bad ? "bad" : "ok"}`} role={note.bad ? "alert" : "status"} data-testid={`inv-${asset.id}-note`}>
-                          {note.text}
+                        <span className={`sub note-line ${isBad(note) ? "bad" : "ok"}`} role={isBad(note) ? "alert" : "status"} data-testid={`inv-${asset.id}-note`}>
+                          {noteText(note, t)}
                         </span>
                       )}
                       {!note && job?.failure && !live && (

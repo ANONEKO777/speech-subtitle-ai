@@ -3,12 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { bytes, mib, speed } from "../manage/format";
-import { macInventory, macView, windowsView } from "../manage/screens.fixture";
+import { macInventory, macView, windowsInventory, windowsView } from "../manage/screens.fixture";
 import type { SettingsView } from "../manage/types";
 import { ModelsSection } from "../models-page/ModelsSection";
 import { StorageCard } from "../models-page/StorageCard";
 import { Wizard } from "../wizard/Wizard";
-import { I18nProvider } from "./I18nProvider";
+import { I18nProvider, useI18n } from "./I18nProvider";
 import { plural, t } from ".";
 
 const mocks = vi.hoisted(() => ({ profile: null as unknown, inventory: null as unknown, settings: null as unknown, move: null as unknown }));
@@ -22,6 +22,9 @@ vi.mock("../manage/api", async (orig) => ({
   fetchInventory: () => Promise.resolve(mocks.inventory),
   fetchSettings: () => (typeof mocks.settings === "function" ? mocks.settings() : Promise.resolve(mocks.settings)),
   fetchMove: () => Promise.resolve(mocks.move),
+  verifyAsset: () => Promise.resolve({}),
+  repairAsset: () => Promise.resolve({ action: "redownload", reason: "SHA256 mismatch", job: null }),
+  redownload: () => new Promise(() => undefined),
 }));
 
 const backend = { port: 1, token: "t" } as Backend;
@@ -134,5 +137,48 @@ describe("a Mac wizard", () => {
     expect(screen.getByTestId("wizard-hardware").textContent).toContain("Unified memory 36.0 GB");
     fireEvent.click(screen.getByTestId("wizard-profile-apple-cpu"));
     expect(screen.getByTestId("wizard-cpu-note")).toBeTruthy();
+  });
+});
+
+describe("the models page re-words its row notes when the language changes", () => {
+  function ToChinese() {
+    const i18n = useI18n();
+    return <button type="button" data-testid="to-zh" onClick={() => i18n?.setUiLanguage("zh-TW")} />;
+  }
+
+  const page = async () => {
+    mocks.inventory = windowsInventory();
+    render(
+      <I18nProvider initial="en">
+        <ToChinese />
+        <ModelsSection backend={backend} downloads={downloads} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("inv-table"));
+  };
+  const note = () => screen.getByTestId("inv-whisper-large-v3-turbo-note").textContent;
+
+  it("re-words a verify note", async () => {
+    await page();
+    fireEvent.click(screen.getByTestId("act-whisper-large-v3-turbo-verify"));
+    await waitFor(() => expect(note()).toBe("SHA256 matches. The file is intact."));
+    fireEvent.click(screen.getByTestId("to-zh"));
+    expect(note()).toBe("SHA256 相符，檔案完整");
+  });
+
+  it("re-words a repair note", async () => {
+    await page();
+    fireEvent.click(screen.getByTestId("act-whisper-large-v3-turbo-repair"));
+    await waitFor(() => expect(note()).toBe("Repair: redownload (SHA256 mismatch)"));
+    fireEvent.click(screen.getByTestId("to-zh"));
+    expect(note()).toBe("修復：redownload（SHA256 mismatch）");
+  });
+
+  it("re-words the working line of a running action", async () => {
+    await page();
+    fireEvent.click(screen.getByTestId("act-whisper-large-v3-turbo-redownload"));
+    await screen.findByText("Downloading again…");
+    fireEvent.click(screen.getByTestId("to-zh"));
+    expect(screen.getByText("重新下載中…")).toBeTruthy();
   });
 });
