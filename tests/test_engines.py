@@ -6,6 +6,7 @@ import time
 import wave
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -290,8 +291,22 @@ def test_a_child_that_will_not_die_does_not_hide_why_the_run_stopped(
         engine.transcribe(WAV_15S, cancel=cancel)
 
 
-def test_timeout_kills_the_child_and_says_so(tmp_path: Path) -> None:
+def test_timeout_kills_the_child_and_says_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pidfile = tmp_path / "pid.txt"
+    real_popen = subprocess.Popen
+
+    def popen_a_started_child(command: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+        # The engine's clock starts after Popen returns. Waiting here keeps the fake child's
+        # interpreter startup out of the 0.5 s, so the pid file is there when the kill comes.
+        proc = real_popen(command, **kwargs)
+        give_up = time.monotonic() + 30
+        while not (pidfile.is_file() and pidfile.read_text()) and time.monotonic() < give_up:
+            time.sleep(0.01)
+        return proc
+
+    monkeypatch.setattr(subprocess, "Popen", popen_a_started_child)
     engine = FakeWhisper(tmp_path, "--hang", "60", "--pidfile", str(pidfile))
     engine.timeout_s = 0.5
     with pytest.raises(EngineTimeoutError, match="0.5 s"):
