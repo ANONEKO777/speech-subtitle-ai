@@ -350,22 +350,35 @@ button.danger {
   min-width: 220px;
 }
 
-/* At the narrowest window the table scrolls sideways; the actions stay on screen and the other columns pass under them. */
+/*
+ * At the narrowest window the table scrolls sideways; the actions stay on screen and the other columns pass under them.
+ * Only while it scrolls: an opaque sticky cell renders its text a shade differently, and a table that fits keeps its pixels.
+ */
 .table-wrap {
   container-type: scroll-state;
 }
 
-table.inv .actions-cell {
-  position: sticky;
-  right: 0;
-  z-index: 1;
-  background: var(--surface-1);
-  background-clip: padding-box;
+@container scroll-state(scrollable: inline) {
+  table.inv .actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--surface-1);
+  }
 }
 
 @container scroll-state(scrollable: right) {
   table.inv .actions-cell {
     box-shadow: -1px 0 0 var(--hairline-strong), -8px 0 12px -8px rgb(0 0 0 / 0.6);
+  }
+}
+
+@supports not (container-type: scroll-state) {
+  table.inv .actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--surface-1);
   }
 }
 
