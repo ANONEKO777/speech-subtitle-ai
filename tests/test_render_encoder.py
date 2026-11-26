@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from backend.core import render
+from backend.core.notices import notices_of
 
 
 def fake_encoders(monkeypatch: pytest.MonkeyPatch, listing: str) -> None:
@@ -71,9 +72,9 @@ def test_a_missing_or_hung_encoder_gives_a_plain_message(
     fake_run(monkeypatch, probe_code=0 if hang else 1, probe_hangs=hang)
     with pytest.raises(render.EncoderMissing) as caught:
         render._video_encoder("ffmpeg-lgpl")  # pyright: ignore[reportPrivateUsage]
-    assert str(caught.value) == render.NO_ENCODER_MESSAGE
+    assert [n.code for n in notices_of(caught.value)] == ["render.noH264Windows"]
     assert "ffmpeg" not in str(caught.value).lower()
-    assert "媒體功能套件" in str(caught.value)
+    assert "Media Feature Pack" in str(caught.value)
 
 
 def test_the_simulation_seam_acts_like_a_missing_encoder(monkeypatch: pytest.MonkeyPatch):

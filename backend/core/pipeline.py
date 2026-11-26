@@ -36,6 +36,7 @@ from backend.core.model import (
     StepStatus,
     Word,
 )
+from backend.core.notices import Notice, notices_of
 from backend.core.segmenter import CueRules, to_cues, to_mixed_cues
 from backend.core.source_langs import SourceLanguage, get_source
 from backend.core.subtitle_io import (
@@ -587,8 +588,9 @@ class _Store:
         error: str | None = None,
         *,
         degraded: bool = False,
+        error_notices: tuple[Notice, ...] = (),
     ) -> None:
-        state = StepState(status, _now_ms(), error, key, degraded)
+        state = StepState(status, _now_ms(), error, key, degraded, error_notices)
         self.project = self.project.with_step(step, state)
         write_text_file(self.path, render_project(self.project))
 
@@ -724,12 +726,9 @@ def run(
                 )
             except BaseException as exc:
                 cancelled = stop.is_set() or isinstance(exc, KeyboardInterrupt | Cancelled)
-                store.mark(
-                    spec.step,
-                    StepStatus.FAILED,
-                    key,
-                    "cancelled" if cancelled else f"{type(exc).__name__}: {exc}",
-                )
+                error = "cancelled" if cancelled else f"{type(exc).__name__}: {exc}"
+                notices = notices_of(exc, error)
+                store.mark(spec.step, StepStatus.FAILED, key, error, error_notices=notices)
                 if cancelled and isinstance(exc, Exception) and not isinstance(exc, Cancelled):
                     raise Cancelled(f"{spec.step.value} was cancelled") from exc
                 if isinstance(exc, Exception) and not isinstance(exc, Cancelled):

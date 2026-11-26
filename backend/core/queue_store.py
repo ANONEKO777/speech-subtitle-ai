@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.core.jobs import JobOptions
+from backend.core.notices import Notice, from_json, to_json
 from backend.core.translate import GlossaryEntry
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,8 @@ class QueueItem:
     attempts: int = 0
     last_error: str | None = None
     audio_s: float | None = None
+    last_error_notices: tuple[Notice, ...] = ()
+    """The notices inside `last_error`, so the window can word it."""
 
     @property
     def target_lang(self) -> str:
@@ -107,7 +110,8 @@ CREATE TABLE IF NOT EXISTS items (
     finished_at_ms INTEGER,
     attempts INTEGER NOT NULL DEFAULT 0,
     last_error TEXT,
-    audio_s REAL
+    audio_s REAL,
+    last_error_notices TEXT
 );
 CREATE TABLE IF NOT EXISTS timings (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,8 +123,10 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
 _COLUMNS = (
     "id, position, video_path, project_id, options, state, created_at_ms, started_at_ms, "
-    "finished_at_ms, attempts, last_error, audio_s"
+    "finished_at_ms, attempts, last_error, audio_s, last_error_notices"
 )
+_ADDED_COLUMNS = {"last_error_notices": "TEXT"}
+"""Columns that a `queue.db` of an earlier version lacks. Each is added when the file opens."""
 
 
 def options_json(options: JobOptions) -> str:
@@ -131,6 +137,13 @@ def options_from_json(text: str) -> JobOptions:
     raw: dict[str, Any] = json.loads(text)
     glossary = tuple(GlossaryEntry(g["term"], g["zh"]) for g in raw.pop("glossary"))
     return JobOptions(glossary=glossary, **raw)
+
+
+def _stored_notices(text: str | None) -> tuple[Notice, ...]:
+    try:
+        return () if text is None else from_json(json.loads(text))
+    except ValueError:
+        return ()
 
 
 def _item(row: Sequence[Any]) -> QueueItem:
@@ -147,6 +160,7 @@ def _item(row: Sequence[Any]) -> QueueItem:
         attempts=row[9],
         last_error=row[10],
         audio_s=row[11],
+        last_error_notices=_stored_notices(row[12]),
     )
 
 
@@ -158,6 +172,13 @@ class QueueStore:
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=FULL")
         self._db.executescript(_SCHEMA)
+        self._add_columns()
+
+    def _add_columns(self) -> None:
+        have = {row[1] for row in self._db.execute("PRAGMA table_info(items)")}
+        for name, kind in _ADDED_COLUMNS.items():
+            if name not in have:
+                self._db.execute(f"ALTER TABLE items ADD COLUMN {name} {kind}")
 
     def close(self) -> None:
         with self._lock:
@@ -227,7 +248,7 @@ class QueueStore:
             self._tx(
                 [
                     (
-                        f"INSERT INTO items ({_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        f"INSERT INTO items ({_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                         (
                             item.id,
                             item.position,
@@ -241,6 +262,7 @@ class QueueStore:
                             0,
                             None,
                             audio_s,
+                            None,
                         ),
                     )
                 ]
@@ -260,7 +282,8 @@ class QueueStore:
                 [
                     (
                         "UPDATE items SET state = 'running', started_at_ms = ?, "
-                        "finished_at_ms = NULL, attempts = attempts + 1, last_error = NULL "
+                        "finished_at_ms = NULL, attempts = attempts + 1, last_error = NULL, "
+                        "last_error_notices = NULL "
                         "WHERE id = ? AND state = 'queued'",
                         (now_ms, item_id),
                     )
@@ -286,12 +309,21 @@ class QueueStore:
             == 1
         )
 
-    def finish(self, item_id: str, state: ItemState, now_ms: int, error: str | None) -> None:
+    def finish(
+        self,
+        item_id: str,
+        state: ItemState,
+        now_ms: int,
+        error: str | None,
+        notices: Sequence[Notice] = (),
+    ) -> None:
+        stored = json.dumps(to_json(notices), ensure_ascii=False) if notices else None
         self._tx(
             [
                 (
-                    "UPDATE items SET state = ?, finished_at_ms = ?, last_error = ? WHERE id = ?",
-                    (state.value, now_ms, error, item_id),
+                    "UPDATE items SET state = ?, finished_at_ms = ?, last_error = ?, "
+                    "last_error_notices = ? WHERE id = ?",
+                    (state.value, now_ms, error, stored, item_id),
                 )
             ]
         )

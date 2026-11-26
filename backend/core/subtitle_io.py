@@ -23,6 +23,7 @@ from backend.core.model import (
     StepState,
     StepStatus,
 )
+from backend.core.notices import from_json, to_json
 from backend.core.source_langs import UnknownSource, get_source
 
 MonoLang = Literal["en", "zh"]
@@ -637,6 +638,7 @@ def _render_steps(steps: Mapping[Step, StepState]) -> dict[str, object]:
             "error": state.error,
             **({"key": state.key} if state.key is not None else {}),
             **({"degraded": True} if state.degraded else {}),
+            **({"error_notices": to_json(state.error_notices)} if state.error_notices else {}),
         }
         for step, state in steps.items()
     }
@@ -668,7 +670,8 @@ def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
     for name, item in raw_steps.items():
         here = f"{where}.{name}"
         obj = _json_object(item, here)
-        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional={"key", "degraded"})
+        optional = {"key", "degraded", "error_notices"}
+        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional=optional)
         updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
         try:
             steps[Step(name)] = StepState(
@@ -677,6 +680,7 @@ def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
                 None if error is None else _json_str(error, f"{here}.error"),
                 None if key is None else _json_str(key, f"{here}.key"),
                 obj.get("degraded") is True,
+                from_json(obj.get("error_notices")),
             )
         except ValueError as exc:
             raise FormatError(f"{here}: {exc}") from exc

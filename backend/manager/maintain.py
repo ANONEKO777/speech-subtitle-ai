@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass, replace
 from enum import StrEnum
 
+from backend.core.notices import FOUND_ELSEWHERE, noticed
 from backend.manager.active import resolve_active
 from backend.manager.context import ManagerContext
 from backend.manager.download import InstallState, JobStatus, Plan, readable_os_error
@@ -14,7 +15,6 @@ from backend.manager.manifest import Record
 from backend.manager.models import delete_model, model_plan
 from backend.manager.registry import Model, Runtime
 from backend.manager.runtimes import (
-    FOUND_ELSEWHERE_MESSAGE,
     NotInstallable,
     delete_runtime,
     found_outside_runtimes,
@@ -65,14 +65,12 @@ def delete_asset(ctx: ManagerContext, asset_id: str, force: bool, reason: str) -
     if isinstance(found, Runtime):
         elsewhere = found_outside_runtimes(found, ctx.storage)
         if elsewhere is not None:
-            raise Refused(
-                FOUND_ELSEWHERE_MESSAGE.format(
-                    program=elsewhere.name,
-                    where=elsewhere.parent,
-                    folder=ctx.storage.runtime_dir(found),
-                ),
-                status=400,
+            notice = FOUND_ELSEWHERE(
+                program=elsewhere.name,
+                where=str(elsewhere.parent),
+                folder=str(ctx.storage.runtime_dir(found)),
             )
+            raise noticed(lambda text: Refused(text, status=400), notice)
     blockers = ctx.inventory.blockers(asset_id, active_ids(ctx))
     if blockers:
         if not force:

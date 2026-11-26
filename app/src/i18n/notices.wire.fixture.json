@@ -1,0 +1,283 @@
+{
+  "vc": {
+    "before": "這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。",
+    "text": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "selftest.gpu.message": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。; LLM (llama.cpp-b12068-win-cuda12.4): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。; LLM (llama.cpp-b12068-win-cpu): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again..",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "selftest.gpu.stage": {
+    "before": "這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。",
+    "text": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "selftest.cpu.message": {
+    "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。; LLM (llama.cpp-b12068-win-cpu): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。.",
+    "text": "Self-test failed: ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again..",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "selftest.cpu.stage": {
+    "before": "這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。",
+    "text": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "selftest.gpu.fallback": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。; LLM (llama.cpp-b12068-win-cuda12.4): 這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。請到 https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。. The CPU backend is used instead.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.. The CPU backend is used instead.",
+    "notices": [
+      {
+        "code": "runtime.vcMissing",
+        "params": {
+          "url": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
+        },
+        "message": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      }
+    ]
+  },
+  "font.japaneseWindows": {
+    "before": "這台電腦沒有可以顯示日文字幕的字型（試過 Yu Gothic、Meiryo、MS Gothic），燒錄出來的日文會變成空白方塊。請到「設定 > 個人化 > 字型」安裝日文字型（例如 Yu Gothic 或 Meiryo），或到「設定 > 系統 > 選用功能」新增「日文」的補充字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "This computer has no font that can show Japanese subtitles (tried Yu Gothic, Meiryo, MS Gothic), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Yu Gothic or Meiryo) in \"Settings > Personalization > Fonts\", or add the Japanese supplemental fonts in \"Settings > System > Optional features\", then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.noJapaneseWindows",
+        "params": {
+          "fonts": [
+            "Yu Gothic",
+            "Meiryo",
+            "MS Gothic"
+          ]
+        },
+        "message": "This computer has no font that can show Japanese subtitles (tried Yu Gothic, Meiryo, MS Gothic), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Yu Gothic or Meiryo) in \"Settings > Personalization > Fonts\", or add the Japanese supplemental fonts in \"Settings > System > Optional features\", then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.japaneseMac": {
+    "before": "這台 Mac 沒有可以顯示日文字幕的字型（試過 Hiragino Sans、Yu Gothic、Hiragino Kaku Gothic ProN、Hiragino Maru Gothic ProN），燒錄出來的日文會變成空白方塊。請用「字體簿」安裝日文字型（例如 Hiragino Sans 或 Yu Gothic）後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "This Mac has no font that can show Japanese subtitles (tried Hiragino Sans, Yu Gothic, Hiragino Kaku Gothic ProN, Hiragino Maru Gothic ProN), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Hiragino Sans or Yu Gothic) with Font Book, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.noJapaneseMac",
+        "params": {
+          "fonts": [
+            "Hiragino Sans",
+            "Yu Gothic",
+            "Hiragino Kaku Gothic ProN",
+            "Hiragino Maru Gothic ProN"
+          ]
+        },
+        "message": "This Mac has no font that can show Japanese subtitles (tried Hiragino Sans, Yu Gothic, Hiragino Kaku Gothic ProN, Hiragino Maru Gothic ProN), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Hiragino Sans or Yu Gothic) with Font Book, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.glyphs": {
+    "before": "字型 Yu Gothic 缺少這些字的字形：日本，燒錄出來的字幕會變成空白方塊。請安裝含有這些字的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "The font Yu Gothic has no glyphs for these characters: 日本. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.missingGlyphs",
+        "params": {
+          "font": "Yu Gothic",
+          "chars": "日本"
+        },
+        "message": "The font Yu Gothic has no glyphs for these characters: 日本. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.ko.none": {
+    "before": "這台電腦沒有可以顯示한국어字幕的字型（試過 Malgun Gothic），燒錄出來的字幕會變成空白方塊。請安裝含有한국어的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "This computer has no font that can show Korean subtitles (tried Malgun Gothic), so the burned-in subtitles would show empty boxes. Install a font that supports Korean, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.noTargetFont",
+        "params": {
+          "language": "ko",
+          "fonts": [
+            "Malgun Gothic"
+          ]
+        },
+        "message": "This computer has no font that can show Korean subtitles (tried Malgun Gothic), so the burned-in subtitles would show empty boxes. Install a font that supports Korean, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.ko.glyphs": {
+    "before": "字型 Malgun Gothic 缺少한국어字幕要用的字形：녕，燒錄出來的字幕會變成空白方塊。請安裝含有한국어的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "The font Malgun Gothic is missing glyphs that the Korean subtitles need: 녕. The burned-in subtitles would show empty boxes. Install a font that supports Korean, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.missingTargetGlyphs",
+        "params": {
+          "font": "Malgun Gothic",
+          "language": "ko",
+          "chars": "녕"
+        },
+        "message": "The font Malgun Gothic is missing glyphs that the Korean subtitles need: 녕. The burned-in subtitles would show empty boxes. Install a font that supports Korean, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.ru.none": {
+    "before": "這台電腦沒有可以顯示Русский字幕的字型（試過 Arial），燒錄出來的字幕會變成空白方塊。請安裝含有Русский的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "This computer has no font that can show Russian subtitles (tried Arial), so the burned-in subtitles would show empty boxes. Install a font that supports Russian, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.noTargetFont",
+        "params": {
+          "language": "ru",
+          "fonts": [
+            "Arial"
+          ]
+        },
+        "message": "This computer has no font that can show Russian subtitles (tried Arial), so the burned-in subtitles would show empty boxes. Install a font that supports Russian, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "font.ru.glyphs": {
+    "before": "字型 Arial 缺少Русский字幕要用的字形：녕，燒錄出來的字幕會變成空白方塊。請安裝含有Русский的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "The font Arial is missing glyphs that the Russian subtitles need: 녕. The burned-in subtitles would show empty boxes. Install a font that supports Russian, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "fonts.missingTargetGlyphs",
+        "params": {
+          "font": "Arial",
+          "language": "ru",
+          "chars": "녕"
+        },
+        "message": "The font Arial is missing glyphs that the Russian subtitles need: 녕. The burned-in subtitles would show empty boxes. Install a font that supports Russian, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "encoder.windows": {
+    "before": "這台電腦的 Windows 沒有 H.264 編碼器，無法把字幕燒進影片。請到「設定 > 系統 > 選用功能」安裝「媒體功能套件」（Windows N 或 KN 版才需要），或執行 Windows Update 後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "Windows on this computer has no H.264 encoder, so the subtitles can't be burned into the video. In \"Settings > System > Optional features\", install \"Media Feature Pack\" (only Windows N and KN editions need it), or run Windows Update, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "render.noH264Windows",
+        "params": {},
+        "message": "Windows on this computer has no H.264 encoder, so the subtitles can't be burned into the video. In \"Settings > System > Optional features\", install \"Media Feature Pack\" (only Windows N and KN editions need it), or run Windows Update, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "encoder.mac": {
+    "before": "這台 Mac 的 ffmpeg 沒有可用的 H.264 編碼器，無法把字幕燒進影片。請在終端機執行 brew install ffmpeg 安裝完整版的 ffmpeg 後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
+    "text": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+    "notices": [
+      {
+        "code": "render.noH264Mac",
+        "params": {},
+        "message": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them."
+      }
+    ]
+  },
+  "platform.linux": {
+    "before": "這個程式只支援 Windows（64 位元）和搭載 Apple 晶片的 Mac（M1 以後），偵測到的是 Linux x86_64，Intel 版 Mac 和 Linux 目前不支援。",
+    "text": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is Linux x86_64. Intel Macs and Linux aren't supported yet.",
+    "notices": [
+      {
+        "code": "platform.unsupported",
+        "params": {
+          "system": "Linux",
+          "machine": "x86_64"
+        },
+        "message": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is Linux x86_64. Intel Macs and Linux aren't supported yet."
+      }
+    ]
+  },
+  "platform.intelMac": {
+    "before": "這個程式只支援 Windows（64 位元）和搭載 Apple 晶片的 Mac（M1 以後），偵測到的是 macOS x86_64，Intel 版 Mac 和 Linux 目前不支援。",
+    "text": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is macOS x86_64. Intel Macs and Linux aren't supported yet.",
+    "notices": [
+      {
+        "code": "platform.unsupported",
+        "params": {
+          "system": "macOS",
+          "machine": "x86_64"
+        },
+        "message": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is macOS x86_64. Intel Macs and Linux aren't supported yet."
+      }
+    ]
+  },
+  "localBuild": {
+    "before": "whispercpp 在這個平台沒有現成的程式可以下載，要在這台電腦上自己編譯一次：請在專案資料夾執行 scripts/mac/build_whisper_cli.sh（步驟見 docs/MACOS.md）。編譯好的 whisper-cli 會放在 /vst-data/runtimes/whispercpp-b5454-macos-metal，放在 PATH 上也找得到。",
+    "text": "There's no ready-made whispercpp program to download for this platform, so you need to build it once on this computer. In the project folder, run scripts/mac/build_whisper_cli.sh (the steps are in docs/MACOS.md). The built whisper-cli goes in /vst-data/runtimes/whispercpp-b5454-macos-metal. The app also finds it on your PATH.",
+    "notices": [
+      {
+        "code": "runtime.localBuild",
+        "params": {
+          "engine": "whispercpp",
+          "script": "scripts/mac/build_whisper_cli.sh",
+          "program": "whisper-cli",
+          "folder": "/vst-data/runtimes/whispercpp-b5454-macos-metal"
+        },
+        "message": "There's no ready-made whispercpp program to download for this platform, so you need to build it once on this computer. In the project folder, run scripts/mac/build_whisper_cli.sh (the steps are in docs/MACOS.md). The built whisper-cli goes in /vst-data/runtimes/whispercpp-b5454-macos-metal. The app also finds it on your PATH."
+      }
+    ]
+  },
+  "foundElsewhere": {
+    "before": "whisper-cli 是在 /opt/homebrew/bin 找到的，不在 App 的執行檔資料夾（/vst-data/runtimes/whispercpp-b5454-macos-metal）裡，所以 App 沒有刪它。要移除請自己處理（用 Homebrew 裝的就用 brew uninstall）。",
+    "text": "The app didn't delete whisper-cli: it was found in /opt/homebrew/bin, not in the app's runtimes folder (/vst-data/runtimes/whispercpp-b5454-macos-metal). To remove it, do that yourself (if you installed it with Homebrew, use brew uninstall).",
+    "notices": [
+      {
+        "code": "runtime.foundElsewhere",
+        "params": {
+          "program": "whisper-cli",
+          "where": "/opt/homebrew/bin",
+          "folder": "/vst-data/runtimes/whispercpp-b5454-macos-metal"
+        },
+        "message": "The app didn't delete whisper-cli: it was found in /opt/homebrew/bin, not in the app's runtimes folder (/vst-data/runtimes/whispercpp-b5454-macos-metal). To remove it, do that yourself (if you installed it with Homebrew, use brew uninstall)."
+      }
+    ]
+  },
+  "cloudKey": {
+    "before": "這個版本在 Mac 上還不能儲存雲端 API 金鑰。請改用本機模型（預設）或 Ollama；雲端金鑰的儲存之後會再加上。",
+    "text": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
+    "notices": [
+      {
+        "code": "secrets.cloudKeyUnavailable",
+        "params": {},
+        "message": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later."
+      }
+    ]
+  }
+}

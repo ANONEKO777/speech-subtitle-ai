@@ -26,6 +26,13 @@ from backend.core import process_guard
 from backend.core.audio import AudioError, find_tool
 from backend.core.languages import Wrap
 from backend.core.model import Cue
+from backend.core.notices import (
+    NO_H264_MACOS,
+    NO_H264_WINDOWS,
+    Notice,
+    noticed,
+    notices_of,
+)
 from backend.core.playback import shift_cues
 from backend.core.subtitle_io import BurnMode, render_burn_ass, write_text_file
 
@@ -42,18 +49,6 @@ _VT_QUALITY = "65"
 
 
 _PROBE_TIMEOUT_S = 20
-NO_ENCODER_MESSAGE = (
-    "這台電腦的 Windows 沒有 H.264 編碼器，無法把字幕燒進影片。"
-    "請到「設定 > 系統 > 選用功能」安裝「媒體功能套件」（Windows N 或 KN 版才需要），"
-    "或執行 Windows Update 後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
-
-
-NO_ENCODER_MESSAGE_MACOS = (
-    "這台 Mac 的 ffmpeg 沒有可用的 H.264 編碼器，無法把字幕燒進影片。"
-    "請在終端機執行 brew install ffmpeg 安裝完整版的 ffmpeg 後再試。"
-    "字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
 
 
 class EncoderMissing(AudioError):
@@ -125,9 +120,9 @@ def _video_encoder(ffmpeg: str, system: str | None = None) -> tuple[str, ...]:
         videotoolbox = ("-c:v", "h264_videotoolbox", "-q:v", _VT_QUALITY)
         if " h264_videotoolbox " in listed and _one_frame_encodes(ffmpeg, videotoolbox):
             return videotoolbox
-        raise EncoderMissing(NO_ENCODER_MESSAGE_MACOS)
+        raise noticed(EncoderMissing, NO_H264_MACOS())
     if not _h264_mf_works(ffmpeg):
-        raise EncoderMissing(NO_ENCODER_MESSAGE)
+        raise noticed(EncoderMissing, NO_H264_WINDOWS())
     return ("-c:v", "h264_mf", "-rate_control", "quality", "-quality", _MF_QUALITY)
 
 
@@ -327,6 +322,7 @@ class BurnJob:
     state: BurnState = "running"
     percent: float = 0.0
     error: str | None = None
+    error_notices: tuple[Notice, ...] = ()
     started: float = 0.0
     finished: float | None = None
     cancel: threading.Event = field(default_factory=threading.Event)
@@ -395,9 +391,16 @@ class BurnBook:
         for thread in threads:
             thread.join(timeout=10)
 
-    def _finish(self, job: BurnJob, state: BurnState, error: str | None = None) -> None:
+    def _finish(
+        self,
+        job: BurnJob,
+        state: BurnState,
+        error: str | None = None,
+        notices: tuple[Notice, ...] = (),
+    ) -> None:
         with self._lock:
             job.state, job.error, job.finished = state, error, time.monotonic()
+            job.error_notices = notices
             if state == "done":
                 job.percent = 100.0
 
@@ -427,7 +430,7 @@ class BurnBook:
             if on_done:
                 on_done(job)
         except Exception as exc:  # noqa: BLE001
-            self._finish(job, "failed", str(exc))
+            self._finish(job, "failed", str(exc), notices_of(exc))
         finally:
             partial.unlink(missing_ok=True)
 

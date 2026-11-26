@@ -6,6 +6,7 @@ from enum import StrEnum
 from types import MappingProxyType
 
 from backend.core.languages import DEFAULT_CODE
+from backend.core.notices import Notice
 
 SCHEMA_VERSION = 1
 DEFAULT_SOURCE = "en"
@@ -122,6 +123,8 @@ class StepState:
     """The cache key of the run this state describes. `done` means the outputs match it."""
     degraded: bool = False
     """The step finished, but with output the reader should not trust as normal."""
+    error_notices: tuple[Notice, ...] = ()
+    """The notices inside `error`, so the window can word it. Empty for one saved before them."""
 
     def __post_init__(self) -> None:
         if self.updated_at_ms is not None:
