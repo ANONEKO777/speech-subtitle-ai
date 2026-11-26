@@ -5,7 +5,7 @@ import type { DownloadJob } from "./types";
 
 /** One download: name, a bar, bytes, speed, and the reason when it failed. */
 export function JobRow({ job, testId }: { job: DownloadJob; testId: string }) {
-  const { t, plural } = useT();
+  const { t, plural, locale } = useT();
   const percent = Math.round(fraction(job) * 100);
   return (
     <div className="job" data-testid={testId} data-state={job.state}>
@@ -19,10 +19,10 @@ export function JobRow({ job, testId }: { job: DownloadJob; testId: string }) {
       <div className="job-meta">
         <span data-testid={`${testId}-percent`}>{percent}%</span>
         <span>
-          {bytes(job.bytesDone)} / {bytes(job.bytesTotal)}
+          {bytes(job.bytesDone, locale)} / {bytes(job.bytesTotal, locale)}
         </span>
-        {isActive(job) && <span data-testid={`${testId}-speed`}>{speed(job.speedBps)}</span>}
-        {job.resumedFrom > 0 && <span>{t("download.resumedFrom", { size: bytes(job.resumedFrom) })}</span>}
+        {isActive(job) && <span data-testid={`${testId}-speed`}>{speed(job.speedBps, locale)}</span>}
+        {job.resumedFrom > 0 && <span>{t("download.resumedFrom", { size: bytes(job.resumedFrom, locale) })}</span>}
         {job.retries > 0 && isActive(job) && <span>{plural("download.retries", job.retries)}</span>}
       </div>
       {job.failure && (

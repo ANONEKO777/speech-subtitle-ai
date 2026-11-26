@@ -98,7 +98,7 @@ describe("first-run wizard", () => {
   it("shows the failure message of a failed download", () => {
     const failure = { kind: "network", message: "connection lost" };
     const s = run([...toDownload, { type: "started", jobIds: ["1"] }, { type: "polled", jobs: [job("1", "failed", failure)] }]);
-    expect(s).toMatchObject({ phase: "failed", error: "asset-1：connection lost" });
+    expect(s).toMatchObject({ phase: "failed", error: { assetId: "asset-1", message: "connection lost" } });
   });
 
   it("ignores jobs that belong to something else", () => {

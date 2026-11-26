@@ -1,4 +1,4 @@
-import { type Translate, tZhTW } from "../i18n";
+import type { Translate } from "../i18n";
 import type { DownloadJob, JobState } from "./types";
 
 const TERMINAL: ReadonlySet<JobState> = new Set(["done", "failed", "cancelled"]);
@@ -37,7 +37,7 @@ export function overall(jobs: readonly DownloadJob[]): { done: number; total: nu
   return { done, total, fraction: total > 0 ? done / total : 0, speedBps: jobs.reduce((n, j) => n + (isActive(j) ? j.speedBps : 0), 0) };
 }
 
-export function stateLabel(job: DownloadJob, t: Translate = tZhTW): string {
+export function stateLabel(job: DownloadJob, t: Translate): string {
   switch (job.state) {
     case "queued":
       return t("download.state.queued");

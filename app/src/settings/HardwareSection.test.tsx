@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
+import { tZhTW } from "../i18n";
 import { macView, windowsView } from "../manage/screens.fixture";
 import type { ProfileView } from "../manage/types";
 import { HardwareSection, selfTestText } from "./HardwareSection";
@@ -58,8 +59,8 @@ describe("HardwareSection on a Mac", () => {
 describe("selfTestText", () => {
   it("says GPU (Metal) for a Metal run and CPU for a CPU run", () => {
     const run = { ok: true, device: "metal", stages: [], fallback: null, seconds: 3, message: "ok" };
-    expect(selfTestText(run).title).toContain("GPU（Metal）");
-    expect(selfTestText({ ...run, device: "cpu" }).title).toContain("CPU");
+    expect(selfTestText(run, tZhTW).title).toContain("GPU（Metal）");
+    expect(selfTestText({ ...run, device: "cpu" }, tZhTW).title).toContain("CPU");
   });
 });
 

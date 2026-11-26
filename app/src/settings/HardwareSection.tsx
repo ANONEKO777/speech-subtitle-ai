@@ -1,7 +1,7 @@
 import { CircleCheck, Cloud, Cpu, LoaderCircle, MemoryStick, TriangleAlert, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Backend } from "../api/client";
-import { type Translate, tZhTW } from "../i18n";
+import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
 import { cancelDownload, chooseProfile, downloadProfileAssets, fetchLastSelfTest, fetchProfile, runSelfTest } from "../manage/api";
 import { isActive, overall } from "../manage/downloads";
@@ -14,10 +14,10 @@ import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
 
 /** The notice under a processor-only profile. A Mac has no NVIDIA card to be missing and its GPU is Metal, so it says what this profile gives up. */
-export const cpuNotice = (id: ProfileId, t: Translate = tZhTW): string =>
+export const cpuNotice = (id: ProfileId, t: Translate): string =>
   t(id === "apple-cpu" ? "hw.cpuNotice.apple" : "hw.cpuNotice.cpu", { advice: t("hw.cloudAdvice") });
 
-export function selfTestText(result: SelfTest, t: Translate = tZhTW): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
+export function selfTestText(result: SelfTest, t: Translate): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
   if (result.ok && result.fallback) return { tone: "warn", title: t("selftest.fellBack"), body: result.fallback.reason };
   if (result.ok) return { tone: "ok", title: t("selftest.passed", { device: deviceLabel(result.device, t) }), body: t("selftest.seconds", { seconds: result.seconds.toFixed(1) }) };
   return { tone: "bad", title: t("selftest.failed"), body: result.message };
@@ -64,11 +64,11 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
   );
 }
 
-function missingText(option: ProfileOption, { t, plural }: Pick<ReturnType<typeof useT>, "t" | "plural">): string {
+function missingText(option: ProfileOption, { t, plural, locale }: Pick<ReturnType<typeof useT>, "t" | "plural" | "locale">): string {
   if (option.missing.length === 0) return t("hw.optionComplete");
   const get = toDownload(option.missing);
   const build = toBuild(option.missing);
-  const download = plural("hw.optionMissing", get.length, { size: bytes(option.downloadBytes) });
+  const download = plural("hw.optionMissing", get.length, { size: bytes(option.downloadBytes, locale) });
   if (build.length === 0) return download;
   const built = t("hw.optionBuild", { n: build.length, how: localBuildText(t) });
   return get.length === 0 ? built : t("hw.optionBoth", { download, built });
@@ -82,7 +82,7 @@ interface Props {
 
 export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const texts = useT();
-  const { t, plural } = texts;
+  const { t, plural, locale } = texts;
   const [view, setView] = useState<ProfileView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [switched, setSwitched] = useState<{ readonly id: ProfileId; readonly warnings: readonly string[]; readonly jobIds: readonly string[] } | null>(null);
@@ -180,7 +180,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                 <>
                   <div>
                     <dt>{t("hw.vram")}</dt>
-                    <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
+                    <dd data-testid="hw-vram">{mib(hw.vramMib, locale)}</dd>
                   </div>
                   <div>
                     <dt>{t("hw.driver")}</dt>
@@ -190,11 +190,11 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
               )}
               <div>
                 <dt>{isMac(hw) ? t("hw.unifiedMemory") : t("hw.memory")}</dt>
-                <dd data-testid="hw-ram">{mib(hw.ramMib)}</dd>
+                <dd data-testid="hw-ram">{mib(hw.ramMib, locale)}</dd>
               </div>
               <div>
                 <dt>{t("hw.disk")}</dt>
-                <dd data-testid="hw-disk">{mib(hw.diskFreeMib)}</dd>
+                <dd data-testid="hw-disk">{mib(hw.diskFreeMib, locale)}</dd>
               </div>
             </dl>
             <p data-testid="hw-recommended">
@@ -273,13 +273,13 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                   <>
                     <p data-testid="switch-missing-title">
                       {toDownload(active.missing).length > 0
-                        ? plural("hw.missingTitle", toDownload(active.missing).length, { size: bytes(active.downloadBytes) })
+                        ? plural("hw.missingTitle", toDownload(active.missing).length, { size: bytes(active.downloadBytes, locale) })
                         : t("hw.missingBuildTitle")}
                     </p>
                     <ul className="stages" data-testid="switch-missing">
                       {active.missing.map((m) => (
                         <li key={m.id}>
-                          {t("hw.missingItem", { id: m.id, kind: m.type === "model" ? t("asset.model") : t("asset.program"), what: m.localBuild ? localBuildText(t) : bytes(m.sizeBytes) })}
+                          {t("hw.missingItem", { id: m.id, kind: m.type === "model" ? t("asset.model") : t("asset.program"), what: m.localBuild ? localBuildText(t) : bytes(m.sizeBytes, locale) })}
                         </li>
                       ))}
                     </ul>

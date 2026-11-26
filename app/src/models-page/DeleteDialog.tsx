@@ -1,10 +1,13 @@
 import { TriangleAlert, X } from "lucide-react";
 import { useReducer, useState } from "react";
 import type { Backend } from "../api/client";
+import type { Translate } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
+import type { Locale } from "../i18n/locale";
 import { deleteAsset, refusalOf } from "../manage/api";
 import { bytes } from "../manage/format";
 import type { Asset } from "../manage/types";
-import { type DeleteStep, forceReasonError, reduceDelete } from "./rules";
+import { MIN_REASON, type DeleteStep, forceReasonError, reduceDelete } from "./rules";
 
 interface Props {
   readonly backend: Backend;
@@ -13,8 +16,17 @@ interface Props {
   readonly onDeleted: () => void;
 }
 
+function confirmText(asset: Asset, t: Translate, locale: Locale): string {
+  const size = asset.sizeOnDisk !== null ? bytes(asset.sizeOnDisk, locale) : null;
+  if (size !== null && asset.path) return t("delete.confirm.sizePath", { size, path: asset.path });
+  if (size !== null) return t("delete.confirm.size", { size });
+  if (asset.path) return t("delete.confirm.path", { path: asset.path });
+  return t("delete.confirm.plain");
+}
+
 /** Deletes one asset. A refusal lists its blockers, and force needs a reason of at least 8 characters. */
 export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
+  const { t, locale } = useT();
   const [state, dispatch] = useReducer(reduceDelete, { step: "confirm" } as DeleteStep);
   const [busy, setBusy] = useState(false);
 
@@ -31,27 +43,24 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
     }
   };
 
-  const reasonError = state.step === "force" ? forceReasonError(state.reason) : null;
+  const reasonError = state.step === "force" ? forceReasonError(state.reason, t) : null;
   return (
-    <div className="modal" role="dialog" aria-label={`刪除 ${asset.id}`} data-testid="delete-dialog">
+    <div className="modal" role="dialog" aria-label={t("delete.title", { id: asset.id })} data-testid="delete-dialog">
       <div className="modal-card manage-dialog">
         <div className="dialog-head">
           <TriangleAlert className="icon warn" aria-hidden />
-          <h2>刪除 {asset.id}</h2>
-          <button type="button" className="ghost icon-button" aria-label="關閉" onClick={onClose}>
+          <h2>{t("delete.title", { id: asset.id })}</h2>
+          <button type="button" className="ghost icon-button" aria-label={t("common.close")} onClick={onClose}>
             <X className="icon" aria-hidden />
           </button>
         </div>
 
         {state.step === "confirm" && (
           <>
-            <p>
-              會從磁碟移除{asset.sizeOnDisk !== null ? ` ${bytes(asset.sizeOnDisk)}` : ""}
-              {asset.path ? `（${asset.path}）` : ""}。之後可以再下載。
-            </p>
+            <p>{confirmText(asset, t, locale)}</p>
             {asset.blockers.length > 0 && (
               <p className="note warn" data-testid="delete-prewarn">
-                注意：{asset.blockers.join("；")}
+                {t("delete.warn", { blockers: asset.blockers.join(t("models.blockerSeparator")) })}
               </p>
             )}
           </>
@@ -70,9 +79,9 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
               </ul>
             )}
             {state.refusal.canForce ? (
-              <p className="muted">仍要刪除的話，可以強制刪除。強制刪除要寫下原因，原因會記在日誌。</p>
+              <p className="muted">{t("delete.canForce")}</p>
             ) : (
-              <p className="muted">這個項目現在不能刪除。</p>
+              <p className="muted">{t("delete.cannot")}</p>
             )}
           </div>
         )}
@@ -88,14 +97,14 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
               </ul>
             )}
             <label className="field-label" htmlFor="force-reason">
-              強制刪除的原因（至少 8 個字）
+              {t("delete.reasonLabel", { min: MIN_REASON })}
             </label>
             <input
               id="force-reason"
               className="text-input"
               data-testid="force-reason"
               value={state.reason}
-              placeholder="例如：要換成新版重新下載"
+              placeholder={t("delete.reasonPlaceholder")}
               onChange={(e) => dispatch({ type: "reason", text: e.target.value })}
               autoFocus
             />
@@ -115,16 +124,16 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
 
         <div className="dialog-buttons">
           <button type="button" className="ghost" data-testid="delete-cancel" onClick={onClose}>
-            {state.step === "failed" ? "關閉" : "取消"}
+            {state.step === "failed" ? t("common.close") : t("common.cancel")}
           </button>
           {state.step === "confirm" && (
             <button type="button" className="danger" data-testid="delete-confirm" disabled={busy} onClick={() => void run()}>
-              刪除
+              {t("models.action.delete")}
             </button>
           )}
           {state.step === "refused" && state.refusal.canForce && (
             <button type="button" className="danger" data-testid="delete-want-force" onClick={() => dispatch({ type: "wantForce" })}>
-              強制刪除…
+              {t("delete.forceAsk")}
             </button>
           )}
           {state.step === "force" && (
@@ -135,7 +144,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
               disabled={busy || reasonError !== null}
               onClick={() => void run(state.reason)}
             >
-              強制刪除
+              {t("delete.force")}
             </button>
           )}
         </div>

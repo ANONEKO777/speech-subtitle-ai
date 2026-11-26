@@ -4,8 +4,10 @@ import { hardware } from "./hardware";
 import { importer } from "./importer";
 import { licenses } from "./licenses";
 import { llm } from "./llm";
+import { models } from "./models";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { update } from "./update";
+import { wizard } from "./wizard";
 
-export const ja = { ...errors, ...hardware, ...importer, ...licenses, ...llm, ...settings, ...shell, ...update } satisfies Record<Key, string>;
+export const ja = { ...errors, ...hardware, ...importer, ...licenses, ...llm, ...models, ...settings, ...shell, ...update, ...wizard } satisfies Record<Key, string>;

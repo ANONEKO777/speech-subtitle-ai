@@ -1,6 +1,7 @@
 import { CircleAlert, Download, HardDriveDownload, RefreshCw, RotateCcw, ShieldCheck, Trash2, Wrench, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Backend, ApiError } from "../api/client";
+import { useT } from "../i18n/I18nProvider";
 import {
   cancelDownload,
   checkUpdates,
@@ -14,7 +15,7 @@ import {
 } from "../manage/api";
 import { fraction, isActive, stateLabel } from "../manage/downloads";
 import { bytes, shortVersion, speed } from "../manage/format";
-import { LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT, LOCAL_BUILD_ELSEWHERE_TEXT, LOCAL_BUILD_NO_UPDATE_TEXT, LOCAL_BUILD_TEXT } from "../manage/localBuild";
+import { localBuildElsewhereNoUpdateText, localBuildElsewhereText, localBuildNoUpdateText, localBuildText } from "../manage/localBuild";
 import type { Downloads } from "../manage/useDownloads";
 import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/types";
 import { DeleteDialog } from "./DeleteDialog";
@@ -24,17 +25,6 @@ interface Note {
   readonly text: string;
   readonly bad: boolean;
 }
-
-const ACTION_TEXT: Record<RowAction, string> = {
-  download: "下載",
-  resume: "續傳",
-  verify: "驗證",
-  repair: "修復",
-  redownload: "重新下載",
-  update: "更新",
-  delete: "刪除",
-  cancel: "取消下載",
-};
 
 const ACTION_ICON: Record<RowAction, typeof Download> = {
   download: Download,
@@ -48,6 +38,7 @@ const ACTION_ICON: Record<RowAction, typeof Download> = {
 };
 
 export function ModelsSection({ backend, downloads }: { backend: Backend; downloads: Downloads }) {
+  const { t, plural, locale } = useT();
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<ReadonlyMap<string, string>>(new Map());
@@ -95,7 +86,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       return;
     }
     setNote(asset.id, null);
-    setWorking(asset.id, `${ACTION_TEXT[action]}中…`);
+    setWorking(asset.id, t(`models.working.${action}`));
     try {
       switch (action) {
         case "download":
@@ -114,12 +105,12 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
         case "verify": {
           await verifyAsset(backend, asset.id);
           const fresh = (await fetchInventory(backend)).assets.find((a) => a.id === asset.id);
-          setNote(asset.id, { text: fresh?.shaState === "verified" ? "SHA256 相符，檔案完整" : "SHA256 不符，請按「修復」", bad: fresh?.shaState !== "verified" });
+          setNote(asset.id, { text: fresh?.shaState === "verified" ? t("models.verify.ok") : t("models.verify.bad", { repair: t("models.action.repair") }), bad: fresh?.shaState !== "verified" });
           break;
         }
         case "repair": {
           const r = await repairAsset(backend, asset.id);
-          setNote(asset.id, { text: `修復：${r.action}${r.reason ? `（${r.reason}）` : ""}`, bad: false });
+          setNote(asset.id, { text: r.reason ? t("models.repaired.reason", { action: r.action, reason: r.reason }) : t("models.repaired", { action: r.action }), bad: false });
           break;
         }
       }
@@ -127,7 +118,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       await reload();
     } catch (e) {
       const r = refusalOf(e);
-      setNote(asset.id, { text: [r.message, ...r.blockers].join("；"), bad: true });
+      setNote(asset.id, { text: [r.message, ...r.blockers].join(t("models.blockerSeparator")), bad: true });
     } finally {
       setWorking(asset.id, null);
     }
@@ -153,16 +144,15 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
     <section className="panel" data-testid="models-section" aria-labelledby="models-title">
       <div className="panel-head">
         <div>
-          <h2 id="models-title">模型與執行環境</h2>
+          <h2 id="models-title">{t("models.title")}</h2>
           <p className="muted" data-testid="inv-summary">
-            {inventory ? `已安裝 ${installed.length} 項，共 ${bytes(inventory.installedBytes)}。` : "正在讀取…"}
-            模型和執行檔另外下載，可以在這裡刪除、驗證、修復或重新下載。
+            {inventory ? plural("models.summary", installed.length, { size: bytes(inventory.installedBytes, locale) }) : t("models.summary.loading")}
           </p>
         </div>
         <div className="panel-actions">
           <button type="button" data-testid="check-updates" disabled={checking} onClick={() => void check()}>
             <RefreshCw className={checking ? "icon spin" : "icon"} aria-hidden />
-            檢查更新
+            {t("models.checkUpdates")}
           </button>
         </div>
       </div>
@@ -184,13 +174,13 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
           <table className="inv" data-testid="inv-table">
             <thead>
               <tr>
-                <th>名稱</th>
-                <th>狀態</th>
-                <th>版本</th>
-                <th>大小</th>
-                <th>使用於</th>
-                <th>相依</th>
-                <th>操作</th>
+                <th>{t("models.col.name")}</th>
+                <th>{t("models.col.status")}</th>
+                <th>{t("models.col.version")}</th>
+                <th>{t("models.col.size")}</th>
+                <th>{t("models.col.usedBy")}</th>
+                <th>{t("models.col.neededBy")}</th>
+                <th>{t("models.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -206,11 +196,11 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                     <td className="name-cell">
                       <span className="asset-id">{asset.id}</span>
                       <span className="sub">
-                        {asset.type === "model" ? "模型" : "執行檔"} · {asset.kind} · {asset.license}
+                        {asset.type === "model" ? t("asset.model") : t("asset.program")} · {asset.kind} · {asset.license}
                       </span>
                       {asset.localBuild && asset.state === "not_installed" && (
                         <span className="sub" data-testid={`inv-${asset.id}-build`}>
-                          {LOCAL_BUILD_TEXT}
+                          {localBuildText(t)}
                         </span>
                       )}
                       {asset.path && asset.state !== "not_installed" && (
@@ -220,16 +210,16 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       )}
                       {asset.foundOutsideRuntimes && (
                         <span className="sub" data-testid={`inv-${asset.id}-elsewhere`}>
-                          {LOCAL_BUILD_ELSEWHERE_TEXT}
+                          {localBuildElsewhereText(t)}
                         </span>
                       )}
                     </td>
                     <td>
                       <span className="chip-state" data-state={asset.state} data-testid={`inv-${asset.id}-state`}>
-                        {stateText(asset)}
+                        {stateText(asset, t)}
                       </span>
                       <span className="sub" data-testid={`inv-${asset.id}-sha`}>
-                        {shaText(asset)}
+                        {shaText(asset, t)}
                       </span>
                       {live && (
                         <div className="inline-job" data-testid={`inv-${asset.id}-job`}>
@@ -237,36 +227,36 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                             <span style={{ width: `${Math.round(fraction(live) * 100)}%` }} />
                           </div>
                           <span className="sub" data-testid={`inv-${asset.id}-progress`}>
-                            {stateLabel(live)} {Math.round(fraction(live) * 100)}% · {bytes(live.bytesDone)} / {bytes(live.bytesTotal)} ·{" "}
-                            {speed(live.speedBps)}
+                            {stateLabel(live, t)} {Math.round(fraction(live) * 100)}% · {bytes(live.bytesDone, locale)} / {bytes(live.bytesTotal, locale)} ·{" "}
+                            {speed(live.speedBps, locale)}
                           </span>
                         </div>
                       )}
                     </td>
                     <td>
                       <span data-testid={`inv-${asset.id}-version`} title={asset.installedVersion ?? undefined}>
-                        {asset.installedVersion ? shortVersion(asset.installedVersion) : asset.state === "installed" ? "未記錄" : "—"}
+                        {asset.installedVersion ? shortVersion(asset.installedVersion) : asset.state === "installed" ? t("models.versionUnrecorded") : "—"}
                       </span>
                       <span className="sub" title={asset.version}>
-                        登錄版本 {shortVersion(asset.version)}
+                        {t("models.registryVersion", { version: shortVersion(asset.version) })}
                       </span>
                       {update && update.status !== "not_installed" && (
                         <span className={`sub ${update.status === "update_available" ? "ok" : ""}`} data-testid={`inv-${asset.id}-update`} title={update.message}>
                           {asset.localBuild
                             ? asset.foundOutsideRuntimes
-                              ? LOCAL_BUILD_ELSEWHERE_NO_UPDATE_TEXT
-                              : LOCAL_BUILD_NO_UPDATE_TEXT
+                              ? localBuildElsewhereNoUpdateText(t)
+                              : localBuildNoUpdateText(t)
                             : update.status === "update_available"
                               ? update.installable
-                                ? "有新版"
-                                : "有新版（需更新 App）"
-                              : "已是最新"}
+                                ? t("models.update.available")
+                                : t("models.update.needsApp")
+                              : t("models.update.current")}
                         </span>
                       )}
                     </td>
                     <td>
-                      <span>{asset.localBuild && asset.sizeOnDisk === null ? "—" : bytes(asset.sizeOnDisk ?? asset.sizeBytes)}</span>
-                      {asset.sizeOnDisk === null && !asset.localBuild && <span className="sub">下載大小</span>}
+                      <span>{asset.localBuild && asset.sizeOnDisk === null ? "—" : bytes(asset.sizeOnDisk ?? asset.sizeBytes, locale)}</span>
+                      {asset.sizeOnDisk === null && !asset.localBuild && <span className="sub">{t("models.downloadSize")}</span>}
                     </td>
                     <td>
                       <span className="chips">
@@ -279,7 +269,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       </span>
                       {asset.inActiveProfile && (
                         <span className="sub ok" data-testid={`inv-${asset.id}-active`}>
-                          目前使用
+                          {t("models.inActiveProfile")}
                         </span>
                       )}
                     </td>
@@ -287,8 +277,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       {asset.dependents.length === 0 && <span className="sub">—</span>}
                       {asset.dependents.map((d) => (
                         <span key={d.id} className="sub dep" data-installed={d.installed}>
-                          {d.id}
-                          {d.installed ? "（已安裝）" : ""}
+                          {d.installed ? t("models.dep.installed", { id: d.id }) : d.id}
                         </span>
                       ))}
                     </td>
@@ -306,7 +295,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                               onClick={() => void act(asset, action, job)}
                             >
                               <Icon className="icon" aria-hidden />
-                              {ACTION_TEXT[action]}
+                              {t(`models.action.${action}`)}
                             </button>
                           );
                         })}

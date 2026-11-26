@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Asset, DownloadJob } from "../manage/types";
+import { tZhTW } from "../i18n";
 import { forceReasonError, reduceDelete, rowActions, shaText } from "./rules";
 
 const asset = (over: Partial<Asset> = {}): Asset => ({
@@ -79,8 +80,8 @@ describe("delete flow", () => {
     s = reduceDelete(s, { type: "wantForce" });
     s = reduceDelete(s, { type: "reason", text: "short" });
     expect(s).toEqual({ step: "force", refusal, reason: "short" });
-    expect(forceReasonError("short")).not.toBeNull();
-    expect(forceReasonError("  reinstalling it  ")).toBeNull();
+    expect(forceReasonError("short", tZhTW)).not.toBeNull();
+    expect(forceReasonError("  reinstalling it  ", tZhTW)).toBeNull();
   });
 
   it("offers no force when the backend does not", () => {
@@ -94,7 +95,7 @@ describe("delete flow", () => {
 
 describe("sha text", () => {
   it("says a runtime was verified at install", () => {
-    expect(shaText(asset({ type: "runtime", shaScope: "archive_at_install" }))).toBe("安裝時已驗證");
-    expect(shaText(asset({ shaState: "corrupt" }))).toBe("SHA256 不符");
+    expect(shaText(asset({ type: "runtime", shaScope: "archive_at_install" }), tZhTW)).toBe("安裝時已驗證");
+    expect(shaText(asset({ shaState: "corrupt" }), tZhTW)).toBe("SHA256 不符");
   });
 });
