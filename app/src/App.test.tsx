@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_BATCH, type Batch, type BatchItem } from "./batch/model";
-import { EXPERIMENTAL_HINT } from "./api/targets";
+import { tZhTW } from "./i18n";
 
 const backend = { port: 1, token: "t" };
 let batch: Batch = EMPTY_BATCH;
@@ -126,7 +126,7 @@ describe("the home toolbar", () => {
     await waitFor(() => expect(screen.getByTestId("target-lang").tagName).toBe("SELECT"));
     expect(screen.queryByTestId("target-hint")).toBeNull();
     pick("target-lang", "ko");
-    expect((await screen.findByTestId("target-hint")).textContent).toBe(EXPERIMENTAL_HINT);
+    expect((await screen.findByTestId("target-hint")).textContent).toBe(tZhTW("targets.experimentalHint"));
     pick("target-lang", "en");
     await waitFor(() => expect(screen.queryByTestId("target-hint")).toBeNull());
   });

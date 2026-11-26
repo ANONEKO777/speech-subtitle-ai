@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type LanguageInfo } from "./client";
-import { EXPERIMENTAL_HINT, isExperimentalTarget, parseSourceTargets, targetFor, targetLanguage, targetsFor, targetsOf } from "./targets";
+import { tZhTW } from "../i18n";
+import { isExperimentalTarget, parseSourceTargets, targetFor, targetLanguage, targetsFor, targetsOf } from "./targets";
 
 const sources = [
   {
@@ -79,7 +80,7 @@ describe("the language wanted", () => {
 
 describe("the hint of an experimental language", () => {
   it("says the quality is not judged and what the person will see", () => {
-    expect(EXPERIMENTAL_HINT).toContain("實驗性");
-    expect(EXPERIMENTAL_HINT).toContain("英文");
+    expect(tZhTW("targets.experimentalHint")).toContain("實驗性");
+    expect(tZhTW("targets.experimentalHint")).toContain("英文");
   });
 });
