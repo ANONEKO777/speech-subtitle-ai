@@ -297,7 +297,7 @@ def test_timeout_kills_the_child_and_says_so(
     pidfile = tmp_path / "pid.txt"
     real_popen = subprocess.Popen
 
-    def popen_a_started_child(command: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+    def popen_a_started_child(command: list[str], **kwargs: Any) -> subprocess.Popen[Any]:
         # The engine's clock starts after Popen returns. Waiting here keeps the fake child's
         # interpreter startup out of the 0.5 s, so the pid file is there when the kill comes.
         proc = real_popen(command, **kwargs)
