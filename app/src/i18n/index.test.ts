@@ -47,6 +47,16 @@ describe("the catalogs", () => {
     for (const key of keys) expect(CATALOGS[locale][key].trim(), `${locale} ${key}`).not.toBe("");
   });
 
+  it.each(LOCALES)("%s has a .one and an .other for every plural key, with the same placeholders", (locale) => {
+    const bases = keys.filter((k) => k.endsWith(".other")).map((k) => k.slice(0, -".other".length));
+    expect(bases.length).toBeGreaterThan(0);
+    for (const base of bases) {
+      const text = CATALOGS[locale] as Readonly<Record<string, string>>;
+      expect(text[`${base}.one`], `${locale} ${base}.one`).toBeDefined();
+      expect(placeholders(text[`${base}.one`] ?? ""), `${locale} ${base}`).toEqual(placeholders(text[`${base}.other`] ?? ""));
+    }
+  });
+
   it.each(LOCALES)("%s uses the same placeholders as English for every key", (locale) => {
     for (const key of keys) expect(placeholders(CATALOGS[locale][key]), `${locale} ${key}`).toEqual(placeholders(CATALOGS.en[key]));
   });

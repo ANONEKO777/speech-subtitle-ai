@@ -1,5 +1,6 @@
 import { CircleAlert, Keyboard, X } from "lucide-react";
 import type { BurnView } from "../api/library";
+import { useT } from "../i18n/I18nProvider";
 import { SHORTCUTS } from "./shortcuts";
 import type { ToastData } from "./useToast";
 
@@ -38,6 +39,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export function Toast({ toast, onClose }: { toast: ToastData | null; onClose: () => void }) {
+  const { t } = useT();
   if (!toast) return null;
   return (
     <div className="toast" role="status" data-testid="toast" data-error={toast.error === true}>
@@ -58,7 +60,7 @@ export function Toast({ toast, onClose }: { toast: ToastData | null; onClose: ()
           {toast.action.label}
         </button>
       )}
-      <button type="button" className="ghost icon-button" aria-label="關閉" onClick={onClose}>
+      <button type="button" className="ghost icon-button" aria-label={t("common.close")} onClick={onClose}>
         <X className="icon" aria-hidden />
       </button>
     </div>

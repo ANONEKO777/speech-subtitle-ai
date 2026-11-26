@@ -1,3 +1,4 @@
+import { type Translate, tZhTW } from "../i18n";
 import { type Backend, asRecord, base } from "./client";
 import { MIXED, type SourceLang, type Unavailable, parseSourceLang, sourceLabel } from "./sourceLang";
 
@@ -63,17 +64,14 @@ export async function detectLanguage(b: Backend, videoPath: string, signal: Abor
 const percent = (value: number): string => `${Math.round(value * 100)}%`;
 
 /** The one line under the toolbar: what was heard, and how sure that is. Null when nothing was heard. */
-export function detectLine(d: Detection): string | null {
+export function detectLine(d: Detection, t: Translate = tZhTW): string | null {
   if (d.detected === null || d.suggested === null) return null;
   if (d.detected === MIXED) {
-    const mix = `日文 ${percent(d.ja)}、英文 ${percent(d.en)}`;
-    return d.mixedUnavailable === null
-      ? `偵測到：日文與英文混合（${mix}）`
-      : `偵測到：日文與英文混合（${mix}）。這台電腦無法處理混合語言，先選${sourceLabel(d.suggested)}，另一種語言的部分可能翻不好`;
+    const mix = t("detect.mix", { ja: percent(d.ja), en: percent(d.en) });
+    return d.mixedUnavailable === null ? t("detect.mixed", { mix }) : t("detect.mixedCannot", { mix, source: sourceLabel(d.suggested, t) });
   }
-  return d.sure
-    ? `偵測到：${sourceLabel(d.detected)}（信心 ${percent(d.confidence)}）`
-    : `可能是${sourceLabel(d.detected)}（信心 ${percent(d.confidence)}），請確認影片語言`;
+  const params = { source: sourceLabel(d.detected, t), percent: percent(d.confidence) };
+  return d.sure ? t("detect.sure", params) : t("detect.unsure", params);
 }
 
 /** The language to put in the picker for a guess, or null to leave it alone: the person already chose, the guess is not clear, or this machine cannot process it. */
@@ -92,19 +90,15 @@ export interface Hint {
  * when they agree, the guess is not clear, or the guess is a language the mixed choice already
  * covers: the person who picked mixed knows the talk has a stretch in each.
  */
-export function hintFor(d: Detection, picked: SourceLang, unavailable: Unavailable): Hint | null {
+export function hintFor(d: Detection, picked: SourceLang, unavailable: Unavailable, t: Translate = tZhTW): Hint | null {
   if (!d.sure || d.suggested === null || d.suggested === picked || unavailable[d.suggested] !== undefined) return null;
   if (picked === MIXED) return null;
-  const choice = sourceLabel(picked);
+  const choice = sourceLabel(picked, t);
   if (d.suggested === MIXED) {
-    return { text: `這部影片聽起來日文與英文都有，目前選的是${choice}，另一種語言會被當成${choice}處理`, switchTo: MIXED };
+    return { text: t("detect.hintBoth", { choice }), switchTo: MIXED };
   }
-  const heard = sourceLabel(d.suggested);
-  const text =
-    d.detected === MIXED
-      ? `這部影片大部分是${heard}，目前選的是${choice}`
-      : `這部影片聽起來是${heard}，目前選的是${choice}`;
-  return { text, switchTo: d.suggested };
+  const heard = sourceLabel(d.suggested, t);
+  return { text: t(d.detected === MIXED ? "detect.hintMostly" : "detect.hintSounds", { heard, choice }), switchTo: d.suggested };
 }
 
-export const switchLabel = (code: SourceLang): string => `改成${sourceLabel(code)}`;
+export const switchLabel = (code: SourceLang, t: Translate = tZhTW): string => t("detect.switch", { source: sourceLabel(code, t) });

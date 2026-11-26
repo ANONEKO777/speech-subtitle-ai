@@ -92,3 +92,19 @@ describe("I18nProvider", () => {
     expect(document.documentElement.lang).toBe("en");
   });
 });
+
+describe("useT", () => {
+  it("is checked by the compiler like t: a key with a placeholder needs its params, and a plural base is not a key", () => {
+    const neverCalled = () => {
+      const { t, plural } = useT();
+      // @ts-expect-error a key with a placeholder needs its params
+      t("language.machine");
+      // @ts-expect-error a plural base is not a key
+      t("queue.added");
+      // @ts-expect-error a key that is not a plural base
+      plural("language.title", 1);
+      return [t("queue.view"), plural("queue.added", 2), plural("hw.optionMissing", 2, { size: "1 GB" })];
+    };
+    expect(neverCalled).toBeTypeOf("function");
+  });
+});

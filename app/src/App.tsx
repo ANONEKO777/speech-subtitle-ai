@@ -31,6 +31,7 @@ import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
 import { shortName } from "./export/exports";
+import { useT } from "./i18n/I18nProvider";
 import { ImportPanel } from "./import/ImportPanel";
 import { SourceBar } from "./import/SourceBar";
 import { useDetections, useSettledPath } from "./import/useDetections";
@@ -80,12 +81,9 @@ type Screen =
       readonly notice: string | null;
     };
 
-const editsNotice = ({ kept, unmatched }: EditsReport): string | null => {
-  const parts = [
-    kept > 0 ? `重新翻譯後已保留 ${kept} 條手動修改` : "",
-    unmatched > 0 ? `${unmatched} 條修改因原文已變而沒有套用，仍存在專案資料夾的 edits 檔` : "",
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join("；") : null;
+const editsNotice = ({ kept, unmatched }: EditsReport, { t, plural }: Pick<ReturnType<typeof useT>, "t" | "plural">): string | null => {
+  const parts = [kept > 0 ? plural("edits.kept", kept) : "", unmatched > 0 ? plural("edits.unmatched", unmatched) : ""].filter(Boolean);
+  return parts.length > 0 ? parts.join(t("edits.join")) : null;
 };
 
 const playingName = (screen: Extract<Screen, { kind: "playing" }>) =>
@@ -108,12 +106,13 @@ function Importing({
   onDone: (edits: EditsReport) => void;
   onStop: (error?: string) => void;
 }) {
+  const { t } = useT();
   const view = useJob(backend, screen.jobId);
   useEffect(() => {
     if (view.kind === "done") onDone(view.edits);
-    if (view.kind === "failed") onStop(`處理失敗：${view.error}`);
+    if (view.kind === "failed") onStop(t("app.processingFailed", { reason: view.disconnected ? t("errors.backendLost") : view.error }));
     if (view.kind === "cancelled") onStop();
-  }, [view, onDone, onStop]);
+  }, [view, onDone, onStop, t]);
   return (
     <section className="importing" data-testid="importing">
       <div className="card importing-card">
@@ -122,7 +121,7 @@ function Importing({
             <Film aria-hidden />
           </span>
           <div className="importing-title">
-            <span className="eyebrow">正在處理</span>
+            <span className="eyebrow">{t("app.processing")}</span>
             <h2>{fileName(screen.videoPath)}</h2>
             <span className="path">{screen.videoPath}</span>
           </div>
@@ -130,7 +129,7 @@ function Importing({
         <ProgressBar view={view} target={targetLabel} addsTarget={screen.addsTarget} />
         <button type="button" className="ghost" onClick={() => void cancelJob(backend, screen.jobId)}>
           <X className="icon" aria-hidden />
-          取消
+          {t("common.cancel")}
         </button>
       </div>
     </section>
@@ -138,6 +137,8 @@ function Importing({
 }
 
 export function App() {
+  const texts = useT();
+  const { t, plural } = texts;
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
@@ -226,10 +227,10 @@ export function App() {
         const loaded = await load(backend, screen.projectId, code);
         setScreen({ ...screen, lang: code, loaded, notice: null });
       } catch (e) {
-        setScreen({ ...screen, notice: `無法切換語言：${message(e)}` });
+        setScreen({ ...screen, notice: t("app.switchLanguageFailed", { reason: message(e) }) });
       }
     },
-    [backend, screen, load],
+    [backend, screen, load, t],
   );
 
   const startImport = useCallback(
@@ -242,30 +243,30 @@ export function App() {
         const plan = planImport(project, chosen, wanted, languageSet);
         if (plan.kind === "play") {
           const differs = chosen !== null && chosen !== project.sourceLang;
-          const notice = differs ? `這部影片先前以${sourceLabel(project.sourceLang)}處理，已直接播放` : null;
+          const notice = differs ? t("app.playedDirectly", { source: sourceLabel(project.sourceLang, t) }) : null;
           await show(backend, videoPath, project.id, notice, prefer ?? plan.prefer);
           return;
         }
-        const jobId = project.activeJob ?? (await startJob(backend, project.id, plan.source, plan.target));
+        const jobId = project.activeJob ?? (await startJob(backend, project.id, plan.source, plan.target, t));
         setScreen({ kind: "importing", videoPath, projectId: project.id, jobId, target: plan.target, addsTarget: plan.addsTarget });
       } catch (e) {
         setScreen({ kind: "idle", error: e instanceof ApiError ? e.message : message(e) });
       }
     },
-    [backend, show, languageSet],
+    [backend, show, languageSet, t],
   );
 
   const addTarget = useCallback(
     async (code: string) => {
       if (!backend || screen.kind !== "playing") return;
       try {
-        const jobId = await startJob(backend, screen.projectId, screen.sourceLang, code);
+        const jobId = await startJob(backend, screen.projectId, screen.sourceLang, code, t);
         setScreen({ kind: "importing", videoPath: screen.videoPath, projectId: screen.projectId, jobId, target: code, addsTarget: true });
       } catch (e) {
-        setScreen({ ...screen, notice: `無法新增字幕語言：${e instanceof ApiError ? e.message : message(e)}` });
+        setScreen({ ...screen, notice: t("app.addTargetFailed", { reason: e instanceof ApiError ? e.message : message(e) }) });
       }
     },
-    [backend, screen],
+    [backend, screen, t],
   );
 
   const chooseSource = useCallback((code: SourceLang) => {
@@ -287,7 +288,7 @@ export function App() {
   useEffect(() => {
     if (!backend || screenKind === "importing") return;
     let alive = true;
-    void Promise.all([fetchLibrary(backend), fetchLanguageSet(backend)]).then(
+    void Promise.all([fetchLibrary(backend), fetchLanguageSet(backend, t)]).then(
       ([items, set]) => {
         if (!alive) return;
         setLibrary(items);
@@ -301,7 +302,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [backend, screenKind, playingId]);
+  }, [backend, screenKind, playingId, t]);
 
   useDrops(
     backend !== null,
@@ -341,7 +342,7 @@ export function App() {
   const playingScreen = screen.kind === "playing" ? screen : null;
   const addBlocked =
     playingScreen && batch.items.some((i) => i.projectId === playingScreen.projectId && i.state === "running")
-      ? "這部影片正在處理中，等它完成後才能新增字幕語言"
+      ? t("app.addTargetBlocked")
       : null;
   const experimental = new Set(
     playingScreen?.languages.filter((l) => isExperimentalTarget(languageSet, playingScreen.sourceLang, l.code)).map((l) => l.code),
@@ -375,21 +376,25 @@ export function App() {
     seenFinished.current = finishedN;
     const c = batch.finished?.counts;
     if (!c) return;
-    const text = `佇列已全部處理完：${c.done} 項完成${c.failed > 0 ? `，${c.failed} 項失敗` : ""}${c.cancelled > 0 ? `，${c.cancelled} 項取消` : ""}`;
-    showToast({ text, action: { label: "查看佇列", run: showQueue } });
-    void notifyWindows("字幕翻譯：佇列完成", text);
-  }, [finishedN, batch.finished, showToast, showQueue]);
+    const text = [
+      t("queue.finished", { done: c.done }),
+      c.failed > 0 ? t("queue.finishedFailed", { n: c.failed }) : "",
+      c.cancelled > 0 ? t("queue.finishedCancelled", { n: c.cancelled }) : "",
+    ].join("");
+    showToast({ text, action: { label: t("queue.view"), run: showQueue } });
+    void notifyWindows(t("queue.notifyTitle"), text);
+  }, [finishedN, batch.finished, showToast, showQueue, t]);
 
   const importing = screen.kind === "importing" ? screen : null;
   const finishImport = useCallback(
     (edits: EditsReport) => {
       if (backend && importing) {
-        show(backend, importing.videoPath, importing.projectId, editsNotice(edits), importing.target).catch((e: unknown) =>
+        show(backend, importing.videoPath, importing.projectId, editsNotice(edits, texts), importing.target).catch((e: unknown) =>
           setScreen({ kind: "idle", error: message(e) }),
         );
       }
     },
-    [backend, importing, show],
+    [backend, importing, show, texts],
   );
   const stopImport = useCallback((error?: string) => setScreen({ kind: "idle", ...(error ? { error } : {}) }), []);
 
@@ -414,8 +419,8 @@ export function App() {
                   type="button"
                   className="ghost icon-only"
                   data-testid="home"
-                  title="回到媒體庫"
-                  aria-label="媒體庫"
+                  title={t("app.libraryTitle")}
+                  aria-label={t("app.library")}
                   onClick={() => setScreen({ kind: "idle" })}
                   disabled={screen.kind === "importing"}
                 >
@@ -425,8 +430,8 @@ export function App() {
               <button
                 type="button"
                 className="icon-only"
-                title="批次加入：一次加入多個影片或資料夾"
-                aria-label="批次加入"
+                title={t("app.batchTitle")}
+                aria-label={t("app.batch")}
                 data-testid="batch-open-add"
                 onClick={() => setAdding([])}
               >
@@ -438,8 +443,8 @@ export function App() {
                   className="icon-only queue-chip"
                   data-testid="queue-chip"
                   data-active={total.active}
-                  title={total.etaS !== null ? `佇列 ${badge}：剩餘${formatEta(total.etaS)}` : `佇列 ${badge}`}
-                  aria-label={`佇列 ${badge}`}
+                  title={total.etaS !== null ? t("app.queueEta", { badge, eta: formatEta(total.etaS, t) }) : t("app.queue", { badge })}
+                  aria-label={t("app.queue", { badge })}
                   onClick={showQueue}
                 >
                   <Layers className="icon" aria-hidden />
@@ -453,8 +458,8 @@ export function App() {
                 type="button"
                 className="ghost icon-only"
                 data-testid="settings-open"
-                title="設定：模型、硬體、LLM 來源、授權"
-                aria-label="設定"
+                title={t("app.settingsTitle")}
+                aria-label={t("app.settings")}
                 aria-pressed={screen.kind === "settings"}
                 disabled={screen.kind === "importing"}
                 onClick={() => setScreen(screen.kind === "settings" ? { kind: "idle" } : { kind: "settings" })}
@@ -493,7 +498,7 @@ export function App() {
         {status.kind === "starting" && (
           <div className="empty" data-testid="starting">
             <LoaderCircle className="spin" aria-hidden />
-            <p>正在啟動後端…</p>
+            <p>{t("app.starting")}</p>
           </div>
         )}
         {status.kind === "failed" && (
@@ -504,7 +509,7 @@ export function App() {
         {backend && firstRun === "checking" && (
           <div className="empty" data-testid="checking">
             <LoaderCircle className="spin" aria-hidden />
-            <p>正在檢查模型…</p>
+            <p>{t("app.checkingModels")}</p>
           </div>
         )}
         {backend && screen.kind === "settings" && <SettingsPage backend={backend} />}
@@ -514,11 +519,11 @@ export function App() {
               <span className="empty-mark">
                 <Captions aria-hidden />
               </span>
-              <h1>匯入一部演講影片</h1>
-              <p>貼上影片路徑、按「選擇檔案」，或把檔案拖到視窗上，再按「匯入」。</p>
+              <h1>{t("app.importHeading")}</h1>
+              <p>{t("app.importHint")}</p>
               <span className="status-pill">
                 <span className="dot" />
-                後端已就緒
+                {t("app.ready")}
               </span>
             </div>
             <div className="home-batch">{batchView}</div>
@@ -577,7 +582,7 @@ export function App() {
           languages={languageSet}
           initial={adding}
           onClose={() => setAdding(null)}
-          onAdded={(n) => n > 0 && showToast({ text: `已加入 ${n} 項到佇列`, action: { label: "查看佇列", run: showQueue } })}
+          onAdded={(n) => n > 0 && showToast({ text: plural("queue.added", n), action: { label: t("queue.view"), run: showQueue } })}
         />
       )}
       {batch.countdown && backend && <CountdownModal countdown={batch.countdown} onCancel={() => void cancelPower(backend)} />}
@@ -586,7 +591,7 @@ export function App() {
       </div>
       {dropping && (
         <div className="drop-hint" data-testid="drop-hint">
-          放開滑鼠，匯入這個檔案
+          {t("app.dropHint")}
         </div>
       )}
     </div>

@@ -31,8 +31,10 @@
 
 .nav-item {
   justify-content: flex-start;
-  height: 36px;
+  height: auto;
+  min-height: 36px;
   padding: 0 var(--space-3);
+  white-space: normal;
   background: transparent;
   border-color: transparent;
   box-shadow: none;

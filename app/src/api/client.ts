@@ -1,3 +1,4 @@
+import { type Translate, tZhTW } from "../i18n";
 import type { Cue } from "../player/cues";
 import { DEFAULT_SOURCE, type SourceLang, type Unavailable, parseSourceLang, parseUnavailable } from "./sourceLang";
 import { type SourceTargets, parseSourceTargets } from "./targets";
@@ -147,7 +148,7 @@ export interface LanguageSet {
   readonly targets: SourceTargets;
 }
 
-export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
+export async function fetchLanguageSet(b: Backend, t: Translate = tZhTW): Promise<LanguageSet> {
   const body = asRecord(await call(b, "/api/languages"));
   const list = body?.["languages"];
   if (!Array.isArray(list)) throw new ApiError(500, "unexpected languages reply");
@@ -160,7 +161,7 @@ export async function fetchLanguageSet(b: Backend): Promise<LanguageSet> {
   return {
     defaultCode: typeof body?.["default"] === "string" ? body["default"] : "zh-TW",
     languages,
-    unavailable: parseUnavailable(body?.["sources"]),
+    unavailable: parseUnavailable(body?.["sources"], t),
     targets: parseSourceTargets(body?.["sources"]),
   };
 }
@@ -175,7 +176,7 @@ export async function createProject(b: Backend, videoPath: string): Promise<Proj
 }
 
 /** The backend refuses a second job on a project with "job <id> is already running", which a person should not have to read. */
-export const JOB_RUNNING = "這部影片正在處理中，請等它完成後再試。";
+export const JOB_RUNNING = tZhTW("errors.jobRunning");
 
 /** Starts the pipeline. `targetLang` is left out for the default language, as the first release asked. */
 export async function startJob(
@@ -183,11 +184,12 @@ export async function startJob(
   projectId: string,
   sourceLang: SourceLang = DEFAULT_SOURCE,
   targetLang: string | null = null,
+  t: Translate = tZhTW,
 ): Promise<string> {
   const request = { source_lang: sourceLang, ...(targetLang === null ? {} : { target_lang: targetLang }) };
   const body = asRecord(
     await call(b, `/api/projects/${projectId}/jobs`, { method: "POST", body: JSON.stringify(request) }).catch((e: unknown) => {
-      if (e instanceof ApiError && e.status === 409) throw new ApiError(409, JOB_RUNNING);
+      if (e instanceof ApiError && e.status === 409) throw new ApiError(409, t("errors.jobRunning"));
       throw e;
     }),
   );

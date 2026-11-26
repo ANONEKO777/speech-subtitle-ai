@@ -1,3 +1,4 @@
+import { type Translate, tZhTW } from "../i18n";
 import type { LlmBody } from "../manage/api";
 import type { LlmSaved, LlmSource } from "../manage/types";
 
@@ -37,38 +38,38 @@ const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 const trimmed = (url: string) => url.trim().replace(/\/+$/, "");
 
 /** An http(s) address with a host. Cloud addresses must be https unless they point at this machine. */
-function urlError(raw: string, secure: boolean): string | null {
+function urlError(raw: string, secure: boolean, t: Translate): string | null {
   const text = raw.trim();
-  if (text === "") return "請輸入網址";
+  if (text === "") return t("llm.err.urlEmpty");
   let url: URL;
   try {
     url = new URL(text);
   } catch {
-    return "網址格式不正確，例如 https://api.example.com/v1";
+    return t("llm.err.urlInvalid");
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return "網址要以 http:// 或 https:// 開頭";
-  if (secure && url.protocol !== "https:" && !LOOPBACK.has(url.hostname)) return "雲端網址必須使用 https（本機位址除外）";
+  if (url.protocol !== "http:" && url.protocol !== "https:") return t("llm.err.urlScheme");
+  if (secure && url.protocol !== "https:" && !LOOPBACK.has(url.hostname)) return t("llm.err.urlHttps");
   return null;
 }
 
-export function validateLlm(draft: LlmDraft, saved: LlmSaved): LlmCheck {
+export function validateLlm(draft: LlmDraft, saved: LlmSaved, t: Translate = tZhTW): LlmCheck {
   const errors: Partial<Record<LlmField, string>> = {};
   let canTest = true;
   if (draft.source === "ollama") {
-    const e = urlError(draft.ollamaUrl, false);
+    const e = urlError(draft.ollamaUrl, false, t);
     if (e) errors.ollamaUrl = e;
-    if (draft.ollamaModel.trim() === "") errors.ollamaModel = "請輸入 Ollama 的模型名稱，例如 qwen3:8b";
+    if (draft.ollamaModel.trim() === "") errors.ollamaModel = t("llm.err.ollamaModel");
     canTest = e === null;
   }
   if (draft.source === "cloud") {
-    const e = urlError(draft.cloudUrl, true);
+    const e = urlError(draft.cloudUrl, true, t);
     if (e) errors.cloudUrl = e;
-    if (draft.cloudModel.trim() === "") errors.cloudModel = "請輸入模型名稱";
+    if (draft.cloudModel.trim() === "") errors.cloudModel = t("llm.err.modelEmpty");
     const moved = trimmed(draft.cloudUrl) !== trimmed(saved.cloudUrl);
     if (draft.apiKey === "" && (!saved.apiKeySet || moved)) {
-      errors.apiKey = saved.apiKeySet && moved ? "網址已變更，已儲存的金鑰不會送到新網址，請重新輸入 API 金鑰" : "請輸入 API 金鑰";
+      errors.apiKey = saved.apiKeySet && moved ? t("llm.err.keyMoved") : t("llm.err.keyEmpty");
     }
-    if (!draft.consent) errors.consent = "要先勾選同意，才能儲存雲端來源";
+    if (!draft.consent) errors.consent = t("llm.err.consent");
     canTest = e === null && errors.apiKey === undefined;
   }
   const { consent, ...rest } = errors;

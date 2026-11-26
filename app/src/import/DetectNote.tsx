@@ -1,6 +1,7 @@
 import { LoaderCircle } from "lucide-react";
 import { type Detected, detectLine, hintFor, isDetection, switchLabel } from "../api/detect";
 import type { SourceLang, Unavailable } from "../api/sourceLang";
+import { useT } from "../i18n/I18nProvider";
 
 interface Props {
   readonly found: Detected | undefined;
@@ -15,18 +16,19 @@ export const hasDetectNote = (found: Detected | undefined): boolean =>
 
 /** What was heard in the picked video, and a one-click switch when the picked language differs from a clear guess. */
 export function DetectNote({ found, picked, unavailable, onSwitch }: Props) {
+  const { t } = useT();
   if (found === "running") {
     return (
       <p className="detect-note" data-testid="detect-note" data-state="running">
         <LoaderCircle className="spin icon" aria-hidden />
-        正在偵測影片語言…
+        {t("detect.running")}
       </p>
     );
   }
   if (!isDetection(found)) return null;
-  const line = detectLine(found);
+  const line = detectLine(found, t);
   if (line === null) return null;
-  const hint = hintFor(found, picked, unavailable);
+  const hint = hintFor(found, picked, unavailable, t);
   return (
     <>
       <p className="detect-note" data-testid="detect-note" data-state="done" data-detected={found.detected ?? ""}>
@@ -36,7 +38,7 @@ export function DetectNote({ found, picked, unavailable, onSwitch }: Props) {
         <p className="detect-hint" data-testid="detect-hint" role="status">
           {hint.text}
           <button type="button" data-testid="detect-switch" onClick={() => onSwitch(hint.switchTo)}>
-            {switchLabel(hint.switchTo)}
+            {switchLabel(hint.switchTo, t)}
           </button>
         </p>
       )}

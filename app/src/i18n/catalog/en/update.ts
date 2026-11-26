@@ -1,0 +1,15 @@
+export const update = {
+  "update.title": "Check for updates",
+  "update.hint": "The app only goes online to check when you press the button. Updating does not re-download your models or settings.",
+  "update.check": "Check for updates",
+  "update.checking": "Checking for updates…",
+  "update.upToDate": "You're up to date.",
+  "update.upToDateVersion": "You're up to date ({version}).",
+  "update.available": "Version {version} is available.",
+  "update.availableFrom": "Version {version} is available (you have {current}).",
+  "update.download": "Download update",
+  "update.downloading": "Downloading {version}, please wait…",
+  "update.downloaded": "{version} is downloaded and its signature is verified. The app will close and reopen to install it.",
+  "update.install": "Install and restart",
+  "update.installing": "Starting the installer…",
+} as const;

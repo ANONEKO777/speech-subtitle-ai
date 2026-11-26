@@ -1,3 +1,4 @@
+import { type Translate, tZhTW } from "../i18n";
 import type { DownloadJob, JobState } from "./types";
 
 const TERMINAL: ReadonlySet<JobState> = new Set(["done", "failed", "cancelled"]);
@@ -36,21 +37,21 @@ export function overall(jobs: readonly DownloadJob[]): { done: number; total: nu
   return { done, total, fraction: total > 0 ? done / total : 0, speedBps: jobs.reduce((n, j) => n + (isActive(j) ? j.speedBps : 0), 0) };
 }
 
-export function stateLabel(job: DownloadJob): string {
+export function stateLabel(job: DownloadJob, t: Translate = tZhTW): string {
   switch (job.state) {
     case "queued":
-      return "等待中";
+      return t("download.state.queued");
     case "downloading":
-      return job.resumedFrom > 0 ? "下載中（已續傳）" : "下載中";
+      return job.resumedFrom > 0 ? t("download.state.resumed") : t("download.state.downloading");
     case "verifying":
-      return "檢查 SHA256";
+      return t("download.state.verifying");
     case "extracting":
-      return "解壓縮";
+      return t("download.state.extracting");
     case "done":
-      return "完成";
+      return t("download.state.done");
     case "failed":
-      return "失敗";
+      return t("download.state.failed");
     case "cancelled":
-      return "已取消";
+      return t("download.state.cancelled");
   }
 }

@@ -1,42 +1,40 @@
 import { CircleCheck, Cloud, Cpu, LoaderCircle, MemoryStick, TriangleAlert, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Backend } from "../api/client";
+import { type Translate, tZhTW } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
 import { cancelDownload, chooseProfile, downloadProfileAssets, fetchLastSelfTest, fetchProfile, runSelfTest } from "../manage/api";
 import { isActive, overall } from "../manage/downloads";
 import { bytes, mib } from "../manage/format";
 import { chipOrGpu, deviceLabel, isCpuProfile, isMac } from "../manage/hardwareText";
 import { JobRow } from "../manage/JobRow";
-import { LOCAL_BUILD_TEXT, toBuild, toDownload } from "../manage/localBuild";
-import { PROFILE_BLURB, PROFILE_NAME } from "../manage/profileText";
+import { localBuildText, toBuild, toDownload } from "../manage/localBuild";
+import { profileBlurb, profileName } from "../manage/profileText";
 import type { Downloads } from "../manage/useDownloads";
 import type { ProfileId, ProfileOption, ProfileView, SelfTest } from "../manage/types";
 
-const CLOUD_ADVICE = "建議改用雲端 LLM：翻譯快、品質好，差別是影片的逐字稿與字幕內容會傳送到雲端服務，離開這台電腦。內建與 Ollama 全程在本機，不會外傳。";
-
 /** The notice under a processor-only profile. A Mac has no NVIDIA card to be missing and its GPU is Metal, so it says what this profile gives up. */
-export const cpuNotice = (id: ProfileId): string =>
-  id === "apple-cpu"
-    ? `這個設定檔只用處理器，不用 GPU（Metal），本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`
-    : `CPU 設定檔沒有 GPU 加速，本機內建的 LLM 會慢很多。${CLOUD_ADVICE}`;
+export const cpuNotice = (id: ProfileId, t: Translate = tZhTW): string =>
+  t(id === "apple-cpu" ? "hw.cpuNotice.apple" : "hw.cpuNotice.cpu", { advice: t("hw.cloudAdvice") });
 
-
-export function selfTestText(t: SelfTest): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
-  if (t.ok && t.fallback) return { tone: "warn", title: "GPU 後端失敗，已改用 CPU", body: t.fallback.reason };
-  if (t.ok) return { tone: "ok", title: `自檢通過，使用 ${deviceLabel(t.device)}`, body: `${t.seconds.toFixed(1)} 秒` };
-  return { tone: "bad", title: "自檢沒有通過", body: t.message };
+export function selfTestText(result: SelfTest, t: Translate = tZhTW): { tone: "ok" | "warn" | "bad"; title: string; body: string } {
+  if (result.ok && result.fallback) return { tone: "warn", title: t("selftest.fellBack"), body: result.fallback.reason };
+  if (result.ok) return { tone: "ok", title: t("selftest.passed", { device: deviceLabel(result.device, t) }), body: t("selftest.seconds", { seconds: result.seconds.toFixed(1) }) };
+  return { tone: "bad", title: t("selftest.failed"), body: result.message };
 }
 
 export function SelfTestPanel({ result, running }: { result: SelfTest | null; running: boolean }) {
+  const { t } = useT();
   if (running) {
     return (
       <p className="note" data-testid="selftest-running">
         <LoaderCircle className="icon spin" aria-hidden />
-        自檢中，約需 5 到 10 秒…
+        {t("selftest.running")}
       </p>
     );
   }
   if (!result) return null;
-  const text = selfTestText(result);
+  const text = selfTestText(result, t);
   return (
     <div className={`callout ${text.tone}`} data-testid="selftest-result" data-ok={result.ok} data-device={result.device} data-fallback={result.fallback !== null}>
       {text.tone === "ok" ? <CircleCheck className="icon" aria-hidden /> : <TriangleAlert className="icon" aria-hidden />}
@@ -49,8 +47,14 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
           <ul className="stages">
             {result.stages.map((s) => (
               <li key={`${s.stage}-${s.device}`} data-ok={s.ok}>
-                {s.stage === "asr" ? "語音辨識" : "LLM"} · {s.runtimeId} · {s.device} · {s.ok ? "正常" : "失敗"}（{s.seconds.toFixed(1)} 秒）
-                {s.ok ? "" : `：${s.detail}`}
+                {t("selftest.stageLine", {
+                  stage: s.stage === "asr" ? t("selftest.stage.asr") : "LLM",
+                  runtime: s.runtimeId,
+                  device: s.device,
+                  status: s.ok ? t("selftest.stage.ok") : t("selftest.stage.failed"),
+                  seconds: s.seconds.toFixed(1),
+                })}
+                {s.ok ? "" : t("selftest.stageDetail", { detail: s.detail })}
               </li>
             ))}
           </ul>
@@ -60,14 +64,14 @@ export function SelfTestPanel({ result, running }: { result: SelfTest | null; ru
   );
 }
 
-function missingText(option: ProfileOption): string {
-  if (option.missing.length === 0) return "需要的項目都已安裝";
+function missingText(option: ProfileOption, { t, plural }: Pick<ReturnType<typeof useT>, "t" | "plural">): string {
+  if (option.missing.length === 0) return t("hw.optionComplete");
   const get = toDownload(option.missing);
   const build = toBuild(option.missing);
-  const download = `缺少 ${get.length} 項，要下載 ${bytes(option.downloadBytes)}`;
+  const download = plural("hw.optionMissing", get.length, { size: bytes(option.downloadBytes) });
   if (build.length === 0) return download;
-  const built = `${build.length} 項要${LOCAL_BUILD_TEXT}`;
-  return get.length === 0 ? built : `${download}；另有 ${built}`;
+  const built = t("hw.optionBuild", { n: build.length, how: localBuildText(t) });
+  return get.length === 0 ? built : t("hw.optionBoth", { download, built });
 }
 
 interface Props {
@@ -77,6 +81,8 @@ interface Props {
 }
 
 export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
+  const texts = useT();
+  const { t, plural } = texts;
   const [view, setView] = useState<ProfileView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [switched, setSwitched] = useState<{ readonly id: ProfileId; readonly warnings: readonly string[]; readonly jobIds: readonly string[] } | null>(null);
@@ -145,13 +151,13 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const active = view?.profiles.find((p) => p.active);
   const jobs = downloads.list.filter((j) => switched?.jobIds.includes(j.id));
   const total = overall(jobs);
-  const first = hw ? chipOrGpu(hw) : null;
+  const first = hw ? chipOrGpu(hw, t) : null;
   return (
     <section className="panel" data-testid="hardware-section" aria-labelledby="hw-title">
       <div className="panel-head">
         <div>
-          <h2 id="hw-title">硬體與效能</h2>
-          <p className="muted">App 偵測這台電腦的硬體並建議設定檔。你隨時可以改選，不必重裝。</p>
+          <h2 id="hw-title">{t("hw.title")}</h2>
+          <p className="muted">{t("hw.hint")}</p>
         </div>
       </div>
 
@@ -164,7 +170,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
       {hw && view && (
         <>
           <div className="card manage-card">
-            <h3>偵測到的硬體</h3>
+            <h3>{t("hw.detected")}</h3>
             <dl className="facts">
               <div>
                 <dt>{first?.label}</dt>
@@ -173,34 +179,35 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
               {!isMac(hw) && (
                 <>
                   <div>
-                    <dt>顯示記憶體</dt>
+                    <dt>{t("hw.vram")}</dt>
                     <dd data-testid="hw-vram">{mib(hw.vramMib)}</dd>
                   </div>
                   <div>
-                    <dt>驅動程式</dt>
+                    <dt>{t("hw.driver")}</dt>
                     <dd data-testid="hw-driver">{hw.driverVersion ?? "—"}</dd>
                   </div>
                 </>
               )}
               <div>
-                <dt>{isMac(hw) ? "統一記憶體" : "記憶體"}</dt>
+                <dt>{isMac(hw) ? t("hw.unifiedMemory") : t("hw.memory")}</dt>
                 <dd data-testid="hw-ram">{mib(hw.ramMib)}</dd>
               </div>
               <div>
-                <dt>磁碟可用空間</dt>
+                <dt>{t("hw.disk")}</dt>
                 <dd data-testid="hw-disk">{mib(hw.diskFreeMib)}</dd>
               </div>
             </dl>
             <p data-testid="hw-recommended">
-              建議的設定檔：<strong>{PROFILE_NAME[view.recommended.id]}</strong>
+              {t("hw.recommended")}
+              <strong>{profileName(view.recommended.id, t)}</strong>
             </p>
             <details>
-              <summary>為什麼這樣建議</summary>
+              <summary>{t("hw.why")}</summary>
               <pre className="why">{view.recommended.why}</pre>
             </details>
           </div>
 
-          <div className="profiles" role="radiogroup" aria-label="設定檔" data-testid="profiles">
+          <div className="profiles" role="radiogroup" aria-label={t("hw.profiles")} data-testid="profiles">
             {view.profiles.map((p) => (
               <div
                 key={p.id}
@@ -213,25 +220,25 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
               >
                 <div className="profile-title">
                   {isCpuProfile(p.id) ? <Cpu className="icon" aria-hidden /> : <Zap className="icon" aria-hidden />}
-                  <strong>{PROFILE_NAME[p.id]}</strong>
+                  <strong>{profileName(p.id, t)}</strong>
                 </div>
-                <p className="sub">{PROFILE_BLURB[p.id]}</p>
+                <p className="sub">{profileBlurb(p.id, t)}</p>
                 <div className="chips">
-                  {p.active && <span className="chip-tag on">目前使用</span>}
-                  {p.recommended && <span className="chip-tag rec">建議</span>}
-                  {!p.fitsHardware && <span className="chip-tag warn">這台電腦可能不夠</span>}
+                  {p.active && <span className="chip-tag on">{t("hw.inUse")}</span>}
+                  {p.recommended && <span className="chip-tag rec">{t("hw.recommendedTag")}</span>}
+                  {!p.fitsHardware && <span className="chip-tag warn">{t("hw.mayNotFit")}</span>}
                 </div>
                 <p className="sub" data-testid={`profile-${p.id}-missing`}>
-                  {missingText(p)}
+                  {missingText(p, texts)}
                 </p>
                 {p.recommendCloud && (
                   <p className="note cloud" data-testid="cpu-cloud-note">
                     <Cloud className="icon" aria-hidden />
-                    {cpuNotice(p.id)}
+                    {cpuNotice(p.id, t)}
                   </p>
                 )}
                 <button type="button" className={p.active ? "ghost" : "primary"} data-testid={`profile-use-${p.id}`} disabled={p.active || busy} onClick={() => void choose(p.id)}>
-                  {p.active ? "使用中" : "使用這個設定檔"}
+                  {p.active ? t("hw.useActive") : t("hw.use")}
                 </button>
               </div>
             ))}
@@ -239,12 +246,12 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
 
           {view.active.source === "user" && (
             <button type="button" className="ghost link" data-testid="profile-auto" disabled={busy} onClick={() => void choose(null)}>
-              改回自動：依硬體使用建議的設定檔
+              {t("hw.auto")}
             </button>
           )}
           {active?.recommendCloud && (
             <button type="button" className="ghost link" data-testid="goto-llm" onClick={onOpenLlm}>
-              前往設定 LLM 來源（雲端）
+              {t("hw.gotoLlm")}
             </button>
           )}
 
@@ -253,7 +260,9 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
               <MemoryStick className="icon" aria-hidden />
               <div>
                 <p>
-                  已切換到 <strong>{PROFILE_NAME[switched.id]}</strong>。
+                  {t("hw.switched.pre")}
+                  <strong>{profileName(switched.id, t)}</strong>
+                  {t("hw.switched.post")}
                 </p>
                 {switched.warnings.map((w) => (
                   <p key={w} className="note warn" data-testid="switch-warning">
@@ -264,24 +273,24 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                   <>
                     <p data-testid="switch-missing-title">
                       {toDownload(active.missing).length > 0
-                        ? `還缺 ${toDownload(active.missing).length} 項，共 ${bytes(active.downloadBytes)}：`
-                        : "還缺的項目要在這台 Mac 上自行建置："}
+                        ? plural("hw.missingTitle", toDownload(active.missing).length, { size: bytes(active.downloadBytes) })
+                        : t("hw.missingBuildTitle")}
                     </p>
                     <ul className="stages" data-testid="switch-missing">
                       {active.missing.map((m) => (
                         <li key={m.id}>
-                          {m.id}（{m.type === "model" ? "模型" : "執行檔"}，{m.localBuild ? LOCAL_BUILD_TEXT : bytes(m.sizeBytes)}）
+                          {t("hw.missingItem", { id: m.id, kind: m.type === "model" ? t("asset.model") : t("asset.program"), what: m.localBuild ? localBuildText(t) : bytes(m.sizeBytes) })}
                         </li>
                       ))}
                     </ul>
                     {jobs.length === 0 && toDownload(active.missing).length > 0 && (
                       <button type="button" className="primary" data-testid="switch-download" onClick={() => void fetchMissing()}>
-                        下載缺少的項目
+                        {t("hw.download")}
                       </button>
                     )}
                   </>
                 ) : (
-                  <p data-testid="switch-complete">這個設定檔需要的項目都已安裝。</p>
+                  <p data-testid="switch-complete">{t("hw.complete")}</p>
                 )}
                 {jobs.length > 0 && (
                   <div className="jobs" data-testid="switch-jobs">
@@ -290,9 +299,9 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                     ))}
                     {jobs.some(isActive) && (
                       <p className="sub" data-testid="switch-overall">
-                        總進度 {Math.round(total.fraction * 100)}%
+                        {t("hw.overall", { percent: Math.round(total.fraction * 100) })}
                         <button type="button" className="ghost" onClick={() => jobs.filter(isActive).forEach((j) => void cancelDownload(backend, j.id))}>
-                          全部取消
+                          {t("hw.cancelAll")}
                         </button>
                       </p>
                     )}
@@ -303,15 +312,15 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
           )}
 
           <div className="card manage-card">
-            <h3>自檢</h3>
-            <p className="muted">用目前的設定檔實際啟動語音辨識與 LLM。GPU 失敗時會自動改用 CPU，並寫出原因。</p>
+            <h3>{t("hw.selfTest")}</h3>
+            <p className="muted">{t("hw.selfTestHint")}</p>
             {view.fallback && !test && (
               <p className="note warn" data-testid="fallback-banner">
-                目前使用 CPU：{view.fallback.reason}
+                {t("hw.fallback", { reason: view.fallback.reason })}
               </p>
             )}
             <button type="button" data-testid="selftest-run" disabled={testing} onClick={() => void selfTest()}>
-              {testing ? "自檢中…" : "執行自檢"}
+              {testing ? t("hw.selfTestRunning") : t("hw.selfTestRun")}
             </button>
             <SelfTestPanel result={test} running={testing} />
           </div>

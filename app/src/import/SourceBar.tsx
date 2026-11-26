@@ -1,6 +1,6 @@
 import type { Detected } from "../api/detect";
-import { SOURCE_NOTES, type SourceLang, type Unavailable } from "../api/sourceLang";
-import { EXPERIMENTAL_HINT } from "../api/targets";
+import { type SourceLang, type Unavailable, sourceNote } from "../api/sourceLang";
+import { useT } from "../i18n/I18nProvider";
 import { DetectNote, hasDetectNote } from "./DetectNote";
 import { SourcePick } from "./ImportPanel";
 
@@ -18,7 +18,8 @@ interface Props {
 
 /** The line under the toolbar: what to know about the video language and the subtitle language picked. It is not there when it has nothing to say. */
 export function SourceBar({ playing, busy, sourceLang, unavailable, onSourceLang, found, experimentalPick }: Props) {
-  const note = SOURCE_NOTES[sourceLang];
+  const { t } = useT();
+  const note = sourceNote(sourceLang, t);
   if (!note && !hasDetectNote(found) && !experimentalPick) return null;
   return (
     <div className="source-bar">
@@ -30,7 +31,7 @@ export function SourceBar({ playing, busy, sourceLang, unavailable, onSourceLang
       )}
       {experimentalPick && (
         <p className="source-note" data-testid="target-hint">
-          {EXPERIMENTAL_HINT}
+          {t("targets.experimentalHint")}
         </p>
       )}
       <DetectNote found={found} picked={sourceLang} unavailable={unavailable} onSwitch={onSourceLang} />

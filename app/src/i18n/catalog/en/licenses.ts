@@ -1,0 +1,16 @@
+export const licenses = {
+  "lic.title": "Third-party licenses",
+  "lic.hint": "The license and source of each model and program the app downloads separately. Links open in your browser.",
+  "lic.program.pre": "This program is licensed under ",
+  "lic.program.post": ". Source code:",
+  "lic.ffmpeg.a": "The installer ships with FFmpeg 8.1 (",
+  "lic.ffmpeg.b": " build, without GPL or nonfree components), as a separate ffmpeg.exe and DLLs in the ffmpeg subfolder of the install folder. You can replace them. FFmpeg source: ",
+  "lic.ffmpeg.c": ", build scripts: ",
+  "lic.ffmpeg.d": ". The full notice is in THIRD_PARTY.md in the install folder.",
+  "lic.name": "Name",
+  "lic.version": "Version",
+  "lic.license": "License",
+  "lic.links": "Links",
+  "lic.fullText": "Full license text",
+  "lic.source": "Download source",
+} as const;

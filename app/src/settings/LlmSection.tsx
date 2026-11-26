@@ -1,16 +1,16 @@
 import { CircleCheck, Cloud, ShieldAlert, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type Backend } from "../api/client";
+import type { PlainKey } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
 import { fetchSettings, saveLlm, testLlm } from "../manage/api";
 import type { LlmSaved, LlmSource, LlmTest, SettingsView } from "../manage/types";
 import { type LlmDraft, draftFrom, toBody, validateLlm } from "./llm";
 
-export const CLOUD_NOTICE = "選擇雲端 LLM 後，影片的逐字稿與翻譯內容會傳送到你填寫的雲端服務，離開這台電腦。請確認你信任這個服務，且影片內容允許外傳。";
-
-const SOURCES: readonly { id: LlmSource; label: string; hint: string }[] = [
-  { id: "builtin", label: "內建 llama-server", hint: "全程在本機執行，不連網。" },
-  { id: "ollama", label: "Ollama", hint: "連到你自己的 Ollama，通常也在本機。" },
-  { id: "cloud", label: "雲端服務", hint: "OpenAI 相容的網址與金鑰。內容會離開這台電腦。" },
+const SOURCES: readonly { id: LlmSource; label: PlainKey; hint: PlainKey }[] = [
+  { id: "builtin", label: "llm.builtin", hint: "llm.builtinHint" },
+  { id: "ollama", label: "llm.ollama", hint: "llm.ollamaHint" },
+  { id: "cloud", label: "llm.cloud", hint: "llm.cloudHint" },
 ];
 
 function Field({ label, error, children, id }: { label: string; error: string | undefined; children: React.ReactNode; id: string }) {
@@ -30,6 +30,7 @@ function Field({ label, error, children, id }: { label: string; error: string | 
 }
 
 export function LlmSection({ backend }: { backend: Backend }) {
+  const { t } = useT();
   const [settings, setSettings] = useState<SettingsView | null>(null);
   const [draft, setDraft] = useState<LlmDraft | null>(null);
   const [result, setResult] = useState<LlmTest | null>(null);
@@ -65,7 +66,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
   }
 
   const savedLlm: LlmSaved = settings.llm;
-  const check = validateLlm(draft, savedLlm);
+  const check = validateLlm(draft, savedLlm, t);
   const set = (patch: Partial<LlmDraft>) => {
     setDraft({ ...draft, ...patch });
     setSaved(false);
@@ -104,22 +105,22 @@ export function LlmSection({ backend }: { backend: Backend }) {
     <section className="panel" data-testid="llm-section" aria-labelledby="llm-title">
       <div className="panel-head">
         <div>
-          <h2 id="llm-title">LLM 來源</h2>
+          <h2 id="llm-title">{t("llm.title")}</h2>
           <p className="muted" data-testid="llm-current">
-            目前使用：{SOURCES.find((s) => s.id === savedLlm.source)?.label}
-            {savedLlm.source === "cloud" ? "（雲端，內容會離開這台電腦）" : ""}
+            {t("llm.current", { source: t(SOURCES.find((s) => s.id === savedLlm.source)?.label ?? "llm.builtin") })}
+            {savedLlm.source === "cloud" ? t("llm.currentCloud") : ""}
           </p>
         </div>
       </div>
 
       {settings.problem && (
         <p className="note bad" role="alert">
-          設定檔有問題：{settings.problem}
+          {t("llm.problem", { problem: settings.problem })}
         </p>
       )}
 
       <div className="card manage-card">
-        <div className="source-choices" role="radiogroup" aria-label="LLM 來源">
+        <div className="source-choices" role="radiogroup" aria-label={t("llm.title")}>
           {SOURCES.map((s) => (
             <button
               key={s.id}
@@ -130,24 +131,24 @@ export function LlmSection({ backend }: { backend: Backend }) {
               data-testid={`llm-source-${s.id}`}
               onClick={() => set({ source: s.id })}
             >
-              <strong>{s.label}</strong>
-              <span className="sub">{s.hint}</span>
+              <strong>{t(s.label)}</strong>
+              <span className="sub">{t(s.hint)}</span>
             </button>
           ))}
         </div>
 
         {draft.source === "ollama" && (
           <div className="fields">
-            <Field id="ollama-url" label="Ollama 網址" error={check.errors.ollamaUrl}>
+            <Field id="ollama-url" label={t("llm.ollamaUrl")} error={check.errors.ollamaUrl}>
               <input id="ollama-url" className="text-input" data-testid="ollama-url" value={draft.ollamaUrl} onChange={(e) => set({ ollamaUrl: e.target.value })} />
             </Field>
-            <Field id="ollama-model" label="模型名稱" error={check.errors.ollamaModel}>
+            <Field id="ollama-model" label={t("llm.modelName")} error={check.errors.ollamaModel}>
               <input
                 id="ollama-model"
                 className="text-input"
                 data-testid="ollama-model"
                 list="llm-models"
-                placeholder="例如 qwen3:8b"
+                placeholder={t("llm.modelPlaceholder")}
                 value={draft.ollamaModel}
                 onChange={(e) => set({ ollamaModel: e.target.value })}
               />
@@ -161,12 +162,12 @@ export function LlmSection({ backend }: { backend: Backend }) {
               <ShieldAlert className="icon" aria-hidden />
               <div>
                 <p>
-                  <strong>內容會離開這台電腦</strong>
+                  <strong>{t("llm.leavesTitle")}</strong>
                 </p>
-                <p>{CLOUD_NOTICE}</p>
+                <p>{t("llm.cloudNotice")}</p>
               </div>
             </div>
-            <Field id="cloud-url" label="服務網址" error={check.errors.cloudUrl}>
+            <Field id="cloud-url" label={t("llm.serviceUrl")} error={check.errors.cloudUrl}>
               <input
                 id="cloud-url"
                 className="text-input"
@@ -176,24 +177,24 @@ export function LlmSection({ backend }: { backend: Backend }) {
                 onChange={(e) => set({ cloudUrl: e.target.value })}
               />
             </Field>
-            <Field id="cloud-model" label="模型名稱" error={check.errors.cloudModel}>
+            <Field id="cloud-model" label={t("llm.modelName")} error={check.errors.cloudModel}>
               <input id="cloud-model" className="text-input" data-testid="cloud-model" list="llm-models" value={draft.cloudModel} onChange={(e) => set({ cloudModel: e.target.value })} />
             </Field>
-            <Field id="cloud-key" label="API 金鑰（只能寫入，儲存後不會再顯示）" error={check.errors.apiKey}>
+            <Field id="cloud-key" label={t("llm.apiKey")} error={check.errors.apiKey}>
               <input
                 id="cloud-key"
                 className="text-input"
                 type="password"
                 autoComplete="off"
                 data-testid="cloud-key"
-                placeholder={savedLlm.apiKeySet ? "已儲存金鑰；要更換再輸入" : "貼上 API 金鑰"}
+                placeholder={savedLlm.apiKeySet ? t("llm.keySaved") : t("llm.keyPaste")}
                 value={draft.apiKey}
                 onChange={(e) => set({ apiKey: e.target.value })}
               />
             </Field>
             <label className="consent" data-testid="cloud-consent-row">
               <input type="checkbox" data-testid="cloud-consent" checked={draft.consent} onChange={(e) => set({ consent: e.target.checked })} />
-              <span>我了解影片內容會傳送到上面的雲端服務，並同意儲存這個設定。</span>
+              <span>{t("llm.consent")}</span>
             </label>
             {check.errors.consent && (
               <p className="note warn" data-testid="cloud-consent-error">
@@ -211,10 +212,10 @@ export function LlmSection({ backend }: { backend: Backend }) {
 
         <div className="dialog-buttons start">
           <button type="button" data-testid="llm-test" disabled={testing || !check.canTest} onClick={() => void test()}>
-            {testing ? "測試中…" : "測試連線"}
+            {testing ? t("llm.testing") : t("llm.test")}
           </button>
           <button type="button" className="primary" data-testid="llm-save" disabled={saving || !check.canSave} onClick={() => void save()}>
-            儲存
+            {t("llm.save")}
           </button>
         </div>
 
@@ -223,15 +224,15 @@ export function LlmSection({ backend }: { backend: Backend }) {
             {result.ok ? <CircleCheck className="icon" aria-hidden /> : <TriangleAlert className="icon" aria-hidden />}
             <div>
               <p>
-                <strong>{result.ok ? "連線成功" : "連線失敗"}</strong>
+                <strong>{result.ok ? t("llm.testOk") : t("llm.testFailed")}</strong>
               </p>
               {result.url && (
                 <p>
-                  網址：<code data-testid="llm-test-url">{result.url}</code>
+                  {t("llm.url")}<code data-testid="llm-test-url">{result.url}</code>
                 </p>
               )}
               <p data-testid="llm-test-detail">{result.detail}</p>
-              {result.models.length > 0 && <p className="sub">可用的模型：{result.models.slice(0, 8).join("、")}</p>}
+              {result.models.length > 0 && <p className="sub">{t("llm.models", { models: result.models.slice(0, 8).join(t("common.listSeparator")) })}</p>}
             </div>
           </div>
         )}
@@ -243,7 +244,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
         )}
         {saved && (
           <p className="note ok" role="status" data-testid="llm-saved">
-            已儲存。
+            {t("llm.saved")}
           </p>
         )}
       </div>

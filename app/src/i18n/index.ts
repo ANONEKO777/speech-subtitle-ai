@@ -1,5 +1,5 @@
 import { CATALOGS, type English, type Key } from "./catalog";
-import type { Locale } from "./locale";
+import { type Locale, UNMANAGED_LOCALE } from "./locale";
 
 export type { Key } from "./catalog";
 
@@ -17,6 +17,18 @@ export type PlainKey = { [K in Key]: [Names<English[K]>] extends [never] ? K : n
 
 /** The key before `.one` or `.other`, for the strings that change with a count. */
 export type PluralBase = Key extends infer K ? (K extends `${infer B}.other` ? B : never) : never;
+
+type OneBase = Key extends infer K ? (K extends `${infer B}.one` ? B : never) : never;
+type PluralPairs = [Exclude<PluralBase, OneBase>, Exclude<OneBase, PluralBase>] extends [never, never] ? true : never;
+/**
+ * Compile-time proof that every plural key has both forms: a `.other` without its `.one`, or a
+ * `.one` without its `.other`, makes this line fail `tsc`. (`plural` reads both forms by name.)
+ */
+export const everyPluralHasBothForms: PluralPairs = true;
+
+/** What a component gets from `useT().t`, and what a helper that returns text takes in. */
+export type Translate = <K extends Key>(key: K, ...args: ArgsFor<K>) => string;
+export type PluralTranslate = <B extends PluralBase>(base: B, n: number, ...args: ArgsFor<`${B}.other` & Key, "n">) => string;
 
 function fill(template: string, params: Params | undefined): string {
   return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
@@ -40,3 +52,11 @@ export function plural<B extends PluralBase>(locale: Locale, base: B, n: number,
   const template = catalog[`${base}.${category}`] ?? catalog[`${base}.other`] ?? "";
   return fill(template, { n, ...(args[0] as Params | undefined) });
 }
+
+/**
+ * The translator of a window with no provider, which speaks Traditional Chinese. A helper that
+ * returns text takes a `Translate` last and defaults to this, so a caller that has not moved to
+ * the catalog yet keeps its Chinese until its wave passes `useT().t`.
+ */
+export const tZhTW: Translate = (key, ...args) => t(UNMANAGED_LOCALE, key, ...args);
+export const pluralZhTW: PluralTranslate = (base, n, ...args) => plural(UNMANAGED_LOCALE, base, n, ...args);
