@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { bytes, mib, speed } from "../manage/format";
@@ -64,6 +64,20 @@ describe("English wording that no other test pins", () => {
     expect(screen.getByTestId("wizard-skip").textContent).toBe("Skip and set up later in Settings");
     expect(screen.getByTestId("wizard-recommended").textContent).toBe("Recommended profile: 24 GB GPU. You can also choose one of the other two below.");
     expect(screen.getByTestId("wizard-total").textContent).toMatch(/^Total [\d.]+ GB, free disk space 488 GB$/);
+    expect(within(screen.getByTestId("wizard-profile-gpu-24gb")).getByText("Recommended")).toBeTruthy();
+    expect(screen.getAllByText("Recommended")).toHaveLength(1);
+  });
+
+  it("says In use, two short words, on an item the current profile uses", async () => {
+    const inventory = windowsInventory();
+    mocks.inventory = { ...inventory, assets: inventory.assets.map((a) => (a.state === "installed" ? { ...a, inActiveProfile: true } : a)) };
+    render(
+      <I18nProvider initial="en">
+        <ModelsSection backend={backend} downloads={downloads} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("inv-table"));
+    expect(screen.getByTestId("inv-whisper-large-v3-turbo-active").textContent).toBe("In use");
   });
 
   it("says in English where a Mac builds its own runtime, and counts zero items", async () => {
