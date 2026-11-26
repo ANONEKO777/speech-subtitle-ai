@@ -55,3 +55,9 @@ describe("the stylesheet keeps the models table's Actions column on screen", () 
     expect(rule).toContain("overflow-wrap: anywhere;");
   });
 });
+
+describe("the stylesheet keeps the wizard's recommended title whole in English", () => {
+  it("lets only the title with a chip wrap, so the chip drops below the name", () => {
+    expect(bodyOf(css, ":root:lang(en) .wizard-profiles .profile-title:has(.chip-tag)")).toContain("flex-wrap: wrap;");
+  });
+});

@@ -838,3 +838,8 @@ input[type="password"]::-ms-reveal {
 :root:lang(en) .vc-note {
   display: block;
 }
+
+/* Only the title that carries a chip: wrapping every title would put a long name under its icon. */
+:root:lang(en) .wizard-profiles .profile-title:has(.chip-tag) {
+  flex-wrap: wrap;
+}
