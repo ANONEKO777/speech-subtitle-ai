@@ -2,7 +2,7 @@ import { Languages } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Target } from "../api/targets";
 import { useT } from "../i18n/I18nProvider";
-import { languageLabel } from "./langName";
+import { languageName } from "../i18n/languageName";
 
 interface Props {
   /** The languages the video can still be translated into. */
@@ -59,7 +59,7 @@ export function AddTarget({ targets, blocked, onAdd }: Props) {
               setOpen(false);
               onAdd(target.code);
             }}>
-              {languageLabel(target, locale)}
+              {languageName(locale, target)}
               {target.experimental && <span className="chip-exp">{t("targets.experimental")}</span>}
             </button>
           ))}

@@ -12,7 +12,7 @@ import { AddTarget } from "./AddTarget";
 import { CueList } from "./CueList";
 import type { Cue, SubtitleMode } from "./cues";
 import { type FailedKind, failureSummary } from "./failures";
-import { languageLabel } from "./langName";
+import { languageName } from "../i18n/languageName";
 
 export type Tab = "cues" | "summary" | "library" | "queue";
 
@@ -56,7 +56,7 @@ export function SidePanel(p: Props) {
   const { editing } = p;
   const [onlyFailed, setOnlyFailed] = useState(false);
   const shown = p.languages.find((l) => l.code === p.lang);
-  const target = shown ? languageLabel(shown, locale) : p.lang;
+  const target = shown ? languageName(locale, shown) : p.lang;
   const { cues, edited, undo } = editing.state;
   const note = editing.failure ?? p.status;
   return (
@@ -110,7 +110,7 @@ export function SidePanel(p: Props) {
             >
               {p.languages.map((l) => (
                 <option key={l.code} value={l.code}>
-                  {p.experimental.has(l.code) ? t("import.targetExperimental", { name: languageLabel(l, locale) }) : languageLabel(l, locale)}
+                  {p.experimental.has(l.code) ? t("import.targetExperimental", { name: languageName(locale, l) }) : languageName(locale, l)}
                 </option>
               ))}
             </select>

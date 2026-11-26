@@ -93,12 +93,12 @@ const cues = [
   { id: 3, startMs: 8000, endMs: 12000, src: "Goodbye.", lang: "en", zh: "Bye." },
 ];
 const languages = [
-  { code: "zh-TW", name: "Traditional Chinese (Taiwan)", nativeName: "Chinese (Taiwan)", quality: "stable" as const },
-  { code: "ko", name: "Korean", nativeName: "Korean language", quality: "experimental" as const },
+  { code: "zh-TW", name: "Traditional Chinese (Taiwan)", nativeName: "繁體中文（台灣）", quality: "stable" as const },
+  { code: "ko", name: "Korean", nativeName: "한국어", quality: "experimental" as const },
 ];
 const addable = [
-  { code: "en", name: "English", nativeName: "English text", experimental: false },
-  { code: "es", name: "Spanish", nativeName: "Spanish text", experimental: true },
+  { code: "en", name: "English", nativeName: "English", experimental: false },
+  { code: "es", name: "Spanish", nativeName: "Español", experimental: true },
 ];
 
 type PlayerProps = ComponentProps<typeof Player>;

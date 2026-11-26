@@ -2,7 +2,7 @@
  "the control bar and its menus": [
   {
    "bar": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -39,7 +39,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -47,7 +47,7 @@
     ]
    },
    "speed menu": {
-    "text": "0:002:001×0.5×0.75×1×1.25×1.5×1.75×2×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×0.5×0.75×1×1.25×1.5×1.75×2×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -84,7 +84,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -92,7 +92,7 @@
     ]
    },
    "offset popup": {
-    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -129,7 +129,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -137,7 +137,7 @@
     ]
    },
    "more menu": {
-    "text": "0:002:001×+0.0 s截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：預設鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 s截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：預設鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -175,7 +175,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -183,7 +183,7 @@
     ]
    },
    "playing": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -220,7 +220,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -228,7 +228,7 @@
     ]
    },
    "muted": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -265,7 +265,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -277,7 +277,7 @@
  "the control bar with the options turned on": [
   {
    "more menu, burn on, folder set": {
-    "text": "0:002:001×+0.0 s✓截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：C:/Shots鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 s✓截圖時燒入字幕全螢幕時字幕疊在影片上截圖與匯出資料夾：C:/Shots鍵盤快捷鍵 (?)Hello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -315,7 +315,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -323,7 +323,7 @@
     ]
    },
    "offset popup, no offset": {
-    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 s−0.1 s+0.1 s歸零正值讓字幕晚出現。會存進專案，匯出時一併套用。Hello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -360,7 +360,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -372,7 +372,7 @@
  "the help overlay": [
   {
    "help": {
-    "text": "0:002:001×+0.0 s鍵盤快捷鍵Space/K播放或暫停←/→倒退或快轉 5 秒J/L倒退或快轉 10 秒0–9跳到影片的 0% 到 90%↑/↓音量加或減M靜音[/]播放速度降低或提高,/.上一格或下一格（會暫停）Ctrl+←/→跳到上一句或下一句字幕AA-B 循環：設 A 點、設 B 點、取消Z/X字幕提早或延後 0.1 秒S截圖（依設定是否燒入字幕）Shift+S截圖，燒入字幕的選擇與設定相反F全螢幕P子母畫面</>上一部或下一部（播放佇列）Ctrl+Z復原上一次字幕修改?顯示或關閉這份說明Hello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 s鍵盤快捷鍵Space/K播放或暫停←/→倒退或快轉 5 秒J/L倒退或快轉 10 秒0–9跳到影片的 0% 到 90%↑/↓音量加或減M靜音[/]播放速度降低或提高,/.上一格或下一格（會暫停）Ctrl+←/→跳到上一句或下一句字幕AA-B 循環：設 A 點、設 B 點、取消Z/X字幕提早或延後 0.1 秒S截圖（依設定是否燒入字幕）Shift+S截圖，燒入字幕的選擇與設定相反F全螢幕P子母畫面</>上一部或下一部（播放佇列）Ctrl+Z復原上一次字幕修改?顯示或關閉這份說明Hello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -411,7 +411,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -638,7 +638,7 @@
  "the side column: subtitles, failures and edits": [
   {
    "cue list": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。只看這些00:00Hello there.Hello.00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -675,7 +675,7 @@
      "title=按兩下或 F2 編輯",
      "aria-label=已手動修改",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -683,7 +683,7 @@
     ]
    },
    "only the failed ones": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -718,7 +718,7 @@
      "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
      "aria-label=新增字幕語言",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -726,7 +726,7 @@
     ]
    },
    "add a language menu": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）新增字幕語言，只會重新翻譯，不會重跑語音辨識。English textSpanish text實驗性實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。2 則字幕翻譯失敗：1 則沒有Korean language翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）新增字幕語言，只會重新翻譯，不會重跑語音辨識。EnglishEspañol實驗性實驗性：這個語言的翻譯品質還沒有評分。有些句子可能翻不出來，會留空或改用英文顯示，請自己檢查。2 則字幕翻譯失敗：1 則沒有한국어翻譯，已留空，1 則改用英文顯示。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。顯示全部00:04Thank you.（沒有翻譯）00:08Goodbye.Bye.已修改 1 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -761,7 +761,7 @@
      "title=新增字幕語言：只重新翻譯，不重跑語音辨識",
      "aria-label=新增字幕語言",
      "title=按兩下或 F2 編輯",
-     "title=這一則沒有Korean language翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
+     "title=這一則沒有한국어翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。",
      "aria-label=翻譯失敗",
      "title=按兩下或 F2 編輯",
      "title=這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。",
@@ -769,7 +769,7 @@
     ]
    },
    "blocked add, two edits, no failures": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.已修改 2 條，重新翻譯時會保留",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.已修改 2 條，重新翻譯時會保留",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -815,7 +815,7 @@
  "the side column: other tabs": [
   {
    "no edits": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.按兩下字幕可以編輯",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）00:00Hello there.Hello.00:04Thank you.00:08Goodbye.Bye.按兩下字幕可以編輯",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -855,7 +855,7 @@
     ]
    },
    "summary, degraded": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）這份摘要沒有通過語言檢查，可能夾雜錯字或其他語言的字，建議重新產生。Overview of the talk按兩下字幕可以編輯",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）這份摘要沒有通過語言檢查，可能夾雜錯字或其他語言的字，建議重新產生。Overview of the talk按兩下字幕可以編輯",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -892,7 +892,7 @@
     ]
    },
    "library tab": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）library stub按兩下字幕可以編輯",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）library stub按兩下字幕可以編輯",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",
@@ -929,7 +929,7 @@
     ]
    },
    "queue tab": {
-    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言ChineseKorean language（實驗性）queue stub按兩下字幕可以編輯",
+    "text": "0:002:001×+0.0 sHello.Hello there.字幕摘要媒體庫佇列2字幕語言繁體中文한국어（實驗性）queue stub按兩下字幕可以編輯",
     "attrs": [
      "aria-label=播放位置",
      "title=上一部 (<)",

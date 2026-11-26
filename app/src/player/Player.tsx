@@ -15,7 +15,7 @@ import { BurnCard, HelpOverlay, Toast } from "./Overlays";
 import { SidePanel, type Tab } from "./SidePanel";
 import type { Cue } from "./cues";
 import { openFailures } from "./failures";
-import { languageLabel } from "./langName";
+import { languageName } from "../i18n/languageName";
 import { type Action, isArrow, keyAction } from "./shortcuts";
 import { adjacentCue, clampOffset, playClock, startOnVideo } from "./transport";
 import { useActiveCue } from "./useActiveCue";
@@ -131,7 +131,7 @@ export function Player(props: Props) {
 
   const undo = editing.undo;
   const shownLanguage = languages.find((l) => l.code === lang);
-  const label = shownLanguage ? languageLabel(shownLanguage, locale) : lang;
+  const label = shownLanguage ? languageName(locale, shownLanguage) : lang;
 
   const look = useCallback((): Look => {
     const v = video.current;

@@ -6,6 +6,7 @@ import type { Target } from "../api/targets";
 import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
 import { languageName } from "../i18n/languageName";
+import type { Locale } from "../i18n/locale";
 import { isMacShell } from "../platform";
 
 interface PickProps {
@@ -23,8 +24,8 @@ interface TargetProps {
   readonly onTarget: (code: string) => void;
 }
 
-const targetText = (target: Target, t: Translate) => {
-  const name = languageName(t, target.code, target.nativeName);
+const targetText = (target: Target, t: Translate, locale: Locale) => {
+  const name = languageName(locale, target);
   return target.experimental ? t("import.targetExperimental", { name }) : name;
 };
 
@@ -33,14 +34,14 @@ const targetText = (target: Target, t: Translate) => {
  * A video language with one target only (a mixed talk) has nothing to pick, so it shows the name as text and gives the room back to the path box.
  */
 export function TargetPick({ busy, targets, target, onTarget }: TargetProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const chosen = targets.find((t) => t.code === target);
   const experimental = chosen?.experimental === true;
   if (targets.length < 2) {
     return (
       <span className="source-pick target-pick target-fixed" data-testid="target-lang" data-experimental={experimental} title={t("import.targetTitle")}>
         <span className="collapsible">{t("import.target")}</span>
-        <span>{chosen ? targetText(chosen, t) : target}</span>
+        <span>{chosen ? targetText(chosen, t, locale) : target}</span>
       </span>
     );
   }
@@ -57,7 +58,7 @@ export function TargetPick({ busy, targets, target, onTarget }: TargetProps) {
       >
         {targets.map((option) => (
           <option key={option.code} value={option.code}>
-            {targetText(option, t)}
+            {targetText(option, t, locale)}
           </option>
         ))}
       </select>
