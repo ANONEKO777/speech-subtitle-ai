@@ -1,3 +1,5 @@
+import type { PlainKey } from "../i18n";
+
 /** What a key press asks the player to do. */
 export type Action =
   | { readonly kind: "toggle-play" }
@@ -88,28 +90,30 @@ export function keyAction(e: KeyLike): Action | null {
 }
 
 export interface ShortcutRow {
+  /** The key caps, which no language translates. */
   readonly keys: string;
-  readonly what: string;
+  /** The catalog key of what the keys do. */
+  readonly what: PlainKey;
 }
 
 /** What the help overlay lists. Every row is a key `keyAction` answers, which the test checks. */
 export const SHORTCUTS: readonly ShortcutRow[] = [
-  { keys: "Space / K", what: "播放或暫停" },
-  { keys: "← / →", what: "倒退或快轉 5 秒" },
-  { keys: "J / L", what: "倒退或快轉 10 秒" },
-  { keys: "0 – 9", what: "跳到影片的 0% 到 90%" },
-  { keys: "↑ / ↓", what: "音量加或減" },
-  { keys: "M", what: "靜音" },
-  { keys: "[ / ]", what: "播放速度降低或提高" },
-  { keys: ", / .", what: "上一格或下一格（會暫停）" },
-  { keys: "Ctrl + ← / →", what: "跳到上一句或下一句字幕" },
-  { keys: "A", what: "A-B 循環：設 A 點、設 B 點、取消" },
-  { keys: "Z / X", what: "字幕提早或延後 0.1 秒" },
-  { keys: "S", what: "截圖（依設定是否燒入字幕）" },
-  { keys: "Shift + S", what: "截圖，燒入字幕的選擇與設定相反" },
-  { keys: "F", what: "全螢幕" },
-  { keys: "P", what: "子母畫面" },
-  { keys: "< / >", what: "上一部或下一部（播放佇列）" },
-  { keys: "Ctrl + Z", what: "復原上一次字幕修改" },
-  { keys: "?", what: "顯示或關閉這份說明" },
+  { keys: "Space / K", what: "player.key.play" },
+  { keys: "← / →", what: "player.key.seek5" },
+  { keys: "J / L", what: "player.key.seek10" },
+  { keys: "0 – 9", what: "player.key.percent" },
+  { keys: "↑ / ↓", what: "player.key.volume" },
+  { keys: "M", what: "player.key.mute" },
+  { keys: "[ / ]", what: "player.key.speed" },
+  { keys: ", / .", what: "player.key.frame" },
+  { keys: "Ctrl + ← / →", what: "player.key.line" },
+  { keys: "A", what: "player.key.loop" },
+  { keys: "Z / X", what: "player.key.offset" },
+  { keys: "S", what: "player.key.shot" },
+  { keys: "Shift + S", what: "player.key.shotInvert" },
+  { keys: "F", what: "player.key.fs" },
+  { keys: "P", what: "player.key.pip" },
+  { keys: "< / >", what: "player.key.video" },
+  { keys: "Ctrl + Z", what: "player.key.undo" },
+  { keys: "?", what: "player.key.help" },
 ];

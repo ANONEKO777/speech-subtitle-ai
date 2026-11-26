@@ -5,13 +5,14 @@ import { SHORTCUTS } from "./shortcuts";
 import type { ToastData } from "./useToast";
 
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
+  const { t } = useT();
   return (
-    <div className="overlay" data-testid="help" role="dialog" aria-label="鍵盤快捷鍵" onClick={onClose}>
+    <div className="overlay" data-testid="help" role="dialog" aria-label={t("player.help.title")} onClick={onClose}>
       <div className="overlay-card" onClick={(e) => e.stopPropagation()}>
         <div className="overlay-head">
           <Keyboard className="icon" aria-hidden />
-          <h2>鍵盤快捷鍵</h2>
-          <button type="button" className="ghost icon-button" aria-label="關閉" data-testid="help-close" onClick={onClose}>
+          <h2>{t("player.help.title")}</h2>
+          <button type="button" className="ghost icon-button" aria-label={t("common.close")} data-testid="help-close" onClick={onClose}>
             <X className="icon" aria-hidden />
           </button>
         </div>
@@ -29,7 +30,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
                   ),
                 )}
               </dt>
-              <dd>{row.what}</dd>
+              <dd>{t(row.what)}</dd>
             </div>
           ))}
         </dl>
@@ -68,11 +69,12 @@ export function Toast({ toast, onClose }: { toast: ToastData | null; onClose: ()
 }
 
 export function BurnCard({ view, error, onCancel }: { view: BurnView | null; error: string | null; onCancel: () => void }) {
+  const { t } = useT();
   if (view?.state !== "running" && !error) return null;
   return (
     <div className="burn-card" data-testid="burn-progress" role="status">
       <div className="burn-head">
-        <span>{error ? "匯出出了問題" : "正在把字幕燒進影片"}</span>
+        <span>{error ? t("player.burn.problem") : t("player.burn.title")}</span>
         {view?.state === "running" && <span className="num" data-testid="burn-percent">{view.percent.toFixed(0)}%</span>}
       </div>
       {error ? (
@@ -85,7 +87,7 @@ export function BurnCard({ view, error, onCancel }: { view: BurnView | null; err
       {view?.state === "running" && (
         <button type="button" className="ghost" data-testid="burn-cancel" onClick={onCancel}>
           <X className="icon" aria-hidden />
-          取消
+          {t("common.cancel")}
         </button>
       )}
     </div>

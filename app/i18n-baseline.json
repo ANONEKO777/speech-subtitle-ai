@@ -10,16 +10,6 @@
     "src/editor/validate.ts": 13,
     "src/export/ExportMenu.tsx": 4,
     "src/export/exports.ts": 6,
-    "src/player/AddTarget.tsx": 3,
-    "src/player/Controls.tsx": 28,
-    "src/player/CueList.tsx": 4,
-    "src/player/Library.tsx": 16,
-    "src/player/Overlays.tsx": 6,
-    "src/player/Player.tsx": 26,
-    "src/player/SidePanel.tsx": 14,
-    "src/player/failures.ts": 6,
-    "src/player/shortcuts.ts": 18,
-    "src/player/useTransport.ts": 11,
     "src/summary/SummaryView.tsx": 2
   }
 }

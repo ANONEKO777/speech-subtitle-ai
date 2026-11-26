@@ -1,5 +1,6 @@
 import { Pencil, TriangleAlert } from "lucide-react";
 import { type KeyboardEvent, memo, useEffect, useRef } from "react";
+import { useT } from "../i18n/I18nProvider";
 import { CueEditor, type EditorHooks } from "../editor/CueEditor";
 import { type Cue, type SubtitleMode } from "./cues";
 import { type FailedKind, failureTitle } from "./failures";
@@ -31,6 +32,7 @@ interface RowProps {
 
 /** Memoized so a cue change re-renders the two rows whose `active` flipped, not the whole list. */
 const Row = memo(function Row({ cue, n, active, mode, edited, marks, failed, target, editor, onSeek, onEdit }: RowProps) {
+  const { t } = useT();
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "F2") {
       e.preventDefault();
@@ -58,16 +60,16 @@ const Row = memo(function Row({ cue, n, active, mode, edited, marks, failed, tar
         <button
           ref={button}
           type="button"
-          title="按兩下或 F2 編輯"
+          title={t("player.cue.edit")}
           onClick={() => onSeek(cue)}
           onDoubleClick={() => onEdit(cue.id)}
           onKeyDown={onKey}
         >
           <span className="time">
             {clock(cue.startMs)}
-            {edited && <Pencil className="edited-mark" aria-label="已手動修改" data-testid="edited-mark" />}
+            {edited && <Pencil className="edited-mark" aria-label={t("player.cue.edited")} data-testid="edited-mark" />}
             {failed && (
-              <span className="failed-mark" role="img" aria-label="翻譯失敗" title={failureTitle(failed, target)} data-testid="failed-mark" data-kind={failed}>
+              <span className="failed-mark" role="img" aria-label={t("player.cue.failed")} title={failureTitle(failed, target, t)} data-testid="failed-mark" data-kind={failed}>
                 <TriangleAlert className="icon" aria-hidden />
               </span>
             )}
@@ -79,7 +81,7 @@ const Row = memo(function Row({ cue, n, active, mode, edited, marks, failed, tar
                 {cue.src}
               </span>
             )}
-            {mode !== "en" && (failed === "empty" ? <span className="zh missing">（沒有翻譯）</span> : <span className="zh">{cue.zh}</span>)}
+            {mode !== "en" && (failed === "empty" ? <span className="zh missing">{t("player.cue.none")}</span> : <span className="zh">{cue.zh}</span>)}
           </span>
         </button>
       )}

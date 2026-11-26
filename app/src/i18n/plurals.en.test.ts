@@ -35,6 +35,16 @@ const PINS: Record<PluralBase, Pin> = {
     other: "2 edits were not applied because their source text changed, and they are still in the edits file in the project folder",
   },
   "queue.added": { args: {}, one: "1 item added to the queue", other: "2 items added to the queue" },
+  "player.foot.edited": {
+    args: {},
+    one: "1 subtitle edited. Edits are kept when you translate again.",
+    other: "2 subtitles edited. Edits are kept when you translate again.",
+  },
+  "player.failedNote": {
+    args: { parts: "X" },
+    one: "1 subtitle failed to translate: X. The model's answers failed the checks several times, for example by mixing in Japanese or having the wrong length.",
+    other: "2 subtitles failed to translate: X. The model's answers failed the checks several times, for example by mixing in Japanese or having the wrong length.",
+  },
 };
 
 const say = plural as (locale: "en", base: PluralBase, n: number, args: Pin["args"]) => string;

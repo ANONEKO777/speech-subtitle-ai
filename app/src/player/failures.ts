@@ -1,4 +1,5 @@
 import type { CueFailures } from "../api/client";
+import { type PluralTranslate, type Translate, pluralZhTW, tZhTW } from "../i18n";
 import type { Cue } from "./cues";
 
 /** How a cue the translator could not do looks now: no translation at all, or its English in place of the translation. */
@@ -30,19 +31,24 @@ export function openFailures(
 export const countKind = (open: ReadonlyMap<number, FailedKind>, kind: FailedKind): number =>
   [...open.values()].filter((k) => k === kind).length;
 
+/** What a message needs to speak: the window's translator, Traditional Chinese when none is given. */
+export interface Speech {
+  readonly t: Translate;
+  readonly plural: PluralTranslate;
+}
+const ZH_TW: Speech = { t: tZhTW, plural: pluralZhTW };
+
 /** The line above the cue list: how many cues failed, what is shown instead and why. */
-export function failureSummary(open: ReadonlyMap<number, FailedKind>, target: string): string {
+export function failureSummary(open: ReadonlyMap<number, FailedKind>, target: string, say: Speech = ZH_TW): string {
   const empty = countKind(open, "empty");
   const english = countKind(open, "english");
   const parts = [
-    empty > 0 ? `${empty} 則沒有${target}翻譯，已留空` : "",
-    english > 0 ? `${english} 則改用英文顯示` : "",
+    empty > 0 ? say.t("player.failedEmpty", { n: empty, target }) : "",
+    english > 0 ? say.t("player.failedEnglish", { n: english }) : "",
   ].filter(Boolean);
-  return `${open.size} 則字幕翻譯失敗：${parts.join("，")}。原因是模型多次的回答都沒有通過檢查，例如夾雜日文、字數不合。`;
+  return say.plural("player.failedNote", open.size, { parts: parts.join(say.t("player.failedJoin")) });
 }
 
 /** What the mark on one cue says. */
-export const failureTitle = (kind: FailedKind, target: string): string =>
-  kind === "empty"
-    ? `這一則沒有${target}翻譯（模型多次的回答都沒有通過檢查）。雙語字幕只會顯示原文，可以按兩下自己補上。`
-    : "這一則翻譯失敗，顯示的是英文（模型多次的回答都沒有通過檢查）。可以按兩下自己改。";
+export const failureTitle = (kind: FailedKind, target: string, t: Translate = tZhTW): string =>
+  kind === "empty" ? t("player.failedEmptyTitle", { target }) : t("player.failedEnglishTitle");

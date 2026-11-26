@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type LanguageInfo } from "./client";
-import { EXPERIMENTAL_HINT, isExperimentalTarget, parseSourceTargets, targetFor, targetName, targetsFor, targetsOf } from "./targets";
+import { EXPERIMENTAL_HINT, isExperimentalTarget, parseSourceTargets, targetFor, targetLanguage, targetsFor, targetsOf } from "./targets";
 
 const sources = [
   {
@@ -71,9 +71,9 @@ describe("the language wanted", () => {
     expect(targetsFor(set, "ja+en", ["ko", "en"])).toEqual(["zh-TW"]);
   });
 
-  it("names a target by the name the backend gives it", () => {
-    expect(targetName(set, "ja", "zh-CN")).toBe("简体中文");
-    expect(targetName(set, "ja", "xx")).toBe("xx");
+  it("finds a target's record as the backend gives it, or only its code", () => {
+    expect(targetLanguage(set, "ja", "zh-CN").nativeName).toBe("简体中文");
+    expect(targetLanguage(set, "ja", "xx")).toEqual({ code: "xx" });
   });
 });
 

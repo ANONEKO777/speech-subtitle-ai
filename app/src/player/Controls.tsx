@@ -19,6 +19,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { useT } from "../i18n/I18nProvider";
 import { type Loop, SPEEDS, formatOffset, playClock } from "./transport";
 
 type Open = "speed" | "offset" | "more" | null;
@@ -85,6 +86,7 @@ function Btn({ id, label, onClick, children, disabled, pressed }: ButtonProps) {
 const fill = (value: number, max: number) => ({ "--fill": `${max > 0 ? (value / max) * 100 : 0}%` }) as CSSProperties;
 
 export function Controls(p: ControlsProps) {
+  const { t } = useT();
   const [open, setOpen] = useState<Open>(null);
   const root = useRef<HTMLDivElement>(null);
 
@@ -98,7 +100,7 @@ export function Controls(p: ControlsProps) {
   }, [open]);
 
   const toggle = (menu: Exclude<Open, null>) => setOpen(open === menu ? null : menu);
-  const mark = (t: number | null) => (t !== null && p.duration > 0 ? { left: `${(t / p.duration) * 100}%` } : undefined);
+  const mark = (at: number | null) => (at !== null && p.duration > 0 ? { left: `${(at / p.duration) * 100}%` } : undefined);
   const VolumeIcon = p.muted || p.volume === 0 ? VolumeX : p.volume < 0.5 ? Volume1 : Volume2;
 
   return (
@@ -122,7 +124,7 @@ export function Controls(p: ControlsProps) {
             type="range"
             className="slider seek"
             data-testid="seek"
-            aria-label="播放位置"
+            aria-label={t("player.seek")}
             min={0}
             max={p.duration || 0}
             step={0.1}
@@ -138,29 +140,29 @@ export function Controls(p: ControlsProps) {
         </span>
       </div>
       <div className="button-row">
-        <Btn id="prev" label="上一部 (<)" onClick={() => p.onVideo(-1)} disabled={!p.hasPrevVideo}>
+        <Btn id="prev" label={t("player.prev")} onClick={() => p.onVideo(-1)} disabled={!p.hasPrevVideo}>
           <SkipBack className="icon" aria-hidden />
         </Btn>
-        <Btn id="play" label={p.paused ? "播放 (Space)" : "暫停 (Space)"} onClick={p.onPlay}>
+        <Btn id="play" label={p.paused ? t("player.play") : t("player.pause")} onClick={p.onPlay}>
           {p.paused ? <Play className="icon" aria-hidden /> : <Pause className="icon" aria-hidden />}
         </Btn>
-        <Btn id="next" label="下一部 (>)" onClick={() => p.onVideo(1)} disabled={!p.hasNextVideo}>
+        <Btn id="next" label={t("player.next")} onClick={() => p.onVideo(1)} disabled={!p.hasNextVideo}>
           <SkipForward className="icon" aria-hidden />
         </Btn>
-        <Btn id="line-prev" label="上一句字幕 (Ctrl+←)" onClick={() => p.onLine(-1)}>
+        <Btn id="line-prev" label={t("player.linePrev")} onClick={() => p.onLine(-1)}>
           <ChevronLeft className="icon" aria-hidden />
         </Btn>
-        <Btn id="line-next" label="下一句字幕 (Ctrl+→)" onClick={() => p.onLine(1)}>
+        <Btn id="line-next" label={t("player.lineNext")} onClick={() => p.onLine(1)}>
           <ChevronRight className="icon" aria-hidden />
         </Btn>
-        <Btn id="mute" label={p.muted ? "取消靜音 (M)" : "靜音 (M)"} onClick={p.onMute}>
+        <Btn id="mute" label={p.muted ? t("player.unmute") : t("player.mute")} onClick={p.onMute}>
           <VolumeIcon className="icon" aria-hidden />
         </Btn>
         <input
           type="range"
           className="slider volume"
           data-testid="volume"
-          aria-label="音量"
+          aria-label={t("player.volume")}
           min={0}
           max={1}
           step={0.01}
@@ -170,7 +172,7 @@ export function Controls(p: ControlsProps) {
         />
         <span className="grow" />
         <div className="pop-host">
-          <button type="button" className="ghost" data-testid="ctl-speed" title="播放速度 ([ ])" aria-expanded={open === "speed"} onClick={() => toggle("speed")}>
+          <button type="button" className="ghost" data-testid="ctl-speed" title={t("player.speed")} aria-expanded={open === "speed"} onClick={() => toggle("speed")}>
             <Gauge className="icon" aria-hidden />
             <span className="num" data-testid="speed-value">{p.rate}×</span>
           </button>
@@ -194,12 +196,12 @@ export function Controls(p: ControlsProps) {
             </div>
           )}
         </div>
-        <Btn id="loop" label="A-B 循環 (A)" pressed={p.loop.a !== null} onClick={p.onLoop}>
+        <Btn id="loop" label={t("player.loop")} pressed={p.loop.a !== null} onClick={p.onLoop}>
           <Repeat className="icon" aria-hidden />
           {p.loop.a !== null && <span className="loop-badge">{p.loop.b === null ? "A" : "AB"}</span>}
         </Btn>
         <div className="pop-host">
-          <button type="button" className="ghost" data-testid="ctl-offset" title="字幕時間微調 (Z / X)" aria-expanded={open === "offset"} onClick={() => toggle("offset")}>
+          <button type="button" className="ghost" data-testid="ctl-offset" title={t("player.offset")} aria-expanded={open === "offset"} onClick={() => toggle("offset")}>
             <Captions className="icon" aria-hidden />
             <span className="num" data-testid="offset-value">{formatOffset(p.offsetMs)}</span>
           </button>
@@ -212,42 +214,42 @@ export function Controls(p: ControlsProps) {
                 +0.1 s
               </button>
               <button type="button" className="ghost" data-testid="offset-reset" disabled={p.offsetMs === 0} onClick={() => p.onOffset(0)}>
-                歸零
+                {t("player.offset.reset")}
               </button>
-              <span className="hint">正值讓字幕晚出現。會存進專案，匯出時一併套用。</span>
+              <span className="hint">{t("player.offset.hint")}</span>
             </div>
           )}
         </div>
-        <Btn id="shot" label={p.burnShots ? "截圖，燒入字幕 (S)" : "截圖 (S)"} onClick={p.onShot}>
+        <Btn id="shot" label={p.burnShots ? t("player.shotBurn") : t("player.shot")} onClick={p.onShot}>
           <Camera className="icon" aria-hidden />
         </Btn>
-        <Btn id="pip" label="子母畫面 (P)" onClick={p.onPip}>
+        <Btn id="pip" label={t("player.pip")} onClick={p.onPip}>
           <PictureInPicture2 className="icon" aria-hidden />
         </Btn>
-        <Btn id="fs" label={p.fullscreen ? "離開全螢幕 (F)" : "全螢幕 (F)"} onClick={p.onFullscreen}>
+        <Btn id="fs" label={p.fullscreen ? t("player.fsExit") : t("player.fs")} onClick={p.onFullscreen}>
           {p.fullscreen ? <Minimize className="icon" aria-hidden /> : <Maximize className="icon" aria-hidden />}
         </Btn>
         <div className="pop-host">
-          <button type="button" className="ghost icon-button" data-testid="ctl-more" title="更多設定" aria-label="更多設定" aria-expanded={open === "more"} onClick={() => toggle("more")}>
+          <button type="button" className="ghost icon-button" data-testid="ctl-more" title={t("player.more")} aria-label={t("player.more")} aria-expanded={open === "more"} onClick={() => toggle("more")}>
             <Ellipsis className="icon" aria-hidden />
           </button>
           {open === "more" && (
             <div className="menu-list up wide" role="menu" data-testid="more-list">
               <button type="button" role="menuitemcheckbox" aria-checked={p.burnShots} data-testid="opt-burn" onClick={() => p.onBurnShots(!p.burnShots)}>
-                <span className="check">{p.burnShots ? "✓" : ""}</span>截圖時燒入字幕
+                <span className="check">{p.burnShots ? "✓" : ""}</span>{t("player.opt.burnShots")}
               </button>
               <button type="button" role="menuitemcheckbox" aria-checked={p.fsOverlay} data-testid="opt-overlay" onClick={() => p.onFsOverlay(!p.fsOverlay)}>
-                <span className="check">{p.fsOverlay ? "✓" : ""}</span>全螢幕時字幕疊在影片上
+                <span className="check">{p.fsOverlay ? "✓" : ""}</span>{t("player.opt.overlay")}
               </button>
-              <button type="button" role="menuitem" data-testid="opt-folder" onClick={p.onPickFolder} title={p.outputDir || "預設資料夾"}>
+              <button type="button" role="menuitem" data-testid="opt-folder" onClick={p.onPickFolder} title={p.outputDir || t("player.opt.folderTitle")}>
                 <FolderOpen className="icon" aria-hidden />
-                <span className="folder-name">截圖與匯出資料夾：{p.outputDir ? p.outputDir : "預設"}</span>
+                <span className="folder-name">{t("player.opt.folder", { folder: p.outputDir ? p.outputDir : t("player.opt.folderDefault") })}</span>
               </button>
               <button type="button" role="menuitem" data-testid="opt-help" onClick={() => {
                 setOpen(null);
                 p.onHelp();
               }}>
-                鍵盤快捷鍵 (?)
+                {t("player.opt.help")}
               </button>
             </div>
           )}
