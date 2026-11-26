@@ -1,0 +1,160 @@
+{
+ "the title of the page": {
+  "document title": {
+   "text": "",
+   "attrs": [
+    "title=字幕翻譯"
+   ]
+  }
+ },
+ "the subtitle language picker of the import header, for every language the backend offers": {
+  "target zh-TW": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target zh-CN": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target en": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target ja": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target ko": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target es": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target fr": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target de": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target pt": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target it": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target ru": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target vi": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target th": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "target id": {
+   "text": "繁體中文简体中文English日本語한국어（實驗性）EspañolFrançaisDeutschPortuguêsItalianoРусскийTiếng ViệtไทยBahasa Indonesia",
+   "attrs": [
+    "aria-label=字幕語言"
+   ]
+  },
+  "one target": {
+   "text": "字幕繁體中文",
+   "attrs": [
+    "title=字幕要翻成的語言"
+   ]
+  }
+ },
+ "the progress screen, translating into each language": {
+  "importing into zh-TW": {
+   "text": "正在處理p1.mp4C:/invented/p1.mp4翻譯成繁體中文（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成繁體中文輸出字幕重點摘要取消",
+   "attrs": []
+  },
+  "importing into ko": {
+   "text": "正在處理p1.mp4C:/invented/p1.mp4翻譯成한국어（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成한국어輸出字幕重點摘要取消",
+   "attrs": []
+  },
+  "importing into es": {
+   "text": "正在處理p1.mp4C:/invented/p1.mp4翻譯成Español（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成Español輸出字幕重點摘要取消",
+   "attrs": []
+  },
+  "importing into vi": {
+   "text": "正在處理p1.mp4C:/invented/p1.mp4翻譯成Tiếng Việt（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成Tiếng Việt輸出字幕重點摘要取消",
+   "attrs": []
+  },
+  "importing into id": {
+   "text": "正在處理p1.mp4C:/invented/p1.mp4翻譯成Bahasa Indonesia（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成Bahasa Indonesia輸出字幕重點摘要取消",
+   "attrs": []
+  }
+ },
+ "the subtitle bar of the player, naming the language": {
+  "bar": {
+   "text": "原文Korean雙語241.4Korean在上",
+   "attrs": [
+    "aria-label=字幕語言",
+    "title=字幕大小",
+    "aria-label=字幕大小",
+    "title=字幕顏色",
+    "aria-label=字幕顏色",
+    "title=行距",
+    "aria-label=行距",
+    "title=雙語時Korean放在原文上方"
+   ]
+  }
+ },
+ "the progress bar alone": {
+  "translating": {
+   "text": "翻譯成Traditional Chinese（5/7）55%擷取音訊偵測語音語音辨識斷句翻譯成Traditional Chinese輸出字幕重點摘要",
+   "attrs": []
+  }
+ },
+ "the import box on a PC": {
+  "path box": {
+   "text": "選擇檔案匯入",
+   "attrs": [
+    "placeholder=影片的完整路徑，例如 D:\\talks\\talk.mp4",
+    "title=選擇檔案"
+   ]
+  }
+ },
+ "the licenses page on a PC": {
+  "notice": {
+   "text": "本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg a35157abb9，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。",
+   "attrs": []
+  }
+ }
+}

@@ -3,6 +3,7 @@ import type { Backend } from "../api/client";
 import { useT } from "../i18n/I18nProvider";
 import { fetchLicenses } from "../manage/api";
 import { ExternalLink } from "../manage/ExternalLink";
+import { isMacShell } from "../platform";
 import { shortVersion } from "../manage/format";
 import type { LicenseEntry } from "../manage/types";
 
@@ -10,6 +11,7 @@ export const PROJECT_URL = "https://github.com/ANONEKO777/speech-subtitle-ai";
 const FFMPEG_SOURCE_URL = "https://github.com/FFmpeg/FFmpeg/tree/a35157abb96167fd7308edc92b55408d5bb084b0";
 const FFMPEG_BUILD_URL = "https://github.com/BtbN/FFmpeg-Builds";
 const FFMPEG_SOURCE_LABEL = "FFmpeg a35157abb9";
+const FFMPEG_LEGAL_URL = "https://ffmpeg.org/legal.html";
 const LGPL_URL = "https://spdx.org/licenses/LGPL-3.0-or-later.html";
 const AGPL_URL = "https://spdx.org/licenses/AGPL-3.0-or-later.html";
 
@@ -25,15 +27,23 @@ function BundledNotice() {
           {PROJECT_URL}
         </ExternalLink>
       </p>
-      <p data-testid="ffmpeg-notice">
-        {t("lic.ffmpeg.a")}
-        <ExternalLink href={LGPL_URL}>LGPL-3.0-or-later</ExternalLink>
-        {t("lic.ffmpeg.b")}
-        <ExternalLink href={FFMPEG_SOURCE_URL}>{FFMPEG_SOURCE_LABEL}</ExternalLink>
-        {t("lic.ffmpeg.c")}
-        <ExternalLink href={FFMPEG_BUILD_URL}>BtbN/FFmpeg-Builds</ExternalLink>
-        {t("lic.ffmpeg.d")}
-      </p>
+      {isMacShell() ? (
+        <p data-testid="ffmpeg-notice">
+          {t("lic.ffmpegMac.a")}
+          <ExternalLink href={FFMPEG_LEGAL_URL}>ffmpeg.org/legal.html</ExternalLink>
+          {t("lic.ffmpegMac.b")}
+        </p>
+      ) : (
+        <p data-testid="ffmpeg-notice">
+          {t("lic.ffmpeg.a")}
+          <ExternalLink href={LGPL_URL}>LGPL-3.0-or-later</ExternalLink>
+          {t("lic.ffmpeg.b")}
+          <ExternalLink href={FFMPEG_SOURCE_URL}>{FFMPEG_SOURCE_LABEL}</ExternalLink>
+          {t("lic.ffmpeg.c")}
+          <ExternalLink href={FFMPEG_BUILD_URL}>BtbN/FFmpeg-Builds</ExternalLink>
+          {t("lic.ffmpeg.d")}
+        </p>
+      )}
     </div>
   );
 }

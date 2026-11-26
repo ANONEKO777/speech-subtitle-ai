@@ -31,15 +31,21 @@
 
 .nav-item {
   justify-content: flex-start;
-  height: auto;
-  min-height: 36px;
+  height: 36px;
   padding: 0 var(--space-3);
-  white-space: normal;
   background: transparent;
   border-color: transparent;
   box-shadow: none;
   color: var(--text-muted);
   text-align: left;
+}
+
+/* an English name can need two lines */
+:root:lang(en) .nav-item {
+  height: auto;
+  min-height: 36px;
+  padding-block: var(--space-2);
+  white-space: normal;
 }
 
 .nav-item[aria-current="page"] {

@@ -5,6 +5,7 @@ export const shell = {
   "common.cancel": "キャンセル",
   "common.close": "閉じる",
   "common.listSeparator": "、",
+  "app.title": "字幕翻訳",
   "app.starting": "バックエンドを起動しています…",
   "app.checkingModels": "モデルを確認しています…",
   "app.ready": "バックエンドの準備ができました",
