@@ -51,7 +51,15 @@ The self-test's own wrapper sentences are still English in both languages (item 
 
 ## The real window
 
-`.work/p60-verify/drive.mjs` drives a release build over CDP with disposable data. No model runs: the models and runtimes are one-byte files, and `VST_SIMULATE_NO_VCRUNTIME` stops the self-test before any program starts. It covers what the Edge stubs cannot: the shell's `backend-failed` payload, a rejection of a real update command, the argument names of the two file dialog commands, and a real backend's notices after a change of language. The native file dialog itself was not opened.
+`.work/p60-verify/drive.mjs` drives a release build over CDP with disposable data. No model runs: the models and runtimes are one-byte files, and `VST_SIMULATE_NO_VCRUNTIME` stops the self-test before any program starts. It covers what the Edge stubs cannot: the shell's `backend-failed` payload, a rejection of a real update command, the argument names of the two file dialog commands, and a real backend's notices after a change of language. The native file dialog itself was not opened. All 13 checks passed. The operator's app was running during the run, and its processes were the same before and after.
+
+## Checks
+
+- `tsc` clean, vitest 755 passed in 73 files, `check:strings` 0 of 660.
+- ruff and `ruff format --check` clean, pyright 0 errors, full pytest at Idle: 3175 passed, 8 skipped.
+- `cargo test --locked` with `CARGO_TARGET_DIR` under `.work/p60-target`: 38 passed, 1 failed. The failure is `a_binary_built_in_this_crate_is_a_developer_build`, which requires the test binary to be under the crate's own `target` folder. CI builds there.
+- `cargo clippy --all-targets -- -D warnings` is clean with two lints allowed, `enum_variant_names` and `items_after_test_module`. Both point at code this branch does not change. CI does not run clippy.
+- 21 mutants (9 Python, 10 frontend, 2 Rust), all killed. Each check passes on the unchanged tree.
 
 ## Decisions
 
