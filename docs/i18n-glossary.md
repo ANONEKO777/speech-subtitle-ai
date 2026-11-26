@@ -104,3 +104,21 @@ The machine translation of `zh-CN` follows the mainland column of the table abov
 | language names | the native name (繁體中文, 日本語, 한국어, Español) | the English name (Traditional Chinese, Japanese, Korean, Spanish) | A language is named in the language of the window, from `lang.<code>` in the catalog. Only the interface-language picker shows each language in its own script. |
 | product name | 字幕翻譯 | Video Subtitle Translator | The window title, the page title and the queue notification. |
 | current profile | 使用中 | Current profile | The disabled button of the profile in use. The chip beside it says "In use" (目前使用). |
+
+## W3b: the batch, the editor, export and the summary
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| batch (the processing queue) | 佇列 | batch | The videos waiting to be translated, on the home screen, in the player's tab and in the toolbar chip ("Batch 2/7"). From W3b the English says "batch", not "queue", so it never reads like the library's "play queue" (播放佇列, W3a). W1's toolbar and toast texts follow ("View batch", "3 items added to the batch"). The player's tab `player.tab.queue` must say "Batch" too. |
+| add to batch | 加入佇列 | add to batch | The dialog title and its button ("Add to batch (3)"). The toolbar button stays "Batch add" (批次加入). |
+| item | 項 | item | One video and one subtitle language in the batch. "2/7 processed". |
+| waiting, processing, paused, done, failed, cancelled | 等待中, 處理中, 已暫停, 完成, 失敗, 已取消 | Waiting, Processing, Paused, Done, Failed, Cancelled | The state of an item. |
+| clear finished | 清除已完成 | Clear finished | |
+| sleep, shut down | 睡眠, 關機 | sleep, shut down | What the computer does when the batch finishes. "Put the computer to sleep", "Shut down". |
+| countdown | 倒數 | countdown | The 60 seconds before sleep or shutdown, which "Cancel" stops. |
+| original | 原文 | original | In the export menu: "SRT (original)". |
+| bilingual (export) | 雙語 | bilingual | "SRT (bilingual)", "ASS (bilingual)", "VTT (bilingual)". The format names stay. |
+| export | 匯出 | export | "Exported to C:\...", "Export cancelled", "Export failed: ...". |
+| start, end (of a subtitle) | 開始, 結束 | Start, End | The two times in the cue editor. |
+| undo | 復原 | undo | "Couldn't undo: ...". |
+| jump to | 跳到 | jump to | A chapter time in the summary: "Jump to 1:05:30". |
