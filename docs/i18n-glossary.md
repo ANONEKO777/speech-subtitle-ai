@@ -113,7 +113,7 @@ The terms of the player, its side column, the library and the help overlay.
 |---|---|---|---|
 | one subtitle | 句, 則, 條 | subtitle | One cue. "Previous subtitle", "Subtitle 12", "2 subtitles failed". Never "line" or "sentence", which the Chinese counters 句 and 則 hide. |
 | subtitle timing | 字幕時間微調 | subtitle timing | The offset of all subtitles against the picture. A positive value shows them later. |
-| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing "queue" (佇列, the Queue tab), which holds videos waiting to be translated. |
+| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing batch (佇列, the Batch tab), which holds videos waiting to be translated. |
 | screenshot | 截圖 | screenshot | |
 | picture-in-picture | 子母畫面 | picture-in-picture | |
 | full screen | 全螢幕 | full screen | Two words. "Exit full screen". |
@@ -130,7 +130,7 @@ The terms of the player, its side column, the library and the help overlay.
 
 | Concept | zh-TW | English | Note |
 |---|---|---|---|
-| batch (the processing queue) | 佇列 | batch | The videos waiting to be translated, on the home screen, in the player's tab and in the toolbar chip ("Batch 2/7"). From W3b the English says "batch", not "queue", so it never reads like the library's "play queue" (播放佇列, W3a). W1's toolbar and toast texts follow ("View batch", "3 items added to the batch"). The player's tab `player.tab.queue` must say "Batch" too. |
+| batch (the processing queue) | 佇列 | batch | The videos waiting to be translated, on the home screen, in the player's tab and in the toolbar chip ("Batch 2/7"). From W3b the English says "batch", not "queue", so it never reads like the library's "play queue" (播放佇列, W3a). W1's toolbar and toast texts follow ("View batch", "3 items added to the batch"). The player's tab says "Batch" too. |
 | add to batch | 加入佇列 | add to batch | The dialog title and its button ("Add to batch (3)"). The toolbar button stays "Batch add" (批次加入). |
 | item | 項 | item | One video and one subtitle language in the batch. "2/7 processed". |
 | waiting, processing, paused, done, failed, cancelled | 等待中, 處理中, 已暫停, 完成, 失敗, 已取消 | Waiting, Processing, Paused, Done, Failed, Cancelled | The state of an item. |

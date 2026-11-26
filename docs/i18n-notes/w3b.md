@@ -1,6 +1,6 @@
 # W3b notes: the batch, the editor, export and the summary
 
-Branch `pr/P56-i18n-w3b`, from `main` `2efa598` (W1 and W1b). The batch queue (`app/src/batch/**`), the cue editor (`app/src/editor/**`), the export menu (`app/src/export/**`) and the summary view (`app/src/summary/**`) read the catalog. zh-TW is the old text, character for character. English is written by hand. `zh-CN` and `ja` are machine translations, marked in their file headers, hidden from the picker.
+Branch `pr/P56-i18n-w3b`, from `main` `2efa598` (W1 and W1b), with `main` `e4a2b12` (W3a) merged in. The batch queue (`app/src/batch/**`), the cue editor (`app/src/editor/**`), the export menu (`app/src/export/**`) and the summary view (`app/src/summary/**`) read the catalog. zh-TW is the old text, character for character. English is written by hand. `zh-CN` and `ja` are machine translations, marked in their file headers, hidden from the picker.
 
 ## What was built
 
@@ -8,15 +8,15 @@ Branch `pr/P56-i18n-w3b`, from `main` `2efa598` (W1 and W1b). The batch queue (`
 - Plural keys: `batch.countdown.sleepAfter` and `batch.countdown.shutdownAfter` ("in 1 second.", "in 42 seconds.").
 - Text that a helper returns takes a translator: `validateDraft(..., t)` (zh-TW by default), `formatEta(..., t)`. `BACKEND_PROBLEM` maps the backend's cue problem codes to keys. `ExportItem.label` is `(t) => string`, so `Player.tsx` calls `exportItems` as before. A missing summary throws `NoSummary` and the menu words it.
 - `batch/lang.ts` `langName(code, languages, locale)` is the one place the batch calls `languageName`. `TargetChoice` and the queue rows use it, so language names follow the window language.
-- Deleted with their last caller: `SOURCE_NOTES` (`api/sourceLang.ts`). `EXPERIMENTAL` and `EXPERIMENTAL_HINT` (`api/targets.ts`) are no longer read by W3b, but `player/AddTarget.tsx` and `player/SidePanel.tsx` (W3a) still read them on `main`, so they go after both merges (see "After the merge").
+- Deleted with their last caller: `SOURCE_NOTES` (`api/sourceLang.ts`). The experimental-language constants and `JOB_RUNNING` went after the merge (see "After merging `main`").
 - English CSS: `:root:lang(en) .batch-lang` wraps, so the Batch tab in the 340 px side column does not overflow (the chip "Japanese + English Korean Experimental" pushed the row past the column).
-- Guard: `check:strings` 388 to 269 (all 119 literals of the area).
+- Guard: all 119 literals of the area left the baseline.
 - Tests: `batch/w3b.screens.test.tsx` renders 16 scenes in zh-TW and en. zh-TW equals `w3b.screens.zh-TW.fixture.json`, written by the same test on `main` (regenerated in a clean `main` checkout: identical bytes). English holds no CJK or full-width character. More tests check the English wording, the safety text and the live language switch.
 
 ## Decisions
 
-- **"Batch" for the processing queue.** 佇列 is "batch" in English on every screen W3b owns, and W1's toolbar chip and toasts now say "Batch 2/7", "View batch", "3 items added to the batch", "Batch finished: 3 done". W3a's library keeps "Play queue" (播放佇列). "Queue" next to "Play queue" reads as the same list; "Batch" never does, and it matches the toolbar button "Batch add". zh-TW is unchanged. The player's tab key `player.tab.queue` is W3a's and must say "Batch" after the merge.
-- **The export menu.** Entries are "SRT (original)", "SRT (Traditional Chinese)", "SRT (bilingual)", "ASS (bilingual)", "VTT (bilingual)", "Summary (summary.md)". Format and file names are unchanged. In a merge of W3a and W3b the open menu measures 267 px wide, inside the side column at 960 (column 608 to 948, menu 672 to 939) and at 1280 (928 to 1268, menu 992 to 1259), and no entry is clipped.
+- **"Batch" for the processing queue.** 佇列 is "batch" in English on every screen W3b owns, and W1's toolbar chip and toasts now say "Batch 2/7", "View batch", "3 items added to the batch", "Batch finished: 3 done". W3a's library keeps "Play queue" (播放佇列). "Queue" next to "Play queue" reads as the same list; "Batch" never does, and it matches the toolbar button "Batch add". zh-TW is unchanged. The player's tab says "Batch" too.
+- **The export menu.** Entries are "SRT (original)", "SRT (Traditional Chinese)", "SRT (bilingual)", "ASS (bilingual)", "VTT (bilingual)", "Summary (summary.md)". Format and file names are unchanged. With W3a merged the open menu measures 267 px wide, inside the side column at 960 (column 608 to 948, menu 672 to 939) and at 1280 (928 to 1268, menu 992 to 1259), and no entry is clipped.
 - **Undo and refusal messages** are worded when they happen. A refusal on screen stays in the language it was written in until the next save or undo; the client-side checks (`validate`) follow a language switch at once.
 
 ## Safety text (English next to the Chinese, for the reviewer)
@@ -46,17 +46,30 @@ The English body of the warning starts with a space (`batch.warn.*.body`), becau
 - File names and paths, the subtitle text, the summary text and its chapter titles (data).
 - A language the catalog has no `lang.*` key for falls back to the backend's name.
 
-## After the merge (the root, when W3a and W3b are both on `main`)
+## After merging `main` (W3a)
 
-`.work/p56-post-merge.patch` (made on a scratch merge of `main`, P55 `dfa29c0` and P56, where `tsc` passes and 566 vitest tests pass):
+Done on this branch after W3a reached `main` (`e4a2b12`).
 
-1. `batch/lang.ts` calls W3a's `languageName(locale, language)` (one line), and passes `name` so English can fall back to the backend's English name.
-2. `EXPERIMENTAL` and `EXPERIMENTAL_HINT` are deleted from `api/targets.ts`, and the three tests that read `EXPERIMENTAL_HINT` read `tZhTW("targets.experimentalHint")`.
-3. `player.tab.queue` in `catalog/en/player.ts` says "Batch".
+- `batch/lang.ts` `langName` calls `languageName(locale, language)` with the whole record, so English falls back to the backend's English name.
+- `EXPERIMENTAL`, `EXPERIMENTAL_HINT` and `JOB_RUNNING` are deleted. Their tests read the catalog.
+- `player.tab.queue` says "Batch".
+- Guard: `check:strings` 137 of 660. All 137 are in `models-page` and `wizard` (W2).
+- Tests added: the add-a-language menu and the batch target list say "Spanish" (and fall back to the backend's English name), the four player tabs read "Subtitles", "Summary", "Library", "Batch", and the English check also refuses Thai and Hangul jamo.
 
-The merge itself conflicts only at the shared edges: the four `catalog/<locale>/index.ts` (keep both spreads), `app/i18n-baseline.json` (take `main`'s and run `npm run check:strings -- --update`: 137 after both), and `docs/i18n-glossary.md` (keep both sections).
+## English layout fixes on the merged head
+
+All scoped to `:root:lang(en)`. The zh-TW PNGs equal `main`'s on every rendered screen.
+
+- In the one-column queue row (the side column), the language chip took the file name's width: the name was 0 px wide on the rows with a video language tag. In English the chip now has its own line, and the name is at least 164 px.
+- In the same column the "When the batch finishes" label wrapped and squeezed its select. In English the select now goes under the label.
+- In the wide row (the home panel), "Processing" plus "Recognizing speech (3/7)" did not fit the 150 px status column. In English the step now has its own line under the state.
+
+## Renders
+
+Edge with a stubbed Tauri and backend, not the Tauri window. The script is `.work/p56-shots/shots.mjs` and the PNGs are in `.work/p56-shots/final/`. The script turns the backdrop blur off, because the blur changed pixel values by 1 from run to run.
 
 ## Open points
 
-- At 960 px the queue row's file name is short in the side column in both languages (zh-TW on `main` too). It ellipsizes and the full path is in its tooltip.
-- In the Edge renders the modal screens (countdown, batch dialog) differ from run to run by a few pixels of value 1 under the backdrop blur, on `main` as well.
+- `main` has a zh-TW layout defect that this branch does not change, because zh-TW pixels must stay equal to `main`'s: in the side column the 匯出 button reaches past the column's right edge (967 px against 948 px at 960, 1287 px against 1268 px at 1280). The English side column has nothing outside its rectangle.
+- In zh-TW the file name of a running mixed-language row is about one character wide in the side column. `main` has the same. The full path is in the tooltip.
+- Long file names ellipsize in both languages. The full path is in the tooltip.
