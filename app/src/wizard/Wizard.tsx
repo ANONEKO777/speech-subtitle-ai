@@ -293,7 +293,7 @@ function Choose({
         </span>
       </div>
       {view.vcRuntimeMissing && (
-        <div className="note bad" role="alert" data-testid="wizard-vcredist">
+        <div className="note bad vc-note" role="alert" data-testid="wizard-vcredist">
           {t("wizard.vc.pre")}
           <ExternalLink href={VC_REDIST_URL}>{t("wizard.vc.link")}</ExternalLink>
           {t("wizard.vc.post", { start: t("wizard.start.download") })}

@@ -1,0 +1,133 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Backend } from "../api/client";
+import { bytes, mib, speed } from "../manage/format";
+import { isWindowsPath } from "../manage/pathStyle";
+import { macInventory, macView, windowsView } from "../manage/screens.fixture";
+import type { SettingsView } from "../manage/types";
+import { ModelsSection } from "../models-page/ModelsSection";
+import { StorageCard } from "../models-page/StorageCard";
+import { Wizard } from "../wizard/Wizard";
+import { I18nProvider } from "./I18nProvider";
+import { plural, t } from ".";
+
+const mocks = vi.hoisted(() => ({ profile: null as unknown, inventory: null as unknown, settings: null as unknown, move: null as unknown }));
+
+vi.mock("../api/backend", () => ({ pickFolder: () => Promise.resolve(null) }));
+vi.mock("../manage/useDownloads", () => ({ useDownloads: () => ({ list: [], byAsset: new Map(), refresh: () => undefined }) }));
+vi.mock("../manage/api", async (orig) => ({
+  ...(await orig<typeof import("../manage/api")>()),
+  fetchProfile: () => Promise.resolve(mocks.profile),
+  fetchLicenses: () => Promise.resolve([]),
+  fetchInventory: () => Promise.resolve(mocks.inventory),
+  fetchSettings: () => Promise.resolve(mocks.settings),
+  fetchMove: () => Promise.resolve(mocks.move),
+}));
+
+const backend = { port: 1, token: "t" } as Backend;
+const downloads = { list: [], byAsset: new Map(), refresh: () => undefined };
+const idle = { state: "idle", target: null, filesTotal: 0, filesDone: 0, bytesTotal: 0, bytesDone: 0, error: null, warnings: [] };
+const settings = (modelsDir: string) => ({ storage: { userData: "", modelsDir, customModelsDir: null } }) as unknown as SettingsView;
+
+afterEach(cleanup);
+
+describe("English wording that no other test pins", () => {
+  it("names two and three other profiles in words and more in digits", () => {
+    expect(t("en", "wizard.others.two")).toBe("two");
+    expect(t("en", "wizard.others.three")).toBe("three");
+    expect(t("en", "wizard.recommended.post", { others: "two" })).toBe(". You can also choose from the other two below.");
+  });
+
+  it("says item or items installed, and file or files moved", () => {
+    expect(plural("en", "models.summary", 1, { size: "1.49 GB" })).toMatch(/^1 item installed, 1\.49 GB in total\./);
+    expect(plural("en", "models.summary", 3, { size: "1.49 GB" })).toMatch(/^3 items installed, 1\.49 GB in total\./);
+    expect(plural("en", "storage.moving", 1, { percent: 50, filesDone: 0, done: "1 MB", total: "2 MB" })).toBe("Moving 50%: 0 / 1 file, 1 MB / 2 MB");
+    expect(plural("en", "storage.moved", 2, { size: "2 MB", target: "F:/x" })).toBe("Move complete: 2 files (2 MB) moved to F:/x");
+    expect(plural("en", "storage.confirm.body", 1, { size: "1 MB", notInstalled: "Not installed" })).toContain("1 installed model (1 MB) is in the old folder");
+  });
+
+  it("keeps the English wizard's own words on the buttons", async () => {
+    mocks.profile = windowsView();
+    render(
+      <I18nProvider initial="en">
+        <Wizard backend={backend} onExit={() => undefined} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("wizard-choose"));
+    expect(screen.getByTestId("wizard-start").textContent).toBe("Download and start");
+    expect(screen.getByTestId("wizard-skip").textContent).toBe("Skip and set up later in Settings");
+    expect(screen.getByTestId("wizard-recommended").textContent).toBe("We recommend the profile 24 GB GPU. You can also choose from the other two below.");
+    expect(screen.getByTestId("wizard-total").textContent).toMatch(/^Total [\d.]+ GB, free disk space 488 GB$/);
+  });
+
+  it("says in English where a Mac builds its own runtime, and counts zero items", async () => {
+    mocks.inventory = macInventory();
+    render(
+      <I18nProvider initial="en">
+        <ModelsSection backend={backend} downloads={downloads} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("inv-table"));
+    expect(screen.getByTestId("inv-whispercpp-b5454-macos-metal-build").textContent).toBe("built on this Mac by running scripts/mac/build_whisper_cli.sh; see docs/MACOS.md");
+    expect(screen.getByTestId("inv-summary").textContent).toMatch(/^0 items installed, 0 B in total\./);
+  });
+});
+
+describe("the example folder follows the machine's path style", () => {
+  const placeholder = async (modelsDir: string) => {
+    mocks.settings = settings(modelsDir);
+    mocks.move = idle;
+    render(
+      <I18nProvider initial="en">
+        <StorageCard backend={backend} onChanged={() => undefined} />
+      </I18nProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("models-dir").textContent).toBe(modelsDir));
+    return (screen.getByTestId("models-dir-input") as HTMLInputElement).placeholder;
+  };
+
+  it("shows a drive-letter example for a Windows folder", async () => {
+    expect(await placeholder("C:\\Users\\me\\models")).toBe("New models folder, for example E:\\vst-models");
+  });
+
+  it("shows no drive letter for a Mac folder", async () => {
+    const text = await placeholder("/Users/me/Library/Application Support/models");
+    expect(text).toBe("New models folder, for example /Volumes/Models/vst-models");
+    expect(text).not.toContain("E:");
+  });
+
+  it("tells drive letters and shares from POSIX paths", () => {
+    expect(isWindowsPath("C:/m")).toBe(true);
+    expect(isWindowsPath("D:\\models")).toBe(true);
+    expect(isWindowsPath("\\\\nas\\share")).toBe(true);
+    expect(isWindowsPath("/Users/me")).toBe(false);
+    expect(isWindowsPath("models")).toBe(false);
+  });
+});
+
+describe("sizes and speeds", () => {
+  it("print the same digits in every shipped language", () => {
+    for (const locale of ["en", "zh-TW", "zh-CN", "ja"] as const) {
+      expect(bytes(1_600_000_000, locale)).toBe("1.49 GB");
+      expect(speed(5_000_000, locale)).toBe("4.77 MB/s");
+      expect(mib(null, locale)).toBe("—");
+    }
+  });
+});
+
+describe("a Mac wizard", () => {
+  it("counts three other profiles and says unified memory", async () => {
+    mocks.profile = macView();
+    render(
+      <I18nProvider initial="en">
+        <Wizard backend={backend} onExit={() => undefined} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("wizard-choose"));
+    expect(screen.getByTestId("wizard-recommended").textContent).toContain("the other three below");
+    expect(screen.getByTestId("wizard-hardware").textContent).toContain("Unified memory 36.0 GB");
+    fireEvent.click(screen.getByTestId("wizard-profile-apple-cpu"));
+    expect(screen.getByTestId("wizard-cpu-note")).toBeTruthy();
+  });
+});

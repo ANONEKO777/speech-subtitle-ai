@@ -96,3 +96,26 @@ A change to a zh-TW string in a wave that only moves strings is a bug. A wording
 ## zh-CN and ja (W5)
 
 The machine translation of `zh-CN` follows the mainland column of the table above (视频, 文件, 程序, 内存, 显卡, 鼠标, 窗口, 界面, 设置, 保存, 服务器, 默认, 用户, 信息). `ja` uses the usual katakana terms (ファイル, フォルダー, ダウンロード, インストール, ウィンドウ, プロファイル, 設定). W5 reads both against this file and adds the terms of W2 to W4 that the table does not have yet.
+
+## W2: the first-run wizard and the models page
+
+Terms the wizard and the models page added. The zh-TW column is the text those screens already used.
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| first run | 第一次使用 | First run | The small heading above the wizard title. |
+| item | 項目 | item | One model or one runtime in the download table. |
+| built on this computer | 自行建置 | build on this computer | A runtime a Mac builds with a script. Never "compile". |
+| resume (a download) | 續傳, 繼續下載 | Resume, Resume download | "Resume" in a table row, "Resume download" on the wizard button. |
+| download again | 重新下載 | Download again | The button for a file that is already there. Not "re-download". |
+| verify | 驗證 | Verify | Checks the SHA256 of a model file. |
+| repair | 修復 | Repair | |
+| registry version | 登錄版本 | Registry version | The version the app's model list ships, next to the version on disk. |
+| used by | 使用於 | Used by | The profiles that use the item. |
+| needed by | 相依 | Needed by | The other items that need this one. |
+| in the current profile | 目前使用 | In the current profile | In the models table. The hardware page says "In use" for a profile. |
+| partly downloaded | 下載到一半 | Incomplete | A download that stopped before the end. The status chip has to stay short, so it does not say "Partly downloaded". |
+| SHA256 matches | SHA256 相符, SHA256 不符 | SHA256 matches, SHA256 does not match | |
+| force delete | 強制刪除 | Force delete | Needs a written reason of at least 8 characters, which goes to the log. |
+| models folder | 模型資料夾 | Models folder | Where the downloaded models live. |
+| Visual C++ Redistributable | Visual C++ 可轉散發套件 | Visual C++ Redistributable | Microsoft's name in English. |
