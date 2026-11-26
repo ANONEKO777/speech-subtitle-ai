@@ -105,6 +105,27 @@ The machine translation of `zh-CN` follows the mainland column of the table abov
 | product name | 字幕翻譯 | Video Subtitle Translator | The window title, the page title and the queue notification. |
 | current profile | 使用中 | Current profile | The disabled button of the profile in use. The chip beside it says "In use" (目前使用). |
 
+## W3a (the player)
+
+The terms of the player, its side column, the library and the help overlay.
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| one subtitle | 句, 則, 條 | subtitle | One cue. "Previous subtitle", "Subtitle 12", "2 subtitles failed". Never "line" or "sentence", which the Chinese counters 句 and 則 hide. |
+| subtitle timing | 字幕時間微調 | subtitle timing | The offset of all subtitles against the picture. A positive value shows them later. |
+| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing "queue" (佇列, the Queue tab), which holds videos waiting to be translated. |
+| screenshot | 截圖 | screenshot | |
+| picture-in-picture | 子母畫面 | picture-in-picture | |
+| full screen | 全螢幕 | full screen | Two words. "Exit full screen". |
+| A-B loop | A-B 循環 | A-B loop | "Point A" is the start, "Point B" the end. The on-screen line after the first press reads "Point A set at 0:12". |
+| frame | 格 | frame | "Next frame", "Previous frame". |
+| burn in | 燒入 | burn into | A verb on every menu entry: "Burn subtitles into screenshots", "Burn subtitles into MP4 (whole video)", "Burn subtitles into MP4 (next 30 s)". |
+| edited by hand | 手動修改 | edited by hand | A subtitle the person corrected. "{n} subtitles edited" in the footer. |
+| left empty | 留空 | left empty | A subtitle the translator could not do and left blank. |
+| video file | 影片檔 | video file | |
+| shortcuts | 鍵盤快捷鍵 | keyboard shortcuts | Key names (Space, Ctrl, Shift, arrows) stay as they are in every language. |
+| language name (player) | 繁體中文, 한국어 | Traditional Chinese, Korean | The window shows the backend's English name in English and the native name in the other languages. The UI language picker keeps native names. |
+
 ## W3b: the batch, the editor, export and the summary
 
 | Concept | zh-TW | English | Note |

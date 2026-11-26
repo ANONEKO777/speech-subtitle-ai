@@ -1,4 +1,5 @@
 import { tZhTW } from "../i18n";
+import type { NamedLanguage } from "../i18n/languageName";
 import type { LanguageInfo } from "./client";
 import type { SourceLang } from "./sourceLang";
 
@@ -65,8 +66,9 @@ export function targetsFor(set: TargetSource, source: SourceLang, wanted: readon
 export const EXPERIMENTAL = tZhTW("targets.experimental");
 export const EXPERIMENTAL_HINT = tZhTW("targets.experimentalHint");
 
-export const targetName = (set: TargetSource, source: SourceLang, code: string): string =>
-  targetsOf(set, source).find((t) => t.code === code)?.nativeName ?? set.languages.find((l) => l.code === code)?.nativeName ?? code;
+/** The backend's record of a target language, or its bare code when the backend does not list it. */
+export const targetLanguage = (set: TargetSource, source: SourceLang, code: string): NamedLanguage =>
+  targetsOf(set, source).find((t) => t.code === code) ?? set.languages.find((l) => l.code === code) ?? { code };
 
 export const isExperimentalTarget = (set: TargetSource, source: SourceLang, code: string): boolean =>
   targetsOf(set, source).find((t) => t.code === code)?.experimental ?? false;

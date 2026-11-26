@@ -1,6 +1,7 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Backend } from "../api/client";
 import { fetchFrameRate, putPlayback } from "../api/library";
+import { useT } from "../i18n/I18nProvider";
 import { watchAudioClock } from "./audioClock";
 import { PREFS_KEY, parsePrefs } from "./prefs";
 import { type Loop, NO_LOOP, cycleLoop, loopTarget, playClock, resumeAt, stepFrame, stepOrigin, stepSpeed } from "./transport";
@@ -22,6 +23,7 @@ interface Options {
 
 /** The state and the actions of the video element: play, seek, volume, speed, frame step, A-B loop, and remembering where the person stopped. Each action returns the line the on-screen display shows. */
 export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Options) {
+  const { t } = useT();
   const prefs = useRef(parsePrefs(localStorage.getItem(PREFS_KEY)));
   const [paused, setPaused] = useState(true);
   const [time, setTime] = useState(0);
@@ -206,7 +208,7 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
       const e = el();
       if (!e) return;
       e.currentTime = clampTo(e, e.currentTime + seconds);
-      return `${seconds > 0 ? "+" : "−"}${Math.abs(seconds)} 秒`;
+      return t("player.osd.seek", { delta: `${seconds > 0 ? "+" : "−"}${Math.abs(seconds)}` });
     },
     seekPercent(percent: number) {
       const e = el();
@@ -231,25 +233,25 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
       const next = Math.round(Math.min(1, Math.max(0, e.volume + delta)) * 100) / 100;
       e.volume = next;
       if (delta > 0) e.muted = false;
-      return `音量 ${Math.round(next * 100)}%`;
+      return t("player.osd.volume", { percent: Math.round(next * 100) });
     },
     toggleMute() {
       const e = el();
       if (!e) return;
       e.muted = !e.muted;
-      return e.muted ? "靜音" : `音量 ${Math.round(e.volume * 100)}%`;
+      return e.muted ? t("player.osd.muted") : t("player.osd.volume", { percent: Math.round(e.volume * 100) });
     },
     setRateTo(r: number) {
       const e = el();
       if (e) e.playbackRate = r;
-      return `速度 ${r}×`;
+      return t("player.osd.speed", { rate: r });
     },
     speedStep(dir: 1 | -1) {
       const e = el();
       if (!e) return;
       const next = stepSpeed(e.playbackRate, dir);
       e.playbackRate = next;
-      return `速度 ${next}×`;
+      return t("player.osd.speed", { rate: next });
     },
     frameStep(dir: 1 | -1) {
       const e = el();
@@ -257,15 +259,15 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
       const wasPlaying = !e.paused;
       e.pause();
       stepping.current = stepping.current.then(() => stepOneFrame(e, dir, wasPlaying));
-      return dir > 0 ? "下一格" : "上一格";
+      return dir > 0 ? t("player.osd.frameNext") : t("player.osd.framePrev");
     },
     cycleLoop() {
       const e = el();
       if (!e) return;
       const next = cycleLoop(loop, e.currentTime);
       setLoop(next);
-      if (next.b !== null) return `A-B 循環 ${playClock(next.a ?? 0)} – ${playClock(next.b)}`;
-      return next.a !== null ? `A 點 ${playClock(next.a)}` : "A-B 循環已取消";
+      if (next.b !== null) return t("player.osd.loopRange", { a: playClock(next.a ?? 0), b: playClock(next.b) });
+      return next.a !== null ? t("player.osd.loopA", { a: playClock(next.a) }) : t("player.osd.loopOff");
     },
   };
 }

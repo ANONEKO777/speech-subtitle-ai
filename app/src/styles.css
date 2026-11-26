@@ -1417,6 +1417,37 @@ button.chapter-time:hover:not(:disabled) {
   text-overflow: ellipsis;
 }
 
+/* the English labels are longer than the Chinese ones: the side column's tabs get a row of their own, with undo and export under them, and the folder row gets room for its path */
+:root:lang(en) .side-head {
+  flex-wrap: wrap;
+}
+
+:root:lang(en) .side-head .tabs {
+  flex: 1 1 100%;
+}
+
+:root:lang(en) .side-tools {
+  margin-left: auto;
+}
+
+:root:lang(en) .folder-name {
+  max-width: 300px;
+}
+
+/* the export menu opens leftward from the right edge of the 340 px side column, which clips it: English entries wrap rather than push the menu past the column's left edge */
+:root:lang(en) .side-tools .menu-list {
+  width: max-content;
+  max-width: 320px;
+}
+
+:root:lang(en) .side .menu-list button {
+  height: auto;
+  min-height: 30px;
+  padding-block: var(--space-1);
+  white-space: normal;
+  text-align: start;
+}
+
 .pop {
   position: absolute;
   z-index: 5;
@@ -1823,6 +1854,11 @@ kbd {
 
   .lib-meta {
     padding: var(--space-2);
+  }
+
+  /* in the one-column list the add-to-queue button sits over the end of the title */
+  :root:lang(en) .lib-title {
+    padding-right: 28px;
   }
 }
 

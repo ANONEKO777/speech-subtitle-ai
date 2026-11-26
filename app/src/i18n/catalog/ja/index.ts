@@ -8,9 +8,10 @@ import { importer } from "./importer";
 import { languages } from "./languages";
 import { licenses } from "./licenses";
 import { llm } from "./llm";
+import { player } from "./player";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { summary } from "./summary";
 import { update } from "./update";
 
-export const ja = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...settings, ...shell, ...summary, ...update } satisfies Record<Key, string>;
+export const ja = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...player, ...settings, ...shell, ...summary, ...update } satisfies Record<Key, string>;
