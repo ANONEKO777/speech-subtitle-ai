@@ -397,8 +397,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const recorded: Record<string, Record<string, Harvest>> = { "zh-TW": {}, en: {} };
-
 describe.each(["zh-TW", "en"] as const)("W3a screens in %s", (locale) => {
   for (const [name, screenFn] of Object.entries(SCREENS)) {
     it(name, async () => {
@@ -408,7 +406,6 @@ describe.each(["zh-TW", "en"] as const)("W3a screens in %s", (locale) => {
       };
       await screenFn(shot, locale);
       expect(Object.keys(seen).length).toBeGreaterThan(0);
-      recorded[locale]![name] = seen;
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
           expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);

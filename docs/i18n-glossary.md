@@ -96,3 +96,24 @@ A change to a zh-TW string in a wave that only moves strings is a bug. A wording
 ## zh-CN and ja (W5)
 
 The machine translation of `zh-CN` follows the mainland column of the table above (视频, 文件, 程序, 内存, 显卡, 鼠标, 窗口, 界面, 设置, 保存, 服务器, 默认, 用户, 信息). `ja` uses the usual katakana terms (ファイル, フォルダー, ダウンロード, インストール, ウィンドウ, プロファイル, 設定). W5 reads both against this file and adds the terms of W2 to W4 that the table does not have yet.
+
+## W3a (the player)
+
+The terms of the player, its side column, the library and the help overlay.
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| one subtitle | 句, 則, 條 | subtitle | One cue. "Previous subtitle", "Subtitle 12", "2 subtitles failed". Never "line" or "sentence", which the Chinese counters 句 and 則 hide. |
+| subtitle timing | 字幕時間微調 | subtitle timing | The offset of all subtitles against the picture. A positive value shows them later. |
+| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing "queue" (佇列, the Queue tab), which holds videos waiting to be translated. |
+| screenshot | 截圖 | screenshot | |
+| picture-in-picture | 子母畫面 | picture-in-picture | |
+| full screen | 全螢幕 | full screen | Two words. "Exit full screen". |
+| A-B loop | A-B 循環 | A-B loop | "Point A" is the start, "Point B" the end. |
+| frame | 格 | frame | "Next frame", "Previous frame". |
+| burn in | 燒入 | burn into | "Burn subtitles into screenshots", "MP4 with burned-in subtitles". |
+| edited by hand | 手動修改 | edited by hand | A subtitle the person corrected. "{n} subtitles edited" in the footer. |
+| left empty | 留空 | left empty | A subtitle the translator could not do and left blank. |
+| video file | 影片檔 | video file | |
+| shortcuts | 鍵盤快捷鍵 | keyboard shortcuts | Key names (Space, Ctrl, Shift, arrows) stay as they are in every language. |
+| language name (player) | 繁體中文, 한국어 | Traditional Chinese, Korean | The window shows the backend's English name in English and the native name in the other languages. The UI language picker keeps native names. |

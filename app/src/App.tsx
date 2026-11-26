@@ -38,6 +38,7 @@ import { useDetections, useSettledPath } from "./import/useDetections";
 import { useDrops } from "./import/useDrops";
 import { Library } from "./player/Library";
 import { Toast } from "./player/Overlays";
+import { languageLabel } from "./player/langName";
 import { Player } from "./player/Player";
 import { useToast } from "./player/useToast";
 import { QUEUE_KEY, dequeue, enqueue, neighbour, parseQueue, playing, pruned } from "./player/queue";
@@ -138,7 +139,7 @@ function Importing({
 
 export function App() {
   const texts = useT();
-  const { t, plural } = texts;
+  const { t, plural, locale } = texts;
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
@@ -294,7 +295,7 @@ export function App() {
         setLibrary(items);
         setLanguageSet(set);
         setSourceLang((picked) => usableSource(picked, set.unavailable));
-        setLanguageNames(new Map(set.languages.map((l) => [l.code, shortName(l.nativeName)])));
+        setLanguageNames(new Map(set.languages.map((l) => [l.code, languageLabel(l, locale)])));
         setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
       },
       () => undefined,
@@ -302,7 +303,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [backend, screenKind, playingId, t]);
+  }, [backend, screenKind, playingId, t, locale]);
 
   useDrops(
     backend !== null,
