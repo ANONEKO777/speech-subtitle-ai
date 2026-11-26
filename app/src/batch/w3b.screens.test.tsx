@@ -11,6 +11,7 @@ import { exportItems } from "../export/exports";
 import { I18nProvider, useI18n } from "../i18n/I18nProvider";
 import type { Locale } from "../i18n/locale";
 import type { Cue } from "../player/cues";
+import { AddTarget } from "../player/AddTarget";
 import { SummaryView } from "../summary/SummaryView";
 import { AddDialog, rowsFor } from "./AddDialog";
 import { BatchPanel } from "./BatchPanel";
@@ -22,7 +23,7 @@ import { TargetChoice } from "./TargetChoice";
  * The queue, the batch dialog, the power countdown, the cue editor, the export menu and the summary,
  * in each released language. Traditional Chinese must equal what `main` showed
  * (`w3b.screens.zh-TW.fixture.json`, written on `main` with W3B_FIXTURE=write), and English must hold
- * no Chinese, Japanese, Korean or full-width character. The stubs carry the language names the backend
+ * no Chinese, Japanese, Korean, Thai or full-width character. The stubs carry the language names the backend
  * sends (`nativeName`) and Latin text everywhere else, so a CJK character on the English render is
  * text the catalog did not carry.
  */
@@ -165,7 +166,8 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef]/;
+/** Thai, Hangul (jamo and syllables), kana, Han and full-width characters: what an English window must not show. */
+const NOT_ENGLISH = /[\u0e00-\u0e7f\u1100-\u11ff\u3000-\u303f\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\ua960-\ua97f\uac00-\ud7ff\uff00-\uffef]/;
 const FIXTURE = "src/batch/w3b.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W3B_FIXTURE"] === "write";
 interface Files {
@@ -371,8 +373,8 @@ describe.each(["zh-TW", "en"] as const)("W3b screens in %s", (locale) => {
       expect(Object.keys(seen).length).toBeGreaterThan(0);
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
-          expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
-          for (const a of h.attrs) expect(CJK.test(a), `${name} / ${label}: ${a}`).toBe(false);
+          expect(NOT_ENGLISH.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
+          for (const a of h.attrs) expect(NOT_ENGLISH.test(a), `${name} / ${label}: ${a}`).toBe(false);
         }
         return;
       }
@@ -435,6 +437,28 @@ describe("what the English window says", () => {
       "VTT (bilingual)",
       "Summary (summary.md)",
     ]);
+  });
+
+  it("names the languages to add and the batch targets in English, never in their own script", () => {
+    const targets: readonly Target[] = [
+      { code: "es", name: "Spanish", nativeName: "Español", experimental: false },
+      { code: "xx", name: "Newspeak", nativeName: "Novlangue", experimental: false },
+    ];
+    render(
+      wrap(
+        "en",
+        <>
+          <AddTarget targets={targets} blocked={null} onAdd={() => undefined} />
+          <TargetChoice targets={targets} value={["es"]} onChange={() => undefined} label="x" testid="pick" />
+        </>,
+      ),
+    );
+    fireEvent.click(screen.getByTestId("add-target"));
+    fireEvent.click(screen.getByTestId("pick"));
+    const texts = (testid: string, selector: string) => [...screen.getByTestId(testid).querySelectorAll(selector)].map((n) => n.textContent);
+    expect(texts("add-target-list", "[role='menuitem']")).toEqual(["Spanish", "Newspeak"]);
+    expect(texts("pick-list", "label > span")).toEqual(["Spanish", "Newspeak"]);
+    expect(screen.getByTestId("pick").textContent).toBe("Spanish");
   });
 
   it("explains a refused cue edit in English", () => {
