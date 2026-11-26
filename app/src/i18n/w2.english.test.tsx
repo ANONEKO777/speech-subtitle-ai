@@ -157,6 +157,30 @@ describe("a Mac wizard", () => {
   });
 });
 
+describe("the note after a verify", () => {
+  const id = "whisper-large-v3-turbo";
+  const bad = "SHA256 does not match. Choose “Repair”.";
+
+  it.each([
+    ["verified", "status", "SHA256 matches. The file is intact."],
+    ["corrupt", "alert", bad],
+    ["unchecked", "alert", bad],
+  ] as const)("reports a file that is %s afterwards as a %s", async (shaState, role, text) => {
+    const inventory = windowsInventory();
+    mocks.inventory = { ...inventory, assets: inventory.assets.map((a) => (a.id === id ? { ...a, shaState } : a)) };
+    render(
+      <I18nProvider initial="en">
+        <ModelsSection backend={backend} downloads={downloads} />
+      </I18nProvider>,
+    );
+    await waitFor(() => screen.getByTestId("inv-table"));
+    fireEvent.click(screen.getByTestId(`act-${id}-verify`));
+    const note = await screen.findByTestId(`inv-${id}-note`);
+    expect(note.textContent).toBe(text);
+    expect(note.getAttribute("role")).toBe(role);
+  });
+});
+
 describe("the models page re-words its row notes when the language changes", () => {
   function ToChinese() {
     const i18n = useI18n();
