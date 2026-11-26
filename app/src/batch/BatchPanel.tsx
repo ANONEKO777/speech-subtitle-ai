@@ -254,7 +254,7 @@ const ACTION = {
 } as const satisfies Record<string, { label: PlainKey; icon: unknown }>;
 
 function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, onDragStart, onNudge }: RowProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const percent = Math.round(item.progress * 100);
   const stepIndex = item.step ? STEP_ORDER.indexOf(item.step) + 1 : 0;
   const detail =
@@ -299,7 +299,7 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
             {sourceTag(item.sourceLang, t)}
           </span>
         )}
-        {langName(item.lang, languages, t)}
+        {langName(item.lang, languages, locale)}
         {isExperimental(item.lang, languages) && <span className="chip-exp">{t("targets.experimental")}</span>}
       </span>
       <span className="batch-status">

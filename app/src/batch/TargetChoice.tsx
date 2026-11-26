@@ -1,8 +1,8 @@
 import { ChevronDown } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import type { Target } from "../api/targets";
-import { type Translate, tZhTW } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
+import { type Locale, UNMANAGED_LOCALE } from "../i18n/locale";
 import { langName } from "./lang";
 
 interface Props {
@@ -15,14 +15,14 @@ interface Props {
 }
 
 /** What the closed control says: the first language and how many more are picked. */
-export function choiceSummary(targets: readonly Target[], value: readonly string[], t: Translate = tZhTW): string {
-  const names = targets.filter((x) => value.includes(x.code)).map((x) => langName(x.code, targets, t));
+export function choiceSummary(targets: readonly Target[], value: readonly string[], locale: Locale = UNMANAGED_LOCALE): string {
+  const names = targets.filter((x) => value.includes(x.code)).map((x) => langName(x.code, targets, locale));
   return names.length > 1 ? `${names[0] ?? ""} +${names.length - 1}` : (names[0] ?? "");
 }
 
 /** Picks one or more languages for a video. The last one picked cannot be taken away, so a video always has a target. */
 export function TargetChoice({ targets, value, onChange, label, testid }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>({});
@@ -73,7 +73,7 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
         disabled={!several}
         onClick={openList}
       >
-        <span>{choiceSummary(targets, value, t)}</span>
+        <span>{choiceSummary(targets, value, locale)}</span>
         {targets.some((x) => x.experimental && value.includes(x.code)) && (
           <span className="chip-exp" data-testid={`${testid}-experimental`}>
             {t("targets.experimental")}
@@ -92,7 +92,7 @@ export function TargetChoice({ targets, value, onChange, label, testid }: Props)
                 disabled={value.length === 1 && value.includes(x.code)}
                 onChange={() => toggle(x.code)}
               />
-              <span>{langName(x.code, targets, t)}</span>
+              <span>{langName(x.code, targets, locale)}</span>
               {x.experimental && <span className="chip-exp">{t("targets.experimental")}</span>}
             </label>
           ))}
