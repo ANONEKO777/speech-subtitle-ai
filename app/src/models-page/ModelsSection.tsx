@@ -324,7 +324,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                         </span>
                       )}
                       {!note && job?.failure && !live && (
-                        <span className="sub note-line bad" role="alert" data-testid={`inv-${asset.id}-note`}>
+                        <span className="sub note-line job-failure bad" role="alert" data-testid={`inv-${asset.id}-note`}>
                           {job.failure.message}
                         </span>
                       )}

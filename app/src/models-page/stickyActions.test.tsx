@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { windowsInventory } from "../manage/screens.fixture";
+import type { DownloadJob } from "../manage/types";
 import { ModelsSection } from "./ModelsSection";
 
 /**
@@ -30,5 +31,18 @@ describe("the models table keeps its Actions column on screen", () => {
     const buttons = within(table).getAllByRole("button");
     expect(buttons.length).toBeGreaterThan(0);
     for (const button of buttons) expect(button.closest("td.actions-cell")).not.toBeNull();
+  });
+
+  it("marks a download's failure in that cell as the note that must not widen it", async () => {
+    const id = "whispercpp-b5454-win-cuda";
+    const failed: DownloadJob = {
+      id: "j1", assetId: id, state: "failed", bytesDone: 0, bytesTotal: 1, speedBps: 0, resumedFrom: 0, retries: 0, note: null,
+      failure: { kind: "hash_mismatch", message: "it failed its SHA256 check" },
+    };
+    render(<ModelsSection backend={{ port: 1, token: "t" } as Backend} downloads={{ ...downloads, list: [failed], byAsset: new Map([[id, failed]]) }} />);
+    const note = await waitFor(() => screen.getByTestId(`inv-${id}-note`));
+    expect(note.textContent).toBe("it failed its SHA256 check");
+    expect(note.getAttribute("role")).toBe("alert");
+    expect(note.matches("td.actions-cell > .note-line.job-failure")).toBe(true);
   });
 });

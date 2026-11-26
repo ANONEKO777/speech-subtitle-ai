@@ -397,6 +397,15 @@ button.danger {
   line-height: 1.5;
 }
 
+/*
+ * A download's failure is backend text of any length (the SHA256 one holds two 64-character hashes), so it wraps inside
+ * the 220 px column (less the cell's padding). Not every note: that would move zh-TW pixels at 1280.
+ */
+.actions-cell .note-line.job-failure {
+  max-width: 196px;
+  overflow-wrap: anywhere;
+}
+
 .inline-job {
   margin-top: var(--space-1);
   display: grid;

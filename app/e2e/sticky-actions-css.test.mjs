@@ -48,4 +48,10 @@ describe("the stylesheet keeps the models table's Actions column on screen", () 
       expect(rule).toContain(line);
     }
   });
+
+  it("wraps a download's failure inside the column instead of widening it", () => {
+    const rule = bodyOf(css, ".actions-cell .note-line.job-failure");
+    expect(rule).toContain("max-width: 196px;");
+    expect(rule).toContain("overflow-wrap: anywhere;");
+  });
 });
