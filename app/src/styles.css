@@ -1667,6 +1667,8 @@ kbd {
 .library {
   container-type: inline-size;
   display: grid;
+  /* an implicit auto column grows to the longest title in the play queue, which does not wrap, and takes the cards out of the side column with it. The play queue's list below needs the same. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   padding: var(--space-3);
 }
@@ -1819,6 +1821,7 @@ kbd {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2px;
 }
 
