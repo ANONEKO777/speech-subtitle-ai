@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider, useI18n, useT } from "./I18nProvider";
 import { MIRROR_KEY } from "./locale";
+import { setWindowTitle } from "./windowTitle";
+
+vi.mock("./windowTitle", () => ({ setWindowTitle: vi.fn(() => Promise.resolve()) }));
 
 function Probe() {
   const { t, locale } = useT();
@@ -50,8 +53,10 @@ describe("I18nProvider", () => {
       </I18nProvider>,
     );
     expect(document.title).toBe("字幕翻譯");
+    expect(setWindowTitle).toHaveBeenLastCalledWith("字幕翻譯");
     fireEvent.click(screen.getByTestId("to-en"));
     expect(document.title).toBe("Video Subtitle Translator");
+    expect(setWindowTitle).toHaveBeenLastCalledWith("Video Subtitle Translator");
   });
 
   it("re-renders at once when the language changes, and mirrors the choice", () => {
