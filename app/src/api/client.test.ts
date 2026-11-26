@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { JOB_RUNNING, fetchCues, fetchLanguageSet, fetchProject, putCues, startJob } from "./client";
+import { tZhTW } from "../i18n";
+import { fetchCues, fetchLanguageSet, fetchProject, putCues, startJob } from "./client";
 
 const backend = { port: 1, token: "t" };
 
@@ -123,8 +124,8 @@ describe("a job refused because one already runs", () => {
       vi.fn(() => Promise.resolve(new Response(JSON.stringify({ detail: "job bb44ca76c6ee4186 is already running on this project" }), { status: 409 }))),
     );
     const error = await startJob(backend, "p", "ja", "ko").catch((e: unknown) => e);
-    expect(error).toMatchObject({ status: 409, message: JOB_RUNNING });
-    expect(JOB_RUNNING).not.toMatch(/[A-Za-z0-9]/);
+    expect(error).toMatchObject({ status: 409, message: tZhTW("errors.jobRunning") });
+    expect(tZhTW("errors.jobRunning")).not.toMatch(/[A-Za-z0-9]/);
   });
 
   it("leaves other refusals as the backend wrote them", async () => {

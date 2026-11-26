@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { pickFolder, pickVideos } from "../api/backend";
 import type { Backend, LanguageSet } from "../api/client";
 import { type Detected, detectLine, hintFor, isDetection, preselect, switchLabel } from "../api/detect";
-import { SOURCE_NOTES, type SourceLang, type Unavailable, parseSourceLang } from "../api/sourceLang";
-import { EXPERIMENTAL_HINT, isExperimentalTarget, targetsFor, targetsOf } from "../api/targets";
+import { type SourceLang, type Unavailable, parseSourceLang, sourceNote } from "../api/sourceLang";
+import { isExperimentalTarget, targetsFor, targetsOf } from "../api/targets";
+import { useT } from "../i18n/I18nProvider";
 import { SourceOptions } from "../import/ImportPanel";
 import { useDetections } from "../import/useDetections";
 import { type AddEntry, type Skipped, addToQueue } from "./api";
@@ -50,11 +51,12 @@ function RowDetect({ found, row, unavailable, onSwitch }: {
   unavailable: Unavailable;
   onSwitch: (code: SourceLang) => void;
 }) {
-  if (found === "running") return <span className="add-detect" data-testid="add-row-detect" data-state="running">正在偵測影片語言…</span>;
+  const { t } = useT();
+  if (found === "running") return <span className="add-detect" data-testid="add-row-detect" data-state="running">{t("detect.running")}</span>;
   if (!isDetection(found)) return null;
-  const line = detectLine(found);
+  const line = detectLine(found, t);
   if (line === null) return null;
-  const hint = hintFor(found, row.source, unavailable);
+  const hint = hintFor(found, row.source, unavailable, t);
   return (
     <span className="add-detect">
       <span data-testid="add-row-detect" data-state="done" data-detected={found.detected ?? ""}>
@@ -64,7 +66,7 @@ function RowDetect({ found, row, unavailable, onSwitch }: {
         <span className="add-detect-hint" data-testid="add-row-hint">
           {hint.text}
           <button type="button" data-testid="add-row-switch" onClick={() => onSwitch(hint.switchTo)}>
-            {switchLabel(hint.switchTo)}
+            {switchLabel(hint.switchTo, t)}
           </button>
         </span>
       )}
@@ -73,6 +75,7 @@ function RowDetect({ found, row, unavailable, onSwitch }: {
 }
 
 export function AddDialog({ backend, languages, initial, onClose, onAdded }: Props) {
+  const { t } = useT();
   const [defaultSource, setDefaultSource] = useState<SourceLang>(initial[0]?.source ?? "en");
   const [defaultLangs, setDefaultLangs] = useState<readonly string[]>(() =>
     targetsFor(languages, initial[0]?.source ?? "en", initial[0]?.langs ?? [languages.defaultCode]),
@@ -84,9 +87,9 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   const [skipped, setSkipped] = useState<readonly Skipped[]>([]);
 
   const notes = [
-    ...new Set([defaultSource, ...rows.map((r) => r.source)].flatMap((code) => SOURCE_NOTES[code] ?? [])),
+    ...new Set([defaultSource, ...rows.map((r) => r.source)].flatMap((code) => sourceNote(code, t) ?? [])),
     ...(rows.some((r) => r.langs.some((code) => isExperimentalTarget(languages, r.source, code)))
-      ? [EXPERIMENTAL_HINT]
+      ? [t("targets.experimentalHint")]
       : []),
   ];
 
@@ -150,27 +153,27 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
   }
 
   return (
-    <div className="modal" role="dialog" aria-label="加入佇列" data-testid="add-dialog">
+    <div className="modal" role="dialog" aria-label={t("batch.addTitle")} data-testid="add-dialog">
       <div className="modal-card add-card">
         <div className="overlay-head">
           <ListPlus className="icon" aria-hidden />
-          <h2>加入佇列</h2>
-          <button type="button" className="ghost icon-button" aria-label="關閉" data-testid="add-close" onClick={onClose}>
+          <h2>{t("batch.addTitle")}</h2>
+          <button type="button" className="ghost icon-button" aria-label={t("common.close")} data-testid="add-close" onClick={onClose}>
             <X className="icon" aria-hidden />
           </button>
         </div>
         <div className="add-tools">
           <button type="button" data-testid="add-files" onClick={() => void addFiles()}>
             <FolderOpen className="icon" aria-hidden />
-            選擇多個檔案
+            {t("batch.pickFiles")}
           </button>
           <button type="button" data-testid="add-folder" onClick={() => void addFolder()}>
             <Folder className="icon" aria-hidden />
-            選擇資料夾
+            {t("batch.pickFolder")}
           </button>
           <span className="spacer" />
           <label className="add-lang">
-            <span>影片語言</span>
+            <span>{t("import.source")}</span>
             <SourceSelect
               value={defaultSource}
               unavailable={languages.unavailable}
@@ -178,17 +181,17 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                 setDefaultSource(source);
                 setDefaultLangs((l) => targetsFor(languages, source, l));
               }}
-              label="預設影片語言"
+              label={t("batch.defaultSource")}
               testid="add-default-source"
             />
           </label>
           <label className="add-lang">
-            <span>字幕語言</span>
+            <span>{t("import.targetAria")}</span>
             <TargetChoice
               targets={targetsOf(languages, defaultSource)}
               value={defaultLangs}
               onChange={setDefaultLangs}
-              label="預設字幕語言"
+              label={t("batch.defaultTarget")}
               testid="add-default-lang"
             />
           </label>
@@ -198,7 +201,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
             disabled={rows.length === 0}
             onClick={() => setRows((r) => r.map((x) => ({ ...x, langs: defaultLangs, source: defaultSource, touched: true })))}
           >
-            套用到全部
+            {t("batch.applyAll")}
           </button>
         </div>
         {notes.length > 0 && (
@@ -207,7 +210,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
           </p>
         )}
         {rows.length === 0 ? (
-          <p className="add-empty">選擇影片檔或資料夾，也可以直接把多個檔案拖到視窗上。</p>
+          <p className="add-empty">{t("batch.addEmpty")}</p>
         ) : (
           <ul className="add-list" data-testid="add-list">
             {rows.map((row) => (
@@ -225,27 +228,27 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
                       checked={row.folder.recursive}
                       onChange={(e) => patch(row.key, { folder: { recursive: e.target.checked } })}
                     />
-                    含子資料夾
+                    {t("batch.subfolders")}
                   </label>
                 )}
                 <SourceSelect
                   value={row.source}
                   unavailable={languages.unavailable}
                   onChange={(source) => setSource(row, source)}
-                  label="影片語言"
+                  label={t("import.source")}
                   testid="add-row-source"
                 />
                 <TargetChoice
                   targets={targetsOf(languages, row.source)}
                   value={row.langs}
                   onChange={(langs) => patch(row.key, { langs })}
-                  label="字幕語言"
+                  label={t("import.targetAria")}
                   testid="add-row-lang"
                 />
                 <button
                   type="button"
                   className="ghost icon-button"
-                  aria-label="移除"
+                  aria-label={t("batch.action.remove")}
                   onClick={() => setRows((r) => r.filter((x) => x.key !== row.key))}
                 >
                   <X className="icon" aria-hidden />
@@ -258,7 +261,9 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
           <ul className="add-skipped" data-testid="add-skipped">
             {skipped.map((s) => (
               <li key={s.path}>
-                <b>{baseName(s.path)}</b>：{s.reason}
+                <b>{baseName(s.path)}</b>
+                {t("batch.skippedSep")}
+                {s.reason}
               </li>
             ))}
           </ul>
@@ -270,11 +275,11 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
         )}
         <div className="add-foot">
           <button type="button" className="ghost" onClick={onClose}>
-            {skipped.length > 0 ? "關閉" : "取消"}
+            {skipped.length > 0 ? t("common.close") : t("common.cancel")}
           </button>
           <button type="button" className="primary" data-testid="add-submit" disabled={busy || rows.length === 0} onClick={() => void submit()}>
             <ListPlus className="icon" aria-hidden />
-            加入佇列{rows.length > 0 ? `（${rows.length}）` : ""}
+            {rows.length > 0 ? t("batch.addSubmitCount", { n: rows.length }) : t("batch.addTitle")}
           </button>
         </div>
       </div>

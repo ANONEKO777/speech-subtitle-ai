@@ -175,10 +175,10 @@ export async function createProject(b: Backend, videoPath: string): Promise<Proj
   return projectView(await call(b, "/api/projects", { method: "POST", body }));
 }
 
-/** The backend refuses a second job on a project with "job <id> is already running", which a person should not have to read. */
-export const JOB_RUNNING = tZhTW("errors.jobRunning");
-
-/** Starts the pipeline. `targetLang` is left out for the default language, as the first release asked. */
+/**
+ * Starts the pipeline. `targetLang` is left out for the default language, as the first release asked. The backend
+ * refuses a second job on a project with "job <id> is already running", which a person should not have to read.
+ */
 export async function startJob(
   b: Backend,
   projectId: string,

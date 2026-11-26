@@ -113,7 +113,7 @@ The terms of the player, its side column, the library and the help overlay.
 |---|---|---|---|
 | one subtitle | 句, 則, 條 | subtitle | One cue. "Previous subtitle", "Subtitle 12", "2 subtitles failed". Never "line" or "sentence", which the Chinese counters 句 and 則 hide. |
 | subtitle timing | 字幕時間微調 | subtitle timing | The offset of all subtitles against the picture. A positive value shows them later. |
-| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing "queue" (佇列, the Queue tab), which holds videos waiting to be translated. |
+| play queue | 播放佇列 | play queue | The videos to play next, in the library. It is not the processing batch (佇列, the Batch tab), which holds videos waiting to be translated. |
 | screenshot | 截圖 | screenshot | |
 | picture-in-picture | 子母畫面 | picture-in-picture | |
 | full screen | 全螢幕 | full screen | Two words. "Exit full screen". |
@@ -125,3 +125,21 @@ The terms of the player, its side column, the library and the help overlay.
 | video file | 影片檔 | video file | |
 | shortcuts | 鍵盤快捷鍵 | keyboard shortcuts | Key names (Space, Ctrl, Shift, arrows) stay as they are in every language. |
 | language name (player) | 繁體中文, 한국어 | Traditional Chinese, Korean | The window shows the backend's English name in English and the native name in the other languages. The UI language picker keeps native names. |
+
+## W3b: the batch, the editor, export and the summary
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| batch (the processing queue) | 佇列 | batch | The videos waiting to be translated, on the home screen, in the player's tab and in the toolbar chip ("Batch 2/7"). From W3b the English says "batch", not "queue", so it never reads like the library's "play queue" (播放佇列, W3a). W1's toolbar and toast texts follow ("View batch", "3 items added to the batch"). The player's tab says "Batch" too. |
+| add to batch | 加入佇列 | add to batch | The dialog title and its button ("Add to batch (3)"). The toolbar button stays "Batch add" (批次加入). |
+| item | 項 | item | One video and one subtitle language in the batch. "2/7 processed". |
+| waiting, processing, paused, done, failed, cancelled | 等待中, 處理中, 已暫停, 完成, 失敗, 已取消 | Waiting, Processing, Paused, Done, Failed, Cancelled | The state of an item. |
+| clear finished | 清除已完成 | Clear finished | |
+| sleep, shut down | 睡眠, 關機 | sleep, shut down | What the computer does when the batch finishes. "Put the computer to sleep", "Shut down". |
+| countdown | 倒數 | countdown | The 60 seconds before sleep or shutdown, which "Cancel" stops. |
+| original | 原文 | original | In the export menu: "SRT (original)". |
+| bilingual (export) | 雙語 | bilingual | "SRT (bilingual)", "ASS (bilingual)", "VTT (bilingual)". The format names stay. |
+| export | 匯出 | export | "Exported to C:\...", "Export cancelled", "Export failed: ...". |
+| start, end (of a subtitle) | 開始, 結束 | Start, End | The two times in the cue editor. |
+| undo | 復原 | undo | "Couldn't undo: ...". |
+| jump to | 跳到 | jump to | A chapter time in the summary: "Jump to 1:05:30". |

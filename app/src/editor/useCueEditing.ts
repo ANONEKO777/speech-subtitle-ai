@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import { ApiError, type Backend, fetchEditedIds, putCues } from "../api/client";
+import type { Translate } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
 import type { Cue } from "../player/cues";
 import { type EditState, edited, fresh, replaceCue, sameCue, undoPlan, undone, withEdited } from "./state";
 import { BACKEND_PROBLEM, type Draft, normalizeText, validateDraft } from "./validate";
@@ -24,11 +26,14 @@ export interface CueEditing {
   readonly undo: () => Promise<void>;
 }
 
-const reason = (e: unknown, id: number): string => {
-  if (!(e instanceof ApiError)) return `無法連線到後端（${e instanceof Error ? e.message : String(e)}）`;
+const reason = (e: unknown, id: number, t: Translate): string => {
+  if (!(e instanceof ApiError)) return t("editor.noBackend", { reason: e instanceof Error ? e.message : String(e) });
   const own = e.problems.find((p) => p.id === id) ?? e.problems[0];
-  if (own) return BACKEND_PROBLEM[own.code] ?? own.message;
-  return e.status === 409 ? `專案正被工作使用，暫時不能儲存（${e.message}）` : e.message;
+  if (own) {
+    const key = BACKEND_PROBLEM[own.code];
+    return key === undefined ? own.message : t(key);
+  }
+  return e.status === 409 ? t("editor.busy", { reason: e.message }) : e.message;
 };
 
 /**
@@ -37,6 +42,7 @@ const reason = (e: unknown, id: number): string => {
  * read afresh, such as after a change of language, and the edit state starts over then.
  */
 export function useCueEditing(backend: Backend, projectId: string, lang: string, loaded: Loaded): CueEditing {
+  const { t } = useT();
   const [state, setState] = useState(() => fresh(loaded.cues, loaded.editedIds));
   const [source, setSource] = useState(loaded);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -63,9 +69,9 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
   const validate = useCallback(
     (id: number, draft: Draft) => {
       const index = state.cues.findIndex((c) => c.id === id);
-      return validateDraft(state.cues, index, draft)?.message ?? null;
+      return validateDraft(state.cues, index, draft, t)?.message ?? null;
     },
-    [state.cues],
+    [state.cues, t],
   );
 
   const commit = useCallback(
@@ -82,7 +88,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
       try {
         await putCues(backend, projectId, lang, replaceCue(state.cues, after));
       } catch (e) {
-        setRefusal(reason(e, id));
+        setRefusal(reason(e, id, t));
         return false;
       }
       const marks = await fetchEditedIds(backend, projectId, lang).catch(() => null);
@@ -95,7 +101,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
       setFailure(null);
       return true;
     },
-    [backend, projectId, lang, state.cues, validate, cancel],
+    [backend, projectId, lang, state.cues, validate, cancel, t],
   );
 
   const undo = useCallback(async () => {
@@ -104,7 +110,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
     try {
       await putCues(backend, projectId, lang, plan.cues);
     } catch (e) {
-      setFailure(`無法復原：${reason(e, plan.restore.id)}`);
+      setFailure(t("editor.undoFailed", { reason: reason(e, plan.restore.id, t) }));
       return;
     }
     const marks = await fetchEditedIds(backend, projectId, lang).catch(() => null);
@@ -114,7 +120,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
     });
     setEditingId(null);
     setFailure(null);
-  }, [backend, projectId, lang, state]);
+  }, [backend, projectId, lang, state, t]);
 
   return { state, editingId, refusal, failure, begin, cancel, validate, commit, undo };
 }

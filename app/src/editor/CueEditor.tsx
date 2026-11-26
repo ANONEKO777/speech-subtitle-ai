@@ -1,7 +1,8 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useT } from "../i18n/I18nProvider";
 import type { Cue } from "../player/cues";
 import { LangMark } from "../player/LangMark";
-import { BACKEND_PROBLEM, type Draft, formatClock, normalizeText, parseClock } from "./validate";
+import { type Draft, formatClock, normalizeText, parseClock } from "./validate";
 
 export interface EditorHooks {
   /** The reason the draft cannot be saved, or null. */
@@ -12,11 +13,9 @@ export interface EditorHooks {
   readonly onCancel: () => void;
 }
 
-const BAD_TIME = "時間格式為 分:秒.毫秒，例如 1:05.250";
-const SOURCE_LOCKED = BACKEND_PROBLEM["english_changed"] ?? "";
-
 /** Inline editor for one cue: the target language text and the two times. The source line is shown for reference and cannot be changed. */
 export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly hooks: EditorHooks; readonly marks: boolean }) {
+  const { t } = useT();
   const [zh, setZh] = useState(cue.zh);
   const [start, setStart] = useState(formatClock(cue.startMs));
   const [end, setEnd] = useState(formatClock(cue.endMs));
@@ -28,7 +27,8 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
   const startMs = parseClock(start);
   const endMs = parseClock(end);
   const draft = startMs === null || endMs === null ? null : { zh: normalizeText(zh), startMs, endMs };
-  const problem = draft === null ? BAD_TIME : (hooks.validate(draft) ?? hooks.refusal ?? (typedOnSource ? SOURCE_LOCKED : null));
+  const problem =
+    draft === null ? t("editor.badTime") : (hooks.validate(draft) ?? hooks.refusal ?? (typedOnSource ? t("editor.problem.sourceLocked") : null));
 
   useEffect(() => {
     const line = errorLine.current;
@@ -73,7 +73,7 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
     >
       <div className="editor-times">
         <label>
-          <span>開始</span>
+          <span>{t("editor.start")}</span>
           <input
             data-testid="edit-start"
             value={start}
@@ -84,7 +84,7 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
           />
         </label>
         <label>
-          <span>結束</span>
+          <span>{t("editor.end")}</span>
           <input
             data-testid="edit-end"
             value={end}
@@ -97,7 +97,7 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
       </div>
       <textarea
         data-testid="edit-text"
-        aria-label="字幕文字"
+        aria-label={t("editor.textAria")}
         value={zh}
         rows={Math.max(2, zh.split("\n").length)}
         autoFocus
@@ -110,7 +110,7 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
         lang={cue.lang}
         data-cue-lang={cue.lang}
         tabIndex={0}
-        title="原文是翻譯與摘要的來源，不能在這裡修改"
+        title={t("editor.sourceTitle")}
         onKeyDown={(e) => {
           if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.stopPropagation();
@@ -127,7 +127,7 @@ export function CueEditor({ cue, hooks, marks }: { readonly cue: Cue; readonly h
           {problem}
         </p>
       )}
-      <p className="editor-hint">Enter 儲存 · Shift+Enter 換行 · Esc 取消</p>
+      <p className="editor-hint">{t("editor.hint")}</p>
     </div>
   );
 }

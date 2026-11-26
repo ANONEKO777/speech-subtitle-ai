@@ -1,8 +1,17 @@
 import { Moon, Power } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type Countdown, secondsLeft } from "./model";
+import type { PlainKey } from "../i18n";
+import { useT } from "../i18n/I18nProvider";
+import { type Countdown, type PowerAction, secondsLeft } from "./model";
+
+/** The sentence around the seconds left, and the cancel button, for each power action. */
+const TEXT: Record<PowerAction, { readonly before: PlainKey; readonly cancel: PlainKey }> = {
+  sleep: { before: "batch.countdown.sleepBefore", cancel: "batch.countdown.cancelSleep" },
+  shutdown: { before: "batch.countdown.shutdownBefore", cancel: "batch.countdown.cancelShutdown" },
+};
 
 export function CountdownModal({ countdown, onCancel }: { countdown: Countdown; onCancel: () => void }) {
+  const { t, plural } = useT();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 250);
@@ -10,23 +19,24 @@ export function CountdownModal({ countdown, onCancel }: { countdown: Countdown; 
   }, []);
   const left = secondsLeft(countdown.deadlineMs, now);
   const sleep = countdown.action === "sleep";
+  const text = TEXT[countdown.action];
   return (
-    <div className="modal" role="alertdialog" aria-label="倒數" data-testid="countdown">
+    <div className="modal" role="alertdialog" aria-label={t("batch.countdown.aria")} data-testid="countdown">
       <div className="modal-card countdown-card">
         {sleep ? <Moon className="countdown-icon" aria-hidden /> : <Power className="countdown-icon" aria-hidden />}
-        <h2>佇列已全部完成</h2>
+        <h2>{t("batch.countdown.title")}</h2>
         <p>
-          電腦將在{" "}
+          {t(text.before)}{" "}
           <b className="countdown-num" data-testid="countdown-seconds">
             {left}
           </b>{" "}
-          秒後{sleep ? "進入睡眠" : "關機"}。
+          {sleep ? plural("batch.countdown.sleepAfter", left) : plural("batch.countdown.shutdownAfter", left)}
         </p>
         <div className="bar">
           <div className="bar-fill" style={{ width: `${Math.min(100, (left / 60) * 100)}%` }} />
         </div>
         <button type="button" className="primary" data-testid="countdown-cancel" onClick={onCancel} autoFocus>
-          取消，不要{sleep ? "睡眠" : "關機"}
+          {t(text.cancel)}
         </button>
       </div>
     </div>
