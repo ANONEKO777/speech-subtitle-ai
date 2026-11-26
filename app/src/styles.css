@@ -1434,6 +1434,20 @@ button.chapter-time:hover:not(:disabled) {
   max-width: 300px;
 }
 
+/* the export menu opens leftward from the right edge of the 340 px side column, which clips it: English entries wrap rather than push the menu past the column's left edge */
+:root:lang(en) .side-tools .menu-list {
+  width: max-content;
+  max-width: 320px;
+}
+
+:root:lang(en) .side .menu-list button {
+  height: auto;
+  min-height: 30px;
+  padding-block: var(--space-1);
+  white-space: normal;
+  text-align: start;
+}
+
 .pop {
   position: absolute;
   z-index: 5;
