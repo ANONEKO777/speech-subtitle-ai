@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isDetection, preselect } from "./api/detect";
 import { planImport } from "./api/importPlan";
 import { DEFAULT_SOURCE, type SourceLang, sourceLabel, usableSource } from "./api/sourceLang";
-import { isExperimentalTarget, targetFor, targetName, targetsOf } from "./api/targets";
+import { isExperimentalTarget, targetFor, targetLanguage, targetsOf } from "./api/targets";
 import { type BackendStatus, allowVideo, watchBackend } from "./api/backend";
 import {
   ApiError,
@@ -30,9 +30,9 @@ import { classifyPath } from "./batch/paths";
 import { useBatch } from "./batch/useBatch";
 import { type LibraryItem, NO_PLAYBACK, type Playback, fetchLibrary, fetchPlayback } from "./api/library";
 import type { Loaded } from "./editor/useCueEditing";
-import type { Translate } from "./i18n";
 import { useT } from "./i18n/I18nProvider";
 import { languageName } from "./i18n/languageName";
+import type { Locale } from "./i18n/locale";
 import { ImportPanel } from "./import/ImportPanel";
 import { SourceBar } from "./import/SourceBar";
 import { useDetections, useSettledPath } from "./import/useDetections";
@@ -87,8 +87,8 @@ const editsNotice = ({ kept, unmatched }: EditsReport, { t, plural }: Pick<Retur
   return parts.length > 0 ? parts.join(t("edits.join")) : null;
 };
 
-const playingName = (screen: Extract<Screen, { kind: "playing" }>, t: Translate) =>
-  languageName(t, screen.lang, screen.languages.find((l) => l.code === screen.lang)?.nativeName);
+const playingName = (screen: Extract<Screen, { kind: "playing" }>, locale: Locale) =>
+  languageName(locale, screen.languages.find((l) => l.code === screen.lang) ?? { code: screen.lang });
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const fileName = (path: string) => path.slice(Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/")) + 1);
@@ -139,7 +139,7 @@ function Importing({
 
 export function App() {
   const texts = useT();
-  const { t, plural } = texts;
+  const { t, plural, locale } = texts;
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
@@ -295,7 +295,7 @@ export function App() {
         setLibrary(items);
         setLanguageSet(set);
         setSourceLang((picked) => usableSource(picked, set.unavailable));
-        setLanguageNames(new Map(set.languages.map((l) => [l.code, languageName(t, l.code, l.nativeName)])));
+        setLanguageNames(new Map(set.languages.map((l) => [l.code, languageName(locale, l)])));
         setQueue((q) => pruned(q, new Set(items.map((i) => i.id))));
       },
       () => undefined,
@@ -303,7 +303,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [backend, screenKind, playingId, t]);
+  }, [backend, screenKind, playingId, t, locale]);
 
   useDrops(
     backend !== null,
@@ -482,7 +482,7 @@ export function App() {
             onPath={setTypedPath}
           />
           {screen.kind === "playing" && (
-            <SettingsBar langName={playingName(screen, t)} settings={settings} onChange={setSettings} />
+            <SettingsBar langName={playingName(screen, locale)} settings={settings} onChange={setSettings} />
           )}
         </header>
         <SourceBar
@@ -543,7 +543,7 @@ export function App() {
           <Importing
             backend={backend}
             screen={importing}
-            targetLabel={languageName(t, importing.target ?? languageSet.defaultCode, targetName(languageSet, sourceLang, importing.target ?? languageSet.defaultCode))}
+            targetLabel={languageName(locale, targetLanguage(languageSet, sourceLang, importing.target ?? languageSet.defaultCode))}
             onDone={finishImport}
             onStop={stopImport}
           />
