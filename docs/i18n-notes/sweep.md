@@ -39,62 +39,77 @@ Root cause: `.library` and `.queue` are grids with an implicit `auto` column. Th
 
 ## The toolbar in the player
 
-**An earlier version of these notes said the English toolbar was fixed, with 91 px at 960 and 161.7 px at 1280. That held for Korean subtitles only**, the one language the harness played. With Traditional Chinese, the usual choice, the toolbar still wrapped at 1280 and left the box 25.3 px at 960. A Traditional Chinese window had the same failure with Indonesian, Portuguese and Vietnamese. The box's width depends on the length of the playing language's name, which the toolbar shows twice.
+Two earlier rounds failed verification here. The first measured Korean subtitles only. The second forbade the header to wrap and chose floors at fixed window widths. It measured 960 and 1280 px, and between 1151 and 1210 px the row was wider than the window. Both assumed that values picked at breakpoints can always keep the toolbar on one row. They cannot, because the room the row needs depends on what is in it: the language's name, the window language and the queue chip.
 
 ### How it works now
 
-- The player's header cannot wrap.
-- The path box has a floor of 66 px, or 130 px in a window over 1150 px wide.
-- When the row is short, the import bar gives up its spare width first. The two sliders and the name inside "{name} on top" follow, and the name on the middle button is last.
-- A shortened name ends in an ellipsis and keeps at least 3.5em. "on top" (在上) always stays whole.
-- The middle button gets a tooltip with the full name while it is shortened. The switch's tooltip already held the whole sentence. Both accessible names are the same as before.
-- No rule names a language, so a name of any length works. The matrix includes an invented language with a 50-character name.
-- While the name fits, the switch's words are one plain text, as before. Only a shortened name is laid out in pieces. A screen reader would read the pieces with a gap in `在上`, so the switch then carries its whole sentence as `aria-label`.
+- Both blocks of the header, the import bar and the subtitle settings, give their least width as their flex basis. When the two leasts do not fit on one line, the browser moves the settings to a second row, where the names are whole. So the player toolbar cannot push the page sideways, whatever the names are.
+- Every cell rendered at 960 px and wider is one row. The second row appears only below the app's minimum width.
+- When the row is short, these give way in order: the path box down to its floor, the two sliders down to 34 px, the name in the switch's words, and last the name on the middle button.
+- A name up to 5 em wide is never shortened (繁體中文, English, 日本語, Japanese, Português). A longer one keeps at least 3.5 em. "on top" (在上) stays whole.
+- The path box floor is 66 px, and 130 px from a 1280 px window, in both window languages. The Traditional Chinese floors of 64.5 and 127.5 px are gone. The headless render needs 1.4 to 2.4 px for this from the sliders. The app's own window measured the usual toolbar above both floors, so it should not move there (not measured again).
+- With the queue chip showing, the toolbar uses the narrow window's spacing (12 px between blocks, 8 px between the two settings groups, 6 px inside a control) in a window of any width.
+- A shortened name ends in an ellipsis. The tooltips and accessible names keep the whole name, as before.
 
-### The Traditional Chinese floor
+### What still depends on a pixel breakpoint
 
-The layout lane in `.claude/skills/verify/SKILL.md` asks for 66 and 130 px. In the headless render, the Traditional Chinese window that plays Chinese reads 64.6 and 127.6 px, on `main` too. The cause is the render, not the stylesheet. The P26b build (`4ddc208`), which the app's own window measured at 67.2 and 130.6 px (`.work/p26b/fix2/layout-run.txt`), reads 64.6 and 127.6 px in the same headless render at pixel ratios 1, 1.25 and 1.5. So a Traditional Chinese window has floors of 64.5 and 127.5 px, which leaves that toolbar where it was. Every Traditional Chinese player toolbar is therefore at least as wide in the box as that one. English floors are 66 and 130 px in the headless render. The lane itself needs the real window and was not run.
+| Breakpoint | What it changes | If the content does not fit |
+|---|---|---|
+| 1150 px and under (from `main`) | the toolbar's words become tooltips, narrower spacing, shorter sliders | names shorten, then the settings wrap |
+| 1280 px and over | the path box floor goes from 66 to 130 px | names shorten, then the settings wrap |
+| control row narrower than 640 px (container query) | less space around the volume slider | not covered by the wrap |
 
-### Path box in the player, with the batch chip showing, in px
-
-An asterisk marks a shortened name. "2 rows" means that the toolbar wrapped.
-
-| Playing | en 960: `422a635`, now | en 1280: `422a635`, now | zh-TW 960: `422a635`, now | zh-TW 1280: `422a635`, now |
-|---|---|---|---|---|
-| zh-TW | 25.3, 66* | 2 rows, 130* | 64.6, 64.6 | 127.6, 127.6 |
-| zh-CN | 28.2, 66* | 2 rows, 130* | 64.6, 64.6 | 127.6, 127.6 |
-| en | 90.4, 90.4 | 160.5, 160.5 | 75.4, 75.4 | 149.2, 149.2 |
-| ja | 79.6, 79.6 | 138.9, 138.9 | 77.1, 77.1 | 152.6, 152.6 |
-| ko | 91, 91 | 161.7, 161.7 | 77.1, 77.1 | 152.6, 152.6 |
-| es | 86.8, 86.8 | 153.2, 153.2 | 71.8, 71.8 | 142.1, 142.1 |
-| fr | 92.7, 92.7 | 165, 165 | 70.2, 70.2 | 138.9, 138.9 |
-| de | 85.9, 85.9 | 151.5, 151.5 | 69.8, 69.8 | 138.1, 138.1 |
-| pt | 67.3, 67.3 | 114.2, 130 | 58.8, 64.5* | 116, 127.5 |
-| it | 96.2, 96.2 | 172, 172 | 73.8, 73.8 | 146.1, 146.1 |
-| ru | 88, 88 | 155.6, 155.6 | 69.3, 69.3 | 136.9, 136.9 |
-| vi | 65.4, 66* | 110.6, 130 | 59, 64.5* | 116.5, 127.5 |
-| th | 106.6, 106.6 | 192.8, 192.8 | 92, 92 | 182.4, 182.4 |
-| id | 69.1, 69.1 | 117.9, 130 | 19.2, 64.5* | 2 rows, 127.5* |
-| invented, 50 characters | 2 rows, 604.5, 66* | 2 rows, 130* | 2 rows, 600, 64.5* | 2 rows, 127.5* |
+The home and settings toolbar has no such fallback inside the import bar, because its pickers take the width of their label. The sweeps below show that it fits for every input they render, the invented 50-character name included. A much longer picker label is not covered.
 
 ### The layout proof
 
-`matrix.mjs` in `.work/p57-fix-scratch/h/` renders every combination below in headless Edge with a stubbed Tauri and a stubbed backend, and exits 1 on any failure. It is not the Tauri window, and it is not in CI. `e2e/toolbar-css.test.mjs` is in CI and only pins the rules by their text.
+`sweep.mjs` in `.work/p57-fix2/h/` renders in chromium-headless-shell with a stubbed Tauri and a stubbed backend. It is not the Tauri window, and it is not in CI. It resizes one live page, narrowing for one language and widening for the next, and `report.mjs` exits 1 on any failing cell and 2 on any missing one.
 
-- Header, 3040 cells: both window languages; 960 and 1280 px; the batch chip absent, with 5 items, paused, at `0/120` and at `118/120`; experimental targets off and on. For each: the home and settings screens with every video language and every target it offers (the 14 languages and the invented one, without the video's own), a very long path in the box, the player with each of those 15, and the player of a mixed Japanese and English video.
-- Control row, 336 cells: both window languages; 960 and 1280 px; all seven speeds; videos of 2:10, 1:02:03 and 10:12:03; offsets of `+0.0 s` and `-60.0 s`; with and without an A-B loop.
-- Checks: one row, the header height, the path box floor, no clipped, wrapped or squeezed control, no cut picker label, nothing overlapping or outside its block or the window, a tooltip and whole accessible names for a shortened name, and no two languages that shorten to the same letters.
+A player cell fails on: a sideways scroll; anything outside the window or the header's padding; a clipped, wrapped, squeezed or overlapping control; a second row; a path box under its floor; a short name that is shortened; a name that is shortened while the path box, a slider or the settings block still has room; a shortened name with a wrong tooltip or accessible name; and a Traditional Chinese window with Traditional Chinese subtitles that is not whole between 1151 and 1279 px.
 
-| Failing cells | `422a635` | now |
+| Cells | Inputs | `422a635` | `3fbf455` | now |
+|---|---|---|---|---|
+| 8820 | every width 960 to 1400; both window languages; zh-TW, id, en, ja and the invented name; chip off and on | 4058 fail | 2465 fail | 0 |
+| 1350 | all 14 languages and the invented one; 15 widths 960 to 2560; chip none, 5 items, `118/120` | 483 fail | 363 fail | 0 |
+| 10584 | home screen, every width 960 to 1400; chip and experimental labels off and on | not run | not run | 0 |
+| 4320 | home and settings, every video language and subtitle target, 15 widths | not run | not run | 0 |
+| 1764 | control row, every width 960 to 1400; speeds 0.75 and 1.25; 10:12:03, -60.0 s, A-B loop | not run | not run | 0 |
+| 120 | stress, 760 to 940 px: the settings must wrap when one row cannot hold them, and nothing may overflow | not run | not run | 0 |
+
+Of the 8820 cells, 694 of `3fbf455` scroll sideways, up to 1210 px with the chip on. `422a635` takes two or three rows instead.
+
+Where a name is shortened now, in px of window width (every-width cells; the invented name is left out):
+
+| Window / subtitles | chip off | chip on |
 |---|---|---|
-| Header | 840 of 3040 | 0 |
-| Control row | 168 of 336 | 0 |
+| zh-TW / zh-TW, en, ja | never | never |
+| zh-TW / id | 960-962, 1151-1209 | 960-998, 1151-1187 |
+| English / zh-TW | 1151-1215 | 960-992, 1151-1217, 1280-1281 |
+| English / id, en, ja | never | never |
 
-Both columns come from the same script and the same floors. With 66 and 130 px for the Traditional Chinese window too, `422a635` fails 900 header cells.
+`other.mjs` checks the library cards and the licenses table: none of 48 cells fails at 960, 1100, 1151, 1181, 1280 and 1920 px.
 
-`other.mjs` checks the library cards and the licenses table the same way: 8 of 16 cells failed on `422a635`, and none fails now.
+### Mutants
 
-### Other layout defects fixed in the same round
+| Mutant | Killed by |
+|---|---|
+| `CutName` never measures again when the name changes | vitest |
+| a name short by up to 12 px is not treated as shortened | vitest |
+| every name may shrink, short ones too | vitest |
+| the words around a name are not kept | vitest |
+| the Traditional Chinese floor goes back under 66 px | vitest (CSS text) |
+| the 130 px floor starts at 1151 px again | vitest (CSS text), matrix |
+| a name takes its whole width even when it may shrink | vitest (CSS text) |
+| a later, stronger rule removes the path box floor | matrix, 59 of 100 cells. vitest does not see it |
+| a later, stronger rule forbids the toolbar to wrap | stress matrix, 96 of 120 cells. vitest does not see it |
+| a later rule makes the toolbar wrap while there is room | matrix, 59 of 100 |
+| a later rule makes the settings wrap inside | matrix, 59 of 100 |
+| the import bar gives up its room last | matrix, 40 of 100 |
+| the chip's spacing is removed | matrix, 8 of 100 |
+
+The unmutated page passes the same 100 cells.
+
+### Other layout defects fixed in the second round
 
 - **Pickers.** On the home and settings screens, the fixed width of the subtitle language picker cut "Bahasa Indonesia" in a Traditional Chinese window, "Traditional Chinese (experimental)" in an English one, and most experimental names in Chinese. The old widths are now minimums (`field-sizing: content`).
 - **Control row at 960.** The button row was 9 to 23 px wider than its box at every speed, in both languages. The controls grid grew with it, so the total time and the last button left the picture at some speeds. Only the volume slider gives way now; its narrowest in the matrix is 49 px.
@@ -103,29 +118,29 @@ Both columns come from the same script and the same floors. With 66 and 130 px f
 
 The English toolbar keeps 7 px of side padding on the segmented control and the import buttons, a 12 px column gap, and path placeholders that start "Video path, e.g.".
 
-### Traditional Chinese pixel changes of the fix round, against `422a635`
+### Traditional Chinese pixel changes, against `422a635`
 
-No catalog file changed. `pixels.sh` renders every screen harness (268 PNGs) and `tbpx.mjs` renders the toolbar alone for every target (584 PNGs). `control.py` reverses a fix's commit on top of the head and renders again.
+No catalog file changed, and the visible text of the 194 screens that save it is the same as on `422a635`. The screen harnesses render 268 PNGs, all in chromium-headless-shell (`run-px.ps1`, `pxsum.py`). Two renders of `422a635` differ on 70 of them: 66 specks of 64 px or less at anti-aliased corners, and the picture-in-picture and self-test spinner frames. A difference above that is counted as real.
 
-Screen harnesses: 209 PNGs equal `422a635` and 59 differ.
+| Compared | Real differences |
+|---|---|
+| `422a635` with itself | 0 |
+| head with `422a635` | 61 |
+| head with `3fbf455` (the third round alone) | 14 |
+| control: head with the third round's three rules reverted (chip spacing, 34 px slider, no 64.5 and 127.5 px floors), with `3fbf455` | 0 |
+| control: head with the second round's four fixes reverted (control row, library titles, licenses table, pickers), with `422a635` | the same 14 toolbar screens, and `home-960` at 67 px |
 
-| PNGs | Screens | Rule |
+`home-960` in the last row is anti-aliasing at corners (no pixel off by more than 15 of 255).
+
+| PNGs | Screens | Cause |
 |---|---|---|
-| 37 | screens that show the player at 960 | control row |
-| 3 | library in the side column at 960 | control row and library titles together |
-| 3 | library in the side column at 1280 | library titles |
+| 14 | player toolbar with Traditional Chinese subtitles: the batch harness's side column screens (queue chip showing) and `playing` | third round: floors of 66 and 130 px, and the chip's spacing |
+| 33 | screens that show the player at 960 | control row |
+| 2 | library in the side column at 1280 | library titles |
 | 4 | licenses, Windows and Mac wording | licenses table |
-| 8 | home and importing with a Korean (experimental) or Indonesian picker | pickers |
-| 4 | `pip` and the wizard's self-test spinner | none: these change between two renders of one build |
+| 8 | home and importing with a Korean or Indonesian picker | pickers |
 
-With those four rules reversed together, 266 of 268 PNGs return to the old hash. The other two are one `pip` and one spinner PNG. With one rule reversed at a time, the PNGs of each row that names a rule return under that rule, except the three screens that show two.
-
-Toolbar alone: 312 PNGs equal `422a635` and 272 differ.
-
-- **Player, 32 PNGs:** only the toolbars that were broken: Indonesian, Portuguese, Vietnamese and the invented language. The toolbar with every other target, the usual one included, is byte for byte the same.
-- **Home and settings, 240 PNGs:** only pickers that grew. Not experimental: Indonesian (92 to 125 px) and the invented language. Experimental: every language but Thai (128 px to between 130 and 188 px, and 359 px for the invented one).
-- By the browser's own measure all of those lacked room. With Japanese, Korean (130 px), English (132 px) and Italian (133 px) only the blank half of the closing full-width bracket was lost, so those four looked whole before. The others lost ink.
-- With the pickers and the toolbar rules reversed, all 584 return to the old hash. With only the pickers reversed, exactly the 32 player PNGs still differ.
+The second round's separate toolbar-only render set was not repeated. The matrix covers those toolbars.
 
 ## Wording
 
@@ -163,18 +178,24 @@ Not translated here. From reading the source and the earlier wave reports:
 
 ## Open points
 
-- The Traditional Chinese player floors (64.5 and 127.5 px) rest on the headless render reading 2.6 to 3 px under the real window. That was measured on the P26b build. It was not measured again in the real window on this branch.
+- The Traditional Chinese floors now rest on the app's own window reading the usual toolbar 2.6 to 3 px wider than the headless render (67.2 and 130.6 px). The verifier measured that on `3fbf455` at a device pixel ratio of 1.1458. The real window was not run on this head, and not at another ratio.
+- The chip's narrower spacing applies at every width. The sweep needs it only just above 1150 px: in a coarse run without it, and with 36 px sliders, the chip-on toolbar took a second row at 1151 and 1152 px, and none at its next widths from 1181 px up. (That run also had second rows at 960 px, where the spacing is narrow already. The 34 px slider closed those.) From 1280 px it moves Traditional Chinese pixels that did not have to move, and gives long names and the path box more room.
+- At 960 px the path box shows about "Video path," or 影片的完整, and the switch's words are in its tooltip only, as before this round.
 - `field-sizing` was not tried on macOS. An engine without it makes the subtitle language picker as wide as its longest option.
 
 - A refusal note in the models table's Actions cell is not capped. A long registry URL can widen the column by about 30 px at 960 (measured in the W2 verification).
 
 ## Final checks and renders
 
-### Fix round
+### Third round
 
-- `tsc` exit 0, vitest 671 passed in 73 files, `check:strings` 0 of 660. No Python file changed, and no test in `tests/` reads a changed file, so ruff, pyright and pytest were not run again.
-- Twelve mutants against the new guard tests, all killed (`.work/p57-fix-scratch/h/mutate.py`). They include removing the whole player toolbar CSS block, and removing the English toolbar block, the mutant that survived the first round's verification.
-- Not run: the real Tauri window, so no `app/e2e` window lane (`layout` and `p24b-chip` among them), macOS, WKWebView, widths other than 960 and 1280, CI.
+- `tsc` exit 0, vitest 679 passed in 73 files, `check:strings` 0 of 660. No Python or Rust file changed, so ruff, pyright, pytest and cargo tests were not run.
+- Renders ran only through `gdi-run.ps1`, with the ledger in `.work/p57-fix2/runs`.
+- Not run: the real Tauri window and so no `app/e2e` window lane, `/verify` (it drives that window), macOS, WKWebView, CI, a device pixel ratio other than 1, keyboard focus order.
+
+### Second round
+
+- `tsc` exit 0, vitest 671 passed in 73 files, `check:strings` 0 of 660. Its renders used installed Edge, at 960 and 1280 px only.
 
 ### First round
 
