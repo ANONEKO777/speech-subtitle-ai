@@ -64,13 +64,17 @@
         "installMode": "currentUser",
         "compression": "lzma",
         "languages": [
+          "English",
           "TradChinese",
-          "English"
+          "SimpChinese",
+          "Japanese"
         ],
         "installerHooks": "../../installer/hooks.nsh",
         "customLanguageFiles": {
+          "English": "../../installer/lang-English.nsh",
           "TradChinese": "../../installer/lang-TradChinese.nsh",
-          "English": "../../installer/lang-English.nsh"
+          "SimpChinese": "../../installer/lang-SimpChinese.nsh",
+          "Japanese": "../../installer/lang-Japanese.nsh"
         }
       }
     }
