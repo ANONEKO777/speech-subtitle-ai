@@ -28,8 +28,11 @@
   --subtitle-shadow: 0 0 2px rgb(0 0 0 / 0.9), 0 1px 3px rgb(0 0 0 / 0.9), 0 2px 12px rgb(0 0 0 / 0.55);
 
   /* type */
-  --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Noto Sans TC", "Microsoft JhengHei UI",
+  --font-sans-hant: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Noto Sans TC", "Microsoft JhengHei UI",
     "Microsoft JhengHei", system-ui, sans-serif;
+  --font-sans-hans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: var(--font-sans-hant);
   --font-display: "Inter Variable", "Inter", "Segoe UI Variable Display", "Segoe UI", "Noto Sans TC",
     "Microsoft JhengHei UI", "Microsoft JhengHei", system-ui, sans-serif;
   --text-xs: 11.5px;
@@ -71,7 +74,9 @@
 }
 
 /* The Han characters differ between Japanese, Simplified and Traditional Chinese, and a font draws only one form.
-   A window in Japanese or Simplified Chinese names its own fonts before the Traditional Chinese ones above. */
+   A window in Japanese or Simplified Chinese names its own fonts before the Traditional Chinese ones above.
+   Text that names its own language (a subtitle line, a language in the picker) takes that language's fonts
+   further down, whatever the window speaks. */
 :root:lang(ja) {
   --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Yu Gothic UI", "Meiryo UI", "Noto Sans JP",
     system-ui, sans-serif;
@@ -80,8 +85,7 @@
 }
 
 :root:lang(zh-Hans) {
-  --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
-    "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: var(--font-sans-hans);
   --font-display: "Inter Variable", "Inter", "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
     "Noto Sans SC", system-ui, sans-serif;
 }
@@ -2664,9 +2668,19 @@ kbd {
   font-size: var(--text-xs);
 }
 
-/* Japanese text takes the Japanese glyph forms, which the Traditional Chinese fonts do not draw for kana */
-:lang(ja) {
+/* Text that declares its language takes that language's glyph forms. Not the root: a Japanese or Simplified
+   Chinese window already gets its fonts from --font-sans, and matching the root would override every
+   element's own stack (the display font of headings, Inter for buttons and inputs). */
+[lang]:not(:root):lang(ja) {
   font-family: "Yu Gothic UI", "Yu Gothic", "Meiryo UI", "Meiryo", "MS Gothic", var(--font-sans);
+}
+
+[lang]:not(:root):is(:lang(zh-TW), :lang(zh-HK), :lang(zh-MO), :lang(zh-Hant)) {
+  font-family: var(--font-sans-hant);
+}
+
+[lang]:not(:root):is(:lang(zh-CN), :lang(zh-SG), :lang(zh-Hans)) {
+  font-family: var(--font-sans-hans);
 }
 
 /* the language the subtitles are translated into: a picker beside the video language picker */
