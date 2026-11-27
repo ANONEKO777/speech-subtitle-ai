@@ -12,7 +12,7 @@ which the app's update check reads. Upload them all to that folder. -Unsigned ne
 only the installer and SHA256SUMS.txt; such a build cannot be offered as an update.
 #>
 param(
-    [string]$Key = (Join-Path $HOME '.tauri/video-subtitle-translator.key'),
+    [string]$Key = (Join-Path $HOME '.tauri/video-subtitle-translator-2026.key'),
     [string]$UpdateBaseUrl = $env:VST_UPDATE_BASE_URL,
     [string]$Notes = '',
     [switch]$Unsigned
