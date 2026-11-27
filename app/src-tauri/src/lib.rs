@@ -206,7 +206,7 @@ pub fn run() {
         .manage(Picked::default())
         .manage(updater::Pending::default())
         .manage(Folders::new(folders::user_data()))
-        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder, open_url, pick_videos, updater::update_check, updater::update_download, updater::update_install])
+        .invoke_handler(tauri::generate_handler![backend_info, pick_video, allow_video, save_export, pick_folder, open_folder, open_url, pick_videos, updater::update_build_info, updater::update_check, updater::update_download, updater::update_install])
         .setup(|app| {
             sidecar::start(app.handle().clone());
             Ok(())
