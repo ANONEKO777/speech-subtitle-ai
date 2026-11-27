@@ -40,7 +40,7 @@ describe("HardwareSection on a Mac", () => {
     mocks.view = {
       hardware: { platform: "macos-arm64", chip: "Apple M3 Pro", gpuName: null, vramMib: null, driverVersion: null, ramMib: 36864, diskFreeMib: 500000 },
       vcRuntimeMissing: false,
-      recommended: { id: "metal-32gb", label: "Metal 32 GB", why: "fits" },
+      recommended: { id: "metal-32gb", label: "Metal 32 GB", why: plainText("fits") },
       active: { id: "metal-32gb", label: "Metal 32 GB", source: "recommended", device: "metal" },
       profiles: [option("metal-32gb"), option("metal-32gb-parallel"), option("metal-16gb"), option("apple-cpu")],
       fallback: null,

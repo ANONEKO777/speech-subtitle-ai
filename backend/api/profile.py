@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from backend.api.deps import Context, job_json
 from backend.core import vc_runtime
+from backend.core.notices import to_json
 from backend.manager import profiles
 from backend.manager.profiles import ProfileId, profiles_for
 from backend.manager.switch import current, download_missing, requirements, warnings_for
@@ -55,13 +56,15 @@ def view(ctx: Context) -> dict[str, Any]:
     hardware = active.hardware
     chosen, rec = active.selection.profile, active.recommended
     report = ctx.selftest.load()
+    why = profiles.explain(rec, ctx.registry)
     return {
         "hardware": asdict(hardware),
         "vc_runtime_missing": bool(vc_runtime.missing()),
         "recommended": {
             "id": rec.profile.id.value,
             "label": rec.profile.label,
-            "why": profiles.describe(rec, ctx.registry),
+            "why": why.text,
+            "why_notices": to_json(why.notices),
         },
         "active": {
             "id": chosen.id.value,

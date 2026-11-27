@@ -173,6 +173,96 @@ CLOUD_KEY_UNAVAILABLE = _template(
     "Ollama instead. Saving cloud keys will come later.",
 )
 
+# Why a profile was chosen (`manager/profiles.py`). The block has one sentence on each line, so each
+# line is a whole notice. The padding after the colon lines the English up in its fixed-width box.
+PROFILE_LABELS: Mapping[str, Template] = MappingProxyType(
+    {
+        name: _template(f"profile.label.{name}", english)
+        for name, english in (
+            ("gpu-24gb", "24 GB VRAM, default"),
+            ("gpu-8gb", "8 GB VRAM"),
+            ("cpu", "CPU only, no GPU acceleration"),
+            ("metal-32gb", "Apple silicon, 32 GB or more, one model at a time"),
+            ("metal-32gb-parallel", "Apple silicon, 32 GB or more, both models at once"),
+            ("metal-16gb", "Apple silicon, 16 GB"),
+            ("apple-cpu", "Apple silicon, CPU only, no GPU acceleration"),
+        )
+    }
+)
+"""A profile's name. It is also its `label`, so the line that quotes it gets it worded too."""
+PROFILE_LINE = _template(
+    "profile.line", "Profile:       {profile} ({label})", profile="text", label="text"
+)
+
+
+def _why(code: str, reason: str) -> Template:
+    return _template(f"profile.why.{code}", f"Why:           {reason}")
+
+
+WHY_VRAM_FITS = _why("vramFits", "The GPU has enough VRAM for this profile.")
+WHY_NO_NVIDIA_GPU = _why("noNvidiaGpu", "No NVIDIA GPU was found, so GPU runtimes are not used.")
+WHY_VRAM_UNKNOWN = _why("vramUnknown", "An NVIDIA GPU was found but its VRAM could not be read.")
+WHY_VRAM_TOO_SMALL = _why(
+    "vramTooSmall", "The GPU has less VRAM than the smallest GPU profile needs."
+)
+WHY_USER_CHOICE = _why("userChoice", "You chose this profile.")
+WHY_MEMORY_FITS = _why(
+    "memoryFits", "This profile was chosen by the Mac's unified memory size, not by a measurement."
+)
+WHY_MEMORY_UNKNOWN = _why("memoryUnknown", "The Mac's memory size could not be read.")
+WHY_MEMORY_TOO_SMALL = _why(
+    "memoryTooSmall", "The Mac has less memory than the smallest Metal profile needs."
+)
+DRIVER_TOO_OLD = _template(
+    "profile.driverTooOld",
+    "Driver:        {installed} is too old for the {profile} profile. Update the NVIDIA driver "
+    "to {required} or newer. The CUDA Toolkit is not needed.",
+    installed="text",
+    profile="text",
+    required="text",
+)
+
+
+def _stage_template(code: str, start: str) -> Template:
+    return _template(
+        f"profile.{code}",
+        start + "{model} via {engine} ({runtime}) on {device}",
+        model="text",
+        engine="text",
+        runtime="text",
+        device="text",
+    )
+
+
+ASR_LINE = _stage_template("asr", "ASR:           ")
+ASR_FALLBACK_LINE = _stage_template("asrFallback", "ASR fallback:  ")
+LLM_LINE = _stage_template("llm", "Local LLM:     ")
+ASR_FALLBACK_BLOCKED = _template(
+    "profile.asrFallbackBlocked",
+    "ASR fallback:  unavailable, driver {installed} < {required}; update the NVIDIA driver "
+    "(CUDA Toolkit not needed)",
+    installed="text",
+    required="text",
+)
+ONE_STAGE_AT_A_TIME = _template(
+    "profile.oneAtATime",
+    "Stages:        run one after the other; the ASR exits before the LLM loads",
+)
+LLM_CONTEXT_CAPPED = _template(
+    "profile.llmContext", "LLM context:   capped at {tokens} tokens", tokens="text"
+)
+LOW_RAM = _template(
+    "profile.lowRam",
+    "RAM warning:   {installed} MiB is below the {recommended} MiB the local 8B model needs; "
+    "use a cloud LLM or expect swapping",
+    installed="text",
+    recommended="text",
+)
+CLOUD_LLM_RECOMMENDED = _template(
+    "profile.cloudRecommended", "Cloud LLM:     recommended, only after you opt in"
+)
+CLOUD_LLM_OPTIONAL = _template("profile.cloudOptional", "Cloud LLM:     optional")
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 

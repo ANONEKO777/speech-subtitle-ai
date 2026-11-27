@@ -141,7 +141,7 @@ export function parseProfileView(raw: unknown): ProfileView {
   return {
     hardware: parseHardware(o["hardware"]),
     vcRuntimeMissing: o["vc_runtime_missing"] === true,
-    recommended: { id: oneOf(rcm["id"], PROFILE_IDS, "profile"), label: str(rcm, "label"), why: str(rcm, "why") },
+    recommended: { id: oneOf(rcm["id"], PROFILE_IDS, "profile"), label: str(rcm, "label"), why: saidField(rcm, "why") },
     active: {
       id: oneOf(act["id"], PROFILE_IDS, "profile"),
       label: str(act, "label"),

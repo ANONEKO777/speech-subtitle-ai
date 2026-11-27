@@ -110,7 +110,7 @@ export interface ProfileView {
   readonly hardware: Hardware;
   /** The Microsoft Visual C++ runtime the downloaded programs import is not installed. */
   readonly vcRuntimeMissing: boolean;
-  readonly recommended: { readonly id: ProfileId; readonly label: string; readonly why: string };
+  readonly recommended: { readonly id: ProfileId; readonly label: string; readonly why: Said };
   readonly active: { readonly id: ProfileId; readonly label: string; readonly source: "user" | "recommended"; readonly device: string };
   readonly profiles: readonly ProfileOption[];
   readonly fallback: Fallback | null;

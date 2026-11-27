@@ -1,0 +1,976 @@
+{
+  "why.vramFits24": {
+    "before": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           The GPU has enough VRAM for this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "text": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           The GPU has enough VRAM for this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "gpu-24gb",
+          "label": "24 GB VRAM, default"
+        },
+        "message": "Profile:       gpu-24gb (24 GB VRAM, default)"
+      },
+      {
+        "code": "profile.label.gpu-24gb",
+        "params": {},
+        "message": "24 GB VRAM, default"
+      },
+      {
+        "code": "profile.why.vramFits",
+        "params": {},
+        "message": "Why:           The GPU has enough VRAM for this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.asrFallback",
+        "params": {
+          "model": "qwen3-asr-1.7b-q8_0",
+          "engine": "crispasr",
+          "runtime": "crispasr-v0.8.49-win-cuda",
+          "device": "cuda"
+        },
+        "message": "ASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：gpu-24gb（24 GB 顯示記憶體，預設）\n原因：顯示卡的顯示記憶體足夠使用這個設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cuda12.4），在 cuda 上執行\n備用語音辨識：qwen3-asr-1.7b-q8_0，使用 crispasr（crispasr-v0.8.49-win-cuda），在 cuda 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cuda12.4），在 cuda 上執行\n雲端 LLM：可以不用"
+  },
+  "why.vramFits8": {
+    "before": "Profile:       gpu-8gb (8 GB VRAM)\nWhy:           The GPU has enough VRAM for this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "text": "Profile:       gpu-8gb (8 GB VRAM)\nWhy:           The GPU has enough VRAM for this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "gpu-8gb",
+          "label": "8 GB VRAM"
+        },
+        "message": "Profile:       gpu-8gb (8 GB VRAM)"
+      },
+      {
+        "code": "profile.label.gpu-8gb",
+        "params": {},
+        "message": "8 GB VRAM"
+      },
+      {
+        "code": "profile.why.vramFits",
+        "params": {},
+        "message": "Why:           The GPU has enough VRAM for this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.oneAtATime",
+        "params": {},
+        "message": "Stages:        run one after the other; the ASR exits before the LLM loads"
+      },
+      {
+        "code": "profile.llmContext",
+        "params": {
+          "tokens": "8192"
+        },
+        "message": "LLM context:   capped at 8192 tokens"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：gpu-8gb（8 GB 顯示記憶體）\n原因：顯示卡的顯示記憶體足夠使用這個設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cuda12.4），在 cuda 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cuda12.4），在 cuda 上執行\n執行順序：兩個步驟輪流執行，語音辨識結束後才載入 LLM\nLLM 內容長度：最多 8192 個 token\n雲端 LLM：可以不用"
+  },
+  "why.noGpuLowRam": {
+    "before": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           No NVIDIA GPU was found, so GPU runtimes are not used.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nRAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           No NVIDIA GPU was found, so GPU runtimes are not used.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nRAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "cpu",
+          "label": "CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       cpu (CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.cpu",
+        "params": {},
+        "message": "CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.noNvidiaGpu",
+        "params": {},
+        "message": "Why:           No NVIDIA GPU was found, so GPU runtimes are not used."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cpu",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.lowRam",
+        "params": {
+          "installed": "8192",
+          "recommended": "15000"
+        },
+        "message": "RAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：cpu（只用 CPU，沒有 GPU 加速）\n原因：沒有找到 NVIDIA 顯示卡，所以不使用 GPU 版的執行檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cpu），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cpu），在 cpu 上執行\n記憶體提醒：8192 MiB 少於本機 8B 模型需要的 15000 MiB。請改用雲端 LLM，否則電腦會頻繁使用虛擬記憶體而變得很慢\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.vramUnknown": {
+    "before": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           An NVIDIA GPU was found but its VRAM could not be read.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           An NVIDIA GPU was found but its VRAM could not be read.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "cpu",
+          "label": "CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       cpu (CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.cpu",
+        "params": {},
+        "message": "CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.vramUnknown",
+        "params": {},
+        "message": "Why:           An NVIDIA GPU was found but its VRAM could not be read."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cpu",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：cpu（只用 CPU，沒有 GPU 加速）\n原因：找到了 NVIDIA 顯示卡，但讀不到它的顯示記憶體大小。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cpu），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cpu），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.vramTooSmall": {
+    "before": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           The GPU has less VRAM than the smallest GPU profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           The GPU has less VRAM than the smallest GPU profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "cpu",
+          "label": "CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       cpu (CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.cpu",
+        "params": {},
+        "message": "CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.vramTooSmall",
+        "params": {},
+        "message": "Why:           The GPU has less VRAM than the smallest GPU profile needs."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cpu",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：cpu（只用 CPU，沒有 GPU 加速）\n原因：顯示卡的顯示記憶體比最小的 GPU 設定檔需要的還少。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cpu），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cpu），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.driverTooOld": {
+    "before": "Profile:       cpu (CPU only, no GPU acceleration)\nDriver:        500.00 is too old for the gpu-24gb profile. Update the NVIDIA driver to 551.61 or newer. The CUDA Toolkit is not needed.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       cpu (CPU only, no GPU acceleration)\nDriver:        500.00 is too old for the gpu-24gb profile. Update the NVIDIA driver to 551.61 or newer. The CUDA Toolkit is not needed.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "cpu",
+          "label": "CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       cpu (CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.cpu",
+        "params": {},
+        "message": "CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.driverTooOld",
+        "params": {
+          "installed": "500.00",
+          "profile": "gpu-24gb",
+          "required": "551.61"
+        },
+        "message": "Driver:        500.00 is too old for the gpu-24gb profile. Update the NVIDIA driver to 551.61 or newer. The CUDA Toolkit is not needed."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cpu",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：cpu（只用 CPU，沒有 GPU 加速）\n驅動程式：500.00 版太舊，不能使用 gpu-24gb 設定檔。請把 NVIDIA 驅動程式更新到 551.61 或更新的版本。不需要安裝 CUDA Toolkit。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cpu），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cpu），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.memoryFits": {
+    "before": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)\nWhy:           This profile was chosen by the Mac's unified memory size, not by a measurement.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nCloud LLM:     optional",
+    "text": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)\nWhy:           This profile was chosen by the Mac's unified memory size, not by a measurement.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "metal-32gb",
+          "label": "Apple silicon, 32 GB or more, one model at a time"
+        },
+        "message": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)"
+      },
+      {
+        "code": "profile.label.metal-32gb",
+        "params": {},
+        "message": "Apple silicon, 32 GB or more, one model at a time"
+      },
+      {
+        "code": "profile.why.memoryFits",
+        "params": {},
+        "message": "Why:           This profile was chosen by the Mac's unified memory size, not by a measurement."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal"
+      },
+      {
+        "code": "profile.asrFallback",
+        "params": {
+          "model": "qwen3-asr-1.7b-q8_0",
+          "engine": "crispasr",
+          "runtime": "crispasr-v0.8.49-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "metal"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal"
+      },
+      {
+        "code": "profile.oneAtATime",
+        "params": {},
+        "message": "Stages:        run one after the other; the ASR exits before the LLM loads"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：metal-32gb（Apple 晶片，32 GB 以上，一次執行一個模型）\n原因：這個設定檔是依 Mac 的統一記憶體大小挑選的，不是實際測試的結果。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 metal 上執行\n備用語音辨識：qwen3-asr-1.7b-q8_0，使用 crispasr（crispasr-v0.8.49-macos-metal），在 metal 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 metal 上執行\n執行順序：兩個步驟輪流執行，語音辨識結束後才載入 LLM\n雲端 LLM：可以不用"
+  },
+  "why.memoryUnknown": {
+    "before": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           The Mac's memory size could not be read.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           The Mac's memory size could not be read.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "apple-cpu",
+          "label": "Apple silicon, CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.apple-cpu",
+        "params": {},
+        "message": "Apple silicon, CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.memoryUnknown",
+        "params": {},
+        "message": "Why:           The Mac's memory size could not be read."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：apple-cpu（Apple 晶片，只用 CPU，沒有 GPU 加速）\n原因：讀不到 Mac 的記憶體大小。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.memoryTooSmall": {
+    "before": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           The Mac has less memory than the smallest Metal profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nRAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           The Mac has less memory than the smallest Metal profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nRAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "apple-cpu",
+          "label": "Apple silicon, CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.apple-cpu",
+        "params": {},
+        "message": "Apple silicon, CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.memoryTooSmall",
+        "params": {},
+        "message": "Why:           The Mac has less memory than the smallest Metal profile needs."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.lowRam",
+        "params": {
+          "installed": "8192",
+          "recommended": "15000"
+        },
+        "message": "RAM warning:   8192 MiB is below the 15000 MiB the local 8B model needs; use a cloud LLM or expect swapping"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：apple-cpu（Apple 晶片，只用 CPU，沒有 GPU 加速）\n原因：這台 Mac 的記憶體比最小的 Metal 設定檔需要的還少。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 cpu 上執行\n記憶體提醒：8192 MiB 少於本機 8B 模型需要的 15000 MiB。請改用雲端 LLM，否則電腦會頻繁使用虛擬記憶體而變得很慢\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.fallbackBlocked": {
+    "before": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  unavailable, driver 560.00 < 570.65; update the NVIDIA driver (CUDA Toolkit not needed)\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "text": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  unavailable, driver 560.00 < 570.65; update the NVIDIA driver (CUDA Toolkit not needed)\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "gpu-24gb",
+          "label": "24 GB VRAM, default"
+        },
+        "message": "Profile:       gpu-24gb (24 GB VRAM, default)"
+      },
+      {
+        "code": "profile.label.gpu-24gb",
+        "params": {},
+        "message": "24 GB VRAM, default"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.asrFallbackBlocked",
+        "params": {
+          "installed": "560.00",
+          "required": "570.65"
+        },
+        "message": "ASR fallback:  unavailable, driver 560.00 < 570.65; update the NVIDIA driver (CUDA Toolkit not needed)"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：gpu-24gb（24 GB 顯示記憶體，預設）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cuda12.4），在 cuda 上執行\n備用語音辨識：無法使用，驅動程式 560.00 版低於 570.65。請更新 NVIDIA 驅動程式（不需要安裝 CUDA Toolkit）\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cuda12.4），在 cuda 上執行\n雲端 LLM：可以不用"
+  },
+  "why.chosen.gpu-24gb": {
+    "before": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "text": "Profile:       gpu-24gb (24 GB VRAM, default)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "gpu-24gb",
+          "label": "24 GB VRAM, default"
+        },
+        "message": "Profile:       gpu-24gb (24 GB VRAM, default)"
+      },
+      {
+        "code": "profile.label.gpu-24gb",
+        "params": {},
+        "message": "24 GB VRAM, default"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.asrFallback",
+        "params": {
+          "model": "qwen3-asr-1.7b-q8_0",
+          "engine": "crispasr",
+          "runtime": "crispasr-v0.8.49-win-cuda",
+          "device": "cuda"
+        },
+        "message": "ASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-win-cuda) on cuda"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：gpu-24gb（24 GB 顯示記憶體，預設）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cuda12.4），在 cuda 上執行\n備用語音辨識：qwen3-asr-1.7b-q8_0，使用 crispasr（crispasr-v0.8.49-win-cuda），在 cuda 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cuda12.4），在 cuda 上執行\n雲端 LLM：可以不用"
+  },
+  "why.chosen.gpu-8gb": {
+    "before": "Profile:       gpu-8gb (8 GB VRAM)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "text": "Profile:       gpu-8gb (8 GB VRAM)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "gpu-8gb",
+          "label": "8 GB VRAM"
+        },
+        "message": "Profile:       gpu-8gb (8 GB VRAM)"
+      },
+      {
+        "code": "profile.label.gpu-8gb",
+        "params": {},
+        "message": "8 GB VRAM"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "device": "cuda"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cuda12.4) on cuda"
+      },
+      {
+        "code": "profile.oneAtATime",
+        "params": {},
+        "message": "Stages:        run one after the other; the ASR exits before the LLM loads"
+      },
+      {
+        "code": "profile.llmContext",
+        "params": {
+          "tokens": "8192"
+        },
+        "message": "LLM context:   capped at 8192 tokens"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：gpu-8gb（8 GB 顯示記憶體）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cuda12.4），在 cuda 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cuda12.4），在 cuda 上執行\n執行順序：兩個步驟輪流執行，語音辨識結束後才載入 LLM\nLLM 內容長度：最多 8192 個 token\n雲端 LLM：可以不用"
+  },
+  "why.chosen.cpu": {
+    "before": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           The GPU has less VRAM than the smallest GPU profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       cpu (CPU only, no GPU acceleration)\nWhy:           The GPU has less VRAM than the smallest GPU profile needs.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "cpu",
+          "label": "CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       cpu (CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.cpu",
+        "params": {},
+        "message": "CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.vramTooSmall",
+        "params": {},
+        "message": "Why:           The GPU has less VRAM than the smallest GPU profile needs."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-win-cpu",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-win-cpu) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：cpu（只用 CPU，沒有 GPU 加速）\n原因：顯示卡的顯示記憶體比最小的 GPU 設定檔需要的還少。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-win-cpu），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-win-cpu），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "why.chosen.metal-32gb": {
+    "before": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)\nWhy:           This profile was chosen by the Mac's unified memory size, not by a measurement.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nCloud LLM:     optional",
+    "text": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)\nWhy:           This profile was chosen by the Mac's unified memory size, not by a measurement.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "metal-32gb",
+          "label": "Apple silicon, 32 GB or more, one model at a time"
+        },
+        "message": "Profile:       metal-32gb (Apple silicon, 32 GB or more, one model at a time)"
+      },
+      {
+        "code": "profile.label.metal-32gb",
+        "params": {},
+        "message": "Apple silicon, 32 GB or more, one model at a time"
+      },
+      {
+        "code": "profile.why.memoryFits",
+        "params": {},
+        "message": "Why:           This profile was chosen by the Mac's unified memory size, not by a measurement."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal"
+      },
+      {
+        "code": "profile.asrFallback",
+        "params": {
+          "model": "qwen3-asr-1.7b-q8_0",
+          "engine": "crispasr",
+          "runtime": "crispasr-v0.8.49-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "metal"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal"
+      },
+      {
+        "code": "profile.oneAtATime",
+        "params": {},
+        "message": "Stages:        run one after the other; the ASR exits before the LLM loads"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：metal-32gb（Apple 晶片，32 GB 以上，一次執行一個模型）\n原因：這個設定檔是依 Mac 的統一記憶體大小挑選的，不是實際測試的結果。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 metal 上執行\n備用語音辨識：qwen3-asr-1.7b-q8_0，使用 crispasr（crispasr-v0.8.49-macos-metal），在 metal 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 metal 上執行\n執行順序：兩個步驟輪流執行，語音辨識結束後才載入 LLM\n雲端 LLM：可以不用"
+  },
+  "why.chosen.metal-32gb-parallel": {
+    "before": "Profile:       metal-32gb-parallel (Apple silicon, 32 GB or more, both models at once)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nCloud LLM:     optional",
+    "text": "Profile:       metal-32gb-parallel (Apple silicon, 32 GB or more, both models at once)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "metal-32gb-parallel",
+          "label": "Apple silicon, 32 GB or more, both models at once"
+        },
+        "message": "Profile:       metal-32gb-parallel (Apple silicon, 32 GB or more, both models at once)"
+      },
+      {
+        "code": "profile.label.metal-32gb-parallel",
+        "params": {},
+        "message": "Apple silicon, 32 GB or more, both models at once"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal"
+      },
+      {
+        "code": "profile.asrFallback",
+        "params": {
+          "model": "qwen3-asr-1.7b-q8_0",
+          "engine": "crispasr",
+          "runtime": "crispasr-v0.8.49-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR fallback:  qwen3-asr-1.7b-q8_0 via crispasr (crispasr-v0.8.49-macos-metal) on metal"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "metal"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：metal-32gb-parallel（Apple 晶片，32 GB 以上，兩個模型同時執行）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 metal 上執行\n備用語音辨識：qwen3-asr-1.7b-q8_0，使用 crispasr（crispasr-v0.8.49-macos-metal），在 metal 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 metal 上執行\n雲端 LLM：可以不用"
+  },
+  "why.chosen.metal-16gb": {
+    "before": "Profile:       metal-16gb (Apple silicon, 16 GB)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "text": "Profile:       metal-16gb (Apple silicon, 16 GB)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal\nStages:        run one after the other; the ASR exits before the LLM loads\nLLM context:   capped at 8192 tokens\nCloud LLM:     optional",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "metal-16gb",
+          "label": "Apple silicon, 16 GB"
+        },
+        "message": "Profile:       metal-16gb (Apple silicon, 16 GB)"
+      },
+      {
+        "code": "profile.label.metal-16gb",
+        "params": {},
+        "message": "Apple silicon, 16 GB"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "metal"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on metal"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "metal"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on metal"
+      },
+      {
+        "code": "profile.oneAtATime",
+        "params": {},
+        "message": "Stages:        run one after the other; the ASR exits before the LLM loads"
+      },
+      {
+        "code": "profile.llmContext",
+        "params": {
+          "tokens": "8192"
+        },
+        "message": "LLM context:   capped at 8192 tokens"
+      },
+      {
+        "code": "profile.cloudOptional",
+        "params": {},
+        "message": "Cloud LLM:     optional"
+      }
+    ],
+    "zh": "設定檔：metal-16gb（Apple 晶片，16 GB）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 metal 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 metal 上執行\n執行順序：兩個步驟輪流執行，語音辨識結束後才載入 LLM\nLLM 內容長度：最多 8192 個 token\n雲端 LLM：可以不用"
+  },
+  "why.chosen.apple-cpu": {
+    "before": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "text": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)\nWhy:           You chose this profile.\nASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu\nLocal LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu\nCloud LLM:     recommended, only after you opt in",
+    "notices": [
+      {
+        "code": "profile.line",
+        "params": {
+          "profile": "apple-cpu",
+          "label": "Apple silicon, CPU only, no GPU acceleration"
+        },
+        "message": "Profile:       apple-cpu (Apple silicon, CPU only, no GPU acceleration)"
+      },
+      {
+        "code": "profile.label.apple-cpu",
+        "params": {},
+        "message": "Apple silicon, CPU only, no GPU acceleration"
+      },
+      {
+        "code": "profile.why.userChoice",
+        "params": {},
+        "message": "Why:           You chose this profile."
+      },
+      {
+        "code": "profile.asr",
+        "params": {
+          "model": "whisper-large-v3-turbo",
+          "engine": "whispercpp",
+          "runtime": "whispercpp-b5454-macos-metal",
+          "device": "cpu"
+        },
+        "message": "ASR:           whisper-large-v3-turbo via whispercpp (whispercpp-b5454-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.llm",
+        "params": {
+          "model": "qwen3-8b-q4_k_m, 8B",
+          "engine": "llama.cpp",
+          "runtime": "llama.cpp-b12068-macos-metal",
+          "device": "cpu"
+        },
+        "message": "Local LLM:     qwen3-8b-q4_k_m, 8B via llama.cpp (llama.cpp-b12068-macos-metal) on cpu"
+      },
+      {
+        "code": "profile.cloudRecommended",
+        "params": {},
+        "message": "Cloud LLM:     recommended, only after you opt in"
+      }
+    ],
+    "zh": "設定檔：apple-cpu（Apple 晶片，只用 CPU，沒有 GPU 加速）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  }
+}

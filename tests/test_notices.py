@@ -67,8 +67,12 @@ def test_the_scenarios_still_send_what_the_window_fixture_holds(tmp_path: Path) 
 
 
 def test_every_code_has_a_scenario_so_the_window_proves_its_chinese() -> None:
-    stored: dict[str, dict[str, Any]] = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    sent = {n["code"] for entry in stored.values() for n in entry["notices"]}
+    sent = {
+        notice["code"]
+        for path in (FIXTURE, FIXTURE.with_name("notices.w4b.fixture.json"))
+        for entry in json.loads(path.read_text(encoding="utf-8")).values()
+        for notice in entry["notices"]
+    }
 
     assert sent == set(REGISTRY)
 

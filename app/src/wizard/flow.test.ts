@@ -21,7 +21,7 @@ const option = (id: ProfileOption["id"], over: Partial<ProfileOption> = {}): Pro
 const view: ProfileView = {
   vcRuntimeMissing: false,
   hardware: { platform: "win-x64", chip: null, gpuName: "RTX 4090", vramMib: 24564, driverVersion: "596.36", ramMib: 65536, diskFreeMib: 500000 },
-  recommended: { id: "gpu-24gb", label: "24 GB", why: "fits" },
+  recommended: { id: "gpu-24gb", label: "24 GB", why: plainText("fits") },
   active: { id: "gpu-24gb", label: "24 GB", source: "recommended", device: "cuda" },
   profiles: [option("gpu-24gb"), option("gpu-8gb"), option("cpu")],
   fallback: null,

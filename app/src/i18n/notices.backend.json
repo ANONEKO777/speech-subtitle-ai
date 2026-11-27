@@ -40,6 +40,140 @@
       "machine": "text"
     }
   },
+  "profile.asr": {
+    "english": "ASR:           {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.asrFallback": {
+    "english": "ASR fallback:  {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.asrFallbackBlocked": {
+    "english": "ASR fallback:  unavailable, driver {installed} < {required}; update the NVIDIA driver (CUDA Toolkit not needed)",
+    "params": {
+      "installed": "text",
+      "required": "text"
+    }
+  },
+  "profile.cloudOptional": {
+    "english": "Cloud LLM:     optional",
+    "params": {}
+  },
+  "profile.cloudRecommended": {
+    "english": "Cloud LLM:     recommended, only after you opt in",
+    "params": {}
+  },
+  "profile.driverTooOld": {
+    "english": "Driver:        {installed} is too old for the {profile} profile. Update the NVIDIA driver to {required} or newer. The CUDA Toolkit is not needed.",
+    "params": {
+      "installed": "text",
+      "profile": "text",
+      "required": "text"
+    }
+  },
+  "profile.label.apple-cpu": {
+    "english": "Apple silicon, CPU only, no GPU acceleration",
+    "params": {}
+  },
+  "profile.label.cpu": {
+    "english": "CPU only, no GPU acceleration",
+    "params": {}
+  },
+  "profile.label.gpu-24gb": {
+    "english": "24 GB VRAM, default",
+    "params": {}
+  },
+  "profile.label.gpu-8gb": {
+    "english": "8 GB VRAM",
+    "params": {}
+  },
+  "profile.label.metal-16gb": {
+    "english": "Apple silicon, 16 GB",
+    "params": {}
+  },
+  "profile.label.metal-32gb": {
+    "english": "Apple silicon, 32 GB or more, one model at a time",
+    "params": {}
+  },
+  "profile.label.metal-32gb-parallel": {
+    "english": "Apple silicon, 32 GB or more, both models at once",
+    "params": {}
+  },
+  "profile.line": {
+    "english": "Profile:       {profile} ({label})",
+    "params": {
+      "profile": "text",
+      "label": "text"
+    }
+  },
+  "profile.llm": {
+    "english": "Local LLM:     {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.llmContext": {
+    "english": "LLM context:   capped at {tokens} tokens",
+    "params": {
+      "tokens": "text"
+    }
+  },
+  "profile.lowRam": {
+    "english": "RAM warning:   {installed} MiB is below the {recommended} MiB the local 8B model needs; use a cloud LLM or expect swapping",
+    "params": {
+      "installed": "text",
+      "recommended": "text"
+    }
+  },
+  "profile.oneAtATime": {
+    "english": "Stages:        run one after the other; the ASR exits before the LLM loads",
+    "params": {}
+  },
+  "profile.why.memoryFits": {
+    "english": "Why:           This profile was chosen by the Mac's unified memory size, not by a measurement.",
+    "params": {}
+  },
+  "profile.why.memoryTooSmall": {
+    "english": "Why:           The Mac has less memory than the smallest Metal profile needs.",
+    "params": {}
+  },
+  "profile.why.memoryUnknown": {
+    "english": "Why:           The Mac's memory size could not be read.",
+    "params": {}
+  },
+  "profile.why.noNvidiaGpu": {
+    "english": "Why:           No NVIDIA GPU was found, so GPU runtimes are not used.",
+    "params": {}
+  },
+  "profile.why.userChoice": {
+    "english": "Why:           You chose this profile.",
+    "params": {}
+  },
+  "profile.why.vramFits": {
+    "english": "Why:           The GPU has enough VRAM for this profile.",
+    "params": {}
+  },
+  "profile.why.vramTooSmall": {
+    "english": "Why:           The GPU has less VRAM than the smallest GPU profile needs.",
+    "params": {}
+  },
+  "profile.why.vramUnknown": {
+    "english": "Why:           An NVIDIA GPU was found but its VRAM could not be read.",
+    "params": {}
+  },
   "render.noH264Mac": {
     "english": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {}

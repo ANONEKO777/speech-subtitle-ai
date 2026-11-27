@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from types import MappingProxyType
 
+from backend.core import notices
 from backend.manager.hardware import Hardware, parse_driver
 from backend.manager.platforms import MACOS_ARM64, WIN_X64, detect_platform
 from backend.manager.registry import Registry
@@ -120,7 +121,7 @@ PROFILES: Mapping[ProfileId, Profile] = MappingProxyType(
         for profile in (
             Profile(
                 id=ProfileId.GPU_24GB,
-                label="24 GB VRAM, default",
+                label=notices.PROFILE_LABELS["gpu-24gb"].english,
                 min_vram_mib=16_000,
                 asr=Stage(WHISPER_TURBO, WHISPER_RUNTIME, Device.CUDA),
                 asr_fallback=Stage(QWEN3_ASR, CRISPASR_RUNTIME, Device.CUDA),
@@ -132,7 +133,7 @@ PROFILES: Mapping[ProfileId, Profile] = MappingProxyType(
             ),
             Profile(
                 id=ProfileId.GPU_8GB,
-                label="8 GB VRAM",
+                label=notices.PROFILE_LABELS["gpu-8gb"].english,
                 min_vram_mib=7_168,
                 asr=Stage(WHISPER_TURBO, WHISPER_RUNTIME, Device.CUDA),
                 asr_fallback=None,
@@ -144,7 +145,7 @@ PROFILES: Mapping[ProfileId, Profile] = MappingProxyType(
             ),
             Profile(
                 id=ProfileId.CPU,
-                label="CPU only, no GPU acceleration",
+                label=notices.PROFILE_LABELS["cpu"].english,
                 min_vram_mib=None,
                 asr=Stage(WHISPER_TURBO, WHISPER_CPU_RUNTIME, Device.CPU),
                 asr_fallback=None,
@@ -161,7 +162,7 @@ PROFILES: Mapping[ProfileId, Profile] = MappingProxyType(
 _APPLE_PROFILES = (
     Profile(
         id=ProfileId.METAL_32GB,
-        label="Apple silicon, 32 GB or more, one model at a time",
+        label=notices.PROFILE_LABELS["metal-32gb"].english,
         min_vram_mib=None,
         asr=Stage(WHISPER_TURBO, MAC_WHISPER_RUNTIME, Device.METAL),
         asr_fallback=Stage(QWEN3_ASR, MAC_CRISPASR_RUNTIME, Device.METAL),
@@ -175,7 +176,7 @@ _APPLE_PROFILES = (
     ),
     Profile(
         id=ProfileId.METAL_32GB_PARALLEL,
-        label="Apple silicon, 32 GB or more, both models at once",
+        label=notices.PROFILE_LABELS["metal-32gb-parallel"].english,
         min_vram_mib=None,
         asr=Stage(WHISPER_TURBO, MAC_WHISPER_RUNTIME, Device.METAL),
         asr_fallback=Stage(QWEN3_ASR, MAC_CRISPASR_RUNTIME, Device.METAL),
@@ -190,7 +191,7 @@ _APPLE_PROFILES = (
     ),
     Profile(
         id=ProfileId.METAL_16GB,
-        label="Apple silicon, 16 GB",
+        label=notices.PROFILE_LABELS["metal-16gb"].english,
         min_vram_mib=None,
         asr=Stage(WHISPER_TURBO, MAC_WHISPER_RUNTIME, Device.METAL),
         asr_fallback=None,
@@ -204,7 +205,7 @@ _APPLE_PROFILES = (
     ),
     Profile(
         id=ProfileId.APPLE_CPU,
-        label="Apple silicon, CPU only, no GPU acceleration",
+        label=notices.PROFILE_LABELS["apple-cpu"].english,
         min_vram_mib=None,
         asr=Stage(WHISPER_TURBO, MAC_WHISPER_RUNTIME, Device.CPU),
         asr_fallback=None,
@@ -384,61 +385,76 @@ def _older(installed: str, minimum: str) -> bool:
     return have is not None and need is not None and have < need
 
 
-_REASON_TEXT: Mapping[Cause, str] = MappingProxyType(
+_REASONS: Mapping[Cause, notices.Template] = MappingProxyType(
     {
-        Cause.VRAM_FITS: "The GPU has enough VRAM for this profile.",
-        Cause.NO_NVIDIA_GPU: "No NVIDIA GPU was found, so GPU runtimes are not used.",
-        Cause.VRAM_UNKNOWN: "An NVIDIA GPU was found but its VRAM could not be read.",
-        Cause.VRAM_TOO_SMALL: "The GPU has less VRAM than the smallest GPU profile needs.",
-        Cause.USER_CHOICE: "You chose this profile.",
-        Cause.MEMORY_FITS: (
-            "This profile was chosen by the Mac's unified memory size, not by a measurement."
-        ),
-        Cause.MEMORY_UNKNOWN: "The Mac's memory size could not be read.",
-        Cause.MEMORY_TOO_SMALL: "The Mac has less memory than the smallest Metal profile needs.",
+        Cause.VRAM_FITS: notices.WHY_VRAM_FITS,
+        Cause.NO_NVIDIA_GPU: notices.WHY_NO_NVIDIA_GPU,
+        Cause.VRAM_UNKNOWN: notices.WHY_VRAM_UNKNOWN,
+        Cause.VRAM_TOO_SMALL: notices.WHY_VRAM_TOO_SMALL,
+        Cause.USER_CHOICE: notices.WHY_USER_CHOICE,
+        Cause.MEMORY_FITS: notices.WHY_MEMORY_FITS,
+        Cause.MEMORY_UNKNOWN: notices.WHY_MEMORY_UNKNOWN,
+        Cause.MEMORY_TOO_SMALL: notices.WHY_MEMORY_TOO_SMALL,
     }
 )
 
 
-def _stage_line(stage: Stage, registry: Registry) -> str:
+def _stage_line(template: notices.Template, stage: Stage, registry: Registry) -> notices.Notice:
     model = registry.models[stage.model]
     runtime = registry.runtimes[stage.runtime]
     size = f", {model.params_b}B" if model.params_b else ""
-    return f"{model.id}{size} via {runtime.engine} ({runtime.id}) on {stage.device}"
+    return template(
+        model=f"{model.id}{size}",
+        engine=runtime.engine,
+        runtime=runtime.id,
+        device=str(stage.device),
+    )
 
 
-def describe(selection: Selection, registry: Registry) -> str:
+@dataclass(frozen=True, slots=True)
+class Explanation:
+    text: str
+    notices: tuple[notices.Notice, ...]
+    """One for each line of `text`, and the profile's name after the line that quotes it."""
+
+
+def explain(selection: Selection, registry: Registry) -> Explanation:
+    """Why `selection` is what it is, one sentence on each line."""
     profile = selection.profile
-    lines = [f"Profile:       {profile.id} ({profile.label})"]
+    name = notices.PROFILE_LABELS[profile.id.value]()
+    lines = [notices.PROFILE_LINE(profile=str(profile.id), label=name.message)]
     if isinstance(selection.reason, DriverTooOld):
         old = selection.reason
         lines.append(
-            f"Driver:        {old.installed} is too old for the {old.would_unlock} profile. "
-            f"Update the NVIDIA driver to {old.required} or newer. "
-            "The CUDA Toolkit is not needed."
+            notices.DRIVER_TOO_OLD(
+                installed=old.installed, profile=str(old.would_unlock), required=old.required
+            )
         )
     else:
-        lines.append(f"Why:           {_REASON_TEXT[selection.reason]}")
-    lines.append(f"ASR:           {_stage_line(profile.asr, registry)}")
+        lines.append(_REASONS[selection.reason]())
+    lines.append(_stage_line(notices.ASR_LINE, profile.asr, registry))
     if selection.asr_fallback:
-        lines.append(f"ASR fallback:  {_stage_line(selection.asr_fallback, registry)}")
+        lines.append(_stage_line(notices.ASR_FALLBACK_LINE, selection.asr_fallback, registry))
     elif selection.fallback_blocked:
         blocked = selection.fallback_blocked
         lines.append(
-            f"ASR fallback:  unavailable, driver {blocked.installed} < {blocked.required}; "
-            "update the NVIDIA driver (CUDA Toolkit not needed)"
+            notices.ASR_FALLBACK_BLOCKED(installed=blocked.installed, required=blocked.required)
         )
-    lines.append(f"Local LLM:     {_stage_line(profile.llm, registry)}")
+    lines.append(_stage_line(notices.LLM_LINE, profile.llm, registry))
     if not profile.concurrent_stages:
-        lines.append("Stages:        run one after the other; the ASR exits before the LLM loads")
+        lines.append(notices.ONE_STAGE_AT_A_TIME())
     if profile.llm_ctx:
-        lines.append(f"LLM context:   capped at {profile.llm_ctx} tokens")
+        lines.append(notices.LLM_CONTEXT_CAPPED(tokens=str(profile.llm_ctx)))
     if selection.low_ram:
         ram = selection.low_ram
         lines.append(
-            f"RAM warning:   {ram.installed_mib} MiB is below the {ram.recommended_mib} MiB "
-            "the local 8B model needs; use a cloud LLM or expect swapping"
+            notices.LOW_RAM(installed=str(ram.installed_mib), recommended=str(ram.recommended_mib))
         )
-    cloud = "recommended, only after you opt in" if profile.recommend_cloud else "optional"
-    lines.append(f"Cloud LLM:     {cloud}")
-    return "\n".join(lines)
+    cloud = profile.recommend_cloud
+    lines.append((notices.CLOUD_LLM_RECOMMENDED if cloud else notices.CLOUD_LLM_OPTIONAL)())
+    text = "\n".join(line.message for line in lines)
+    return Explanation(text, notices.unique((lines[0], name, *lines[1:])))
+
+
+def describe(selection: Selection, registry: Registry) -> str:
+    return explain(selection, registry).text
