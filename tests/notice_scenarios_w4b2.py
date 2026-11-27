@@ -14,6 +14,7 @@ fixture is the same on every system and in every temporary folder.
 
 from __future__ import annotations
 
+import errno
 import os
 import socket
 import sys
@@ -34,7 +35,7 @@ from test_queue import QueueRig, make_app
 
 from backend.core import queue_runner
 from backend.core.notices import notices_of
-from backend.manager import llm_check, maintain, secrets
+from backend.manager import llm_check, maintain, secrets, storage_move
 from backend.manager.download import JobState
 from backend.manager.profiles import WHISPER_RUNTIME, WHISPER_TURBO
 from backend.manager.secrets import SecretError
@@ -263,6 +264,79 @@ def _secret_failure(failure: str) -> Entry:
     raise AssertionError(failure)
 
 
+# Group 10: the models folder.
+
+
+def _moved(rig: Rig, target: Path) -> dict[str, Any]:
+    """The move status the window polls after a move to `target` has stopped."""
+    rig.client.post("/api/storage/move", json={"target": str(target)})
+    deadline = time.monotonic() + 10
+    while (status := rig.client.get("/api/storage/move").json())["state"] == "running":
+        assert time.monotonic() < deadline, status
+        time.sleep(0.02)
+    return cast("dict[str, Any]", status)
+
+
+def _status(status: dict[str, Any], key: str, tmp: Path) -> Entry:
+    text = status[key][0] if key == "warnings" else status[key]
+    return _replaced(_entry(text, status.get(f"{key}_notices")), str(tmp), "<tmp>")
+
+
+def _storage(found: dict[str, Entry], rig: Rig) -> None:
+    client, tmp = rig.client, rig.tmp
+    rig.install("models", SILERO_GGML)
+    old = rig.ctx.storage.models_root
+    elsewhere = tmp / "elsewhere"
+    reply = client.put("/api/storage", json={"models_dir": str(elsewhere)}).json()
+    found["storage.unmoved"] = _replaced(
+        _entry(reply["warnings"][0], reply.get("warnings_notices")), str(tmp), "<tmp>"
+    )
+    client.put("/api/storage", json={"models_dir": str(old)})
+    found["storage.notAbsolute"] = _reply(client.put("/api/storage", json={"models_dir": "m"}))
+
+    def move(target: Path | str, source: Path | None = None) -> Entry:
+        body = {"target": str(target)} | ({"source": str(source)} if source else {})
+        return _replaced(_reply(client.post("/api/storage/move", json=body)), str(tmp), "<tmp>")
+
+    found["move.notAbsolute"] = move("m")
+    found["move.sameFolder"] = move(old)
+    found["move.nested"] = move(old / "inner")
+    (tmp / "empty").mkdir()
+    found["move.noModels"] = move(tmp / "target", tmp / "empty")
+    model = rig.ctx.registry.models[SILERO_GGML]
+    size = (old / SILERO_GGML / model.file).stat().st_size
+    (tmp / "other" / SILERO_GGML).mkdir(parents=True)
+    (tmp / "other" / SILERO_GGML / model.file).write_bytes(b"x")
+    found["move.clash"] = move(tmp / "other")
+    mover = rig.ctx.mover
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(mover, "_downloads_active", lambda: True)
+        found["move.downloadRunning"] = move(tmp / "target")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(mover, "_status", storage_move.MoveStatus(storage_move.MoveState.RUNNING))
+        found["move.alreadyRunning"] = move(tmp / "target")
+    (tmp / "same" / SILERO_GGML).mkdir(parents=True)
+    (tmp / "same" / SILERO_GGML / model.file).write_bytes(bytes(size))
+    found["move.otherContent"] = _status(_moved(rig, tmp / "same"), "error", tmp)
+
+    def short(_self: object, _src: Path, dest: Path) -> None:
+        dest.write_bytes(b"x")
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(storage_move.MoveRunner, "_transfer", short)
+        found["move.wrongSize"] = _status(_moved(rig, tmp / "short"), "error", tmp)
+    unlink = Path.unlink
+
+    def stuck(self: Path, missing_ok: bool = False) -> None:
+        if not missing_ok and self.parent.parent == old:
+            raise OSError(errno.EIO, "I/O error")
+        unlink(self, missing_ok)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(Path, "unlink", stuck)
+        found["move.couldNotRemove"] = _status(_moved(rig, tmp / "moved"), "warnings", tmp)
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
@@ -271,6 +345,8 @@ def collect(tmp: Path) -> dict[str, Entry]:
         _managing(found, Rig(tmp / "manage", origin))
         (tmp / "llm").mkdir()
         _llm_page(found, Rig(tmp / "llm", origin))
+        (tmp / "storage").mkdir()
+        _storage(found, Rig(tmp / "storage", origin))
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

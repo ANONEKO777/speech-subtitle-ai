@@ -132,12 +132,11 @@ export const saveLlm = async (b: Backend, llm: LlmBody) => parseSettings(await p
 export const testLlm = async (b: Backend, llm: LlmBody) => parseLlmTest(await post(b, "/api/llm/test", { llm }));
 
 export interface StorageChange {
-  readonly warnings: readonly string[];
+  readonly warnings: readonly Said[];
 }
 
 export async function setModelsDir(b: Backend, dir: string | null): Promise<StorageChange> {
-  const warnings = asRecord(await put(b, "/api/storage", { models_dir: dir }))?.["warnings"];
-  return { warnings: Array.isArray(warnings) ? warnings.filter((w): w is string => typeof w === "string") : [] };
+  return { warnings: saidList(asRecord(await put(b, "/api/storage", { models_dir: dir })) ?? {}, "warnings") };
 }
 
 export const startMove = async (b: Backend, target: string, source: string) =>

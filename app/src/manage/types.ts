@@ -204,6 +204,6 @@ export interface MoveStatus {
   readonly filesDone: number;
   readonly bytesTotal: number;
   readonly bytesDone: number;
-  readonly error: string | null;
-  readonly warnings: readonly string[];
+  readonly error: Said | null;
+  readonly warnings: readonly Said[];
 }

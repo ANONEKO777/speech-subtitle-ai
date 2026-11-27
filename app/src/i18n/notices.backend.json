@@ -598,6 +598,59 @@
       "blockers": "clauses"
     }
   },
+  "move.alreadyRunning": {
+    "english": "a move is already running",
+    "params": {}
+  },
+  "move.clash": {
+    "english": "{target} already holds {models} with other content; nothing was moved",
+    "params": {
+      "target": "text",
+      "models": "list"
+    }
+  },
+  "move.couldNotRemove": {
+    "english": "could not remove {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
+    }
+  },
+  "move.downloadRunning": {
+    "english": "a download is running; wait for it or cancel it first",
+    "params": {}
+  },
+  "move.nested": {
+    "english": "source and target must not contain each other",
+    "params": {}
+  },
+  "move.noModels": {
+    "english": "no installed models were found in {folder}",
+    "params": {
+      "folder": "text"
+    }
+  },
+  "move.notAbsolute": {
+    "english": "target must be an absolute path",
+    "params": {}
+  },
+  "move.otherContent": {
+    "english": "{dest} holds other content than {path}; left alone",
+    "params": {
+      "dest": "text",
+      "path": "text"
+    }
+  },
+  "move.sameFolder": {
+    "english": "source and target are the same folder",
+    "params": {}
+  },
+  "move.wrongSize": {
+    "english": "{dest} has the wrong size after the move",
+    "params": {
+      "dest": "text"
+    }
+  },
   "pipeline.noSpeech": {
     "english": "the ASR engine found no speech in this audio",
     "params": {}
@@ -989,6 +1042,19 @@
     "english": "{field} must not hold a user name, password, query or fragment",
     "params": {
       "field": "word"
+    }
+  },
+  "storage.notAbsolute": {
+    "english": "models_dir must be an absolute path or null",
+    "params": {}
+  },
+  "storage.unmoved": {
+    "english": "{count} installed model(s), {size} GiB, stay in {old} and are not moved. The app now looks for models in {new}, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\".",
+    "params": {
+      "count": "text",
+      "size": "text",
+      "old": "text",
+      "new": "text"
     }
   },
   "summary.noPart": {

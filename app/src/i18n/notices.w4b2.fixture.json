@@ -759,5 +759,169 @@
       }
     ],
     "zh": "Windows DPAPI 執行失敗（錯誤代碼 13）"
+  },
+  "storage.unmoved": {
+    "before": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. Use POST /api/storage/move to move them, or set the folder back.",
+    "text": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\".",
+    "notices": [
+      {
+        "code": "storage.unmoved",
+        "params": {
+          "count": "1",
+          "size": "0.0",
+          "old": "<tmp>/data/models",
+          "new": "<tmp>/elsewhere"
+        },
+        "message": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\"."
+      }
+    ],
+    "zh": "有 1 個已安裝的模型（共 0.0 GiB）留在 <tmp>/data/models，沒有搬過去。App 現在會到 <tmp>/elsewhere 找模型，所以這些模型在那裡會顯示為未安裝。如果要搬過去，請先把資料夾改回原本的位置，再選「搬移現有模型並切換」。"
+  },
+  "storage.notAbsolute": {
+    "before": "models_dir must be an absolute path or null",
+    "text": "models_dir must be an absolute path or null",
+    "notices": [
+      {
+        "code": "storage.notAbsolute",
+        "params": {},
+        "message": "models_dir must be an absolute path or null"
+      }
+    ],
+    "zh": "模型資料夾必須是完整路徑，例如 E:\\vst-models"
+  },
+  "move.notAbsolute": {
+    "before": "target must be an absolute path",
+    "text": "target must be an absolute path",
+    "notices": [
+      {
+        "code": "move.notAbsolute",
+        "params": {},
+        "message": "target must be an absolute path"
+      }
+    ],
+    "zh": "新的資料夾必須是完整路徑，例如 E:\\vst-models"
+  },
+  "move.sameFolder": {
+    "before": "source and target are the same folder",
+    "text": "source and target are the same folder",
+    "notices": [
+      {
+        "code": "move.sameFolder",
+        "params": {},
+        "message": "source and target are the same folder"
+      }
+    ],
+    "zh": "新的資料夾和原本的資料夾是同一個"
+  },
+  "move.nested": {
+    "before": "source and target must not contain each other",
+    "text": "source and target must not contain each other",
+    "notices": [
+      {
+        "code": "move.nested",
+        "params": {},
+        "message": "source and target must not contain each other"
+      }
+    ],
+    "zh": "新的資料夾和原本的資料夾不能互相包含，請選另一個資料夾"
+  },
+  "move.noModels": {
+    "before": "no installed models were found in <tmp>/empty",
+    "text": "no installed models were found in <tmp>/empty",
+    "notices": [
+      {
+        "code": "move.noModels",
+        "params": {
+          "folder": "<tmp>/empty"
+        },
+        "message": "no installed models were found in <tmp>/empty"
+      }
+    ],
+    "zh": "在 <tmp>/empty 裡找不到已安裝的模型"
+  },
+  "move.clash": {
+    "before": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved",
+    "text": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved",
+    "notices": [
+      {
+        "code": "move.clash",
+        "params": {
+          "target": "<tmp>/other",
+          "models": [
+            "silero-vad-ggml-v6.2.0"
+          ]
+        },
+        "message": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved"
+      }
+    ],
+    "zh": "<tmp>/other 裡已經有內容不同的 silero-vad-ggml-v6.2.0，所以什麼都沒有搬。請選另一個資料夾"
+  },
+  "move.downloadRunning": {
+    "before": "a download is running; wait for it or cancel it first",
+    "text": "a download is running; wait for it or cancel it first",
+    "notices": [
+      {
+        "code": "move.downloadRunning",
+        "params": {},
+        "message": "a download is running; wait for it or cancel it first"
+      }
+    ],
+    "zh": "正在下載，請等下載完成或先取消下載"
+  },
+  "move.alreadyRunning": {
+    "before": "a move is already running",
+    "text": "a move is already running",
+    "notices": [
+      {
+        "code": "move.alreadyRunning",
+        "params": {},
+        "message": "a move is already running"
+      }
+    ],
+    "zh": "已經在搬移了"
+  },
+  "move.otherContent": {
+    "before": "MoveError: <tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone",
+    "text": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone",
+    "notices": [
+      {
+        "code": "move.otherContent",
+        "params": {
+          "dest": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin",
+          "path": "<tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin"
+        },
+        "message": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone"
+      }
+    ],
+    "zh": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 的內容和 <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 不同，沒有動它"
+  },
+  "move.wrongSize": {
+    "before": "OSError: <tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move",
+    "text": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move",
+    "notices": [
+      {
+        "code": "move.wrongSize",
+        "params": {
+          "dest": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin"
+        },
+        "message": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move"
+      }
+    ],
+    "zh": "搬移後 <tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 的大小不對"
+  },
+  "move.couldNotRemove": {
+    "before": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error",
+    "text": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error",
+    "notices": [
+      {
+        "code": "move.couldNotRemove",
+        "params": {
+          "path": "<tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin",
+          "error": "OSError: [Errno 5] I/O error"
+        },
+        "message": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error"
+      }
+    ],
+    "zh": "無法刪除 <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin：OSError: [Errno 5] I/O error"
   }
 }

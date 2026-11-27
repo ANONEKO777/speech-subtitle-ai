@@ -248,8 +248,8 @@ export const parseMove = (raw: unknown): MoveStatus => {
     filesDone: num(o, "files_done"),
     bytesTotal: num(o, "bytes_total"),
     bytesDone: num(o, "bytes_done"),
-    error: strOrNull(o, "error"),
-    warnings: strings(o["warnings"]),
+    error: saidOrNull(o, "error"),
+    warnings: saidList(o, "warnings"),
   };
 };
 

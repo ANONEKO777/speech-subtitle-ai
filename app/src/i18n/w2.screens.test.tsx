@@ -88,7 +88,7 @@ vi.mock("../manage/api", async (orig) => {
     fetchSettings: () => Promise.resolve(mocks.settings),
     fetchMove: () => Promise.resolve(mocks.move),
     startMove: () => (mocks.moveStartMode === "fail" ? Promise.reject(new Error("Target is not empty")) : Promise.resolve({ ...(mocks.move as object), state: "running", filesTotal: 3, filesDone: 1, bytesTotal: 2_000_000_000, bytesDone: 500_000_000 })),
-    setModelsDir: () => (mocks.setDirMode === "fail" ? Promise.reject(new Error("Folder is not writable")) : Promise.resolve({ warnings: ["The folder is on a network drive"] })),
+    setModelsDir: () => (mocks.setDirMode === "fail" ? Promise.reject(new Error("Folder is not writable")) : Promise.resolve({ warnings: [plainText("The folder is on a network drive")] })),
   };
 });
 
@@ -461,10 +461,10 @@ const SCREENS: Record<string, Screen> = {
     mocks.inventory = richInventory();
     mocks.settings = settingsView("D:/models", "D:/models");
     const states: Record<string, Partial<MoveStatus>> = {
-      running: { state: "running", target: "F:/new", filesTotal: 3, filesDone: 1, bytesTotal: 2_000_000_000, bytesDone: 500_000_000, warnings: ["Antivirus may slow this down"] },
+      running: { state: "running", target: "F:/new", filesTotal: 3, filesDone: 1, bytesTotal: 2_000_000_000, bytesDone: 500_000_000, warnings: [plainText("Antivirus may slow this down")] },
       done: { state: "done", target: "F:/new", filesTotal: 3, filesDone: 3, bytesTotal: 2_000_000_000, bytesDone: 2_000_000_000 },
       "done, one file": { state: "done", target: "F:/new", filesTotal: 1, filesDone: 1, bytesTotal: 1_000_000, bytesDone: 1_000_000 },
-      failed: { state: "failed", target: "F:/new", filesTotal: 3, filesDone: 1, error: "Not enough space on F:" },
+      failed: { state: "failed", target: "F:/new", filesTotal: 3, filesDone: 1, error: plainText("Not enough space on F:") },
       "failed, no reason": { state: "failed", target: "F:/new", filesTotal: 3, filesDone: 1, error: null },
     };
     for (const [name, over] of Object.entries(states)) {

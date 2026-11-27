@@ -20,7 +20,9 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
 
-from backend.manager.download import CHUNK, DownloadError, check_space, part_of, readable_os_error
+from backend.core import notices
+from backend.core.notices import Notice, noticed, notices_of
+from backend.manager.download import CHUNK, DownloadError, check_space, os_error_said, part_of
 from backend.manager.registry import Registry
 from backend.manager.storage import Storage, StorageConfig
 
@@ -49,6 +51,8 @@ class MoveStatus:
     bytes_done: int = 0
     error: str | None = None
     warnings: tuple[str, ...] = ()
+    error_notices: tuple[Notice, ...] = ()
+    warnings_notices: tuple[Notice, ...] = ()
 
 
 def installed_models(registry: Registry, root: Path) -> list[tuple[str, Path, int]]:
@@ -85,24 +89,22 @@ class MoveRunner:
 
     def start(self, source: Path, target: Path) -> MoveStatus:
         if not target.is_absolute():
-            raise MoveError("target must be an absolute path")
+            raise noticed(MoveError, notices.MOVE_NOT_ABSOLUTE())
         if source.resolve() == target.resolve():
-            raise MoveError("source and target are the same folder")
+            raise noticed(MoveError, notices.MOVE_SAME_FOLDER())
         if _inside(target, source) or _inside(source, target):
-            raise MoveError("source and target must not contain each other")
+            raise noticed(MoveError, notices.MOVE_NESTED())
         files = installed_models(self._registry, source)
         if not files:
-            raise MoveError(f"no installed models were found in {source}")
+            raise noticed(MoveError, notices.MOVE_NO_MODELS(folder=str(source)))
         clash = [m for m, p, s in files if _foreign(p, s, target / m / self._file_of(m))]
         if clash:
-            raise MoveError(
-                f"{target} already holds {', '.join(clash)} with other content; nothing was moved"
-            )
+            raise noticed(MoveError, notices.MOVE_CLASH(target=str(target), models=clash))
         if self._downloads_active():
-            raise MoveError("a download is running; wait for it or cancel it first")
+            raise noticed(MoveError, notices.MOVE_DOWNLOAD_RUNNING())
         with self._lock:
             if self._status.state is MoveState.RUNNING:
-                raise MoveError("a move is already running")
+                raise noticed(MoveError, notices.MOVE_ALREADY_RUNNING())
             self._status = MoveStatus(
                 MoveState.RUNNING,
                 str(source),
@@ -114,7 +116,11 @@ class MoveRunner:
         try:
             target.mkdir(parents=True, exist_ok=True)
             check_space([(target, sum(s for _m, _p, s in files))])
-        except (OSError, DownloadError) as exc:
+        except DownloadError as exc:
+            found = exc.failure.message_notices
+            self._set(state=MoveState.FAILED, error=str(exc), error_notices=found)
+            raise (noticed(MoveError, found[0]) if found else MoveError(str(exc))) from exc
+        except OSError as exc:
             self._set(state=MoveState.FAILED, error=str(exc))
             raise MoveError(str(exc)) from exc
         threading.Thread(
@@ -137,13 +143,14 @@ class MoveRunner:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 if dest.exists():
                     if not _same_bytes(path, dest):
-                        raise MoveError(f"{dest} holds other content than {path}; left alone")
+                        said = notices.MOVE_OTHER_CONTENT(dest=str(dest), path=str(path))
+                        raise noticed(MoveError, said)
                     self._set(bytes_done=self.status().bytes_done + size)
                 else:
                     made.append(dest)
                     self._transfer(path, dest)
                 if dest.stat().st_size != size:
-                    raise OSError(f"{dest} has the wrong size after the move")
+                    raise noticed(MoveError, notices.MOVE_WRONG_SIZE(dest=str(dest)))
                 self._set(files_done=self.status().files_done + 1)
             config = self._storage.config
             self._storage.update(StorageConfig(target, config.mirrors))
@@ -152,16 +159,24 @@ class MoveRunner:
                 dest.unlink(missing_ok=True)
                 part_of(dest).unlink(missing_ok=True)
                 _rmdir(dest.parent)
-            self._set(state=MoveState.FAILED, error=readable_os_error(exc))
+            if isinstance(exc, MoveError):
+                self._set(state=MoveState.FAILED, error=str(exc), error_notices=notices_of(exc))
+            else:
+                text, found = os_error_said(exc)
+                self._set(state=MoveState.FAILED, error=text, error_notices=found)
             return
-        warnings: list[str] = []
+        warnings: list[Notice] = []
         for _model_id, path, _size in files:
             try:
                 path.unlink()
                 _rmdir(path.parent)
             except OSError as exc:
-                warnings.append(f"could not remove {path}: {readable_os_error(exc)}")
-        self._set(state=MoveState.DONE, warnings=tuple(warnings))
+                text, found = os_error_said(exc)
+                warnings.append(notices.MOVE_COULD_NOT_REMOVE(path=str(path), error=text))
+                warnings.extend(found)
+        said = notices.unique(warnings)
+        shown = tuple(one.message for one in warnings if one.code == "move.couldNotRemove")
+        self._set(state=MoveState.DONE, warnings=shown, warnings_notices=said)
 
     def _transfer(self, src: Path, dest: Path) -> None:
         part = part_of(dest)
