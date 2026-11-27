@@ -205,7 +205,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
             </p>
             <details>
               <summary>{t("hw.why")}</summary>
-              <pre className="why">{view.recommended.why}</pre>
+              <pre className="why">{word(view.recommended.why, locale)}</pre>
             </details>
           </div>
 

@@ -95,7 +95,7 @@ export function parseJob(raw: unknown): DownloadJob {
     resumedFrom: num(o, "resumed_from"),
     retries: num(o, "retries"),
     note: strOrNull(o, "note"),
-    failure: f ? { kind: str(f, "kind"), message: str(f, "message") } : null,
+    failure: f ? { kind: str(f, "kind"), message: saidField(f, "message") } : null,
   };
 }
 
@@ -141,7 +141,7 @@ export function parseProfileView(raw: unknown): ProfileView {
   return {
     hardware: parseHardware(o["hardware"]),
     vcRuntimeMissing: o["vc_runtime_missing"] === true,
-    recommended: { id: oneOf(rcm["id"], PROFILE_IDS, "profile"), label: str(rcm, "label"), why: str(rcm, "why") },
+    recommended: { id: oneOf(rcm["id"], PROFILE_IDS, "profile"), label: str(rcm, "label"), why: saidField(rcm, "why") },
     active: {
       id: oneOf(act["id"], PROFILE_IDS, "profile"),
       label: str(act, "label"),
@@ -214,13 +214,13 @@ const updateItem = (raw: unknown): UpdateItem => {
     id: str(o, "id"),
     status: status === "not_installed" || status === "current" || status === "update_available" ? status : "unknown",
     installable: bool(o, "installable"),
-    message: str(o, "message"),
+    message: saidField(o, "message"),
   };
 };
 
 export const parseUpdates = (raw: unknown): UpdateReport => {
   const o = rec(raw);
-  return { message: str(o, "message"), items: list(o["items"]).map(updateItem) };
+  return { message: saidField(o, "message"), items: list(o["items"]).map(updateItem) };
 };
 
 export const parseLicenses = (raw: unknown): LicenseEntry[] =>

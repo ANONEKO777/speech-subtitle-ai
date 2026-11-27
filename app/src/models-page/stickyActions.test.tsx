@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { plainText } from "../i18n/said";
 import type { Backend } from "../api/client";
 import { windowsInventory } from "../manage/screens.fixture";
 import type { DownloadJob } from "../manage/types";
@@ -38,7 +39,7 @@ describe("the models table keeps its Actions column on screen", () => {
     const id = "whispercpp-b5454-win-cuda";
     const failed: DownloadJob = {
       id: "j1", assetId: id, state: "failed", bytesDone: 0, bytesTotal: 1, speedBps: 0, resumedFrom: 0, retries: 0, note: null,
-      failure: { kind: "hash_mismatch", message: "it failed its SHA256 check" },
+      failure: { kind: "hash_mismatch", message: plainText("it failed its SHA256 check") },
     };
     render(<ModelsSection backend={{ port: 1, token: "t" } as Backend} downloads={{ ...downloads, list: [failed], byAsset: new Map([[id, failed]]) }} />);
     const note = await waitFor(() => screen.getByTestId(`inv-${id}-note`));

@@ -4,10 +4,13 @@ from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from backend.api.deps import Context
 from backend.api.downloads import get_storage
+from backend.core import notices
+from backend.core.notices import noticed
+from backend.llm.client import sendable
 from backend.manager.llm_check import test_connection
 from backend.manager.secrets import LLM_KEY, SecretError
 from backend.manager.settings import (
@@ -33,7 +36,19 @@ class LlmBody(BaseModel):
     cloud_consent: bool = False
     """Must be true to save a cloud source: the content of your videos leaves this machine."""
     api_key: str | None = None
-    """Write only. Omit to keep the saved key, send an empty string to delete it."""
+    """Write only. Omit to keep the saved key, send an empty string to delete it. Spaces and line
+    breaks around it are dropped, as a pasted key often carries them and none can be sent."""
+
+    @field_validator("api_key")
+    @classmethod
+    def _trimmed(cls, key: str | None) -> str | None:
+        return key.strip() if key is not None else None
+
+    def sendable_key(self) -> str | None:
+        """`api_key`, refused now when no header can carry it, not at the first run."""
+        if self.api_key and not sendable(self.api_key):
+            raise noticed(SettingsError, notices.LLM_KEY_UNSENDABLE())
+        return self.api_key
 
     def settings(self, *, consent: bool | None = None) -> LlmSettings:
         return LlmSettings(
@@ -95,7 +110,7 @@ def put_settings(body: SettingsBody, ctx: Context) -> dict[str, Any]:
         registry_url = body.registry_url if "registry_url" in sent else current.registry_url
         ui_language = body.ui_language or current.ui_language
         updated = AppSettings(current.profile, llm, registry_url or None, ui_language)
-        key = body.llm.api_key if body.llm else None
+        key = body.llm.sendable_key() if body.llm else None
         if llm.source is LlmSource.CLOUD and not (key or (key is None and _key_saved(ctx))):
             raise SettingsError("an API key is required for a cloud LLM")
         if _url_changed(current.llm, llm) and key is None:
@@ -145,8 +160,9 @@ def test_llm(body: TestBody, ctx: Context) -> dict[str, Any]:
     """Check that the source answers. Failure is a normal answer with `ok: false` and the URL."""
     try:
         llm = body.llm.settings(consent=True)
+        sent = body.llm.sendable_key()
     except SettingsError as exc:
         raise _unprocessable(exc) from exc
-    key = body.llm.api_key if body.llm.api_key is not None else _saved_key_for(ctx, llm)
+    key = sent if sent is not None else _saved_key_for(ctx, llm)
     result = test_connection(llm, key, ctx.registry, ctx.storage)
     return {**asdict(result), "source": result.source.value, "models": list(result.models)}

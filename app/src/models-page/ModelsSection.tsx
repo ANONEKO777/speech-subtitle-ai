@@ -184,7 +184,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       )}
       {updates && (
         <p className="note" data-testid="update-message">
-          {updates.message}
+          {word(updates.message, locale)}
         </p>
       )}
 
@@ -260,7 +260,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                         {t("models.registryVersion", { version: shortVersion(asset.version) })}
                       </span>
                       {update && update.status !== "not_installed" && (
-                        <span className={`sub ${update.status === "update_available" ? "ok" : ""}`} data-testid={`inv-${asset.id}-update`} title={update.message}>
+                        <span className={`sub ${update.status === "update_available" ? "ok" : ""}`} data-testid={`inv-${asset.id}-update`} title={word(update.message, locale)}>
                           {asset.localBuild
                             ? asset.foundOutsideRuntimes
                               ? localBuildElsewhereNoUpdateText(t)
@@ -327,7 +327,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       )}
                       {!note && job?.failure && !live && (
                         <span className="sub note-line job-failure bad" role="alert" data-testid={`inv-${asset.id}-note`}>
-                          {job.failure.message}
+                          {word(job.failure.message, locale)}
                         </span>
                       )}
                     </td>

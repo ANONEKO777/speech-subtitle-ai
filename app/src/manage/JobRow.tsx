@@ -2,6 +2,7 @@ import { useT } from "../i18n/I18nProvider";
 import { fraction, isActive, stateLabel } from "./downloads";
 import { bytes, speed } from "./format";
 import type { DownloadJob } from "./types";
+import { word } from "../i18n/notice";
 
 /** One download: name, a bar, bytes, speed, and the reason when it failed. */
 export function JobRow({ job, testId }: { job: DownloadJob; testId: string }) {
@@ -27,7 +28,7 @@ export function JobRow({ job, testId }: { job: DownloadJob; testId: string }) {
       </div>
       {job.failure && (
         <p className="note bad" role="alert" data-testid={`${testId}-error`}>
-          {job.failure.message}
+          {word(job.failure.message, locale)}
         </p>
       )}
     </div>

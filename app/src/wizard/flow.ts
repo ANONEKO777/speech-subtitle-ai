@@ -2,7 +2,7 @@ import type { DownloadJob, ProfileId, ProfileView, SelfTest } from "../manage/ty
 import type { Said } from "../i18n/said";
 
 /** What went wrong, as the screen words it: backend or shell text with its notices, or a failed download the screen names. */
-export type WizardError = Said | { readonly assetId: string; readonly message: string | null };
+export type WizardError = Said | { readonly assetId: string; readonly message: Said | null };
 
 export type WizardState =
   | { readonly step: "detect" }

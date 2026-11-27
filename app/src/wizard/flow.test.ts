@@ -21,7 +21,7 @@ const option = (id: ProfileOption["id"], over: Partial<ProfileOption> = {}): Pro
 const view: ProfileView = {
   vcRuntimeMissing: false,
   hardware: { platform: "win-x64", chip: null, gpuName: "RTX 4090", vramMib: 24564, driverVersion: "596.36", ramMib: 65536, diskFreeMib: 500000 },
-  recommended: { id: "gpu-24gb", label: "24 GB", why: "fits" },
+  recommended: { id: "gpu-24gb", label: "24 GB", why: plainText("fits") },
   active: { id: "gpu-24gb", label: "24 GB", source: "recommended", device: "cuda" },
   profiles: [option("gpu-24gb"), option("gpu-8gb"), option("cpu")],
   fallback: null,
@@ -97,13 +97,13 @@ describe("first-run wizard", () => {
   });
 
   it("shows the failure message of a failed download", () => {
-    const failure = { kind: "network", message: "connection lost" };
+    const failure = { kind: "network", message: plainText("connection lost") };
     const s = run([...toDownload, { type: "started", jobIds: ["1"] }, { type: "polled", jobs: [job("1", "failed", failure)] }]);
-    expect(s).toMatchObject({ phase: "failed", error: { assetId: "asset-1", message: "connection lost" } });
+    expect(s).toMatchObject({ phase: "failed", error: { assetId: "asset-1", message: plainText("connection lost") } });
   });
 
   it("ignores jobs that belong to something else", () => {
-    const s = run([...toDownload, { type: "started", jobIds: ["1"] }, { type: "polled", jobs: [job("9", "failed", { kind: "io", message: "x" })] }]);
+    const s = run([...toDownload, { type: "started", jobIds: ["1"] }, { type: "polled", jobs: [job("9", "failed", { kind: "io", message: plainText("x") })] }]);
     expect(s).toMatchObject({ phase: "running" });
   });
 

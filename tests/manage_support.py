@@ -14,9 +14,11 @@ from typing import Any
 from download_support import FAST, Origin, blob, make_zip, sha, wait_until
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api import downloads, inventory, models, profile, runtimes, settings
-from backend.api.deps import locked_path_response
+from backend.api.deps import locked_path_response, noticed_http_error
+from backend.core.notices import Notice
 from backend.manager import registry
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.hardware import Hardware
@@ -77,7 +79,9 @@ class Rig:
         self.start(GPU_4090)
         self.client.put("/api/storage", json={"mirrors": {ORIGIN: origin.url("/")}})
 
-    def run_probe(self, stage: str, program: Path, model: Path, device: Any, timeout: float) -> str:
+    def run_probe(
+        self, stage: str, program: Path, model: Path, device: Any, timeout: float
+    ) -> str | Notice:
         return self.probe(stage, program, model, device, timeout)
 
     def fetch_remote(self, url: str) -> Registry:
@@ -98,6 +102,7 @@ class Rig:
         )
         app = FastAPI()
         app.add_exception_handler(OSError, locked_path_response)
+        app.add_exception_handler(StarletteHTTPException, noticed_http_error)
         app.state.manager = self.ctx
         app.state.jobs = self.jobs
         for module in (downloads, models, runtimes, inventory, profile, settings):

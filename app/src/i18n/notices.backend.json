@@ -1,4 +1,292 @@
 {
+  "audio.ffmpegStopped": {
+    "english": "ffmpeg stopped on {video} (exit code {status}): {detail}",
+    "params": {
+      "video": "text",
+      "status": "text",
+      "detail": "text"
+    }
+  },
+  "audio.ffmpegStoppedSilent": {
+    "english": "ffmpeg stopped on {video} (exit code {status}): no error output, so it was probably killed or ran out of memory",
+    "params": {
+      "video": "text",
+      "status": "text"
+    }
+  },
+  "audio.noAudioTrack": {
+    "english": "{video} has no audio track",
+    "params": {
+      "video": "text"
+    }
+  },
+  "audio.noDataChunk": {
+    "english": "{file} is not a readable wav file: no data chunk",
+    "params": {
+      "file": "text"
+    }
+  },
+  "audio.probeFailed": {
+    "english": "ffprobe could not read {video}: {detail}",
+    "params": {
+      "video": "text",
+      "detail": "text"
+    }
+  },
+  "audio.toolMissing": {
+    "english": "{tool} was not found. Install ffmpeg, add it to PATH, or set {variable}.",
+    "params": {
+      "tool": "text",
+      "variable": "text"
+    }
+  },
+  "audio.toolMissingMac": {
+    "english": "{tool} was not found. Install it with `brew install ffmpeg`, or set {variable}.",
+    "params": {
+      "tool": "text",
+      "variable": "text"
+    }
+  },
+  "audio.toolTimedOut": {
+    "english": "{tool} on {video} did not finish in {seconds} s; stopped it",
+    "params": {
+      "tool": "text",
+      "video": "text",
+      "seconds": "text"
+    }
+  },
+  "audio.unreadableWav": {
+    "english": "{file} is not a readable wav file: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "audio.videoNotFound": {
+    "english": "video not found: {video}",
+    "params": {
+      "video": "text"
+    }
+  },
+  "audio.wavCutShort": {
+    "english": "{file} is cut short: {actual} bytes, its header promises {promised}",
+    "params": {
+      "file": "text",
+      "actual": "text",
+      "promised": "text"
+    }
+  },
+  "audio.wrongFormat": {
+    "english": "{file} is not 16 kHz mono 16-bit PCM",
+    "params": {
+      "file": "text"
+    }
+  },
+  "download.cutShort": {
+    "english": "connection closed before the whole file arrived",
+    "params": {}
+  },
+  "download.hashMismatch": {
+    "english": "{file} failed its SHA256 check (expected {expected}, got {actual}); the download was deleted.",
+    "params": {
+      "file": "text",
+      "expected": "text",
+      "actual": "text"
+    }
+  },
+  "download.http": {
+    "english": "{url} answered HTTP {status}",
+    "params": {
+      "url": "text",
+      "status": "text"
+    }
+  },
+  "download.interrupted": {
+    "english": "Download interrupted and not recovered after {retries} retries ({reason}). The partial file is kept; start the download again to continue.",
+    "params": {
+      "retries": "text",
+      "reason": "text"
+    }
+  },
+  "download.locked": {
+    "english": "{path} is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {
+      "path": "text"
+    }
+  },
+  "download.lockedMoving": {
+    "english": "{path} (while moving it to {target}) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {
+      "path": "text",
+      "target": "text"
+    }
+  },
+  "download.lockedUnknown": {
+    "english": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {}
+  },
+  "download.missingLinkTarget": {
+    "english": "link to a missing file: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.noEntryPoint": {
+    "english": "archive does not contain {file}",
+    "params": {
+      "file": "text"
+    }
+  },
+  "download.noSpace": {
+    "english": "Not enough free disk space on {folder}: need {needed} more, {free} is free.",
+    "params": {
+      "folder": "text",
+      "needed": "text",
+      "free": "text"
+    }
+  },
+  "download.rangeRefused": {
+    "english": "server refused the resume range, restarting",
+    "params": {}
+  },
+  "download.unsafeLink": {
+    "english": "unsafe link in archive: {name} -> {target}",
+    "params": {
+      "name": "text",
+      "target": "text"
+    }
+  },
+  "download.unsafeLinkEntry": {
+    "english": "unsafe link in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.unsafePath": {
+    "english": "unsafe path in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.unsupportedEntry": {
+    "english": "unsupported entry in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.writeFailed": {
+    "english": "disk write failed: {error}",
+    "params": {
+      "error": "text"
+    }
+  },
+  "download.wrongSize": {
+    "english": "{url} sends {sent} bytes, expected {expected}",
+    "params": {
+      "url": "text",
+      "sent": "text",
+      "expected": "text"
+    }
+  },
+  "engine.alignerMissing": {
+    "english": "{engine}: aligner not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.badCrispJson": {
+    "english": "unexpected CrispASR JSON in {file}: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.badWhisperJson": {
+    "english": "unexpected whisper.cpp JSON in {file}: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.cannotStart": {
+    "english": "{engine}: cannot start {program}: {error}",
+    "params": {
+      "engine": "text",
+      "program": "text",
+      "error": "text"
+    }
+  },
+  "engine.exited": {
+    "english": "{engine} exited with code {status}: {output}",
+    "params": {
+      "engine": "text",
+      "status": "text",
+      "output": "text"
+    }
+  },
+  "engine.exitedSilent": {
+    "english": "{engine} exited with code {status}: no output",
+    "params": {
+      "engine": "text",
+      "status": "text"
+    }
+  },
+  "engine.modelMissing": {
+    "english": "{engine}: model not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.nonAsciiPath": {
+    "english": "{engine} cannot open a path with non-ASCII characters: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.outputMissing": {
+    "english": "engine output {file} was not written: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.outputNotJson": {
+    "english": "engine output {file} is not valid JSON: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.outputNotObject": {
+    "english": "engine output {file} is not a JSON object",
+    "params": {
+      "file": "text"
+    }
+  },
+  "engine.outputNotUtf8": {
+    "english": "engine output {file} is not valid UTF-8 at byte {byte}",
+    "params": {
+      "file": "text",
+      "byte": "text"
+    }
+  },
+  "engine.programMissing": {
+    "english": "{engine}: binary not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.timedOut": {
+    "english": "{engine} did not finish in {seconds} s",
+    "params": {
+      "engine": "text",
+      "seconds": "text"
+    }
+  },
   "fonts.missingGlyphs": {
     "english": "The font {font} has no glyphs for these characters: {chars}. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {
@@ -33,12 +321,214 @@
       "fonts": "list"
     }
   },
+  "llm.http": {
+    "english": "{url} answered HTTP {status}: {detail}",
+    "params": {
+      "url": "text",
+      "status": "text",
+      "detail": "text"
+    }
+  },
+  "llm.keyUnsendable": {
+    "english": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
+    "params": {}
+  },
+  "llm.noContent": {
+    "english": "{url} did not return a chat completion: no choices[0].message.content string",
+    "params": {
+      "url": "text"
+    }
+  },
+  "llm.notJson": {
+    "english": "{url} did not return a chat completion: body is not JSON ({error})",
+    "params": {
+      "url": "text",
+      "error": "text"
+    }
+  },
+  "llm.redirected": {
+    "english": "{url} redirected to {location}; redirects are not followed",
+    "params": {
+      "url": "text",
+      "location": "text"
+    }
+  },
+  "llm.timedOut": {
+    "english": "no answer from {url} within {seconds} s",
+    "params": {
+      "url": "text",
+      "seconds": "text"
+    }
+  },
+  "llm.unreachable": {
+    "english": "cannot reach the LLM server at {url}: {reason}",
+    "params": {
+      "url": "text",
+      "reason": "text"
+    }
+  },
+  "pipeline.noSpeech": {
+    "english": "the ASR engine found no speech in this audio",
+    "params": {}
+  },
   "platform.unsupported": {
     "english": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is {system} {machine}. Intel Macs and Linux aren't supported yet.",
     "params": {
       "system": "text",
       "machine": "text"
     }
+  },
+  "profile.asr": {
+    "english": "ASR:           {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.asrFallback": {
+    "english": "ASR fallback:  {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.asrFallbackBlocked": {
+    "english": "ASR fallback:  unavailable, driver {installed} < {required}; update the NVIDIA driver (CUDA Toolkit not needed)",
+    "params": {
+      "installed": "text",
+      "required": "text"
+    }
+  },
+  "profile.cloudOptional": {
+    "english": "Cloud LLM:     optional",
+    "params": {}
+  },
+  "profile.cloudRecommended": {
+    "english": "Cloud LLM:     recommended, only after you opt in",
+    "params": {}
+  },
+  "profile.driverTooOld": {
+    "english": "Driver:        {installed} is too old for the {profile} profile. Update the NVIDIA driver to {required} or newer. The CUDA Toolkit is not needed.",
+    "params": {
+      "installed": "text",
+      "profile": "text",
+      "required": "text"
+    }
+  },
+  "profile.label.apple-cpu": {
+    "english": "Apple silicon, CPU only, no GPU acceleration",
+    "params": {}
+  },
+  "profile.label.cpu": {
+    "english": "CPU only, no GPU acceleration",
+    "params": {}
+  },
+  "profile.label.gpu-24gb": {
+    "english": "24 GB VRAM, default",
+    "params": {}
+  },
+  "profile.label.gpu-8gb": {
+    "english": "8 GB VRAM",
+    "params": {}
+  },
+  "profile.label.metal-16gb": {
+    "english": "Apple silicon, 16 GB",
+    "params": {}
+  },
+  "profile.label.metal-32gb": {
+    "english": "Apple silicon, 32 GB or more, one model at a time",
+    "params": {}
+  },
+  "profile.label.metal-32gb-parallel": {
+    "english": "Apple silicon, 32 GB or more, both models at once",
+    "params": {}
+  },
+  "profile.line": {
+    "english": "Profile:       {profile} ({label})",
+    "params": {
+      "profile": "text",
+      "label": "text"
+    }
+  },
+  "profile.llm": {
+    "english": "Local LLM:     {model} via {engine} ({runtime}) on {device}",
+    "params": {
+      "model": "text",
+      "engine": "text",
+      "runtime": "text",
+      "device": "text"
+    }
+  },
+  "profile.llmContext": {
+    "english": "LLM context:   capped at {tokens} tokens",
+    "params": {
+      "tokens": "text"
+    }
+  },
+  "profile.lowRam": {
+    "english": "RAM warning:   {installed} MiB is below the {recommended} MiB the local 8B model needs; use a cloud LLM or expect swapping",
+    "params": {
+      "installed": "text",
+      "recommended": "text"
+    }
+  },
+  "profile.oneAtATime": {
+    "english": "Stages:        run one after the other; the ASR exits before the LLM loads",
+    "params": {}
+  },
+  "profile.why.memoryFits": {
+    "english": "Why:           This profile was chosen by the Mac's unified memory size, not by a measurement.",
+    "params": {}
+  },
+  "profile.why.memoryTooSmall": {
+    "english": "Why:           The Mac has less memory than the smallest Metal profile needs.",
+    "params": {}
+  },
+  "profile.why.memoryUnknown": {
+    "english": "Why:           The Mac's memory size could not be read.",
+    "params": {}
+  },
+  "profile.why.noNvidiaGpu": {
+    "english": "Why:           No NVIDIA GPU was found, so GPU runtimes are not used.",
+    "params": {}
+  },
+  "profile.why.userChoice": {
+    "english": "Why:           You chose this profile.",
+    "params": {}
+  },
+  "profile.why.vramFits": {
+    "english": "Why:           The GPU has enough VRAM for this profile.",
+    "params": {}
+  },
+  "profile.why.vramTooSmall": {
+    "english": "Why:           The GPU has less VRAM than the smallest GPU profile needs.",
+    "params": {}
+  },
+  "profile.why.vramUnknown": {
+    "english": "Why:           An NVIDIA GPU was found but its VRAM could not be read.",
+    "params": {}
+  },
+  "program.cannotStart": {
+    "english": "cannot start {program}: {error}",
+    "params": {
+      "program": "text",
+      "error": "text"
+    }
+  },
+  "program.timedOut": {
+    "english": "{program} did not finish in {seconds} s",
+    "params": {
+      "program": "text",
+      "seconds": "text"
+    }
+  },
+  "queue.crashed": {
+    "english": "the batch crashed",
+    "params": {}
   },
   "render.noH264Mac": {
     "english": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
@@ -47,6 +537,74 @@
   "render.noH264Windows": {
     "english": "Windows on this computer has no H.264 encoder, so the subtitles can't be burned into the video. In \"Settings > System > Optional features\", install \"Media Feature Pack\" (only Windows N and KN editions need it), or run Windows Update, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {}
+  },
+  "resolve.alignerMissing": {
+    "english": "{engine} aligner model not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "resolve.keyUnreadable": {
+    "english": "cannot read the saved API key: {error}",
+    "params": {
+      "error": "text"
+    }
+  },
+  "resolve.llmFileMissing": {
+    "english": "LLM model file not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "resolve.llmModelMissing": {
+    "english": "LLM model {model} not found: {path}",
+    "params": {
+      "model": "text",
+      "path": "text"
+    }
+  },
+  "resolve.mixedNoCpu": {
+    "english": "Japanese and English talks need the Qwen3-ASR engine, which has no CPU build. Turn off CPU mode, or choose one language",
+    "params": {}
+  },
+  "resolve.mixedNotInstalled": {
+    "english": "Japanese and English talks need the Qwen3-ASR engine, which is installed only with the 24 GB profile: {detail}",
+    "params": {
+      "detail": "text"
+    }
+  },
+  "resolve.modelMissing": {
+    "english": "{engine} model not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "resolve.programMissing": {
+    "english": "{engine} program not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "resolve.serverMissing": {
+    "english": "llama-server program (see --llama-server) not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "resolve.vadMissing": {
+    "english": "VAD model not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "resolve.vadMissingHint": {
+    "english": "VAD model (see --vad-model) not found: {path}",
+    "params": {
+      "path": "text"
+    }
   },
   "runtime.foundElsewhere": {
     "english": "The app didn't delete {program}: it was found in {where}, not in the app's runtimes folder ({folder}). To remove it, do that yourself (if you installed it with Homebrew, use brew uninstall).",
@@ -74,5 +632,285 @@
   "secrets.cloudKeyUnavailable": {
     "english": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
     "params": {}
+  },
+  "selftest.asrFailed": {
+    "english": "ASR ({runtime}): {detail}",
+    "params": {
+      "runtime": "text",
+      "detail": "text"
+    }
+  },
+  "selftest.asrNote": {
+    "english": "transcribed one second of silence",
+    "params": {}
+  },
+  "selftest.cudaSeen": {
+    "english": "llama-server sees a CUDA device",
+    "params": {}
+  },
+  "selftest.exited": {
+    "english": "{program} exited with code {code}: {output}",
+    "params": {
+      "program": "text",
+      "code": "text",
+      "output": "text"
+    }
+  },
+  "selftest.exitedSilent": {
+    "english": "{program} exited with code {code}: no output",
+    "params": {
+      "program": "text",
+      "code": "text"
+    }
+  },
+  "selftest.failed": {
+    "english": "Self-test failed: {failures}.",
+    "params": {
+      "failures": "clauses"
+    }
+  },
+  "selftest.fellBackPassed": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU self-test passed.",
+    "params": {
+      "failures": "clauses"
+    }
+  },
+  "selftest.fellBackUnusable": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU backend is not usable either: {cpuFailures}.",
+    "params": {
+      "failures": "clauses",
+      "cpuFailures": "clauses"
+    }
+  },
+  "selftest.gpuFellBack": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead.",
+    "params": {
+      "failures": "clauses"
+    }
+  },
+  "selftest.llamaStarts": {
+    "english": "llama-server starts",
+    "params": {}
+  },
+  "selftest.llmFailed": {
+    "english": "LLM ({runtime}): {detail}",
+    "params": {
+      "runtime": "text",
+      "detail": "text"
+    }
+  },
+  "selftest.noCpuRuntime": {
+    "english": "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to have a CPU fallback.",
+    "params": {
+      "failures": "clauses",
+      "download": "list"
+    }
+  },
+  "selftest.noCudaDevice": {
+    "english": "llama-server lists no CUDA device",
+    "params": {}
+  },
+  "selftest.notInstalled": {
+    "english": "not installed: {missing}",
+    "params": {
+      "missing": "list"
+    }
+  },
+  "selftest.passed": {
+    "english": "Self-test passed on {device}.",
+    "params": {
+      "device": "text"
+    }
+  },
+  "selftest.simulated": {
+    "english": "CUDA failed to initialise (simulated by {variable})",
+    "params": {
+      "variable": "text"
+    }
+  },
+  "selftest.whisperUsedCpu": {
+    "english": "whisper.cpp ran without the CUDA backend and used the CPU instead",
+    "params": {}
+  },
+  "server.exited": {
+    "english": "llama-server exited with code {status}; see {log}",
+    "params": {
+      "status": "text",
+      "log": "text"
+    }
+  },
+  "server.modelMissing": {
+    "english": "LLM model not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "server.notReady": {
+    "english": "llama-server was not ready after {seconds} s; see {log}",
+    "params": {
+      "seconds": "text",
+      "log": "text"
+    }
+  },
+  "server.programMissing": {
+    "english": "llama-server not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "summary.noPart": {
+    "english": "no part of the talk could be summarised",
+    "params": {}
+  },
+  "summary.noText": {
+    "english": "the transcript has no text to summarise",
+    "params": {}
+  },
+  "summary.notWritten": {
+    "english": "the summary could not be written: {reason}; the last reply: {reply}",
+    "params": {
+      "reason": "text",
+      "reply": "text"
+    }
+  },
+  "summary.tooLarge": {
+    "english": "{label} needs about {tokens} tokens, over {limit} of the {context} token context",
+    "params": {
+      "label": "text",
+      "tokens": "text",
+      "limit": "text",
+      "context": "text"
+    }
+  },
+  "translate.cannotResume": {
+    "english": "{file}: cannot resume from this file ({error})",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "translate.cueFailed": {
+    "english": "cue {cue} could not be translated after {attempts} attempts: {reason}",
+    "params": {
+      "cue": "text",
+      "attempts": "text",
+      "reason": "text"
+    }
+  },
+  "updates.allMatch": {
+    "english": "Everything installed matches the remote registry at {url}.",
+    "params": {
+      "url": "text"
+    }
+  },
+  "updates.available": {
+    "english": "Updates available for {assets}.",
+    "params": {
+      "assets": "list"
+    }
+  },
+  "updates.itemCheckFailed": {
+    "english": "installed, but its last check failed; verify or re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.itemMatchesRemote": {
+    "english": "registry version {version} installed, remote registry {url} agrees",
+    "params": {
+      "version": "text",
+      "url": "text"
+    }
+  },
+  "updates.itemNeedsApp": {
+    "english": "installed {installed}, remote registry lists {remote}; this app ships {shipped}, so update the app to get it",
+    "params": {
+      "installed": "text",
+      "remote": "text",
+      "shipped": "text"
+    }
+  },
+  "updates.itemNoRemote": {
+    "english": "registry version {version} installed, no remote configured",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.itemNotInstalled": {
+    "english": "not installed",
+    "params": {}
+  },
+  "updates.itemOlder": {
+    "english": "installed {installed}, the registry has {available}",
+    "params": {
+      "installed": "text",
+      "available": "text"
+    }
+  },
+  "updates.itemUnrecorded": {
+    "english": "installed, but its version was not recorded; verify or re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.localBuild": {
+    "english": "built on this computer, so the app does not track its version; to get a newer version, run {script} again",
+    "params": {
+      "script": "text"
+    }
+  },
+  "updates.localBuildElsewhere": {
+    "english": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
+    "params": {}
+  },
+  "updates.noRemote": {
+    "english": "No remote registry is configured; compared with the registry shipped with this app.",
+    "params": {}
+  },
+  "updates.readConnect": {
+    "english": "could not read the registry at {url}: cannot connect ({reason})",
+    "params": {
+      "url": "text",
+      "reason": "text"
+    }
+  },
+  "updates.readFailed": {
+    "english": "could not read the registry at {url}: {error}",
+    "params": {
+      "url": "text",
+      "error": "text"
+    }
+  },
+  "updates.readHttp": {
+    "english": "could not read the registry at {url}: HTTP {status}",
+    "params": {
+      "url": "text",
+      "status": "text"
+    }
+  },
+  "updates.readInvalid": {
+    "english": "could not read the registry at {url}: it is not a valid registry ({error})",
+    "params": {
+      "url": "text",
+      "error": "text"
+    }
+  },
+  "updates.runtimeCheckFailed": {
+    "english": "installed, but its last check failed; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.runtimeUnrecorded": {
+    "english": "installed, but its version was not recorded; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "video.gone": {
+    "english": "the video is gone: {video}",
+    "params": {
+      "video": "text"
+    }
   }
 }

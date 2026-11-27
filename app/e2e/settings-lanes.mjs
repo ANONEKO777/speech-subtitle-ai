@@ -221,7 +221,7 @@ async function existing() {
     await p.click(T("check-updates"));
     await p.waitForSelector(T("update-message"));
     const update = await text(p, T("update-message"));
-    check(/no remote/i.test(update), "updates: says no remote is configured", update);
+    check(update.includes("沒有設定遠端清單"), "updates: says no remote is configured", update);
 
     await hardware(app, p, ud);
     await llm(app, p, ud);

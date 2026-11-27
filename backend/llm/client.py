@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import functools
 import json
+import re
 import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
@@ -10,12 +12,17 @@ from http.client import HTTPException, HTTPMessage
 from typing import IO, Literal, TypedDict, cast
 from urllib.parse import urlsplit
 
+from backend.core import notices
+from backend.core.notices import Template, noticed
+
 DEFAULT_TIMEOUT_S = 600.0
 LLM_SEED = 20261105
 """Sent with every request, so a retry at a positive temperature draws the same tokens each run."""
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _ERROR_BODY_BYTES = 4096
 _ERROR_DETAIL_CHARS = 500
+_KEY_PREFIX_CHARS = 8
+"""A key cut to fewer characters than this at the end of a cut body is not redacted."""
 _RETRYABLE_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 
 
@@ -33,6 +40,11 @@ class LlmError(Exception):
         super().__init__(message)
         self.retryable = retryable
         self.retry_after_s = retry_after_s
+
+
+def sendable(key: str) -> bool:
+    """Whether an HTTP header can carry `key`: printable ASCII with no space."""
+    return all("!" <= char <= "~" for char in key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +70,8 @@ class LlmConfig:
                 "base_url must not hold a user name, password, query or fragment; "
                 "pass the key as api_key"
             )
+        if not sendable(self.api_key):
+            raise noticed(ValueError, notices.LLM_KEY_UNSENDABLE())
         if self.api_key and parts.scheme == "http" and not self.is_local:
             raise ValueError(
                 f"refusing to send an API key over plain http to {parts.hostname}; use https"
@@ -124,25 +138,110 @@ def _first(value: object) -> object:
 
 
 def _reply_text(raw: bytes, config: LlmConfig) -> str:
-    where = f"{config.chat_url} did not return a chat completion"
     try:
         doc = cast("object", json.loads(raw.decode("utf-8")))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise LlmError(f"{where}: body is not JSON ({exc})") from exc
+        raise _fail(
+            config, notices.LLM_REPLY_NOT_JSON, url=config.chat_url, error=str(exc)
+        ) from exc
     content = _member(_member(_first(_member(doc, "choices")), "message"), "content")
     if not isinstance(content, str):
-        raise LlmError(f"{where}: no choices[0].message.content string")
+        raise _fail(config, notices.LLM_REPLY_NO_CONTENT, url=config.chat_url)
     return content
 
 
+def _forms(char: str) -> list[str]:
+    """Each way a server can echo one character of a key: as it is, percent-encoded, JSON-escaped
+    or as an HTML entity. Hex digits match in either case, as servers write both, and a JSON
+    escape may come with its backslash doubled, as `repr` of the text writes it."""
+    code = ord(char)
+    escaped = [r"\\+/"] if char == "/" else []
+    return [
+        re.escape(char),
+        *escaped,
+        f"%{code:02x}",
+        rf"\\+u{code:04x}",
+        f"&#{code};",
+        f"&#x0*{code:x};",
+    ]
+
+
+@functools.cache
+def _spellings(char: str) -> tuple[re.Pattern[str], ...]:
+    return tuple(re.compile(form, re.IGNORECASE) for form in _forms(char))
+
+
+_CUT_ESCAPE = re.compile(r"(?:%[0-9a-f]?|\\+(?:u[0-9a-f]{0,3})?|&(?:#x?[0-9a-f]*)?)?", re.I)
+"""The start of one encoded character, where a cut fell inside its spelling."""
+
+
+def _echo_end(key: str, text: str, start: int, cut: bool) -> int | None:
+    """Where an echo of `key` that begins at `start` ends, or None if none begins there. With
+    `cut`, an echo of at least `_KEY_PREFIX_CHARS` characters that runs to the end of `text`
+    counts too. The walk keeps every place the text has reached, because a key's `%`, `\\` or
+    `&` can be read as itself or as the start of an escape."""
+    reached = {start}
+    for done, char in enumerate(key):
+        if (
+            cut
+            and done >= _KEY_PREFIX_CHARS
+            and any(_CUT_ESCAPE.fullmatch(text, end) for end in reached)
+        ):
+            return len(text)
+        reached = {
+            found.end()
+            for end in reached
+            for spelling in _spellings(char)
+            if (found := spelling.match(text, end))
+        }
+        if not reached:
+            return None
+    return max(reached)
+
+
+def redact(key: str, text: str, *, cut: bool = False) -> str:
+    """`text` with every echo of `key` replaced by `***`. `cut` says the text was cut off, so a
+    piece of the key at its end goes too.
+
+    No regex spells out the whole key: one that long takes seconds to compile, and nesting it
+    overflows the parser's stack. A small one finds where the key's first characters appear, and
+    a walk follows the key from each."""
+    if not key:
+        return text
+    head = "".join("(?:" + "|".join(_forms(char)) + ")" for char in key[:_KEY_PREFIX_CHARS])
+    pieces: list[str] = []
+    done = 0
+    for found in re.finditer(f"(?={head})", text, re.IGNORECASE):
+        start = found.start()
+        if start < done:
+            continue
+        end = _echo_end(key, text, start, cut)
+        if end is not None:
+            pieces += [text[done:start], "***"]
+            done = end
+    return "".join([*pieces, text[done:]])
+
+
 def _redact(config: LlmConfig, text: str) -> str:
-    return text.replace(config.api_key, "***") if config.api_key else text
+    return redact(config.api_key, text)
 
 
 def _fail(
-    config: LlmConfig, message: str, *, retryable: bool = False, retry_after_s: float | None = None
+    config: LlmConfig,
+    sentence: Template,
+    *,
+    retryable: bool = False,
+    retry_after_s: float | None = None,
+    **params: str,
 ) -> LlmError:
-    return LlmError(_redact(config, message), retryable=retryable, retry_after_s=retry_after_s)
+    """The error that says `sentence`. The window gets the parameters beside the text, so the key
+    is taken out of each of them, not only out of the sentence they make."""
+    said = sentence(**{name: _redact(config, value) for name, value in params.items()})
+
+    def error(message: str) -> LlmError:
+        return LlmError(message, retryable=retryable, retry_after_s=retry_after_s)
+
+    return noticed(error, said)
 
 
 def _retry_after(headers: EmailMessage) -> float | None:
@@ -151,13 +250,17 @@ def _retry_after(headers: EmailMessage) -> float | None:
 
 
 def _http_error(exc: urllib.error.HTTPError, config: LlmConfig) -> LlmError:
-    detail = _redact(config, exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace"))
+    body = exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace")
+    detail = redact(config.api_key, body, cut=True)
     detail = detail.strip()[:_ERROR_DETAIL_CHARS]
     return _fail(
         config,
-        f"{config.chat_url} answered HTTP {exc.code} {exc.reason}: {detail}",
+        notices.LLM_HTTP,
         retryable=exc.code in _RETRYABLE_STATUS,
         retry_after_s=_retry_after(exc.headers),
+        url=config.chat_url,
+        status=f"{exc.code} {exc.reason}",
+        detail=detail,
     )
 
 
@@ -191,15 +294,27 @@ def chat(
         if 300 <= exc.code < 400:
             raise _fail(
                 config,
-                f"{config.chat_url} redirected to {exc.headers.get('Location')!r}; "
-                "redirects are not followed",
+                notices.LLM_REDIRECTED,
+                url=config.chat_url,
+                location=repr(exc.headers.get("Location")),
             ) from exc
         raise _http_error(exc, config) from exc
     except (urllib.error.URLError, OSError, HTTPException) as exc:
         reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+        retryable = _transient(reason)
         if isinstance(reason, TimeoutError):
-            message = f"no answer from {config.base_url} within {config.timeout_s:g} s"
-        else:
-            message = f"cannot reach the LLM server at {config.base_url}: {reason}"
-        raise _fail(config, message, retryable=_transient(reason)) from exc
+            raise _fail(
+                config,
+                notices.LLM_TIMED_OUT,
+                retryable=retryable,
+                url=config.base_url,
+                seconds=f"{config.timeout_s:g}",
+            ) from exc
+        raise _fail(
+            config,
+            notices.LLM_UNREACHABLE,
+            retryable=retryable,
+            url=config.base_url,
+            reason=str(reason),
+        ) from exc
     return _reply_text(raw, config)

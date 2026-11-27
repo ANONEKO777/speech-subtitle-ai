@@ -24,6 +24,9 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from backend.core import notices
+from backend.core.notices import Notice, noticed, notices_of
+
 log = logging.getLogger(__name__)
 CHUNK = 1 << 20
 PART_SUFFIX = ".part"
@@ -106,12 +109,19 @@ class Failure:
     message: str
     needed_bytes: int | None = None
     available_bytes: int | None = None
+    message_notices: tuple[Notice, ...] = ()
+    """The notices inside `message`, outermost first. What another program said has none."""
 
 
 class DownloadError(Exception):
     def __init__(self, failure: Failure) -> None:
         super().__init__(failure.message)
         self.failure = failure
+
+
+def _failed(kind: FailureKind, said: Notice, *quoted: Notice) -> DownloadError:
+    """A failure that says `said`, which may quote the sentences in `quoted`."""
+    return DownloadError(Failure(kind, said.message, message_notices=(said, *quoted)))
 
 
 class Cancelled(Exception):
@@ -341,13 +351,16 @@ def check_space(needs: Iterable[tuple[Path, int]]) -> None:
     for anchor, needed in by_volume.values():
         available = shutil.disk_usage(anchor).free
         if needed > available:
+            said = notices.NOT_ENOUGH_SPACE(
+                folder=str(anchor), needed=format_bytes(needed), free=format_bytes(available)
+            )
             raise DownloadError(
                 Failure(
                     FailureKind.INSUFFICIENT_SPACE,
-                    f"Not enough free disk space on {anchor}: need {format_bytes(needed)} more, "
-                    f"{format_bytes(available)} is free.",
+                    said.message,
                     needed_bytes=needed,
                     available_bytes=available,
+                    message_notices=(said,),
                 )
             )
 
@@ -396,10 +409,11 @@ def _attempt(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy
         exc.close()
         if exc.code == 416 and start:
             part.unlink(missing_ok=True)
-            raise _Transient("server refused the resume range, restarting") from exc
+            raise noticed(_Transient, notices.RESUME_REFUSED()) from exc
         if exc.code in _RETRYABLE_HTTP or exc.code >= 500:
             raise _Transient(f"HTTP {exc.code}") from exc
-        raise DownloadError(Failure(FailureKind.HTTP, f"{url} answered HTTP {exc.code}")) from exc
+        answered = notices.DOWNLOAD_HTTP(url=url, status=str(exc.code))
+        raise _failed(FailureKind.HTTP, answered) from exc
     except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
         raise _Transient(str(exc)) from exc
     with response:
@@ -415,12 +429,8 @@ def _attempt(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy
                 start, digest = 0, hashlib.sha256()
         length = response.headers.get("Content-Length")
         if length and length.isdigit() and int(length) != item.size_bytes - start:
-            raise DownloadError(
-                Failure(
-                    FailureKind.SIZE_MISMATCH,
-                    f"{url} sends {length} bytes, expected {item.size_bytes - start}",
-                )
-            )
+            wrong = notices.WRONG_SIZE(url=url, sent=length, expected=str(item.size_bytes - start))
+            raise _failed(FailureKind.SIZE_MISMATCH, wrong)
         received = start
         buffer = bytearray(CHUNK)
         view = memoryview(buffer)
@@ -445,7 +455,7 @@ def _attempt(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy
         except OSError as exc:
             raise _disk_failure(exc) from exc
     if received < item.size_bytes:
-        raise _Transient("connection closed before the whole file arrived")
+        raise noticed(_Transient, notices.CONNECTION_CUT())
     return digest.hexdigest()
 
 
@@ -462,28 +472,36 @@ def is_locked(exc: BaseException) -> bool:
     )
 
 
-def readable_os_error(exc: Exception) -> str:
-    """What to show a user for a failed file operation. A locked path is named, with what to do
-    about it. The original error goes to the log."""
-    if not (isinstance(exc, OSError) and is_locked(exc)):
-        return f"{type(exc).__name__}: {exc}"
+def _locked(exc: OSError) -> Notice:
     log.warning("locked path: %r", exc)
     path, other = exc.filename, exc.filename2
-    where = f"{path} (while moving it to {other})" if path and other else str(path or other)
-    if not (path or other):
-        where = "a file or folder of the runtime or model"
-    return (
-        f"{where} is locked by another program. Close the program that holds it, such as a "
-        "running transcription or LLM server, a command window or a File Explorer window "
-        "open in that folder, then try again."
-    )
+    if path and other:
+        return notices.LOCKED_WHILE_MOVING(path=str(path), target=str(other))
+    if path or other:
+        return notices.LOCKED(path=str(path or other))
+    return notices.LOCKED_SOMEWHERE()
+
+
+def os_error_said(exc: Exception) -> tuple[str, tuple[Notice, ...]]:
+    """What to show a user for a failed file operation, and the notices inside it. A locked path
+    is named, with what to do about it. The original error goes to the log."""
+    if isinstance(exc, OSError) and is_locked(exc):
+        said = _locked(exc)
+        return said.message, (said,)
+    text = f"{type(exc).__name__}: {exc}"
+    return text, notices_of(exc, text)
+
+
+def readable_os_error(exc: Exception) -> str:
+    return os_error_said(exc)[0]
 
 
 def _disk_failure(exc: OSError) -> DownloadError:
     if is_locked(exc):
-        return DownloadError(Failure(FailureKind.IO, readable_os_error(exc)))
+        text, found = os_error_said(exc)
+        return DownloadError(Failure(FailureKind.IO, text, message_notices=found))
     kind = FailureKind.INSUFFICIENT_SPACE if exc.errno == errno.ENOSPC else FailureKind.IO
-    return DownloadError(Failure(kind, f"disk write failed: {exc}"))
+    return _failed(kind, notices.DISK_WRITE_FAILED(error=str(exc)))
 
 
 def fetch(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy) -> None:
@@ -503,14 +521,10 @@ def fetch(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy) -
             after = part.stat().st_size if part.exists() else 0
             failures = 1 if after > before else failures + 1
             if failures > policy.max_failures:
-                raise DownloadError(
-                    Failure(
-                        FailureKind.NETWORK,
-                        f"Download interrupted and not recovered after {policy.max_failures} "
-                        f"retries ({exc}). The partial file is kept; start the download again "
-                        "to continue.",
-                    )
-                ) from exc
+                stopped = notices.DOWNLOAD_INTERRUPTED(
+                    retries=str(policy.max_failures), reason=str(exc)
+                )
+                raise _failed(FailureKind.NETWORK, stopped, *notices_of(exc)) from exc
             delay = min(policy.backoff_s * 2 ** (failures - 1), policy.max_backoff_s)
             job.note_retry(f"{exc}; retrying in {delay:.0f}s ({failures}/{policy.max_failures})")
             job.cancel.wait(delay)
@@ -518,18 +532,17 @@ def fetch(item: Item, job: Job, url: str, opener: Opener, policy: RetryPolicy) -
     job.move(JobState.VERIFYING)
     if actual != item.sha256:
         part.unlink(missing_ok=True)
-        raise DownloadError(
-            Failure(
-                FailureKind.HASH_MISMATCH,
-                f"{item.dest.name} failed its SHA256 check (expected {item.sha256}, "
-                f"got {actual}); the download was deleted.",
-            )
-        )
+        bad = notices.HASH_MISMATCH(file=item.dest.name, expected=item.sha256, actual=actual)
+        raise _failed(FailureKind.HASH_MISMATCH, bad)
     try:
         os.replace(part, item.dest)
     except OSError as exc:
         raise _disk_failure(exc) from exc
     job.settle(item.size_bytes)
+
+
+def _unsafe_path(name: str) -> DownloadError:
+    return _failed(FailureKind.ARCHIVE, notices.UNSAFE_PATH(name=repr(name)))
 
 
 def safe_members(archive: zipfile.ZipFile, into: Path) -> list[tuple[zipfile.ZipInfo, Path]]:
@@ -544,10 +557,10 @@ def safe_members(archive: zipfile.ZipFile, into: Path) -> list[tuple[zipfile.Zip
             or any(":" in p or _NON_NAME.match(p) or "\x00" in p for p in parts)
             or (info.external_attr >> 16) & 0o170000 == 0o120000
         ):
-            raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+            raise _unsafe_path(name)
         target = (root.joinpath(*parts)).resolve()
         if not target.is_relative_to(root):
-            raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+            raise _unsafe_path(name)
         members.append((info, target))
     return members
 
@@ -584,14 +597,14 @@ def _tar_target(name: str, root: Path) -> Path | None:
     if not parts:
         if name.strip("/") in ("", "."):
             return None
-        raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+        raise _unsafe_path(name)
     target = root.joinpath(*parts).resolve()
     if (
         name.startswith(("/", "\\"))
         or any(":" in p or _NON_NAME.match(p) or "\x00" in p for p in parts)
         or not target.is_relative_to(root)
     ):
-        raise DownloadError(Failure(FailureKind.ARCHIVE, f"unsafe path in archive: {name!r}"))
+        raise _unsafe_path(name)
     return target
 
 
@@ -605,9 +618,8 @@ def _safe_link_name(link: str, member: str) -> str:
         or "\\" in link
         or any(p in ("", "..") or ":" in p or "\x00" in p for p in parts if p != ".")
     ):
-        raise DownloadError(
-            Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {member!r} -> {link!r}")
-        )
+        unsafe = notices.UNSAFE_LINK(name=repr(member), target=repr(link))
+        raise _failed(FailureKind.ARCHIVE, unsafe)
     return link
 
 
@@ -625,13 +637,11 @@ def safe_tar_members(
             _safe_link_name(info.linkname, info.name)
         elif info.islnk():
             if _tar_target(info.linkname, root) is None:
-                raise DownloadError(
-                    Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {info.name!r}")
-                )
+                unsafe = notices.UNSAFE_LINK_ENTRY(name=repr(info.name))
+                raise _failed(FailureKind.ARCHIVE, unsafe)
         elif not (info.isdir() or info.isfile()):
-            raise DownloadError(
-                Failure(FailureKind.ARCHIVE, f"unsupported entry in archive: {info.name!r}")
-            )
+            unsupported = notices.UNSUPPORTED_ENTRY(name=repr(info.name))
+            raise _failed(FailureKind.ARCHIVE, unsupported)
         members.append((info, target))
     return members
 
@@ -644,9 +654,8 @@ def _link_in(archive_name: str, target: Path, root: Path, *, link: str) -> None:
     os.symlink(link, target)
     if not Path(os.path.realpath(target)).is_relative_to(root):
         target.unlink()
-        raise DownloadError(
-            Failure(FailureKind.ARCHIVE, f"unsafe link in archive: {archive_name!r} -> {link!r}")
-        )
+        unsafe = notices.UNSAFE_LINK(name=repr(archive_name), target=repr(link))
+        raise _failed(FailureKind.ARCHIVE, unsafe)
 
 
 def _unpacked_mode(archive_mode: int, floor: int) -> int:
@@ -677,9 +686,8 @@ def extract_tar(archive_path: Path, into: Path, job: Job) -> None:
                 elif info.islnk():
                     source = _tar_target(info.linkname, root)
                     if source is None or not source.is_file():
-                        raise DownloadError(
-                            Failure(FailureKind.ARCHIVE, f"link to a missing file: {info.name!r}")
-                        )
+                        absent = notices.LINK_TO_NOTHING(name=repr(info.name))
+                        raise _failed(FailureKind.ARCHIVE, absent)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, target)
                     target.chmod(_unpacked_mode(info.mode, _FILE_MODE))
@@ -762,9 +770,8 @@ def unpack(plan: Plan, job: Job) -> None:
         for item in plan.items:
             extract_archive(item.dest, staging, job)
         if plan.entry_point and not (staging / plan.entry_point).is_file():
-            raise DownloadError(
-                Failure(FailureKind.ARCHIVE, f"archive does not contain {plan.entry_point}")
-            )
+            lacking = notices.ARCHIVE_LACKS_PROGRAM(file=plan.entry_point)
+            raise _failed(FailureKind.ARCHIVE, lacking)
         _swap_folder(staging, folder)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
@@ -905,4 +912,5 @@ class JobRunner:
         except DownloadError as exc:
             job.fail(exc.failure)
         except Exception as exc:
-            job.fail(Failure(FailureKind.IO, readable_os_error(exc)))
+            text, found = os_error_said(exc)
+            job.fail(Failure(FailureKind.IO, text, message_notices=found))

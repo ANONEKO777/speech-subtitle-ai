@@ -5,6 +5,7 @@ import type { Backend } from "../api/client";
 import { macInventory, windowsInventory } from "../manage/screens.fixture";
 import type { Inventory, UpdateReport } from "../manage/types";
 import { ModelsSection } from "./ModelsSection";
+import { plainText } from "../i18n/said";
 
 const mocks = vi.hoisted(() => ({ inventory: null as Inventory | null, updates: null as UpdateReport | null }));
 
@@ -61,7 +62,7 @@ describe("the Models page", () => {
     if (!built) throw new Error("fixture");
     return { ...inv, assets: [{ ...built, state: "installed", sizeOnDisk: 800_000, shaState: "unchecked", ...over }] };
   };
-  const checked = (status: "unknown" | "current"): UpdateReport => ({ message: "已檢查", items: [{ id: "whispercpp-b5454-macos-metal", status, installable: true, message: "" }] });
+  const checked = (status: "unknown" | "current"): UpdateReport => ({ message: plainText("已檢查"), items: [{ id: "whispercpp-b5454-macos-metal", status, installable: true, message: plainText("") }] });
 
   it("says where a program found on PATH came from and offers no delete, since the app will not remove it", async () => {
     await show(builtIn({ path: "/opt/homebrew/bin/whisper-cli", foundOutsideRuntimes: true }));
@@ -90,7 +91,7 @@ describe("the Models page", () => {
   });
 
   it("keeps saying already up to date on a Windows row after the update check", async () => {
-    mocks.updates = { message: "已檢查", items: [{ id: "whisper-large-v3-turbo", status: "current", installable: true, message: "" }] };
+    mocks.updates = { message: plainText("已檢查"), items: [{ id: "whisper-large-v3-turbo", status: "current", installable: true, message: plainText("") }] };
     await show(windowsInventory());
     fireEvent.click(screen.getByTestId("check-updates"));
     const line = await waitFor(() => screen.getByTestId("inv-whisper-large-v3-turbo-update"));

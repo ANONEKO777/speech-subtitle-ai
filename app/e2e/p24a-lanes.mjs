@@ -840,7 +840,7 @@ try {
     note("mixed choice disabled in the add dialog", dialogOpt.disabled && dialogOpt.text.includes("這台電腦沒有安裝混合語言所需的模型"), JSON.stringify(dialogOpt));
     await review("unavailable-add-dialog", "沒有 Qwen3 檔案：加入對話框的混合語言選項不能選");
     await p.click(tid("add-close"));
-    // the backend refuses the job anyway when the picker is bypassed, and the window shows its text as is
+    // the backend refuses the job anyway when the picker is bypassed, and the window words its refusal
     const video = join(clips, "queue-mixed-90s.mp4");
     await p.route("**/api/languages", async (route) => {
       const res = await route.fetch();
@@ -860,8 +860,8 @@ try {
     await p.click(tid("import"));
     await p.waitForSelector(tid("error"), { timeout: 30000 });
     const shown = await p.textContent(tid("error"));
-    await review("unavailable-backend-refusal", "繞過選單時，後端的拒絕訊息原文顯示");
-    note("the backend refusal is shown as is", shown.includes("Japanese and English talks need the Qwen3-ASR engine") && shown.includes("24 GB profile"), `error text "${shown.slice(0, 220)}"`);
+    await review("unavailable-backend-refusal", "繞過選單時，後端的拒絕訊息以介面語言顯示");
+    note("the backend refusal is shown in the window's language", shown.includes("日文與英文混合的影片需要 Qwen3-ASR 引擎") && shown.includes("24 GB 設定檔"), `error text "${shown.slice(0, 220)}"`);
     await p.unroute("**/api/languages");
   } else if (phase === "nofont") {
     const mixedTalk = process.env.P24B_NOFONT === "mixed";

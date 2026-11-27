@@ -12,11 +12,11 @@ from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from backend.core import audio, vad
+from backend.core import audio, notices, vad
 from backend.core.languages import DEFAULT_CODE, UnknownLanguage
 from backend.core.languages import get as get_language
 from backend.core.model import DEFAULT_SOURCE, Word
-from backend.core.notices import noticed
+from backend.core.notices import Template, noticed
 from backend.core.pipeline import LlmSession, Ports, ProgressCb, Settings
 from backend.core.source_langs import UnknownSource, get_source
 from backend.core.summarize import summary_chat
@@ -77,9 +77,10 @@ def _registry_id(model: Model, runtime: Runtime | None = None) -> str:
     return text if runtime is None else f"{text}|{runtime.id}"
 
 
-def _need_file(path: Path, what: str) -> Path:
+def _need_file(path: Path, missing: Template, **params: str) -> Path:
+    """`path`, or a refusal that says `missing` about it."""
     if not path.is_file():
-        raise SettingsError(f"{what} not found: {path}")
+        raise noticed(SettingsError, missing(path=str(path), **params))
     return path
 
 
@@ -90,10 +91,7 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     source = get_source(request.source_lang)
     engine_id = source.asr_engine or ENGINE_ALIASES.get(request.engine, request.engine)
     if source.asr_engine and request.cpu:
-        raise SettingsError(
-            f"{source.name} talks need the Qwen3-ASR engine, which has no CPU build. "
-            "Turn off CPU mode, or choose one language"
-        )
+        raise noticed(SettingsError, notices.MIXED_HAS_NO_CPU_BUILD())
     try:
         spec = spec_for(engine_id)
     except ValueError as exc:
@@ -105,18 +103,22 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     if runtime.is_local_build and not request.asr_bin and not found.binary.is_file():
         raise noticed(SettingsError, local_build_notice(runtime, storage))
     try:
-        binary = _need_file(request.asr_bin or found.binary, f"{engine_id} program")
-        model = _need_file(request.asr_model or found.model, f"{engine_id} model")
+        binary = _need_file(
+            request.asr_bin or found.binary, notices.ASR_PROGRAM_NOT_FOUND, engine=engine_id
+        )
+        model = _need_file(
+            request.asr_model or found.model, notices.ASR_MODEL_NOT_FOUND, engine=engine_id
+        )
     except SettingsError as exc:
         if source.asr_engine:
-            raise SettingsError(
-                f"{source.name} talks need the Qwen3-ASR engine, which is installed only with "
-                f"the 24 GB profile: {exc}"
-            ) from exc
+            needed = notices.MIXED_NOT_INSTALLED(detail=str(exc))
+            raise noticed(SettingsError, needed) from exc
         raise
     aligner = request.aligner or found.aligner
     if spec.needs_aligner:
-        aligner = _need_file(aligner or Path("aligner"), f"{engine_id} aligner model")
+        aligner = _need_file(
+            aligner or Path("aligner"), notices.ASR_ALIGNER_NOT_FOUND, engine=engine_id
+        )
     model_entry = registry.models[spec.model_id]
     parts = [
         _file_id(request.asr_model) if request.asr_model else _registry_id(model_entry),
@@ -150,9 +152,9 @@ def _gpu_device(runtime: Runtime) -> Device:
 
 def _vad_model(request: Request, storage: Storage, registry: Registry) -> tuple[Path, str]:
     if request.vad_model:
-        return _need_file(request.vad_model, "VAD model"), _file_id(request.vad_model)
+        return _need_file(request.vad_model, notices.VAD_NOT_FOUND), _file_id(request.vad_model)
     model = registry.models[VAD_MODEL]
-    path = _need_file(storage.model_file(model), "VAD model (see --vad-model)")
+    path = _need_file(storage.model_file(model), notices.VAD_NOT_FOUND_HINT)
     return path, _registry_id(model)
 
 
@@ -172,10 +174,10 @@ def _local_llm(request: Request, storage: Storage, registry: Registry) -> tuple[
     twins = runtime_set()
     runtime = registry.runtimes[twins.llama_cpu if request.cpu else twins.llama]
     server = request.llama_server or storage.runtime_dir(runtime) / (runtime.executable or "")
-    server = _need_file(server, "llama-server program (see --llama-server)")
+    server = _need_file(server, notices.LLAMA_SERVER_NOT_FOUND)
     as_path = Path(request.llm)
     if as_path.suffix.lower() == ".gguf" or as_path.is_file():
-        gguf = _need_file(as_path, "LLM model file")
+        gguf = _need_file(as_path, notices.LLM_FILE_NOT_FOUND)
         model_id = _file_id(gguf)
     else:
         model = registry.models.get(request.llm)
@@ -184,7 +186,7 @@ def _local_llm(request: Request, storage: Storage, registry: Registry) -> tuple[
             raise SettingsError(
                 f"--llm {request.llm!r} is not a URL, a .gguf file or a known LLM {known}"
             )
-        gguf = _need_file(storage.model_file(model), f"LLM model {model.id}")
+        gguf = _need_file(storage.model_file(model), notices.LLM_MODEL_NOT_FOUND, model=model.id)
         model_id = _registry_id(model)
     runtime_id = _file_id(request.llama_server) if request.llama_server else runtime.id
     return server, gguf, f"{model_id}|{runtime_id}"

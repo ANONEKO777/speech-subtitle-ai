@@ -201,14 +201,14 @@ const richInventory = (): Inventory => ({
 });
 
 const reportOf = (): UpdateReport => ({
-  message: "Checked the registry",
+  message: plainText("Checked the registry"),
   items: [
-    { id: "whisper-large-v3-turbo", status: "update_available", installable: true, message: "A newer file is listed" },
-    { id: "qwen3-8b-q4_k_m", status: "update_available", installable: false, message: "Needs a newer app" },
-    { id: "whispercpp-b5454-win-cuda", status: "current", installable: true, message: "" },
-    { id: "crispasr-v0.8.49-win-cuda", status: "not_installed", installable: false, message: "" },
-    { id: "llama-b8000-macos-metal", status: "unknown", installable: false, message: "" },
-    { id: "whisper-cli-homebrew", status: "unknown", installable: false, message: "" },
+    { id: "whisper-large-v3-turbo", status: "update_available", installable: true, message: plainText("A newer file is listed") },
+    { id: "qwen3-8b-q4_k_m", status: "update_available", installable: false, message: plainText("Needs a newer app") },
+    { id: "whispercpp-b5454-win-cuda", status: "current", installable: true, message: plainText("") },
+    { id: "crispasr-v0.8.49-win-cuda", status: "not_installed", installable: false, message: plainText("") },
+    { id: "llama-b8000-macos-metal", status: "unknown", installable: false, message: plainText("") },
+    { id: "whisper-cli-homebrew", status: "unknown", installable: false, message: plainText("") },
   ],
 });
 
@@ -278,7 +278,7 @@ const SCREENS: Record<string, Screen> = {
     shot("cancelled", second.container);
     click("wizard-retry");
     await waitFor(() => expect(screen.getByTestId("wizard-download").getAttribute("data-phase")).toBe("running"));
-    setList([job({ state: "failed", failure: { kind: "network", message: "The server closed the connection" } }), job({ id: "j2", state: "downloading" }), job({ id: "j3", state: "downloading" })]);
+    setList([job({ state: "failed", failure: { kind: "network", message: plainText("The server closed the connection") } }), job({ id: "j2", state: "downloading" }), job({ id: "j3", state: "downloading" })]);
     rerender(wrap(locale, <Wizard backend={backend} onExit={() => undefined} />));
     await waitFor(() => expect(screen.getByTestId("wizard-download").getAttribute("data-phase")).toBe("failed"));
     shot("failed", second.container);

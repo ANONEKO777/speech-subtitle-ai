@@ -66,7 +66,7 @@ describe("row actions", () => {
   });
 
   it("offers an update only when the backend can install it", () => {
-    const update = { id: "whisper", status: "update_available", installable: true, message: "" } as const;
+    const update = { id: "whisper", status: "update_available", installable: true, message: { text: "", notices: [] } } as const;
     expect(rowActions(asset(), undefined, update)[0]).toBe("update");
     expect(rowActions(asset(), undefined, { ...update, installable: false })).not.toContain("update");
   });

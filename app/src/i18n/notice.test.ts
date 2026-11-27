@@ -34,7 +34,7 @@ describe("every code a sender has", () => {
 
   it("uses only the parameter kinds the window can word", () => {
     for (const sent of Object.values(SENT)) {
-      for (const kind of Object.values(sent.params)) expect(["text", "list", "language"]).toContain(kind);
+      for (const kind of Object.values(sent.params)) expect(["text", "list", "clauses", "language"]).toContain(kind);
     }
   });
 
@@ -47,6 +47,9 @@ describe("every code a sender has", () => {
 /** What `tests/notice_scenarios.py` got from the backend now, and the text of the same call before. */
 const WIRE = Object.entries(fixture as unknown as Record<string, { before: string; text: string; notices: unknown }>);
 const sent = (entry: { text: string; notices: unknown }): Said => ({ text: entry.text, notices: parseNotices(entry.notices) });
+/** The sentences that were Chinese before the codes. A later round gave codes to English ones around them (`notice.w4b.test.ts`). */
+const WAS_CHINESE = /^(runtime|fonts|render|platform|secrets)\./;
+const chineseOnly = (said: Said): Said => ({ text: said.text, notices: said.notices.filter((n) => WAS_CHINESE.test(n.code)) });
 
 /** Parameter values that are the video's own words or characters, which English shows as they are. */
 const DATA = new Set(["chars"]);
@@ -60,7 +63,7 @@ describe("every backend scenario", () => {
   });
 
   it.each(WIRE)("%s: Traditional Chinese is what the backend said before, character for character", (_name, entry) => {
-    expect(word(sent(entry), "zh-TW")).toBe(entry.before);
+    expect(word(chineseOnly(sent(entry)), "zh-TW")).toBe(entry.before);
   });
 
   it.each(WIRE)("%s: English is the backend's own text and holds no other script", (_name, entry) => {

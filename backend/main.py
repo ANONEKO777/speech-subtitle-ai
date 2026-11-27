@@ -39,7 +39,7 @@ from backend.api.deps import locked_path_response, noticed_http_error
 from backend.core import parent_watch
 from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
-from backend.core.notices import notice_lines, notices_of
+from backend.core.notices import SAVED_KEY_UNREADABLE, notice_lines, noticed, notices_of
 from backend.core.pipeline import Ports, Settings
 from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
 from backend.core.process_guard import stop_children_on_signals
@@ -82,9 +82,10 @@ def _configured_llm(user_data: Path) -> tuple[str, str | None, str]:
         return f"{source.ollama_url}/v1", source.ollama_model, ""
     if source.source is LlmSource.CLOUD:
         try:
-            key = default_secret_store(user_data).get(LLM_KEY) or ""
+            key = (default_secret_store(user_data).get(LLM_KEY) or "").strip()
         except SecretError as exc:
-            raise OptionsError(f"cannot read the saved API key: {exc}") from exc
+            unreadable = SAVED_KEY_UNREADABLE(error=str(exc))
+            raise noticed(OptionsError, unreadable) from exc
         return source.cloud_url, source.cloud_model, key
     return QWEN3_8B, None, ""
 

@@ -15,7 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from backend.core import process_guard
+from backend.core import notices, process_guard
+from backend.core.notices import noticed
 from backend.core.subtitle_io import read_text_file, write_text_file
 
 SAMPLE_RATE = 16_000
@@ -68,12 +69,8 @@ def find_tool(name: str, tool_dir: Path | None = None, system: str | None = None
     if found is None and mac:
         found = shutil.which(name, path=os.pathsep.join(HOMEBREW_DIRS))
     if found is None:
-        how = (
-            f"Install it with `brew install ffmpeg`, or set {TOOL_DIR_ENV}."
-            if mac
-            else f"Install ffmpeg, add it to PATH, or set {TOOL_DIR_ENV}."
-        )
-        raise AudioError(f"{name} was not found. {how}")
+        missing = notices.TOOL_MISSING_MAC if mac else notices.TOOL_MISSING
+        raise noticed(AudioError, missing(tool=name, variable=TOOL_DIR_ENV))
     return Path(found)
 
 
@@ -81,9 +78,12 @@ def _run(
     command: list[str],
     what: str,
     *,
+    shown: tuple[str, str] | None = None,
     timeout_s: float | None = None,
     cancel: threading.Event | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    """`shown` is the tool and the file when the window can show a timeout, which `what` then
+    names as "<tool> on <file>"."""
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     deadline = None if timeout_s is None else time.monotonic() + timeout_s
     with subprocess.Popen(
@@ -104,6 +104,11 @@ def _run(
                 wait = _POLL_S
                 if deadline is not None:
                     wait = min(wait, deadline - time.monotonic())
+                    if wait <= 0 and shown:
+                        slow = notices.TOOL_TIMED_OUT(
+                            tool=shown[0], video=shown[1], seconds=f"{timeout_s:g}"
+                        )
+                        raise noticed(AudioError, slow)
                     if wait <= 0:
                         raise AudioError(f"{what} did not finish in {timeout_s:g} s; stopped it")
                 try:
@@ -134,7 +139,7 @@ def _wav_layout(wav: Path) -> tuple[int, int]:
                 1,
                 2,
             ):
-                raise AudioError(f"{wav} is not 16 kHz mono 16-bit PCM")
+                raise noticed(AudioError, notices.WAV_WRONG_FORMAT(file=str(wav)))
             frames = reader.getnframes()
         with wav.open("rb") as handle:
             handle.seek(12)
@@ -144,8 +149,9 @@ def _wav_layout(wav: Path) -> tuple[int, int]:
                     return frames, handle.tell() + size
                 handle.seek(size + (size & 1), os.SEEK_CUR)
     except (wave.Error, EOFError, struct.error) as exc:
-        raise AudioError(f"{wav} is not a readable wav file: {exc}") from exc
-    raise AudioError(f"{wav} is not a readable wav file: no data chunk")
+        unreadable = notices.WAV_UNREADABLE(file=str(wav), error=str(exc))
+        raise noticed(AudioError, unreadable) from exc
+    raise noticed(AudioError, notices.WAV_NO_DATA(file=str(wav)))
 
 
 def wav_duration_ms(wav: Path) -> int:
@@ -153,7 +159,8 @@ def wav_duration_ms(wav: Path) -> int:
     frames, promised = _wav_layout(wav)
     actual = wav.stat().st_size
     if actual < promised:
-        raise AudioError(f"{wav} is cut short: {actual} bytes, its header promises {promised}")
+        short = notices.WAV_CUT_SHORT(file=str(wav), actual=str(actual), promised=str(promised))
+        raise noticed(AudioError, short)
     return frames * 1000 // SAMPLE_RATE
 
 
@@ -186,18 +193,25 @@ def _require_audio_stream(video: Path, ffprobe: Path, cancel: threading.Event | 
             str(video.absolute()),
         ],
         f"ffprobe on {video.name}",
+        shown=("ffprobe", video.name),
         timeout_s=_PROBE_TIMEOUT_S,
         cancel=cancel,
     )
     if proc.returncode != 0:
-        raise AudioError(f"ffprobe could not read {video.name}: {_stderr_tail(proc)}")
+        failed = notices.PROBE_FAILED(video=video.name, detail=_stderr_tail(proc))
+        raise noticed(AudioError, failed)
     if not proc.stdout.strip():
-        raise NoAudioStreamError(f"{video.name} has no audio track")
+        raise noticed(NoAudioStreamError, notices.NO_AUDIO_TRACK(video=video.name))
 
 
 def _ffmpeg_failure(video: Path, proc: subprocess.CompletedProcess[str]) -> AudioError:
-    detail = _stderr_tail(proc) or "no error output, so it was probably killed or ran out of memory"
-    return AudioError(f"ffmpeg stopped on {video.name} (exit code {proc.returncode}): {detail}")
+    detail, status = _stderr_tail(proc), str(proc.returncode)
+    stopped = (
+        notices.FFMPEG_STOPPED(video=video.name, status=status, detail=detail)
+        if detail
+        else notices.FFMPEG_STOPPED_SILENTLY(video=video.name, status=status)
+    )
+    return noticed(AudioError, stopped)
 
 
 def _flush_to_disk(path: Path) -> None:
@@ -221,7 +235,7 @@ def extract(
     removed when `timeout_s` passes (AudioError) or `cancel` is set (ExtractCancelled).
     """
     if not video.is_file():
-        raise FileNotFoundError(f"video not found: {video}")
+        raise noticed(FileNotFoundError, notices.VIDEO_NOT_FOUND(video=str(video)))
     stamp = _source_stamp(video)
     cached = _cached_duration_ms(wav, stamp)
     if cached is not None:
@@ -258,6 +272,7 @@ def extract(
                 str(partial.absolute()),
             ],
             f"ffmpeg on {video.name}",
+            shown=("ffmpeg", video.name),
             timeout_s=timeout_s,
             cancel=cancel,
         )

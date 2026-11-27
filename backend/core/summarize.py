@@ -12,9 +12,11 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Literal, cast
 
+from backend.core import notices
 from backend.core.language_prompts import EN_SUMMARY, SummaryText
 from backend.core.languages import DEFAULT_CODE, ENGLISH, get
 from backend.core.model import Cue, FormatError
+from backend.core.notices import noticed
 from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage
 from backend.core.subtitle_io import parse_subs, read_text_file, write_text_file
 from backend.core.translate import GlossaryEntry, glossary_block
@@ -650,10 +652,13 @@ class _Run:
         share = tokens / self.context_tokens
         log.info("%s request about %d tokens, %.0f%% of the context", label, tokens, share * 100)
         if share > MAX_REQUEST_FRACTION:
-            raise SummaryError(
-                f"{label} needs about {tokens} tokens, over {MAX_REQUEST_FRACTION:.0%} of the "
-                f"{self.context_tokens} token context"
+            large = notices.SUMMARY_TOO_LARGE(
+                label=label,
+                tokens=str(tokens),
+                limit=f"{MAX_REQUEST_FRACTION:.0%}",
+                context=str(self.context_tokens),
             )
+            raise noticed(SummaryError, large)
 
     def map_window(
         self, window: Window, messages: Sequence[Message], total: int
@@ -731,9 +736,8 @@ class _Run:
         try:
             result = parse_reduce(failure.reply, replace(job, check_language=False))
         except ReplyError as exc:
-            raise SummaryError(
-                f"the summary could not be written: {failure.reason}; the last reply: {exc}"
-            ) from exc
+            lost = notices.SUMMARY_NOT_WRITTEN(reason=failure.reason, reply=str(exc))
+            raise noticed(SummaryError, lost) from failure
         log.warning(
             "%s: using the last reply without its language check (%s)", label, failure.reason
         )
@@ -779,7 +783,7 @@ def run(
     `checkpoint`, and a call whose request is unchanged is not asked again.
     """
     if not lines:
-        raise SummaryError("the transcript has no text to summarise")
+        raise noticed(SummaryError, notices.SUMMARY_NO_TEXT())
     windows = make_windows(lines, window_tokens, overlap_tokens, source.chars_per_token)
     job = _Run(
         chat,
@@ -805,7 +809,7 @@ def run(
         if part is None
     )
     if not maps:
-        raise SummaryError("no part of the talk could be summarised")
+        raise noticed(SummaryError, notices.SUMMARY_NO_PART())
     reduce_job = ReduceInput(
         lang, lines[0].start_ms, lines[-1].end_ms, maps, gaps, tuple(glossary), source
     )

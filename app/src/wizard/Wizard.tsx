@@ -226,7 +226,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
 }
 
 const errorText = (error: WizardError, t: Translate, locale: Locale): string =>
-  "assetId" in error ? t("wizard.jobFailed", { id: error.assetId, message: error.message ?? t("wizard.downloadFailed") }) : word(error, locale);
+  "assetId" in error ? t("wizard.jobFailed", { id: error.assetId, message: error.message ? word(error.message, locale) : t("wizard.downloadFailed") }) : word(error, locale);
 
 function OverallLine({ jobs }: { jobs: readonly DownloadJob[] }) {
   const { t, locale } = useT();

@@ -1,3 +1,4 @@
+import { plainText } from "../i18n/said";
 import type { Asset, Inventory, LicenseEntry, MissingAsset, ProfileId, ProfileOption, ProfileView } from "./types";
 
 const option = (id: ProfileId, over: Partial<ProfileOption>): ProfileOption => ({
@@ -25,7 +26,7 @@ export function windowsView(): ProfileView {
   return {
     vcRuntimeMissing: false,
     hardware: { platform: "win-x64", chip: null, gpuName: "RTX 4090", vramMib: 24564, driverVersion: "596.36", ramMib: 65536, diskFreeMib: 500000 },
-    recommended: { id: "gpu-24gb", label: "24 GB", why: "fits" },
+    recommended: { id: "gpu-24gb", label: "24 GB", why: plainText("fits") },
     active: { id: "gpu-24gb", label: "24 GB", source: "recommended", device: "cuda" },
     profiles: [
       option("gpu-24gb", { recommended: true, active: true, missing: gpu, downloadBytes: sum(gpu) }),
@@ -46,7 +47,7 @@ export function macView(): ProfileView {
   return {
     vcRuntimeMissing: false,
     hardware: { platform: "macos-arm64", chip: "Apple M3", gpuName: null, vramMib: null, driverVersion: null, ramMib: 36864, diskFreeMib: 500000 },
-    recommended: { id: "metal-32gb", label: "Metal 32 GB", why: "fits" },
+    recommended: { id: "metal-32gb", label: "Metal 32 GB", why: plainText("fits") },
     active: { id: "metal-32gb", label: "Metal 32 GB", source: "recommended", device: "metal" },
     profiles: [
       option("metal-32gb", { recommended: true, active: true, missing: metal, downloadBytes: sum(metal) }),

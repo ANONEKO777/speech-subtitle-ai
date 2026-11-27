@@ -17,9 +17,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from backend.core import process_guard, vc_runtime
+from backend.core import notices, process_guard, vc_runtime
 from backend.core.audio import wav_duration_ms
 from backend.core.model import Segment, Word
+from backend.core.notices import Notice, noticed
 from backend.manager.profiles import Device
 
 ProgressCb = Callable[[float], None]
@@ -135,15 +136,16 @@ def read_json(path: Path) -> dict[str, Any]:
     try:
         raw: object = json.loads(path.read_bytes().decode("utf-8"))
     except OSError as exc:
-        raise EngineOutputError(f"engine output {path} was not written: {exc}") from exc
+        absent = notices.ENGINE_OUTPUT_MISSING(file=str(path), error=str(exc))
+        raise noticed(EngineOutputError, absent) from exc
     except UnicodeDecodeError as exc:
-        raise EngineOutputError(
-            f"engine output {path.name} is not valid UTF-8 at byte {exc.start}"
-        ) from exc
+        garbled = notices.ENGINE_OUTPUT_NOT_UTF8(file=path.name, byte=str(exc.start))
+        raise noticed(EngineOutputError, garbled) from exc
     except json.JSONDecodeError as exc:
-        raise EngineOutputError(f"engine output {path.name} is not valid JSON: {exc}") from exc
+        invalid = notices.ENGINE_OUTPUT_NOT_JSON(file=path.name, error=str(exc))
+        raise noticed(EngineOutputError, invalid) from exc
     if not isinstance(raw, dict):
-        raise EngineOutputError(f"engine output {path.name} is not a JSON object")
+        raise noticed(EngineOutputError, notices.ENGINE_OUTPUT_NOT_OBJECT(file=path.name))
     return cast("dict[str, Any]", raw)
 
 
@@ -210,12 +212,12 @@ class SubprocessEngine(ABC):
     @abstractmethod
     def on_stderr_line(self, line: str, progress: MonotonicProgress) -> None: ...
 
-    def problem(self) -> str | None:
+    def problem(self) -> Notice | None:
         for label, path in self.required_files().items():
             if not path.is_file():
-                return f"{self.id}: {label} not found: {path}"
+                return notices.ENGINE_FILE_MISSING[label](engine=self.id, path=str(path))
             if self.ascii_paths_only and not str(path).isascii():
-                return f"{self.id} cannot open a path with non-ASCII characters: {path}"
+                return notices.ENGINE_NON_ASCII_PATH(engine=self.id, path=str(path))
         return None
 
     def is_available(self) -> bool:
@@ -239,7 +241,7 @@ class SubprocessEngine(ABC):
     ) -> list[list[Segment]]:
         issue = self.problem()
         if issue is not None:
-            raise EngineUnavailableError(issue)
+            raise noticed(EngineUnavailableError, issue)
         durations = [wav_duration_ms(wav) / 1000 for wav in wav_paths]
         progress = MonotonicProgress(durations, progress_cb)
         results: list[list[Segment]] = []
@@ -302,7 +304,10 @@ class SubprocessEngine(ABC):
                 creationflags=flags,
             )
         except OSError as exc:
-            raise EngineUnavailableError(f"{self.id}: cannot start {self.binary}: {exc}") from exc
+            failed = notices.ENGINE_CANNOT_START(
+                engine=self.id, program=str(self.binary), error=str(exc)
+            )
+            raise noticed(EngineUnavailableError, failed) from exc
         process_guard.adopt(proc)
         lines: queue.Queue[bytes | None] = queue.Queue()
         reader = threading.Thread(target=_pump, args=(proc, lines), daemon=True)
@@ -314,7 +319,8 @@ class SubprocessEngine(ABC):
                 if cancel is not None and cancel.is_set():
                     raise EngineCancelled(f"{self.id} was cancelled")
                 if time.monotonic() > deadline:
-                    raise EngineTimeoutError(f"{self.id} did not finish in {timeout_s:g} s")
+                    slow = notices.ENGINE_TIMED_OUT(engine=self.id, seconds=f"{timeout_s:g}")
+                    raise noticed(EngineTimeoutError, slow)
                 try:
                     raw = lines.get(timeout=_POLL_S)
                 except queue.Empty:
@@ -340,8 +346,13 @@ class SubprocessEngine(ABC):
                 )
             reader.join(timeout=_KILL_WAIT_S)
         if proc.returncode != 0:
-            detail = " | ".join(tail) or "no output"
-            raise EngineFailedError(f"{self.id} exited with code {proc.returncode}: {detail}")
+            detail, status = " | ".join(tail), str(proc.returncode)
+            ended = (
+                notices.ENGINE_EXITED(engine=self.id, status=status, output=detail)
+                if detail
+                else notices.ENGINE_EXITED_SILENTLY(engine=self.id, status=status)
+            )
+            raise noticed(EngineFailedError, ended)
 
 
 def _pump(proc: subprocess.Popen[bytes], lines: queue.Queue[bytes | None]) -> None:
