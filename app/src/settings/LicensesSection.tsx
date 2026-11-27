@@ -89,16 +89,18 @@ export function LicensesSection({ backend }: { backend: Backend }) {
                   </td>
                   <td title={e.version}>{shortVersion(e.version)}</td>
                   <td data-testid={`lic-${e.id}-name`}>{e.license}</td>
-                  <td className="links">
-                    <ExternalLink href={e.licenseUrl} testId={`lic-${e.id}-link`}>
-                      {t("lic.fullText")}
-                    </ExternalLink>
-                    {e.parts.map((p) => (
-                      <ExternalLink key={p.id} href={p.url}>
-                        {p.id}
+                  <td>
+                    <div className="links">
+                      <ExternalLink href={e.licenseUrl} testId={`lic-${e.id}-link`}>
+                        {t("lic.fullText")}
                       </ExternalLink>
-                    ))}
-                    <ExternalLink href={e.sourceUrl}>{t("lic.source")}</ExternalLink>
+                      {e.parts.map((p) => (
+                        <ExternalLink key={p.id} href={p.url}>
+                          {p.id}
+                        </ExternalLink>
+                      ))}
+                      <ExternalLink href={e.sourceUrl}>{t("lic.source")}</ExternalLink>
+                    </div>
                   </td>
                 </tr>
               ))}
