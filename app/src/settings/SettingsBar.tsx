@@ -1,9 +1,13 @@
 import { ALargeSmall, ArrowUpDown, type LucideIcon, Palette, UnfoldVertical } from "lucide-react";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
 import type { SubtitleMode } from "../player/cues";
+import { CutName } from "./CutName";
 import type { Settings } from "./settings";
+
+/** Stands in for the name while the sentence around it is read, so the name alone can be shortened. */
+const NAME_HERE = "{name}";
 
 const modes = (langName: string, t: Translate): ReadonlyArray<readonly [SubtitleMode, string]> => [
   ["en", t("bar.original")],
@@ -26,7 +30,7 @@ interface SliderProps {
 function Slider({ icon: Icon, label, testid, min, max, step, value, shown, onChange }: SliderProps) {
   const fill = { "--fill": `${((value - min) / (max - min)) * 100}%` } as CSSProperties;
   return (
-    <label className="control" title={label}>
+    <label className="control range" title={label}>
       <Icon className="icon" aria-hidden />
       <input
         type="range"
@@ -55,6 +59,8 @@ interface Props {
 export function SettingsBar({ langName, settings, onChange }: Props) {
   const { t } = useT();
   const set = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
+  const [beforeName, afterName] = t("bar.first", { name: NAME_HERE }).split(NAME_HERE);
+  const [wordsCut, setWordsCut] = useState(false);
   return (
     <div className="settings">
       <div className="seg" role="group" aria-label={t("bar.language")}>
@@ -63,10 +69,11 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
             key={mode}
             type="button"
             data-testid={`mode-${mode}`}
+            className={mode === "zh" ? "seg-name" : undefined}
             aria-pressed={settings.mode === mode}
             onClick={() => set({ mode })}
           >
-            {label}
+            {mode === "zh" ? <CutName name={label} tip /> : label}
           </button>
         ))}
       </div>
@@ -104,11 +111,13 @@ export function SettingsBar({ langName, settings, onChange }: Props) {
         />
         <label className="control toggle" title={t("bar.firstTitle", { name: langName })}>
           <ArrowUpDown className="icon" aria-hidden />
-          <span className="collapsible">{t("bar.first", { name: langName })}</span>
+          <CutName className="collapsible first-words" name={langName} before={beforeName} after={afterName} onCut={setWordsCut} />
           <input
             type="checkbox"
             role="switch"
             className="switch"
+            // shortened words are laid out in pieces, which a screen reader would read with gaps between them
+            aria-label={wordsCut ? t("bar.first", { name: langName }) : undefined}
             checked={settings.zhFirst}
             onChange={(e) => set({ zhFirst: e.target.checked })}
           />

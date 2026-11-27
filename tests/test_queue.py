@@ -157,8 +157,11 @@ def test_a_batch_runs_in_order_one_at_a_time_and_each_item_ends_done(
 ) -> None:
     rig.release.clear()
     names = ["slow1", "b", "c"]
+    # paused while adding: otherwise the runner may start the first item before the reply is built
+    client.post("/api/queue/pause")
     added = add(client, *(video(tmp_path, n) for n in names))["added"]
     assert [i["state"] for i in added] == ["queued"] * 3
+    client.post("/api/queue/resume")
     rig.started.wait(5)
     running = [i for i in client.get("/api/queue").json()["items"] if i["state"] == "running"]
     assert [Path(i["video_path"]).stem for i in running] == ["slow1"]

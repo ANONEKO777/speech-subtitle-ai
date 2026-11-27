@@ -12,6 +12,7 @@ import { SettingsPage } from "../settings/SettingsPage";
 import { Wizard } from "../wizard/Wizard";
 import { I18nProvider } from "./I18nProvider";
 import type { Locale } from "./locale";
+import { NOT_ENGLISH } from "./notEnglish";
 
 /**
  * Every W2 screen (the first-run wizard and the models page) rendered in each released language.
@@ -108,7 +109,6 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]/;
 
 const FIXTURE = "src/i18n/w2.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W2_FIXTURE"] === "write";
@@ -547,8 +547,8 @@ describe.each(["zh-TW", "en"] as const)("W2 screens in %s", (locale) => {
       expect(Object.keys(seen).length).toBeGreaterThan(0);
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
-          expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
-          for (const a of h.attrs) expect(CJK.test(a), `${name} / ${label}: ${a}`).toBe(false);
+          expect(NOT_ENGLISH.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
+          for (const a of h.attrs) expect(NOT_ENGLISH.test(a), `${name} / ${label}: ${a}`).toBe(false);
         }
         return;
       }

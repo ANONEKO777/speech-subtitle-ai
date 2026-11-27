@@ -656,8 +656,9 @@ button.link {
   accent-color: var(--accent);
 }
 
+/* inside the cell, not the cell itself: a flex cell stops short of the row's height, and its divider with it */
 .links {
-  display: flex !important;
+  display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
 }
