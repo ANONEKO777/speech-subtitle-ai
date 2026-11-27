@@ -921,6 +921,33 @@ PLAYER_PAST_END = _template("player.pastEnd", "start_s is past the end of the vi
 UNKNOWN_PROJECT = _template("player.unknownProject", "unknown project {id}", id="text")
 UNKNOWN_EXPORT = _template("player.unknownExport", "unknown export {id}", id="text")
 
+# A project's subtitles and the cue editor (`core/projects.py`, `api/projects.py`): what is not
+# there yet, a save that is refused, and a file that cannot become a project.
+CUES_NO_SUBTITLES = _template(
+    "cues.noSubtitles", "no subtitles yet: the segment step has not finished"
+)
+CUES_NO_TRANSLATION = _template(
+    "cues.noTranslation",
+    "no {lang} subtitles yet: the translate step has not finished",
+    lang="language",
+)
+CUES_NOTHING_TO_CORRECT = _template(
+    "cues.nothingToCorrect", "nothing to correct yet: the translate step has not finished"
+)
+CUES_WRONG_IDS = _template("cues.wrongIds", "the cues must have exactly the ids the project has")
+CUES_JOB_USING = _template("cues.jobUsing", "job {job} is using this project", job="text")
+PROJECT_NOT_A_FILE = _template(
+    "project.notAFile",
+    "video_path must be the absolute path of an existing file: {path}",
+    path="text",
+)
+PROJECT_NOT_MEDIA = _template(
+    "project.notMedia",
+    "not a media file extension: {extension}; accepted: {accepted}",
+    extension="text",
+    accepted="text",
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
