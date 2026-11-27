@@ -865,6 +865,36 @@ MOVE_COULD_NOT_REMOVE = _template(
     "move.couldNotRemove", "could not remove {path}: {error}", path="text", error="text"
 )
 
+# A profile that does not fit this computer (`manager/switch.py`). `profile` is its id, which the
+# window names (`noticeWord.<id>`).
+_FALLS_BACK = "The self-test will fall back to the CPU if the GPU cannot run it."
+SWITCH_LOW_MEMORY = _template(
+    "switch.lowMemory",
+    "This machine has {have} MiB of memory; {profile} needs {need} MiB. " + _FALLS_BACK,
+    have="text",
+    profile="word",
+    need="text",
+)
+SWITCH_UNKNOWN_MEMORY = _template(
+    "switch.unknownMemory",
+    "This machine's memory is unknown; {profile} needs {need} MiB. " + _FALLS_BACK,
+    profile="word",
+    need="text",
+)
+SWITCH_LOW_VRAM = _template(
+    "switch.lowVram",
+    "This machine has {have} MiB; {profile} needs {need} MiB of VRAM. " + _FALLS_BACK,
+    have="text",
+    profile="word",
+    need="text",
+)
+SWITCH_NO_GPU = _template(
+    "switch.noGpu",
+    "This machine has no NVIDIA GPU; {profile} needs {need} MiB of VRAM. " + _FALLS_BACK,
+    profile="word",
+    need="text",
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
