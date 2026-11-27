@@ -2750,20 +2750,24 @@ header:has(.settings) .field input {
 }
 
 /* the language the subtitles are translated into: a picker beside the video language picker */
+/* as wide as the language picked needs, and never narrower than these. An engine without field-sizing makes it as wide as its longest option, which cuts nothing either. */
 .target-pick select {
-  width: 92px;
+  field-sizing: content;
+  width: auto;
+  min-width: 92px;
 }
 
 .target-pick select[data-experimental="true"] {
-  width: 128px;
+  min-width: 128px;
 }
 
 :root:lang(en) .target-pick select {
-  width: 152px;
+  width: auto;
+  min-width: 152px;
 }
 
 :root:lang(en) .target-pick select[data-experimental="true"] {
-  width: 190px;
+  min-width: 190px;
 }
 
 .progress-note {
