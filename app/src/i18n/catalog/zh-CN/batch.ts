@@ -22,7 +22,7 @@ export const batch = {
   "batch.resumeTitle": "继续处理队列",
   "batch.clear": "清除已完成",
   "batch.reconnecting": "与后端的连接中断，正在重新连接…（队列保存在磁盘上，不会丢失）",
-  "batch.pausedNote": "队列已暂停，不会开始新的项目。",
+  "batch.pausedNote": "队列已暂停，不会开始处理新的项。",
   "batch.empty": "队列是空的。点击“添加”选择多个视频或一个文件夹，排好之后可以让它自己运行完。",
   "batch.action.pause": "暂停",
   "batch.action.resume": "继续",

@@ -19,7 +19,7 @@ export const llm = {
   "llm.leavesTitle": "内容会离开这台电脑",
   "llm.serviceUrl": "服务网址",
   "llm.apiKey": "API 密钥（只能写入，保存后不会再显示）",
-  "llm.keySaved": "已保存密钥；要更换请再输入",
+  "llm.keySaved": "已保存密钥；如需更换，请输入新密钥",
   "llm.keyPaste": "粘贴 API 密钥",
   "llm.consent": "我了解视频内容会发送到上面的云端服务，并同意保存这个设置。",
   "llm.testing": "测试中…",
