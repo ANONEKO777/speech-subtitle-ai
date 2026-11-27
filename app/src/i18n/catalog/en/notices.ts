@@ -158,5 +158,7 @@ export const notices = {
   "notice.updates.readFailed": "could not read the registry at {url}: {error}",
   "notice.updates.readHttp": "could not read the registry at {url}: HTTP {status}",
   "notice.updates.readInvalid": "could not read the registry at {url}: it is not a valid registry ({error})",
+  "notice.updates.runtimeCheckFailed": "installed, but its last check failed; re-download it to compare with registry version {version}",
+  "notice.updates.runtimeUnrecorded": "installed, but its version was not recorded; re-download it to compare with registry version {version}",
   "notice.video.gone": "the video is gone: {video}",
 } as const;

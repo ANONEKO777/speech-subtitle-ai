@@ -237,6 +237,11 @@ def _updates(found: dict[str, Entry]) -> None:
     item("unrecorded")
     installed[first.id] = record(ok=False)
     item("checkFailed")
+    tool = next(iter(bundled.runtimes))
+    for name, held in (("runtimeUnrecorded", None), ("runtimeCheckFailed", record(ok=False))):
+        installed[tool] = held
+        found[f"updates.item.{name}"] = _said(updates._item(inv, tool, None, None))
+    del installed[tool]
     installed[first.id] = record()
     item("matchesBundle")
     item("matchesRemote", bundled)

@@ -322,14 +322,20 @@ UPDATES_NO_REMOTE = _template(
     "No remote registry is configured; compared with the registry shipped with this app.",
 )
 ITEM_NOT_INSTALLED = _template("updates.itemNotInstalled", "not installed")
+# A model row has Verify and Re-download, a runtime row only Re-download, so each names its own.
 _COMPARE = "; verify or re-download it to compare with registry version {version}"
-ITEM_CHECK_FAILED = _template(
-    "updates.itemCheckFailed", "installed, but its last check failed" + _COMPARE, version="text"
+_COMPARE_RUNTIME = "; re-download it to compare with registry version {version}"
+_CHECK_FAILED, _UNRECORDED = (
+    "installed, but its last check failed",
+    "installed, but its version was not recorded",
 )
-ITEM_UNRECORDED = _template(
-    "updates.itemUnrecorded",
-    "installed, but its version was not recorded" + _COMPARE,
-    version="text",
+ITEM_CHECK_FAILED = _template("updates.itemCheckFailed", _CHECK_FAILED + _COMPARE, version="text")
+ITEM_UNRECORDED = _template("updates.itemUnrecorded", _UNRECORDED + _COMPARE, version="text")
+RUNTIME_CHECK_FAILED = _template(
+    "updates.runtimeCheckFailed", _CHECK_FAILED + _COMPARE_RUNTIME, version="text"
+)
+RUNTIME_UNRECORDED = _template(
+    "updates.runtimeUnrecorded", _UNRECORDED + _COMPARE_RUNTIME, version="text"
 )
 ITEM_MATCHES_REMOTE = _template(
     "updates.itemMatchesRemote",

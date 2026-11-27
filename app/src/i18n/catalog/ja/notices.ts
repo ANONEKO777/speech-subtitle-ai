@@ -156,5 +156,7 @@ export const notices = {
   "notice.updates.readFailed": "{url} の一覧を読み込めません：{error}",
   "notice.updates.readHttp": "{url} の一覧を読み込めません：HTTP {status}",
   "notice.updates.readInvalid": "{url} の一覧を読み込めません：有効な一覧ではありません（{error}）",
+  "notice.updates.runtimeCheckFailed": "インストール済みですが、前回の検査に失敗しました。一覧の版 {version} と比較するには、再ダウンロードしてください",
+  "notice.updates.runtimeUnrecorded": "インストール済みですが、版が記録されていません。一覧の版 {version} と比較するには、再ダウンロードしてください",
   "notice.video.gone": "動画がなくなっています：{video}",
 } satisfies Record<keyof typeof en, string>;

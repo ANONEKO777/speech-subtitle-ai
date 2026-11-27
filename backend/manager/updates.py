@@ -19,7 +19,7 @@ from typing import cast
 from backend.core import notices
 from backend.core.notices import Notice, noticed
 from backend.manager.inventory import Inventory, asset
-from backend.manager.registry import Registry, RegistryError
+from backend.manager.registry import Model, Registry, RegistryError
 from backend.manager.registry import parse as parse_registry
 
 FETCH_TIMEOUT_S = 10.0
@@ -111,7 +111,10 @@ def _item(
         return item(UpdateStatus.NOT_INSTALLED, None, True, notices.ITEM_NOT_INSTALLED())
     record = inv.manifest.get(asset_id)
     if record is None or not record.ok:
-        why = notices.ITEM_CHECK_FAILED if record else notices.ITEM_UNRECORDED
+        if isinstance(bundled, Model):
+            why = notices.ITEM_CHECK_FAILED if record else notices.ITEM_UNRECORDED
+        else:
+            why = notices.RUNTIME_CHECK_FAILED if record else notices.RUNTIME_UNRECORDED
         return item(UpdateStatus.UNKNOWN, None, True, why(version=bundled.version))
     target = other or bundled
     if record.sha256 == target.sha256 and record.version == target.version:

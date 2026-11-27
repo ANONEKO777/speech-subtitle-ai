@@ -155,5 +155,7 @@ export const notices = {
   "notice.updates.readFailed": "無法讀取 {url} 的清單：{error}",
   "notice.updates.readHttp": "無法讀取 {url} 的清單：HTTP {status}",
   "notice.updates.readInvalid": "無法讀取 {url} 的清單：內容不是有效的清單（{error}）",
+  "notice.updates.runtimeCheckFailed": "已安裝，但上次檢查沒有通過。請按「重新下載」，才能和登錄版本 {version} 比對",
+  "notice.updates.runtimeUnrecorded": "已安裝，但沒有記錄版本。請按「重新下載」，才能和登錄版本 {version} 比對",
   "notice.video.gone": "影片已經不在原本的位置：{video}",
 } satisfies Record<keyof typeof en, string>;

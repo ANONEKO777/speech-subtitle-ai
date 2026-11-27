@@ -25,7 +25,11 @@ from backend.manager.updates import UpdateError
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "app/src/i18n/notices.w4b.fixture.json"
 
-REWORDED = {"batch.crashed": 'said "queue" where the window says "batch"'}
+REWORDED = {
+    "batch.crashed": 'said "queue" where the window says "batch"',
+    "updates.item.runtimeUnrecorded": "told a runtime row to verify, which has no Verify button",
+    "updates.item.runtimeCheckFailed": "told a runtime row to verify, which has no Verify button",
+}
 """Scenarios whose English changed on purpose, and why."""
 
 

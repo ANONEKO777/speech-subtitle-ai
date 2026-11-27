@@ -1565,6 +1565,34 @@
     ],
     "zh": "已安裝，但上次檢查沒有通過。請按「驗證」或「重新下載」，才能和登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
   },
+  "updates.item.runtimeUnrecorded": {
+    "before": "installed, but its version was not recorded; verify or re-download it to compare with registry version b5454",
+    "text": "installed, but its version was not recorded; re-download it to compare with registry version b5454",
+    "notices": [
+      {
+        "code": "updates.runtimeUnrecorded",
+        "params": {
+          "version": "b5454"
+        },
+        "message": "installed, but its version was not recorded; re-download it to compare with registry version b5454"
+      }
+    ],
+    "zh": "已安裝，但沒有記錄版本。請按「重新下載」，才能和登錄版本 b5454 比對"
+  },
+  "updates.item.runtimeCheckFailed": {
+    "before": "installed, but its last check failed; verify or re-download it to compare with registry version b5454",
+    "text": "installed, but its last check failed; re-download it to compare with registry version b5454",
+    "notices": [
+      {
+        "code": "updates.runtimeCheckFailed",
+        "params": {
+          "version": "b5454"
+        },
+        "message": "installed, but its last check failed; re-download it to compare with registry version b5454"
+      }
+    ],
+    "zh": "已安裝，但上次檢查沒有通過。請按「重新下載」，才能和登錄版本 b5454 比對"
+  },
   "updates.item.matchesBundle": {
     "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
     "text": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",

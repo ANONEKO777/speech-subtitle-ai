@@ -156,5 +156,7 @@ export const notices = {
   "notice.updates.readFailed": "无法读取 {url} 的清单：{error}",
   "notice.updates.readHttp": "无法读取 {url} 的清单：HTTP {status}",
   "notice.updates.readInvalid": "无法读取 {url} 的清单：内容不是有效的清单（{error}）",
+  "notice.updates.runtimeCheckFailed": "已安装，但上次检查未通过。请点击“重新下载”，才能与清单版本 {version} 比对",
+  "notice.updates.runtimeUnrecorded": "已安装，但没有记录版本。请点击“重新下载”，才能与清单版本 {version} 比对",
   "notice.video.gone": "视频已不在原来的位置：{video}",
 } satisfies Record<keyof typeof en, string>;

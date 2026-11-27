@@ -860,6 +860,18 @@
       "error": "text"
     }
   },
+  "updates.runtimeCheckFailed": {
+    "english": "installed, but its last check failed; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.runtimeUnrecorded": {
+    "english": "installed, but its version was not recorded; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
   "video.gone": {
     "english": "the video is gone: {video}",
     "params": {

@@ -56,8 +56,15 @@ const DATA: readonly RegExp[] = [
   /; LLM \(/g,
 ];
 
-/** The one sentence whose English changed: it said "queue" where the window says "batch". */
-const REWORDED: Readonly<Record<string, string>> = { "batch.crashed": "the batch crashed" };
+/**
+ * The sentences whose English changed: one said "queue" where the window says "batch", and a runtime
+ * row was told to verify, which only a model row can.
+ */
+const REWORDED: Readonly<Record<string, string>> = {
+  "batch.crashed": "the batch crashed",
+  "updates.item.runtimeUnrecorded": "installed, but its version was not recorded; re-download it to compare with registry version b5454",
+  "updates.item.runtimeCheckFailed": "installed, but its last check failed; re-download it to compare with registry version b5454",
+};
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */
 const ENGLISH_RUN = /[A-Za-z]{2,}[,;:]? [A-Za-z]{2,}/;
