@@ -34,7 +34,7 @@ const DATA: readonly RegExp[] = [
 /**
  * The sentences whose English changed on purpose (`tests/test_notices_w4b2.py` says why): "queue" where
  * the window says "batch", an API route where the window has a button, a class name from the code, and
- * a sentence that said "unknown memory of memory".
+ * a sentence that said "unknown memory of memory", and a language named by its code.
  */
 const REWORDED: Readonly<Record<string, string>> = {
   "batch.alreadyIn": "already in the batch as <item> (queued)",
@@ -42,6 +42,7 @@ const REWORDED: Readonly<Record<string, string>> = {
   "move.otherContent": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone",
   "move.wrongSize": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move",
   "switch.unknownMemory": "This machine's memory is unknown; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+  "cues.noTranslation": "no Traditional Chinese subtitles yet: the translate step has not finished",
 };
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */

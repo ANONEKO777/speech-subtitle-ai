@@ -17,6 +17,7 @@ REWORDED = {
     "move.otherContent": 'began with "MoveError: ", a name from the code',
     "move.wrongSize": 'began with "OSError: ", a name from the code',
     "switch.unknownMemory": 'said "This machine has unknown memory of memory"',
+    "cues.noTranslation": "named the language by its code (zh-TW), where the window names it",
 }
 """Scenarios whose English changed on purpose, and why."""
 

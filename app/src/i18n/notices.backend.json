@@ -143,6 +143,30 @@
     "english": "only a finished item can be removed; cancel it first",
     "params": {}
   },
+  "cues.jobUsing": {
+    "english": "job {job} is using this project",
+    "params": {
+      "job": "text"
+    }
+  },
+  "cues.noSubtitles": {
+    "english": "no subtitles yet: the segment step has not finished",
+    "params": {}
+  },
+  "cues.noTranslation": {
+    "english": "no {lang} subtitles yet: the translate step has not finished",
+    "params": {
+      "lang": "language"
+    }
+  },
+  "cues.nothingToCorrect": {
+    "english": "nothing to correct yet: the translate step has not finished",
+    "params": {}
+  },
+  "cues.wrongIds": {
+    "english": "the cues must have exactly the ids the project has",
+    "params": {}
+  },
   "download.cutShort": {
     "english": "connection closed before the whole file arrived",
     "params": {}
@@ -873,6 +897,19 @@
     "params": {
       "program": "text",
       "seconds": "text"
+    }
+  },
+  "project.notAFile": {
+    "english": "video_path must be the absolute path of an existing file: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "project.notMedia": {
+    "english": "not a media file extension: {extension}; accepted: {accepted}",
+    "params": {
+      "extension": "text",
+      "accepted": "text"
     }
   },
   "queue.crashed": {

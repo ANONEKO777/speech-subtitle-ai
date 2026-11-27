@@ -184,6 +184,99 @@
     ],
     "zh": "找不到這個匯出工作（'nope'）"
   },
+  "cues.noSubtitles": {
+    "before": "no subtitles yet: the segment step has not finished",
+    "text": "no subtitles yet: the segment step has not finished",
+    "notices": [
+      {
+        "code": "cues.noSubtitles",
+        "params": {},
+        "message": "no subtitles yet: the segment step has not finished"
+      }
+    ],
+    "zh": "還沒有字幕：斷句步驟還沒完成"
+  },
+  "cues.noTranslation": {
+    "before": "no zh-TW subtitles yet: the translate step has not finished",
+    "text": "no Traditional Chinese (Taiwan) subtitles yet: the translate step has not finished",
+    "notices": [
+      {
+        "code": "cues.noTranslation",
+        "params": {
+          "lang": "zh-TW"
+        },
+        "message": "no Traditional Chinese (Taiwan) subtitles yet: the translate step has not finished"
+      }
+    ],
+    "zh": "還沒有繁體中文字幕：翻譯步驟還沒完成"
+  },
+  "cues.nothingToCorrect": {
+    "before": "nothing to correct yet: the translate step has not finished",
+    "text": "nothing to correct yet: the translate step has not finished",
+    "notices": [
+      {
+        "code": "cues.nothingToCorrect",
+        "params": {},
+        "message": "nothing to correct yet: the translate step has not finished"
+      }
+    ],
+    "zh": "還沒有可以修改的字幕：翻譯步驟還沒完成"
+  },
+  "cues.wrongIds": {
+    "before": "the cues must have exactly the ids the project has",
+    "text": "the cues must have exactly the ids the project has",
+    "notices": [
+      {
+        "code": "cues.wrongIds",
+        "params": {},
+        "message": "the cues must have exactly the ids the project has"
+      }
+    ],
+    "zh": "送出的字幕和專案裡的字幕對不上，請重新開啟這個專案再改一次"
+  },
+  "cues.jobUsing": {
+    "before": "job j1 is using this project",
+    "text": "job j1 is using this project",
+    "notices": [
+      {
+        "code": "cues.jobUsing",
+        "params": {
+          "job": "j1"
+        },
+        "message": "job j1 is using this project"
+      }
+    ],
+    "zh": "工作 j1 正在使用這個專案"
+  },
+  "project.notAFile": {
+    "before": "video_path must be the absolute path of an existing file: a.mp4",
+    "text": "video_path must be the absolute path of an existing file: a.mp4",
+    "notices": [
+      {
+        "code": "project.notAFile",
+        "params": {
+          "path": "a.mp4"
+        },
+        "message": "video_path must be the absolute path of an existing file: a.mp4"
+      }
+    ],
+    "zh": "找不到這個檔案，請用完整路徑選擇一個存在的檔案：a.mp4"
+  },
+  "project.notMedia": {
+    "before": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv",
+    "text": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv",
+    "notices": [
+      {
+        "code": "project.notMedia",
+        "params": {
+          "extension": ".txt",
+          "accepted": ".3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+        },
+        "message": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+      }
+    ],
+    "zh": ".txt 不是影片或音訊檔的副檔名。可以使用：.3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+  },
   "player.dirNotAbsolute": {
     "before": "dir must be an absolute path: relative",
     "text": "dir must be an absolute path: relative",

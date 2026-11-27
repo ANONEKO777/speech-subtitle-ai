@@ -67,7 +67,6 @@ MESSAGE_NAMES = frozenset({"detail", "message", "note", "reason", "summary", "wh
 NOT_SHOWN: tuple[tuple[str, str, str], ...] = (
     ("api/jobs.py", "job {} is already running", "the window words every 409 of this route"),
     ("api/jobs.py", "unknown job", "an id the window got from the backend"),
-    ("api/jobs.py", "unknown project", "an id the window got from the backend"),
     ("api/jobs.py", "id: {}", "the framing of the event stream"),
     ("core/audio.py", "{} did not finish in", "a piece cut to name a language: a silent guess"),
     ("core/summarize.py", "Your last reply was rejected", "said to the model"),

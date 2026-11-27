@@ -22,6 +22,8 @@ import subprocess
 import sys
 import time
 import urllib.error
+from collections.abc import Generator
+from contextlib import contextmanager
 from email.message import Message
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +40,7 @@ from test_queue import QueueRig, make_app
 
 from backend.api import player
 from backend.core import queue_runner, render
+from backend.core.jobs import JobBook
 from backend.core.notices import notices_of
 from backend.main import AppConfig, create_app
 from backend.manager import llm_check, maintain, secrets, storage_move, switch
@@ -365,6 +368,36 @@ def _profiles(found: dict[str, Entry], rig: Rig) -> None:
     found["switch.unknownMemory"] = _switch_warning(rig, unknown, ProfileId.METAL_16GB)
 
 
+# Group 13: a project's subtitles and the cue editor.
+
+
+def _cue_refusals(found: dict[str, Entry], client: Any, done: str, tmp: Path) -> None:
+    """`done` is a project whose run has finished."""
+    fresh = tmp / "fresh.mp4"
+    fresh.write_bytes(b"fresh")
+    pid = make_project(client, fresh)
+    subtitles = f"/api/projects/{pid}/subtitles"
+    found["cues.noSubtitles"] = _reply(client.get(f"{subtitles}?format=json&lang=en"))
+    found["cues.noTranslation"] = _reply(client.get(subtitles))
+    found["cues.nothingToCorrect"] = _reply(client.put(subtitles, json={"cues": []}))
+    edited = f"/api/projects/{done}/subtitles"
+    found["cues.wrongIds"] = _reply(client.put(edited, json={"cues": []}))
+
+    @contextmanager
+    def busy(*_args: object) -> Generator[str]:
+        yield "j1"
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(JobBook, "exclusive", busy)
+        found["cues.jobUsing"] = _reply(client.put(edited, json={"cues": []}))
+    found["project.notAFile"] = _reply(client.post("/api/projects", json={"video_path": "a.mp4"}))
+    notes = tmp / "notes.txt"
+    notes.write_text("notes", encoding="utf-8")
+    found["project.notMedia"] = _replaced(
+        _reply(client.post("/api/projects", json={"video_path": str(notes)})), str(tmp), "<tmp>"
+    )
+
+
 # Group 12: the player.
 
 
@@ -416,6 +449,7 @@ def _player(found: dict[str, Entry], tmp: Path) -> None:
         found["player.unknownExport"] = _reply(client.get("/api/burns/nope"))
         pid = make_project(client, movie)
         events(client, start_job(client, pid)["id"])
+        _cue_refusals(found, client, pid, tmp)
         found["player.dirNotAbsolute"] = _reply(shot(dir="relative"))
         (tmp / "elsewhere").mkdir()
         found["player.notPicked"] = _replaced(
