@@ -42,6 +42,11 @@ class LlmError(Exception):
         self.retry_after_s = retry_after_s
 
 
+def sendable(key: str) -> bool:
+    """Whether an HTTP header can carry `key`: printable ASCII with no space."""
+    return all("!" <= char <= "~" for char in key)
+
+
 @dataclass(frozen=True, slots=True)
 class LlmConfig:
     """Where and how to reach an OpenAI-compatible chat endpoint.
@@ -65,7 +70,7 @@ class LlmConfig:
                 "base_url must not hold a user name, password, query or fragment; "
                 "pass the key as api_key"
             )
-        if not all("!" <= char <= "~" for char in self.api_key):
+        if not sendable(self.api_key):
             raise noticed(ValueError, notices.LLM_KEY_UNSENDABLE())
         if self.api_key and parts.scheme == "http" and not self.is_local:
             raise ValueError(

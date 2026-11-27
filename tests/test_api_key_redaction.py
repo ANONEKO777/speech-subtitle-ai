@@ -228,3 +228,22 @@ def test_the_connection_test_shows_no_spelling_of_the_key(monkeypatch: pytest.Mo
         found = llm_check._probe(LlmSource.CLOUD, url, KEY, "data", "id")  # pyright: ignore[reportPrivateUsage]
 
         assert echoed not in found.detail and "***" in found.detail
+
+
+@pytest.mark.parametrize("route", ["/api/settings", "/api/llm/test"])
+def test_a_key_no_header_can_carry_is_refused_when_saved_or_tested(rig: Rig, route: str) -> None:
+    llm = {
+        "source": "cloud",
+        "cloud_url": "https://api.example.test/v1",
+        "cloud_model": "m",
+        "cloud_consent": True,
+        "api_key": "sk-INVENTED inner-space",
+    }
+    send = rig.client.put if route == "/api/settings" else rig.client.post
+
+    reply = send(route, json={"llm": llm})
+
+    assert reply.status_code == 422
+    assert [n["code"] for n in reply.json()["notices"]] == ["llm.keyUnsendable"]
+    assert "INVENTED" not in reply.text
+    assert rig.secrets.get("llm_api_key") is None
