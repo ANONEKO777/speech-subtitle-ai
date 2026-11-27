@@ -195,14 +195,20 @@ def test_a_project_file_of_an_earlier_version_loads_and_shows_its_error_as_it_wa
     assert "error_notices" not in render_project(project)
 
 
-def test_a_project_file_keeps_the_code_of_a_stored_error() -> None:
-    project = parse_project(_old_project())
+EARLIER_STEP_KEYS = {"status", "updated_at_ms", "error", "key", "degraded"}
+"""The keys a saved step may have for the builds before notices. Their parser refuses any other, and
+the project is then gone from their library."""
+
+
+def test_a_project_file_that_holds_error_notices_loads_and_saves_without_them() -> None:
+    doc = json.loads(_old_project())
     error = f"ServerError: {VC.message}"
-    failed = StepState(StepStatus.FAILED, 6, error, None, False, (VC,))
+    doc["steps"]["audio"] |= {"error": error, "error_notices": to_json([VC])}
 
-    again = parse_project(render_project(project.with_step(Step.AUDIO, failed)))
+    project = parse_project(json.dumps(doc))
 
-    assert again.steps[Step.AUDIO] == failed
+    assert project.steps[Step.AUDIO].error == error
+    assert set(json.loads(render_project(project))["steps"]["audio"]) <= EARLIER_STEP_KEYS
 
 
 def _old_queue(path: Path) -> None:
@@ -399,6 +405,26 @@ def test_a_failed_job_sends_the_notice_in_its_event_and_its_state(tmp_path: Path
     assert json.loads(data)["error_notices"] == to_json([VC])
     assert stored["error"] == f"AudioError: {VC.message}"
     assert stored["error_notices"] == to_json([VC])
+
+
+def test_a_step_that_failed_with_a_notice_is_saved_as_an_earlier_build_reads_it(
+    tmp_path: Path,
+) -> None:
+    video = tmp_path / "talk.mp4"
+    video.write_bytes(b"x")
+    rig = _NoRuntime()
+    rig.refuse = False
+    with open_client(create_app(AppConfig(tmp_path / "data", GUARD, rig.resolve))) as c:
+        pid = make_project(c, video)
+        job = c.post(f"/api/projects/{pid}/jobs", json={}).json()
+        _until(lambda: c.get(f"/api/jobs/{job['id']}").json()["status"] == "failed")
+
+    saved = (tmp_path / "data" / "projects" / pid / "project.json").read_text(encoding="utf-8")
+    steps = json.loads(saved)["steps"]
+
+    assert steps["audio"]["error"] == f"AudioError: {VC.message}"
+    for name, step in steps.items():
+        assert set(step) <= EARLIER_STEP_KEYS, name
 
 
 def test_a_failed_queue_item_stores_the_notice_inside_its_error(tmp_path: Path) -> None:
