@@ -300,7 +300,6 @@ button.ghost:hover:not(:disabled) {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex-wrap: wrap;
   font-size: var(--text-sm);
 }
 
@@ -371,7 +370,7 @@ button.ghost:hover:not(:disabled) {
 .slider {
   --fill: 50%;
   appearance: none;
-  width: 84px;
+  width: var(--toolbar-slider, 84px);
   height: 16px;
   margin: 0;
   background: transparent;
@@ -380,8 +379,8 @@ button.ghost:hover:not(:disabled) {
 
 /* the queue chip adds 36px to the toolbar, which has no slack for it at 1280 or 960. The two sliders give it
    back (18px each), so the row stays one row and the file box keeps its width. */
-header:has(.queue-chip) .slider {
-  width: 66px;
+header:has(.queue-chip) {
+  --toolbar-slider: 66px;
 }
 
 .slider::-webkit-slider-runnable-track {
@@ -1883,7 +1882,91 @@ kbd {
   pointer-events: none;
 }
 
-/* the English toolbar words are wider than the Chinese ones, and the video path box gets what is left: without these the player's box is 41 px at 960 and 88 at 1280, under the 66 and 130 it must keep */
+/* The player's toolbar is one row whatever the subtitle languages are called, and the video path box keeps a floor
+   (--path-floor, plus the field's 50 px of icon, gap, padding and border). When the row is short, the import bar
+   gives up its spare width first, then the two sliders and the name in the switch's words, and the name on the
+   middle button last. Each of those says the least it takes as a grid track, so the browser does the fitting for a
+   name of any length. The very large flex-shrink numbers make that order: with an ordinary ratio the later part
+   would lose a fraction of a pixel at once and show an ellipsis. */
+header:has(.settings) {
+  --path-floor: 66px;
+  flex-wrap: nowrap;
+}
+
+/* a headless render reads the Traditional Chinese toolbar 2.6 to 3 px under the app's own window (64.6 and 127.6 px for what the window measures as 67.2 and 130.6). These floors are the headless figures, so the usual toolbar does not move. */
+:root:lang(zh-Hant) header:has(.settings) {
+  --path-floor: 64.5px;
+}
+
+@media (min-width: 1151px) {
+  header:has(.settings) {
+    --path-floor: 130px;
+  }
+
+  :root:lang(zh-Hant) header:has(.settings) {
+    --path-floor: 127.5px;
+  }
+}
+
+header:has(.settings) .import {
+  flex-shrink: 100000;
+  min-width: min-content;
+}
+
+header:has(.settings) .field {
+  min-width: calc(var(--path-floor) + 50px);
+}
+
+/* without a width of its own an input asks for about twenty characters, which would become the floor */
+header:has(.settings) .field input {
+  width: 0;
+}
+
+.settings .tools {
+  flex-shrink: 100000;
+}
+
+.settings .control.range {
+  flex-shrink: 100000;
+  display: grid;
+  grid-template-columns: auto minmax(38px, var(--toolbar-slider, 84px)) auto;
+}
+
+.settings .range .slider {
+  width: 100%;
+}
+
+/* an input with no appearance of its own has no least width, so flex would squeeze the switch with the words */
+.settings .switch {
+  flex: none;
+}
+
+/* a name that can be shortened: the track says that the least it takes is 3.5em of the name plus the words around it, or all of a shorter text */
+.cut-name {
+  display: grid;
+  grid-template-columns: minmax(min(calc(3.5em + var(--name-rest, 0px)), var(--name-full, 0px)), max-content);
+}
+
+.cut-name > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* shortened: the name alone gives way, and the words around it ("on top", with its space) stay whole */
+.cut-name[data-cut] > span {
+  display: flex;
+  white-space: pre;
+}
+
+.cut-name[data-cut] > span > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the English toolbar words are wider than the Chinese ones. These two give some of that back to the names and the path box */
 :root:lang(en) header .seg button,
 :root:lang(en) header .import button {
   padding-inline: 7px;
@@ -1897,6 +1980,7 @@ kbd {
 @media (max-width: 1150px) {
   header {
     column-gap: var(--space-3);
+    --toolbar-slider: 56px;
   }
 
   .import {
@@ -1922,12 +2006,8 @@ kbd {
     padding: 0 6px;
   }
 
-  .slider {
-    width: 56px;
-  }
-
-  header:has(.queue-chip) .slider {
-    width: 38px;
+  header:has(.queue-chip) {
+    --toolbar-slider: 38px;
   }
 }
 
