@@ -166,6 +166,10 @@ def _spellings(char: str) -> tuple[re.Pattern[str], ...]:
     return tuple(re.compile(form, re.IGNORECASE) for form in _forms(char))
 
 
+_CUT_ESCAPE = re.compile(r"(?:%[0-9a-f]?|\\+(?:u[0-9a-f]{0,3})?|&(?:#x?[0-9a-f]*)?)?", re.I)
+"""The start of one encoded character, where a cut fell inside its spelling."""
+
+
 def _echo_end(key: str, text: str, start: int, cut: bool) -> int | None:
     """Where an echo of `key` that begins at `start` ends, or None if none begins there. With
     `cut`, an echo of at least `_KEY_PREFIX_CHARS` characters that runs to the end of `text`
@@ -173,7 +177,11 @@ def _echo_end(key: str, text: str, start: int, cut: bool) -> int | None:
     `&` can be read as itself or as the start of an escape."""
     reached = {start}
     for done, char in enumerate(key):
-        if cut and done >= _KEY_PREFIX_CHARS and len(text) in reached:
+        if (
+            cut
+            and done >= _KEY_PREFIX_CHARS
+            and any(_CUT_ESCAPE.fullmatch(text, end) for end in reached)
+        ):
             return len(text)
         reached = {
             found.end()

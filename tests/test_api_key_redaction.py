@@ -124,6 +124,19 @@ def test_a_cut_hides_a_key_prefix_from_eight_characters_on(kept: int, shown: boo
     assert key[:kept] in client.redact(key, text)
 
 
+@pytest.mark.parametrize(
+    "cut_inside",
+    [
+        urllib.parse.quote(KEY, safe="")[:25],
+        "".join(f"\\u{ord(c):04x}" for c in KEY)[:63],
+        "".join(f"&#{ord(c)};" for c in KEY)[:47],
+        "".join(f"&#x{ord(c):x};" for c in KEY)[:50],
+    ],
+)
+def test_a_cut_inside_an_encoded_character_hides_the_key_before_it(cut_inside: str) -> None:
+    assert client.redact(KEY, "bad key " + cut_inside, cut=True) == "bad key ***"
+
+
 @pytest.mark.parametrize("status", [429, 503])
 def test_a_long_key_still_lets_a_busy_server_be_asked_again(
     monkeypatch: pytest.MonkeyPatch, status: int
