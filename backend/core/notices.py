@@ -895,6 +895,32 @@ SWITCH_NO_GPU = _template(
     need="text",
 )
 
+# The player (`api/player.py`, `core/render.py`, `api/jobs.py`, `api/projects.py`): a still, a
+# thumbnail or a burn-in export that failed or was refused. `output` is what ffmpeg said.
+PLAYER_THUMBNAIL_FAILED = _template(
+    "player.thumbnailFailed", "thumbnail of {video} failed: {output}", video="text", output="text"
+)
+PLAYER_STILL_FAILED = _template(
+    "player.stillFailed", "still of {video} failed: {output}", video="text", output="text"
+)
+PLAYER_BURN_FAILED = _template("player.burnFailed", "ffmpeg failed: {output}", output="text")
+PLAYER_BURN_BUSY = _template("player.burnBusy", "another burn-in export is running")
+PLAYER_FOLDER_UNUSABLE = _template(
+    "player.folderUnusable", "cannot use the folder {folder}: {error}", folder="text", error="text"
+)
+PLAYER_DIR_NOT_ABSOLUTE = _template(
+    "player.dirNotAbsolute", "dir must be an absolute path: {path}", path="text"
+)
+PLAYER_NOT_PICKED = _template(
+    "player.notPicked", "{folder} is not a folder picked in the app; pick it again", folder="text"
+)
+PLAYER_VIDEO_GONE = _template(
+    "player.videoGone", "the video is not at {path} any more", path="text"
+)
+PLAYER_PAST_END = _template("player.pastEnd", "start_s is past the end of the video")
+UNKNOWN_PROJECT = _template("player.unknownProject", "unknown project {id}", id="text")
+UNKNOWN_EXPORT = _template("player.unknownExport", "unknown export {id}", id="text")
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
