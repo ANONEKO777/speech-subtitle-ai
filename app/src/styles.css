@@ -1896,39 +1896,54 @@ kbd {
   pointer-events: none;
 }
 
-/* The player's toolbar is one row whatever the subtitle languages are called, and the video path box keeps a floor
-   (--path-floor, plus the field's 50 px of icon, gap, padding and border). When the row is short, the import bar
-   gives up its spare width first, then the two sliders and the name in the switch's words, and the name on the
-   middle button last. Each of those says the least it takes as a grid track, so the browser does the fitting for a
-   name of any length. The very large flex-shrink numbers make that order: with an ordinary ratio the later part
-   would lose a fraction of a pixel at once and show an ellipsis. */
+/* The player's toolbar. It is built to fit a window of any width, so nothing here depends on how long a subtitle
+   language's name is. Each block says the least it takes, and what is left over is shared out. When the row is
+   short, things give way in this order, each down to its least before the next one starts:
+     1. the video path box, down to its floor (--path-floor, plus the field's 50 px of icon, gap, padding and border)
+     2. the two sliders
+     3. the name in the switch's words
+     4. the name on the middle button
+   When even those leasts do not fit on one line, the subtitle settings move to a second row, where the names are
+   whole again. The browser decides that from the leasts, which both blocks give as their flex basis (a basis of 0
+   held at min-width), so no breakpoint has to foresee it. The very large flex numbers make the order: with an
+   ordinary ratio a later part would lose a fraction of a pixel at once and show an ellipsis. */
 header:has(.settings) {
   --path-floor: 66px;
-  flex-wrap: nowrap;
 }
 
-/* a headless render reads the Traditional Chinese toolbar 2.6 to 3 px under the app's own window (64.6 and 127.6 px for what the window measures as 67.2 and 130.6). These floors are the headless figures, so the usual toolbar does not move. */
-:root:lang(zh-Hant) header:has(.settings) {
-  --path-floor: 64.5px;
-}
-
-@media (min-width: 1151px) {
+@media (min-width: 1280px) {
   header:has(.settings) {
     --path-floor: 130px;
-  }
-
-  :root:lang(zh-Hant) header:has(.settings) {
-    --path-floor: 127.5px;
   }
 }
 
 header:has(.settings) .import {
-  flex-shrink: 100000;
+  flex: 1 1 0;
   min-width: min-content;
+}
+
+header .settings {
+  flex: 100000 1 0;
+  min-width: min-content;
+  max-width: max-content;
 }
 
 header:has(.settings) .field {
   min-width: calc(var(--path-floor) + 50px);
+}
+
+/* the queue chip needs 36 px more. Besides the shorter sliders above, it gets them from the spacing the narrow window has, in a window of any width */
+header:has(.settings):has(.queue-chip) {
+  column-gap: var(--space-3);
+}
+
+header:has(.queue-chip) .settings {
+  gap: var(--space-2);
+}
+
+header:has(.queue-chip) .control {
+  gap: 6px;
+  padding: 0 6px;
 }
 
 /* without a width of its own an input asks for about twenty characters, which would become the floor */
@@ -1943,7 +1958,7 @@ header:has(.settings) .field input {
 .settings .control.range {
   flex-shrink: 100000;
   display: grid;
-  grid-template-columns: auto minmax(38px, var(--toolbar-slider, 84px)) auto;
+  grid-template-columns: auto minmax(34px, var(--toolbar-slider, 84px)) auto;
 }
 
 .settings .range .slider {

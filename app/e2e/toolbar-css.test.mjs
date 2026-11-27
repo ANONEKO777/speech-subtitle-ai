@@ -33,30 +33,30 @@ function rule(head, within) {
   return found[0].replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
-const WIDE = "@media (min-width: 1151px)";
+const WIDE = "@media (min-width: 1280px)";
 const NARROW = "@media (max-width: 1150px)";
 
-describe("the stylesheet keeps the player toolbar on one row for a language name of any length", () => {
-  it("does not let the player toolbar wrap, and keeps the path box at least 66 px, 130 in a wide window", () => {
-    expect(rule("header:has(.settings)")).toContain("flex-wrap: nowrap;");
+describe("the stylesheet lets the player toolbar fit a window of any width", () => {
+  it("keeps the video path box at least 66 px, and 130 from 1280 px, in every window language", () => {
     expect(rule("header:has(.settings)")).toContain("--path-floor: 66px;");
     expect(rule("header:has(.settings)", WIDE)).toContain("--path-floor: 130px;");
+    expect(css).not.toContain(":lang(zh-Hant) header:has(.settings)");
     expect(rule("header:has(.settings) .field")).toContain("min-width: calc(var(--path-floor) + 50px);");
     expect(rule("header:has(.settings) .field input")).toContain("width: 0;");
+  });
+
+  it("moves the subtitle settings to a second row only when the least each block takes does not fit on one", () => {
+    expect(rule("header:has(.settings)")).not.toContain("flex-wrap");
+    expect(rule("header")).toContain("flex-wrap: wrap;");
     expect(rule(".settings")).not.toContain("flex-wrap: wrap;");
+    for (const line of ["flex: 1 1 0;", "min-width: min-content;"]) expect(rule("header:has(.settings) .import")).toContain(line);
+    for (const line of ["flex: 100000 1 0;", "min-width: min-content;", "max-width: max-content;"]) expect(rule("header .settings")).toContain(line);
   });
 
-  it("holds a Traditional Chinese window to the headless figures of the toolbar it already had", () => {
-    expect(rule(":root:lang(zh-Hant) header:has(.settings)")).toContain("--path-floor: 64.5px;");
-    expect(rule(":root:lang(zh-Hant) header:has(.settings)", WIDE)).toContain("--path-floor: 127.5px;");
-  });
-
-  it("takes what the row is short of from the import bar's spare width, then the sliders and the switch's words, then the middle button", () => {
-    expect(rule("header:has(.settings) .import")).toContain("flex-shrink: 100000;");
-    expect(rule("header:has(.settings) .import")).toContain("min-width: min-content;");
+  it("takes what the row is short of from the sliders before the switch's words, and from those before the middle button", () => {
     expect(rule(".settings .tools")).toContain("flex-shrink: 100000;");
     expect(rule(".settings .control.range")).toContain("flex-shrink: 100000;");
-    expect(rule(".settings .control.range")).toContain("grid-template-columns: auto minmax(38px, var(--toolbar-slider, 84px)) auto;");
+    expect(rule(".settings .control.range")).toContain("grid-template-columns: auto minmax(34px, var(--toolbar-slider, 84px)) auto;");
     expect(rule(".settings .range .slider")).toContain("width: 100%;");
     expect(rule(".settings .switch")).toContain("flex: none;");
   });
@@ -66,6 +66,12 @@ describe("the stylesheet keeps the player toolbar on one row for a language name
     expect(rule("header:has(.queue-chip)")).toContain("--toolbar-slider: 66px;");
     expect(rule("header", NARROW)).toContain("--toolbar-slider: 56px;");
     expect(rule("header:has(.queue-chip)", NARROW)).toContain("--toolbar-slider: 38px;");
+  });
+
+  it("gives the toolbar with the queue chip the narrow window's spacing, in a window of any width", () => {
+    expect(rule("header:has(.settings):has(.queue-chip)")).toContain("column-gap: var(--space-3);");
+    expect(rule("header:has(.queue-chip) .settings")).toContain("gap: var(--space-2);");
+    for (const line of ["gap: 6px;", "padding: 0 6px;"]) expect(rule("header:has(.queue-chip) .control")).toContain(line);
   });
 
   it("gives a name its whole width unless it may shrink, and then keeps the part of it that CutName says", () => {
