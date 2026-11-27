@@ -57,7 +57,8 @@ const DATA: readonly RegExp[] = [
 
 /**
  * The sentences whose English changed: one said "queue" where the window says "batch", a runtime
- * row was told to verify, which only a model row can, a program that exited with no output left a
+ * row was told to verify, which only a model row can, a runtime built on the machine was told to
+ * re-download, which it cannot, a program that exited with no output left a
  * colon with nothing after it, and a key no header can carry failed at the first request with the
  * key in the text.
  */
@@ -70,6 +71,8 @@ const REWORDED: Readonly<Record<string, string>> = {
   "batch.crashed": "the batch crashed",
   "updates.item.runtimeUnrecorded": "installed, but its version was not recorded; re-download it to compare with registry version b5454",
   "updates.item.runtimeCheckFailed": "installed, but its last check failed; re-download it to compare with registry version b5454",
+  "updates.item.localBuild": "built on this computer, so the app does not track its version; to get a newer version, run scripts/mac/build_whisper_cli.sh again",
+  "updates.item.localBuildElsewhere": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
 };
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */

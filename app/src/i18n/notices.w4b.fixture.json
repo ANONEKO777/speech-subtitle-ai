@@ -1854,6 +1854,32 @@
     ],
     "zh": "已安裝，但上次檢查沒有通過。請按「重新下載」，才能和登錄版本 b5454 比對"
   },
+  "updates.item.localBuild": {
+    "before": "installed, but its version was not recorded; verify or re-download it to compare with registry version b5454",
+    "text": "built on this computer, so the app does not track its version; to get a newer version, run scripts/mac/build_whisper_cli.sh again",
+    "notices": [
+      {
+        "code": "updates.localBuild",
+        "params": {
+          "script": "scripts/mac/build_whisper_cli.sh"
+        },
+        "message": "built on this computer, so the app does not track its version; to get a newer version, run scripts/mac/build_whisper_cli.sh again"
+      }
+    ],
+    "zh": "這是在這台電腦上自行建置的程式，App 不會記錄它的版本；要換新版，請重新執行 scripts/mac/build_whisper_cli.sh"
+  },
+  "updates.item.localBuildElsewhere": {
+    "before": "installed, but its version was not recorded; verify or re-download it to compare with registry version b5454",
+    "text": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
+    "notices": [
+      {
+        "code": "updates.localBuildElsewhere",
+        "params": {},
+        "message": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version"
+      }
+    ],
+    "zh": "這個程式是在 PATH 或 Homebrew 的資料夾找到的，不是 App 建置的，App 不會記錄它的版本"
+  },
   "updates.item.matchesBundle": {
     "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
     "text": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",

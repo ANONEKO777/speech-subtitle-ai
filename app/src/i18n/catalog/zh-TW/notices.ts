@@ -154,6 +154,8 @@ export const notices = {
   "notice.updates.itemNotInstalled": "尚未安裝",
   "notice.updates.itemOlder": "已安裝 {installed}，登錄版本是 {available}",
   "notice.updates.itemUnrecorded": "已安裝，但沒有記錄版本。請按「驗證」或「重新下載」，才能和登錄版本 {version} 比對",
+  "notice.updates.localBuild": "這是在這台電腦上自行建置的程式，App 不會記錄它的版本；要換新版，請重新執行 {script}",
+  "notice.updates.localBuildElsewhere": "這個程式是在 PATH 或 Homebrew 的資料夾找到的，不是 App 建置的，App 不會記錄它的版本",
   "notice.updates.noRemote": "沒有設定遠端清單，已和 App 內附的清單比對。",
   "notice.updates.readConnect": "無法讀取 {url} 的清單：無法連線（{reason}）",
   "notice.updates.readFailed": "無法讀取 {url} 的清單：{error}",

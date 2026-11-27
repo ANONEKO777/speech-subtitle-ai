@@ -350,6 +350,18 @@ RUNTIME_CHECK_FAILED = _template(
 RUNTIME_UNRECORDED = _template(
     "updates.runtimeUnrecorded", _UNRECORDED + _COMPARE_RUNTIME, version="text"
 )
+# A runtime built on the machine has no download, so its row has no Re-download.
+LOCAL_BUILD_UNTRACKED = _template(
+    "updates.localBuild",
+    "built on this computer, so the app does not track its version; to get a newer version, "
+    "run {script} again",
+    script="text",
+)
+LOCAL_BUILD_ELSEWHERE_UNTRACKED = _template(
+    "updates.localBuildElsewhere",
+    "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track "
+    "its version",
+)
 ITEM_MATCHES_REMOTE = _template(
     "updates.itemMatchesRemote",
     "registry version {version} installed, remote registry {url} agrees",

@@ -853,6 +853,16 @@
       "version": "text"
     }
   },
+  "updates.localBuild": {
+    "english": "built on this computer, so the app does not track its version; to get a newer version, run {script} again",
+    "params": {
+      "script": "text"
+    }
+  },
+  "updates.localBuildElsewhere": {
+    "english": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
+    "params": {}
+  },
   "updates.noRemote": {
     "english": "No remote registry is configured; compared with the registry shipped with this app.",
     "params": {}

@@ -19,8 +19,9 @@ from typing import cast
 from backend.core import notices
 from backend.core.notices import Notice, noticed
 from backend.manager.inventory import Inventory, asset
-from backend.manager.registry import Model, Registry, RegistryError
+from backend.manager.registry import Model, Registry, RegistryError, Runtime
 from backend.manager.registry import parse as parse_registry
+from backend.manager.runtimes import found_outside_runtimes
 
 FETCH_TIMEOUT_S = 10.0
 _MAX_BYTES = 2 << 20
@@ -109,6 +110,13 @@ def _item(
 
     if not inv.is_installed(asset_id):
         return item(UpdateStatus.NOT_INSTALLED, None, True, notices.ITEM_NOT_INSTALLED())
+    if isinstance(bundled, Runtime) and bundled.build is not None:
+        untracked = (
+            notices.LOCAL_BUILD_ELSEWHERE_UNTRACKED()
+            if found_outside_runtimes(bundled, inv.storage)
+            else notices.LOCAL_BUILD_UNTRACKED(script=bundled.build.script)
+        )
+        return item(UpdateStatus.UNKNOWN, None, False, untracked)
     record = inv.manifest.get(asset_id)
     if record is None or not record.ok:
         if isinstance(bundled, Model):

@@ -155,6 +155,8 @@ export const notices = {
   "notice.updates.itemNotInstalled": "尚未安装",
   "notice.updates.itemOlder": "已安装 {installed}，清单上的版本是 {available}",
   "notice.updates.itemUnrecorded": "已安装，但没有记录版本。请点击“验证”或“重新下载”，才能与清单版本 {version} 比对",
+  "notice.updates.localBuild": "这是在这台电脑上自行构建的程序，App 不会记录它的版本；要换新版，请重新运行 {script}",
+  "notice.updates.localBuildElsewhere": "这个程序是在 PATH 或 Homebrew 的文件夹中找到的，不是 App 构建的，App 不会记录它的版本",
   "notice.updates.noRemote": "没有设置远程清单，已与应用自带的清单比对。",
   "notice.updates.readConnect": "无法读取 {url} 的清单：无法连接（{reason}）",
   "notice.updates.readFailed": "无法读取 {url} 的清单：{error}",

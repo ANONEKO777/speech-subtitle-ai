@@ -157,6 +157,8 @@ export const notices = {
   "notice.updates.itemNotInstalled": "not installed",
   "notice.updates.itemOlder": "installed {installed}, the registry has {available}",
   "notice.updates.itemUnrecorded": "installed, but its version was not recorded; verify or re-download it to compare with registry version {version}",
+  "notice.updates.localBuild": "built on this computer, so the app does not track its version; to get a newer version, run {script} again",
+  "notice.updates.localBuildElsewhere": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
   "notice.updates.noRemote": "No remote registry is configured; compared with the registry shipped with this app.",
   "notice.updates.readConnect": "could not read the registry at {url}: cannot connect ({reason})",
   "notice.updates.readFailed": "could not read the registry at {url}: {error}",

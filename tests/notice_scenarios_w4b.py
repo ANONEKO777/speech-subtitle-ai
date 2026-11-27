@@ -243,6 +243,18 @@ def _updates(found: dict[str, Entry]) -> None:
         installed[tool] = held
         found[f"updates.item.{name}"] = _said(updates._item(inv, tool, None, None))
     del installed[tool]
+    mac = registry_module.load(platform=platforms.MACOS_ARM64)
+    built = next(r for r in mac.runtimes.values() if r.build is not None)
+    on_mac: Any = SimpleNamespace(
+        registry=mac,
+        manifest=SimpleNamespace(get=lambda _id: None),
+        is_installed=lambda _id: True,
+        storage=None,
+    )
+    for name, outside in (("localBuild", None), ("localBuildElsewhere", Path("/bin/whisper-cli"))):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(updates, "found_outside_runtimes", lambda *_a, _at=outside: _at, False)
+            found[f"updates.item.{name}"] = _said(updates._item(on_mac, built.id, None, None))
     installed[first.id] = record()
     item("matchesBundle")
     item("matchesRemote", bundled)

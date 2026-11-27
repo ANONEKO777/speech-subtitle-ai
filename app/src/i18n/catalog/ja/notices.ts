@@ -155,6 +155,8 @@ export const notices = {
   "notice.updates.itemNotInstalled": "未インストール",
   "notice.updates.itemOlder": "インストール済みは {installed}、一覧の版は {available} です",
   "notice.updates.itemUnrecorded": "インストール済みですが、版が記録されていません。一覧の版 {version} と比較するには、検証するか再ダウンロードしてください",
+  "notice.updates.localBuild": "このコンピューターで自分でビルドしたプログラムのため、アプリは版を記録しません。新しい版にするには {script} をもう一度実行してください",
+  "notice.updates.localBuildElsewhere": "PATH または Homebrew のフォルダーで見つかったプログラムで、アプリがビルドしたものではないため、アプリは版を記録しません",
   "notice.updates.noRemote": "リモートの一覧は設定されていないため、このアプリに付属の一覧と比較しました。",
   "notice.updates.readConnect": "{url} の一覧を読み込めません：接続できません（{reason}）",
   "notice.updates.readFailed": "{url} の一覧を読み込めません：{error}",

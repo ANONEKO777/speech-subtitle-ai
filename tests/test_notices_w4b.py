@@ -34,6 +34,8 @@ REWORDED = {
     "refuse.keyUnsendable": "a key no header can carry failed at the first request, key and all",
     "updates.item.runtimeUnrecorded": "told a runtime row to verify, which has no Verify button",
     "updates.item.runtimeCheckFailed": "told a runtime row to verify, which has no Verify button",
+    "updates.item.localBuild": "sent a local build to buttons its row lacks",
+    "updates.item.localBuildElsewhere": "sent a local build to buttons its row lacks",
 }
 """Scenarios whose English changed on purpose, and why."""
 
