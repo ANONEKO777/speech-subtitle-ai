@@ -27,7 +27,7 @@ from typing import Any, cast
 
 import pytest
 from download_support import serve
-from manage_support import Rig
+from manage_support import NO_GPU, Rig
 from notice_scenarios import _slashes
 from notice_scenarios_w4b import Entry, _entry, _replaced
 from test_api import open_client
@@ -35,9 +35,11 @@ from test_queue import QueueRig, make_app
 
 from backend.core import queue_runner
 from backend.core.notices import notices_of
-from backend.manager import llm_check, maintain, secrets, storage_move
+from backend.manager import llm_check, maintain, secrets, storage_move, switch
 from backend.manager.download import JobState
-from backend.manager.profiles import WHISPER_RUNTIME, WHISPER_TURBO
+from backend.manager.hardware import Hardware
+from backend.manager.platforms import MACOS_ARM64
+from backend.manager.profiles import ALL_PROFILES, WHISPER_RUNTIME, WHISPER_TURBO, ProfileId
 from backend.manager.secrets import SecretError
 from backend.manager.settings import LlmSettings, LlmSource, SettingsStore
 
@@ -337,6 +339,27 @@ def _storage(found: dict[str, Entry], rig: Rig) -> None:
         found["move.couldNotRemove"] = _status(_moved(rig, tmp / "moved"), "warnings", tmp)
 
 
+# Group 11: a profile that does not fit this computer.
+
+
+def _switch_warning(rig: Rig, hardware: Hardware, profile: ProfileId) -> Entry:
+    rig.start(hardware)
+    one: Any = switch.warnings_for(rig.ctx, ALL_PROFILES[profile])[0]
+    return _entry(one, ()) if isinstance(one, str) else _entry(one.message, (one,))
+
+
+def _profiles(found: dict[str, Entry], rig: Rig) -> None:
+    card = Hardware("NVIDIA GeForce RTX 3060", 8192, "596.36", 32768, 500000)
+    rig.start(card)
+    reply = rig.client.put("/api/profile", json={"profile": "gpu-24gb"}).json()
+    found["switch.lowVram"] = _entry(reply["warnings"][0], reply.get("warnings_notices"))
+    found["switch.noGpu"] = _switch_warning(rig, NO_GPU, ProfileId.GPU_8GB)
+    mac = Hardware(None, None, None, 16384, 500000, MACOS_ARM64, "Apple M2")
+    found["switch.lowMemory"] = _switch_warning(rig, mac, ProfileId.METAL_32GB)
+    unknown = Hardware(None, None, None, None, 500000, MACOS_ARM64, "Apple M2")
+    found["switch.unknownMemory"] = _switch_warning(rig, unknown, ProfileId.METAL_16GB)
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
@@ -347,6 +370,8 @@ def collect(tmp: Path) -> dict[str, Entry]:
         _llm_page(found, Rig(tmp / "llm", origin))
         (tmp / "storage").mkdir()
         _storage(found, Rig(tmp / "storage", origin))
+        (tmp / "profiles").mkdir()
+        _profiles(found, Rig(tmp / "profiles", origin))
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

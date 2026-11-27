@@ -96,18 +96,14 @@ export function refusalOf(e: unknown): Refusal {
 }
 
 export interface ProfileChange {
-  readonly warnings: readonly string[];
+  readonly warnings: readonly Said[];
   readonly profile: Awaited<ReturnType<typeof fetchProfile>>;
 }
 
 /** Switches the active profile; `null` follows the recommendation for the detected hardware. */
 export async function chooseProfile(b: Backend, profile: ProfileId | null): Promise<ProfileChange> {
   const body = await put(b, "/api/profile", { profile });
-  const warnings = asRecord(body)?.["warnings"];
-  return {
-    profile: parseProfileView(body),
-    warnings: Array.isArray(warnings) ? warnings.filter((w): w is string => typeof w === "string") : [],
-  };
+  return { profile: parseProfileView(body), warnings: saidList(asRecord(body) ?? {}, "warnings") };
 }
 
 export async function downloadProfileAssets(b: Backend): Promise<DownloadJob[]> {

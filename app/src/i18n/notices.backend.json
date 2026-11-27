@@ -1081,6 +1081,36 @@
       "context": "text"
     }
   },
+  "switch.lowMemory": {
+    "english": "This machine has {have} MiB of memory; {profile} needs {need} MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "have": "text",
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.lowVram": {
+    "english": "This machine has {have} MiB; {profile} needs {need} MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "have": "text",
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.noGpu": {
+    "english": "This machine has no NVIDIA GPU; {profile} needs {need} MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.unknownMemory": {
+    "english": "This machine's memory is unknown; {profile} needs {need} MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "profile": "word",
+      "need": "text"
+    }
+  },
   "translate.cannotResume": {
     "english": "{file}: cannot resume from this file ({error})",
     "params": {

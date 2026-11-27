@@ -923,5 +923,67 @@
       }
     ],
     "zh": "無法刪除 <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin：OSError: [Errno 5] I/O error"
+  },
+  "switch.lowVram": {
+    "before": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.lowVram",
+        "params": {
+          "have": "8192",
+          "profile": "gpu-24gb",
+          "need": "16000"
+        },
+        "message": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦的顯示卡記憶體是 8192 MiB，「24 GB 顯示卡」需要 16000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "switch.noGpu": {
+    "before": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.noGpu",
+        "params": {
+          "profile": "gpu-8gb",
+          "need": "7168"
+        },
+        "message": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦沒有 NVIDIA 顯示卡，「8 GB 顯示卡」需要 7168 MiB 的顯示卡記憶體。自檢會改用 CPU。"
+  },
+  "switch.lowMemory": {
+    "before": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.lowMemory",
+        "params": {
+          "have": "16384",
+          "profile": "metal-32gb",
+          "need": "32000"
+        },
+        "message": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦的記憶體是 16384 MiB，「Apple 晶片 32 GB 以上」需要 32000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "switch.unknownMemory": {
+    "before": "This machine has unknown memory of memory; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine's memory is unknown; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.unknownMemory",
+        "params": {
+          "profile": "metal-16gb",
+          "need": "15000"
+        },
+        "message": "This machine's memory is unknown; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "無法得知這台電腦的記憶體大小，「Apple 晶片 16 GB」需要 15000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
   }
 }

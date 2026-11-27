@@ -87,7 +87,7 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
   const { t, plural, locale } = texts;
   const [view, setView] = useState<ProfileView | null>(null);
   const [error, setError] = useState<Said | null>(null);
-  const [switched, setSwitched] = useState<{ readonly id: ProfileId; readonly warnings: readonly string[]; readonly jobIds: readonly string[] } | null>(null);
+  const [switched, setSwitched] = useState<{ readonly id: ProfileId; readonly warnings: readonly Said[]; readonly jobIds: readonly string[] } | null>(null);
   const [test, setTest] = useState<SelfTest | null>(null);
   const [testing, setTesting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -267,8 +267,8 @@ export function HardwareSection({ backend, downloads, onOpenLlm }: Props) {
                   {t("hw.switched.post")}
                 </p>
                 {switched.warnings.map((w) => (
-                  <p key={w} className="note warn" data-testid="switch-warning">
-                    {w}
+                  <p key={w.text} className="note warn" data-testid="switch-warning">
+                    {word(w, locale)}
                   </p>
                 ))}
                 {active && active.missing.length > 0 ? (

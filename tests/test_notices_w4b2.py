@@ -16,6 +16,7 @@ REWORDED = {
     "storage.unmoved": "named an API route a person cannot use, where the window has a button",
     "move.otherContent": 'began with "MoveError: ", a name from the code',
     "move.wrongSize": 'began with "OSError: ", a name from the code',
+    "switch.unknownMemory": 'said "This machine has unknown memory of memory"',
 }
 """Scenarios whose English changed on purpose, and why."""
 

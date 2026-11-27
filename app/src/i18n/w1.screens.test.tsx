@@ -202,7 +202,7 @@ const wrap = (locale: Locale, node: ReactNode) => <I18nProvider initial={locale}
 const SCREENS: Record<string, Screen> = {
   "hardware on a PC: switching, downloading and the self-test": async (shot, locale) => {
     mocks.profile = windowsView();
-    mocks.change = { profile: withActive(windowsView(), "cpu"), warnings: ["Low disk space"] };
+    mocks.change = { profile: withActive(windowsView(), "cpu"), warnings: [plainText("Low disk space")] };
     mocks.jobs = [job];
     mocks.selfTests = [
       run({ stages: [stage("asr", true), stage("llm", false)], fallback: { reason: plainText("CUDA failed to start") } }),

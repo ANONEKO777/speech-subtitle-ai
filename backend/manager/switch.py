@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.core import notices
+from backend.core.notices import Notice
 from backend.manager.active import Active, resolve_active
 from backend.manager.context import ManagerContext
 from backend.manager.download import JobStatus
@@ -41,23 +43,20 @@ def requirements(ctx: ManagerContext, profile_id: ProfileId) -> Requirements:
     return Requirements(tuple(missing), sum(m.size_bytes for m in missing))
 
 
-def warnings_for(ctx: ManagerContext, profile: Profile) -> list[str]:
+def warnings_for(ctx: ManagerContext, profile: Profile) -> list[Notice]:
     hardware = ctx.detect_hardware()
-    found: list[str] = []
-    if not fits(profile, hardware) and profile.min_unified_mib is not None:
-        have = f"{hardware.ram_mib} MiB" if hardware.ram_mib else "unknown memory"
-        found.append(
-            f"This machine has {have} of memory; {profile.id.value} needs "
-            f"{profile.min_unified_mib} MiB. The self-test will fall back to the CPU if the "
-            "GPU cannot run it."
-        )
-    elif not fits(profile, hardware):
-        have = f"{hardware.vram_mib} MiB" if hardware.vram_mib else "no NVIDIA GPU"
-        found.append(
-            f"This machine has {have}; {profile.id.value} needs {profile.min_vram_mib} MiB of "
-            "VRAM. The self-test will fall back to the CPU if the GPU cannot run it."
-        )
-    return found
+    if fits(profile, hardware):
+        return []
+    named = profile.id.value
+    if profile.min_unified_mib is not None:
+        need = str(profile.min_unified_mib)
+        if hardware.ram_mib:
+            return [notices.SWITCH_LOW_MEMORY(have=str(hardware.ram_mib), profile=named, need=need)]
+        return [notices.SWITCH_UNKNOWN_MEMORY(profile=named, need=need)]
+    need = str(profile.min_vram_mib)
+    if hardware.vram_mib:
+        return [notices.SWITCH_LOW_VRAM(have=str(hardware.vram_mib), profile=named, need=need)]
+    return [notices.SWITCH_NO_GPU(profile=named, need=need)]
 
 
 def download_missing(ctx: ManagerContext, profile_id: ProfileId) -> list[JobStatus]:
