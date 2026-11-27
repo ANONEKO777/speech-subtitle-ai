@@ -1,0 +1,30 @@
+// Machine translation. No native speaker has read it.
+import type { notices2 as en } from "../en/notices2";
+
+export const notices2 = {
+  "common.clauseSeparator": "；",
+  "notice.batch.alreadyIn": "すでにバッチに入っています（項目 {item}、{state}）",
+  "notice.batch.badOrder": "新しい順番には、バッチのすべての項目を 1 回ずつ含める必要があります",
+  "notice.batch.cannotCancel": "状態が「{state}」の項目はキャンセルできません",
+  "notice.batch.cannotPause": "状態が「{state}」の項目は一時停止できません",
+  "notice.batch.cannotResume": "状態が「{state}」の項目は再開できません",
+  "notice.batch.cannotRetry": "状態が「{state}」の項目は再試行できません",
+  "notice.batch.folderSlow": "このフォルダーが {seconds} 秒以内に応答しませんでした",
+  "notice.batch.notAFile": "ファイルが存在しないか、絶対パスではありません",
+  "notice.batch.notAFolder": "フォルダーではありません",
+  "notice.batch.notMedia": "拡張子が動画や音声の形式ではありません",
+  "notice.batch.nothingGiven": "ファイルかフォルダーを 1 つ以上追加してください",
+  "notice.batch.removeFinishedOnly": "移除できるのは終わった項目だけです。先にキャンセルしてください",
+  "noticeWord.cancelled": "キャンセル済み",
+  "noticeWord.cloud_url": "クラウドサービスの URL",
+  "noticeWord.done": "完了",
+  "noticeWord.failed": "失敗",
+  "noticeWord.none": "修復不要",
+  "noticeWord.ollama_url": "Ollama の URL",
+  "noticeWord.paused": "一時停止中",
+  "noticeWord.queued": "待機中",
+  "noticeWord.refetch": "再ダウンロード",
+  "noticeWord.registry_url": "リモート一覧の URL",
+  "noticeWord.resume": "ダウンロードを再開",
+  "noticeWord.running": "処理中",
+} satisfies Record<keyof typeof en, string>;

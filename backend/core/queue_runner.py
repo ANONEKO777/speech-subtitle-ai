@@ -33,10 +33,19 @@ from backend.core.jobs import (
 from backend.core.media import is_media
 from backend.core.model import Step
 from backend.core.notices import (
+    BATCH_CANNOT_CANCEL,
+    BATCH_CANNOT_PAUSE,
+    BATCH_CANNOT_RESUME,
+    BATCH_CANNOT_RETRY,
     BATCH_CRASHED,
+    BATCH_FOLDER_SLOW,
+    BATCH_NOT_A_FILE,
+    BATCH_NOT_MEDIA,
     VIDEO_GONE,
     Notice,
+    Template,
     from_json,
+    noticed,
     notices_of,
     to_json,
 )
@@ -84,7 +93,8 @@ class Stop(StrEnum):
 @dataclass(frozen=True, slots=True)
 class Added:
     items: list[QueueItem]
-    skipped: list[tuple[str, str]]
+    skipped: list[tuple[str, str, tuple[Notice, ...]]]
+    """Each path that was not added, why, and the notices inside the why."""
 
 
 def _is_link(entry: os.DirEntry[str]) -> bool:
@@ -128,11 +138,15 @@ def scan_folder(folder: Path, recursive: bool, timeout_s: float | None = None) -
     thread.start()
     thread.join(timeout_s)
     if not outcome:
-        raise QueueError(f"the folder did not answer within {timeout_s:g} s")
+        raise noticed(QueueError, BATCH_FOLDER_SLOW(seconds=f"{timeout_s:g}"))
     result = outcome[0]
     if isinstance(result, Exception):
         raise result
     return result
+
+
+def _said(notice: Notice) -> tuple[str, tuple[Notice, ...]]:
+    return notice.message, (notice,)
 
 
 def _now_ms() -> int:
@@ -460,15 +474,15 @@ class QueueRunner:
         probed for the ETA until `PROBE_BUDGET_S` is used up. The rest are probed in the
         background, so a big folder does not hold the request."""
         added: list[QueueItem] = []
-        skipped: list[tuple[str, str]] = []
+        skipped: list[tuple[str, str, tuple[Notice, ...]]] = []
         late: list[tuple[str, Path]] = []
         deadline = time.monotonic() + PROBE_BUDGET_S
         for path, options in entries:
             if not path.is_absolute() or not path.is_file():
-                skipped.append((str(path), "not an existing file with an absolute path"))
+                skipped.append((str(path), *_said(BATCH_NOT_A_FILE())))
                 continue
             if not is_media(path):
-                skipped.append((str(path), "not a media file extension"))
+                skipped.append((str(path), *_said(BATCH_NOT_MEDIA())))
                 continue
             info, _ = self._projects.create(path)
             probe_now = time.monotonic() < deadline
@@ -481,7 +495,7 @@ class QueueRunner:
                     _now_ms(),
                 )
             except QueueError as exc:
-                skipped.append((str(path), str(exc)))
+                skipped.append((str(path), str(exc), notices_of(exc)))
                 continue
             added.append(item)
             if not probe_now:
@@ -542,11 +556,13 @@ class QueueRunner:
     def cancel_power(self) -> bool:
         return self._power.cancel()
 
-    def _change(self, item_id: str, frm: Sequence[ItemState], to: ItemState, verb: str) -> None:
+    def _change(
+        self, item_id: str, frm: Sequence[ItemState], to: ItemState, refused: Template
+    ) -> None:
         with self._lock:
             item = self._known(item_id)
             if not self._store.move(item_id, frm, to, _now_ms()):
-                raise QueueError(f"cannot {verb} an item that is {item.state.value}")
+                raise noticed(QueueError, refused(state=item.state.value))
         self._emit_item(item_id)
         if to is ItemState.QUEUED:
             self._work_arrived()
@@ -558,23 +574,25 @@ class QueueRunner:
             if self._known(item_id).state is ItemState.RUNNING:
                 self._stop_current(item_id, Stop.PAUSE)
                 return
-        self._change(item_id, [ItemState.QUEUED], ItemState.PAUSED, "pause")
+        self._change(item_id, [ItemState.QUEUED], ItemState.PAUSED, BATCH_CANNOT_PAUSE)
 
     def resume_item(self, item_id: str) -> None:
-        self._change(item_id, [ItemState.PAUSED], ItemState.QUEUED, "resume")
+        self._change(item_id, [ItemState.PAUSED], ItemState.QUEUED, BATCH_CANNOT_RESUME)
 
     def cancel_item(self, item_id: str) -> None:
         with self._lock:
             if self._known(item_id).state is ItemState.RUNNING:
                 self._stop_current(item_id, Stop.CANCEL)
                 return
-        self._change(item_id, [ItemState.QUEUED, ItemState.PAUSED], ItemState.CANCELLED, "cancel")
+        self._change(
+            item_id, [ItemState.QUEUED, ItemState.PAUSED], ItemState.CANCELLED, BATCH_CANNOT_CANCEL
+        )
 
     def retry_item(self, item_id: str) -> None:
         with self._lock:
             item = self._known(item_id)
             if item.state not in (ItemState.FAILED, ItemState.CANCELLED):
-                raise QueueError(f"cannot retry an item that is {item.state.value}")
+                raise noticed(QueueError, BATCH_CANNOT_RETRY(state=item.state.value))
             self._store.to_end(item_id)
         self._emit_item(item_id)
         self._work_arrived()

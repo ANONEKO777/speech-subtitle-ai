@@ -1,0 +1,159 @@
+{
+  "batch.notAFolder": {
+    "before": "not a folder",
+    "text": "not a folder",
+    "notices": [
+      {
+        "code": "batch.notAFolder",
+        "params": {},
+        "message": "not a folder"
+      }
+    ],
+    "zh": "不是資料夾"
+  },
+  "batch.notAFile": {
+    "before": "not an existing file with an absolute path",
+    "text": "not an existing file with an absolute path",
+    "notices": [
+      {
+        "code": "batch.notAFile",
+        "params": {},
+        "message": "not an existing file with an absolute path"
+      }
+    ],
+    "zh": "檔案不存在，或不是完整路徑"
+  },
+  "batch.notMedia": {
+    "before": "not a media file extension",
+    "text": "not a media file extension",
+    "notices": [
+      {
+        "code": "batch.notMedia",
+        "params": {},
+        "message": "not a media file extension"
+      }
+    ],
+    "zh": "副檔名不是影片或音訊格式"
+  },
+  "batch.folderSlow": {
+    "before": "the folder did not answer within 0.05 s",
+    "text": "the folder did not answer within 0.05 s",
+    "notices": [
+      {
+        "code": "batch.folderSlow",
+        "params": {
+          "seconds": "0.05"
+        },
+        "message": "the folder did not answer within 0.05 s"
+      }
+    ],
+    "zh": "這個資料夾超過 0.05 秒沒有回應"
+  },
+  "batch.alreadyIn": {
+    "before": "already in the queue as <item> (queued)",
+    "text": "already in the batch as <item> (queued)",
+    "notices": [
+      {
+        "code": "batch.alreadyIn",
+        "params": {
+          "item": "<item>",
+          "state": "queued"
+        },
+        "message": "already in the batch as <item> (queued)"
+      }
+    ],
+    "zh": "已經在佇列中（項目 <item>，等待中）"
+  },
+  "batch.nothingGiven": {
+    "before": "give at least one item or folder",
+    "text": "give at least one item or folder",
+    "notices": [
+      {
+        "code": "batch.nothingGiven",
+        "params": {},
+        "message": "give at least one item or folder"
+      }
+    ],
+    "zh": "請至少加入一個檔案或資料夾"
+  },
+  "batch.badOrder": {
+    "before": "the order must list each known item once",
+    "text": "the order must list each known item once",
+    "notices": [
+      {
+        "code": "batch.badOrder",
+        "params": {},
+        "message": "the order must list each known item once"
+      }
+    ],
+    "zh": "新的排列順序要包含佇列中的每個項目，而且每個只能出現一次"
+  },
+  "batch.cannotResume": {
+    "before": "cannot resume an item that is queued",
+    "text": "cannot resume an item that is queued",
+    "notices": [
+      {
+        "code": "batch.cannotResume",
+        "params": {
+          "state": "queued"
+        },
+        "message": "cannot resume an item that is queued"
+      }
+    ],
+    "zh": "無法繼續狀態為「等待中」的項目"
+  },
+  "batch.cannotRetry": {
+    "before": "cannot retry an item that is queued",
+    "text": "cannot retry an item that is queued",
+    "notices": [
+      {
+        "code": "batch.cannotRetry",
+        "params": {
+          "state": "queued"
+        },
+        "message": "cannot retry an item that is queued"
+      }
+    ],
+    "zh": "無法重試狀態為「等待中」的項目"
+  },
+  "batch.removeFinishedOnly": {
+    "before": "only a finished item can be removed; cancel it first",
+    "text": "only a finished item can be removed; cancel it first",
+    "notices": [
+      {
+        "code": "batch.removeFinishedOnly",
+        "params": {},
+        "message": "only a finished item can be removed; cancel it first"
+      }
+    ],
+    "zh": "只能移除已結束的項目，請先取消它"
+  },
+  "batch.cannotPause": {
+    "before": "cannot pause an item that is paused",
+    "text": "cannot pause an item that is paused",
+    "notices": [
+      {
+        "code": "batch.cannotPause",
+        "params": {
+          "state": "paused"
+        },
+        "message": "cannot pause an item that is paused"
+      }
+    ],
+    "zh": "無法暫停狀態為「已暫停」的項目"
+  },
+  "batch.cannotCancel": {
+    "before": "cannot cancel an item that is cancelled",
+    "text": "cannot cancel an item that is cancelled",
+    "notices": [
+      {
+        "code": "batch.cannotCancel",
+        "params": {
+          "state": "cancelled"
+        },
+        "message": "cannot cancel an item that is cancelled"
+      }
+    ],
+    "zh": "無法取消狀態為「已取消」的項目"
+  }
+}

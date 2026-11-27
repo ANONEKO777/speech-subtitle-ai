@@ -20,7 +20,14 @@ from pathlib import Path
 from typing import Any
 
 from backend.core.jobs import JobOptions
-from backend.core.notices import Notice, from_json, to_json
+from backend.core.notices import (
+    BATCH_ALREADY_IN,
+    BATCH_BAD_ORDER,
+    Notice,
+    from_json,
+    noticed,
+    to_json,
+)
 from backend.core.translate import GlossaryEntry
 
 log = logging.getLogger(__name__)
@@ -233,7 +240,9 @@ class QueueStore:
                     and item.target_lang == options.target_lang
                     and not item.state.finished
                 ):
-                    raise QueueError(f"already in the queue as {item.id} ({item.state.value})")
+                    raise noticed(
+                        QueueError, BATCH_ALREADY_IN(item=item.id, state=item.state.value)
+                    )
             row = self._rows("SELECT COALESCE(MAX(position), -1) + 1 FROM items")[0][0]
             item = QueueItem(
                 uuid.uuid4().hex,
@@ -351,7 +360,7 @@ class QueueStore:
         with self._lock:
             known = [i.id for i in self.items()]
             if len(set(ids)) != len(ids) or not set(ids) <= set(known):
-                raise QueueError("the order must list each known item once")
+                raise noticed(QueueError, BATCH_BAD_ORDER())
             order = [*ids, *(i for i in known if i not in set(ids))]
             self._tx(
                 [

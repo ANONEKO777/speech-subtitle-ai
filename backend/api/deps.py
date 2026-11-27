@@ -8,7 +8,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.core.notices import notices_of, to_json
+from backend.core.notices import Notice, noticed, notices_of, to_json
 from backend.manager.context import ManagerContext
 from backend.manager.download import JobStatus, is_locked, os_error_said
 from backend.manager.maintain import Refused
@@ -38,6 +38,14 @@ def pipeline_busy(request: Request) -> bool:
 def refuse_while_busy(request: Request, action: str) -> None:
     if pipeline_busy(request):
         raise HTTPException(409, f"a job is running; wait for it before you {action}")
+
+
+def refused(status: int, notice: Notice) -> HTTPException:
+    """A refusal whose `detail` is the notice's English sentence. `noticed_http_error` sends the
+    notice beside it."""
+    made = HTTPException(status, notice.message)
+    made.__cause__ = noticed(ValueError, notice)
+    return made
 
 
 def refusal(exc: Refused) -> HTTPException:

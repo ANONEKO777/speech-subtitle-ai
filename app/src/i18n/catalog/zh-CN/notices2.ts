@@ -1,0 +1,30 @@
+// Machine translation (Taiwan source to mainland terms). No native speaker has read it.
+import type { notices2 as en } from "../en/notices2";
+
+export const notices2 = {
+  "common.clauseSeparator": "；",
+  "notice.batch.alreadyIn": "已经在队列中（项目 {item}，{state}）",
+  "notice.batch.badOrder": "新的排列顺序要包含队列中的每个项目，而且每个只能出现一次",
+  "notice.batch.cannotCancel": "无法取消状态为“{state}”的项目",
+  "notice.batch.cannotPause": "无法暂停状态为“{state}”的项目",
+  "notice.batch.cannotResume": "无法继续状态为“{state}”的项目",
+  "notice.batch.cannotRetry": "无法重试状态为“{state}”的项目",
+  "notice.batch.folderSlow": "这个文件夹超过 {seconds} 秒没有响应",
+  "notice.batch.notAFile": "文件不存在，或不是完整路径",
+  "notice.batch.notAFolder": "不是文件夹",
+  "notice.batch.notMedia": "扩展名不是视频或音频格式",
+  "notice.batch.nothingGiven": "请至少加入一个文件或文件夹",
+  "notice.batch.removeFinishedOnly": "只能移除已结束的项目，请先取消它",
+  "noticeWord.cancelled": "已取消",
+  "noticeWord.cloud_url": "云端服务网址",
+  "noticeWord.done": "完成",
+  "noticeWord.failed": "失败",
+  "noticeWord.none": "不需要修复",
+  "noticeWord.ollama_url": "Ollama 网址",
+  "noticeWord.paused": "已暂停",
+  "noticeWord.queued": "等待中",
+  "noticeWord.refetch": "重新下载",
+  "noticeWord.registry_url": "远程清单网址",
+  "noticeWord.resume": "继续下载",
+  "noticeWord.running": "处理中",
+} satisfies Record<keyof typeof en, string>;

@@ -82,6 +82,67 @@
       "file": "text"
     }
   },
+  "batch.alreadyIn": {
+    "english": "already in the batch as {item} ({state})",
+    "params": {
+      "item": "text",
+      "state": "word"
+    }
+  },
+  "batch.badOrder": {
+    "english": "the order must list each known item once",
+    "params": {}
+  },
+  "batch.cannotCancel": {
+    "english": "cannot cancel an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotPause": {
+    "english": "cannot pause an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotResume": {
+    "english": "cannot resume an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotRetry": {
+    "english": "cannot retry an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.folderSlow": {
+    "english": "the folder did not answer within {seconds} s",
+    "params": {
+      "seconds": "text"
+    }
+  },
+  "batch.notAFile": {
+    "english": "not an existing file with an absolute path",
+    "params": {}
+  },
+  "batch.notAFolder": {
+    "english": "not a folder",
+    "params": {}
+  },
+  "batch.notMedia": {
+    "english": "not a media file extension",
+    "params": {}
+  },
+  "batch.nothingGiven": {
+    "english": "give at least one item or folder",
+    "params": {}
+  },
+  "batch.removeFinishedOnly": {
+    "english": "only a finished item can be removed; cancel it first",
+    "params": {}
+  },
   "download.cutShort": {
     "english": "connection closed before the whole file arrived",
     "params": {}
