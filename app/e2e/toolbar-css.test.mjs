@@ -70,12 +70,14 @@ describe("the stylesheet keeps the player toolbar on one row for a language name
 
   it("shortens a language name with an ellipsis and keeps 3.5em of it and the words around it", () => {
     expect(rule(".cut-name")).toContain("grid-template-columns: minmax(min(calc(3.5em + var(--name-rest, 0px)), var(--name-full, 0px)), max-content);");
-    for (const line of ["min-width: 0;", "overflow: hidden;", "text-overflow: ellipsis;", "white-space: nowrap;"]) {
-      expect(rule(".cut-name > span")).toContain(line);
-    }
-    expect(rule(".cut-name[data-cut] > span")).toContain("display: flex;");
-    expect(rule(".cut-name[data-cut] > span")).toContain("white-space: pre;");
-    expect(rule(".cut-name[data-cut] > span > span")).toContain("text-overflow: ellipsis;");
+    expect(rule(".cut-name > span")).toContain("white-space: nowrap;");
+    // a box that clips while the name is whole changes the pixels of the usual toolbar
+    expect(rule(".cut-name > span")).not.toContain("overflow");
+    const clip = rule(".cut-name[data-cut] > span,\n.cut-name[data-cut] > span > span");
+    for (const line of ["min-width: 0;", "overflow: hidden;", "text-overflow: ellipsis;"]) expect(clip).toContain(line);
+    const lines = blocks(css, ".cut-name[data-cut] > span").at(-1);
+    expect(lines).toContain("display: flex;");
+    expect(lines).toContain("white-space: pre;");
   });
 
   it("gives the English toolbar its narrower button padding and column gap", () => {

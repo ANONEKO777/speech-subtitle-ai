@@ -1963,21 +1963,23 @@ header:has(.settings) .field input {
 
 .cut-name > span {
   min-width: 0;
+  white-space: nowrap;
+}
+
+/* only a shortened name is clipped: a clipping box also takes the colour fringe before the first letter and the tail of a ç. The padding, taken back by the margin, keeps room for accents above and below. */
+.cut-name[data-cut] > span,
+.cut-name[data-cut] > span > span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-block: 3px;
+  margin-block: -3px;
 }
 
 /* shortened: the name alone gives way, and the words around it ("on top", with its space) stay whole */
 .cut-name[data-cut] > span {
   display: flex;
   white-space: pre;
-}
-
-.cut-name[data-cut] > span > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* the English toolbar words are wider than the Chinese ones. These two give some of that back to the names and the path box */
