@@ -87,7 +87,7 @@ export function UpdateSection({ updates }: { updates: Updates }) {
         )}
         {phase.kind === "downloading" && <p className="note">{t("update.downloading", { version: phase.update.version })}</p>}
         {phase.kind === "downloaded" && (
-          <div className="note ok" data-testid="update-downloaded">
+          <div className={updates.work ? "note ok update-held" : "note ok"} data-testid="update-downloaded">
             <p>{t("update.downloaded", { version: phase.update.version })}</p>
             <button
               type="button"

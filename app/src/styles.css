@@ -2939,3 +2939,17 @@ kbd {
   color: var(--text);
   font-size: var(--text-md);
 }
+
+/* A downloaded update that waits for the work to end: the sentence, the held button, then why. */
+.update-held {
+  flex-wrap: wrap;
+}
+
+.update-held > p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.update-held > p + button + p {
+  order: 1;
+}
