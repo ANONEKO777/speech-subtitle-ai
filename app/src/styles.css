@@ -1878,7 +1878,7 @@ kbd {
   }
 
   /* in the one-column list the add-to-queue button sits over the end of the title */
-  :root:lang(en) .lib-title {
+  .lib-title {
     padding-right: 28px;
   }
 }
