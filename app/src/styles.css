@@ -2930,6 +2930,10 @@ kbd {
   margin: 0;
 }
 
+.start-check .switch {
+  flex: none;
+}
+
 .start-check .consent > span {
   display: grid;
   gap: 2px;
