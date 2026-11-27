@@ -13,7 +13,7 @@ The brief's recommended shape sends one notice for one message. The backend does
 | any HTTP refusal | `detail` or `detail.message` | `notices`, beside `detail` |
 | job state and the `failed` event | `error` | `error_notices` |
 | `queue.db` and `/api/queue` | `last_error` | `last_error_notices` (new column) |
-| project file and `/api/projects/{id}` | `steps.*.error` | `error_notices` (written only when not empty) |
+| project file and `/api/projects/{id}` | `steps.*.error` | none: nothing reads this text (see Downgrade) |
 | burn export | `error` | `error_notices` |
 | `selftest.json` and the self-test routes | `message`, `fallback.reason`, `stages[].detail` | `message_notices`, `reason_notices`, `detail_notices` |
 | shell command rejection and `backend-failed` | `message` | `notices` |
@@ -67,7 +67,7 @@ The self-test's own wrapper sentences are still English in both languages (item 
 - **Lists** (the fonts that were tried) travel as lists. `zh-TW` joins them with `、` and English with `, ` (`common.listSeparator`).
 - **The file dialog's filter name** is not a message. The window passes it to `pick_video` and `pick_videos` (`filterName`). The dialog still runs in the shell, so a page script cannot forge a pick.
 - **The command line** (`python -m backend.cli`) printed these sentences in Chinese and now prints them in English. The CLI has no language setting.
-- **Downgrade.** An earlier build refuses a `project.json` step with a key it does not know. Only a step that failed with a notice has `error_notices`, so only such a project fails to open in an earlier build, until the step runs again. `queue.db` and `selftest.json` are read by earlier builds, which ignore the new column and keys.
+- **Downgrade.** An earlier build refuses a `project.json` step with a key it does not know. It then leaves the project out of the library, fails to open its video, and cannot run the step again. For this reason `project.json` stores a failed step's `error` as plain English text, with no notices. Neither the window nor the backend reads that text. A change that shows it must not add a key inside a step. The parser still accepts `error_notices` and drops it, because this branch saved that key up to `cc80448`. An earlier build can read such a file only after this build saves the project again. `queue.db` and `selftest.json` are read by earlier builds, which ignore the new column and keys.
 - A queue that an earlier build wrote to after this one can hold notices of an older error beside a newer one. They do nothing, because a notice only replaces its own `message`.
 - **Not translated:** the window title in `index.html` and `tauri.conf.json` (`字幕翻譯`) is static and shows until the page loads. Update notes from the manifest, file names, subtitle and summary text, and the output of other programs are data.
 

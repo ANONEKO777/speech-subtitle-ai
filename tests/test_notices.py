@@ -23,7 +23,7 @@ from test_pipeline import SETTINGS
 from backend.core import notices, render, vc_runtime
 from backend.core.audio import AudioError
 from backend.core.jobs import JobOptions, OptionsError
-from backend.core.model import Cue, Project, Step, StepState, StepStatus
+from backend.core.model import Cue, Step
 from backend.core.notices import REGISTRY, Notice, noticed, notices_of, to_json
 from backend.core.pipeline import Ports, Settings
 from backend.core.queue_store import ItemState, QueueStore
@@ -189,9 +189,7 @@ def _old_project() -> str:
 def test_a_project_file_of_an_earlier_version_loads_and_shows_its_error_as_it_was() -> None:
     project = parse_project(_old_project())
 
-    state = project.steps[Step.AUDIO]
-    assert state.error == OLD
-    assert state.error_notices == ()
+    assert project.steps[Step.AUDIO].error == OLD
     assert "error_notices" not in render_project(project)
 
 
@@ -397,14 +395,11 @@ def test_a_failed_job_sends_the_notice_in_its_event_and_its_state(tmp_path: Path
 
         state = _until(failed)
         events = c.get(f"/api/jobs/{job['id']}/events").text
-        stored = c.get(f"/api/projects/{pid}").json()["steps"]["audio"]
 
     assert state["error"] == f"audio: {VC.message}"
     assert state["error_notices"] == to_json([VC])
     data = next(b for b in events.split("\n\n") if "event: failed" in b).split("data: ")[1]
     assert json.loads(data)["error_notices"] == to_json([VC])
-    assert stored["error"] == f"AudioError: {VC.message}"
-    assert stored["error_notices"] == to_json([VC])
 
 
 def test_a_step_that_failed_with_a_notice_is_saved_as_an_earlier_build_reads_it(
@@ -485,4 +480,3 @@ def test_a_notice_is_plain_data() -> None:
     sent = Notice("c", {"a": ["b"]}, "m")
 
     assert notices.from_json(json.loads(json.dumps(to_json([sent])))) == (sent,)
-    assert Project("v").steps[Step.AUDIO].error_notices == ()

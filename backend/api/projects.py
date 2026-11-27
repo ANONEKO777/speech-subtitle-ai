@@ -14,7 +14,6 @@ from backend.core.languages import UnknownLanguage
 from backend.core.languages import get as get_language
 from backend.core.media import accepted_extensions, is_media
 from backend.core.model import Cue, Step, StepState
-from backend.core.notices import to_json
 from backend.core.projects import (
     MEDIA_TYPES,
     BadCues,
@@ -63,7 +62,6 @@ def _steps_json(steps: Mapping[Step, StepState]) -> dict[str, Any]:
             "status": state.status.value,
             "updated_at_ms": state.updated_at_ms,
             "error": state.error,
-            "error_notices": to_json(state.error_notices),
             "degraded": state.degraded,
         }
         for step, state in steps.items()
