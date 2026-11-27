@@ -852,6 +852,11 @@ header:has(.queue-chip) .slider {
   padding: 0 6px;
 }
 
+/* the Simplified Chinese tabs and export button are as wide as the Traditional ones */
+:root:lang(zh-Hans) .tabs button {
+  padding: 0 6px;
+}
+
 .tabs button:hover:not(:disabled) {
   background: var(--hover);
   color: var(--text);
@@ -1455,6 +1460,24 @@ button.chapter-time:hover:not(:disabled) {
   padding-block: var(--space-1);
   white-space: normal;
   text-align: start;
+}
+
+/* on one row the Japanese export button ends about 50 px past the 340 px side column, so the tabs wrap as the
+   English ones do; the folder label alone is 265 px wide */
+:root:lang(ja) .side-head {
+  flex-wrap: wrap;
+}
+
+:root:lang(ja) .side-head .tabs {
+  flex: 1 1 100%;
+}
+
+:root:lang(ja) .side-tools {
+  margin-left: auto;
+}
+
+:root:lang(ja) .folder-name {
+  max-width: 300px;
 }
 
 .pop {
@@ -2698,6 +2721,18 @@ kbd {
 
 :root:lang(en) .target-pick select[data-experimental="true"] {
   width: 190px;
+}
+
+/* the longest Japanese and Simplified Chinese names have six characters (繁体字中国語, 印度尼西亚语) where the
+   Traditional Chinese ones have four, and the experimental mark adds five more */
+:root:lang(ja) .target-pick select,
+:root:lang(zh-Hans) .target-pick select {
+  width: 104px;
+}
+
+:root:lang(ja) .target-pick select[data-experimental="true"],
+:root:lang(zh-Hans) .target-pick select[data-experimental="true"] {
+  width: 168px;
 }
 
 .progress-note {
