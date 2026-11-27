@@ -768,6 +768,59 @@ REPAIR_RUNTIME_CHECKED = _template(
 )
 REPAIR_INCOMPLETE = _template("manage.repair.incomplete", "the install is incomplete")
 
+# The LLM page (`manager/llm_check.py`, `manager/settings.py`, `manager/secrets.py`): the result of
+# a connection test, and why the settings were not saved or not used.
+LLM_TEST_CONNECTED = _template("llmTest.connected", "connected")
+LLM_TEST_COULD_NOT_USE = _template(
+    "llmTest.couldNotUse", "could not use {url}: {why}", url="text", why="text"
+)
+LLM_TEST_REFUSED = _template(
+    "llmTest.refused", "connection refused, nothing is listening at that address"
+)
+LLM_TEST_TIMED_OUT = _template("llmTest.timedOut", "no answer within {seconds} s", seconds="text")
+LLM_TEST_HOST_NOT_FOUND = _template("llmTest.hostNotFound", "the host name was not found")
+LLM_TEST_CANNOT_CONNECT = _template(
+    "llmTest.cannotConnect", "cannot connect ({reason})", reason="text"
+)
+LLM_TEST_REDIRECTED = _template(
+    "llmTest.redirected",
+    "it redirected to {location}; redirects are not followed",
+    location="text",
+)
+LLM_TEST_KEY_REJECTED = _template(
+    "llmTest.keyRejected", "the server rejected the API key (HTTP {status})", status="text"
+)
+LLM_TEST_NOT_JSON = _template(
+    "llmTest.notJson", "the answer is not JSON, so this is not that kind of server"
+)
+LLM_TEST_MODEL_MISSING = _template(
+    "llmTest.modelMissing",
+    "connected to {url}, but model {model} is not installed there",
+    url="text",
+    model="text",
+)
+LLM_TEST_NO_KEY = _template(
+    "llmTest.noKey", "no API key to test with: enter the key for this address"
+)
+LLM_TEST_NOT_INSTALLED = _template(
+    "llmTest.notInstalled", "not installed: {missing}", missing="list"
+)
+LLM_TEST_BUILTIN_READY = _template(
+    "llmTest.builtinReady", "llama-server and the model are installed"
+)
+SETTINGS_URL_PARTS = _template(
+    "settings.urlParts",
+    "{field} must not hold a user name, password, query or fragment",
+    field="word",
+)
+SETTINGS_FILE_NOT_USED = _template(
+    "settings.fileNotUsed", "{file} was not used: {error}", file="text", error="text"
+)
+SECRETS_NEED_DPAPI = _template("secrets.needDpapi", "storing the API key needs Windows DPAPI")
+SECRETS_DPAPI_FAILED = _template(
+    "secrets.dpapiFailed", "Windows DPAPI failed (error {code})", code="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
