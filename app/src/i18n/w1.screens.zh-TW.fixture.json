@@ -133,7 +133,7 @@
  "licenses": [
   {
    "table": {
-    "text": "第三方授權App 另外下載的每個模型與執行檔，各自的授權與來源。連結會用瀏覽器開啟。本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg a35157abb9，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。名稱版本授權連結whisper-large-v3-turbo模型1MIT授權全文下載來源whispercpp-b5454-win-cuda執行檔b5454MIT授權全文下載來源whispercpp-b5454-macos-metal執行檔b5454MIT授權全文下載來源",
+    "text": "第三方授權App 另外下載的每個模型與執行檔，各自的授權與來源。連結會用瀏覽器開啟。本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg 8dca1586f4，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。名稱版本授權連結whisper-large-v3-turbo模型1MIT授權全文下載來源whispercpp-b5454-win-cuda執行檔b5454MIT授權全文下載來源whispercpp-b5454-macos-metal執行檔b5454MIT授權全文下載來源",
     "attrs": [
      "title=1",
      "title=b5454",

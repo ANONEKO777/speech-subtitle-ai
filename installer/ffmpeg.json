@@ -1,0 +1,8 @@
+{
+  "tag": "autobuild-2026-10-31-12-59",
+  "file": "ffmpeg-n8.1.3-27-g8dca1586f4-win64-lgpl-shared-8.1.zip",
+  "sha256": "5cef7bc48e513f3cee7c881e8b2999d835541edb1846c3e89443a67f8f8556ab",
+  "source_commit": "8dca1586f468bfcbb78ae3ed618af1361d9f140a",
+  "mirror_repo": "ANONEKO777/speech-subtitle-ai",
+  "mirror_release": "ffmpeg-autobuild-2026-10-31-12-59"
+}

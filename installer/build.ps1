@@ -19,18 +19,39 @@ $root = Split-Path $PSScriptRoot -Parent
 $build = Join-Path $PSScriptRoot 'build'
 $cache = Join-Path $build 'cache'
 $env:PATH = "$HOME/.cargo/bin;$env:PATH"
+# Windows PowerShell 5.1 downloads many times slower while it draws a progress bar.
+$ProgressPreference = 'SilentlyContinue'
 
-# FFmpeg from BtbN's builds, the LGPL variant (no x264, no x265, no nonfree). Pinned by hash: the
-# SHA-256 is the one GitHub shows for the release asset. BtbN deletes most daily autobuild tags after
-# a few weeks (it keeps the month-end ones), so the zip stays in installer/build/cache. If it is gone,
-# move to a month-end tag, then rerun installer/fetch_ffmpeg_licenses.py and update THIRD_PARTY.md.
-$ffmpegTag = 'autobuild-2026-11-06-12-50'
-$ffmpegZip = 'ffmpeg-n8.1.3-34-ga35157abb9-win64-lgpl-shared-8.1.zip'
-$ffmpegSha = '08897c3d53909d8fde6bd5eb9324e7ca41324890d2b03e22c2f9f31025789ee2'
+# FFmpeg from BtbN's builds, the LGPL variant (no x264, no x265, no nonfree), pinned by hash in
+# installer/ffmpeg.json. BtbN deletes daily autobuild tags after a few weeks and keeps the month-end
+# ones, so the pin is a month-end tag, with a copy in this repository's releases as the second source
+# (installer/mirror_ffmpeg.ps1 puts it there).
+$ffmpeg = Get-Content "$PSScriptRoot/ffmpeg.json" -Raw | ConvertFrom-Json
 
 function Invoke-Checked([string]$what, [scriptblock]$run) {
     & $run
     if ($LASTEXITCODE -ne 0) { throw "$what failed with exit code $LASTEXITCODE" }
+}
+
+function Test-PinnedFFmpeg([string]$path) {
+    (Test-Path $path) -and (Get-FileHash $path -Algorithm SHA256).Hash -eq $ffmpeg.sha256.ToUpper()
+}
+
+function Get-PinnedFFmpeg([string]$zip) {
+    if (Test-PinnedFFmpeg $zip) { return }
+    $sources = @(
+        "https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/$($ffmpeg.tag)/$($ffmpeg.file)",
+        "https://github.com/$($ffmpeg.mirror_repo)/releases/download/$($ffmpeg.mirror_release)/$($ffmpeg.file)"
+    )
+    $part = "$zip.part"
+    $failures = foreach ($url in $sources) {
+        try { Invoke-WebRequest $url -OutFile $part -UseBasicParsing } catch { "$url : $($_.Exception.Message)"; continue }
+        if (Test-PinnedFFmpeg $part) { Move-Item $part $zip -Force; return }
+        "$url : its SHA-256 differs from installer/ffmpeg.json"
+    }
+    Remove-Item $part -Force -ErrorAction SilentlyContinue
+    throw (@("The pinned FFmpeg $($ffmpeg.file) could not be fetched from any source:") + $failures +
+        'Pin a newer month-end build in installer/ffmpeg.json as installer/README.md describes.') -join "`n"
 }
 
 Remove-Item $build/backend, $build/ffmpeg -Recurse -Force -ErrorAction SilentlyContinue
@@ -49,11 +70,8 @@ try {
 Copy-Item "$build/pyi/vst-backend/*" "$build/backend" -Recurse
 
 # 2. FFmpeg: download, check the hash, check it is really the LGPL build, keep what the app runs.
-$zip = Join-Path $cache $ffmpegZip
-if (-not (Test-Path $zip)) {
-    Invoke-WebRequest "https://github.com/BtbN/FFmpeg-Builds/releases/download/$ffmpegTag/$ffmpegZip" -OutFile $zip
-}
-if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $ffmpegSha.ToUpper()) { throw "FFmpeg zip hash differs from the pinned one" }
+$zip = Join-Path $cache $ffmpeg.file
+Get-PinnedFFmpeg $zip
 $unpacked = Join-Path $cache 'ffmpeg'
 Remove-Item $unpacked -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip $unpacked
@@ -61,6 +79,12 @@ $ffRoot = Get-ChildItem $unpacked -Directory | Select-Object -First 1
 $config = [regex]::Match([Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes("$($ffRoot.FullName)/bin/avutil-60.dll")), '--prefix=[ -~]*').Value
 if (-not $config -or $config -match '--enable-(gpl|nonfree)\b') { throw "This FFmpeg is not an LGPL build: $config" }
 Set-Content "$build/ffmpeg-configuration.txt" $config
+Push-Location $root
+try {
+    Invoke-Checked 'FFmpeg license check' {
+        uv run --no-sync python installer/fetch_ffmpeg_licenses.py --check "$build/ffmpeg-configuration.txt"
+    }
+} finally { Pop-Location }
 foreach ($file in 'ffmpeg.exe', 'ffprobe.exe', 'avcodec-62.dll', 'avdevice-62.dll', 'avfilter-11.dll', 'avformat-62.dll', 'avutil-60.dll', 'swresample-6.dll', 'swscale-9.dll') {
     Copy-Item "$($ffRoot.FullName)/bin/$file" "$build/ffmpeg/"
 }

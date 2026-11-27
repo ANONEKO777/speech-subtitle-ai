@@ -153,7 +153,7 @@
  },
  "the licenses page on a PC": {
   "notice": {
-   "text": "本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg a35157abb9，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。",
+   "text": "本程式以 AGPL-3.0-or-later 授權。原始碼： https://github.com/ANONEKO777/speech-subtitle-ai安裝程式隨附 FFmpeg 8.1（LGPL-3.0-or-later組建，未含 GPL 或 nonfree 元件），以獨立的 ffmpeg.exe 與 DLL 放在安裝資料夾的 ffmpeg 子資料夾，可自行替換。FFmpeg 原始碼：FFmpeg 8dca1586f4，組建腳本：BtbN/FFmpeg-Builds。完整聲明在安裝資料夾的 THIRD_PARTY.md。",
    "attrs": []
   }
  }

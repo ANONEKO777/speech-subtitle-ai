@@ -2,9 +2,21 @@
 
 `powershell -File installer/build.ps1` builds the per-user NSIS installer (no admin rights). It needs Rust (`~/.cargo/bin`), Node, `uv`, and network access for the FFmpeg zip, NSIS and the WebView2 bootstrapper on the first run.
 
-Steps: PyInstaller makes the backend folder (`sidecar.spec`, no PyTorch, no CUDA), the pinned LGPL FFmpeg is downloaded, hash-checked and checked for `--enable-gpl` and `--enable-nonfree`, then `tauri build --bundles nsis` packs the shell, front end, backend, FFmpeg and licenses (`tauri.bundle.conf.json` adds the two build folders). The script fails above 150 MB and runs `tests/test_package_contents.py` against the installer.
+Steps: PyInstaller makes the backend folder (`sidecar.spec`, no PyTorch, no CUDA), the pinned LGPL FFmpeg is downloaded, hash-checked, checked for `--enable-gpl` and `--enable-nonfree`, and checked for libraries without a license entry, then `tauri build --bundles nsis` packs the shell, front end, backend, FFmpeg and licenses (`tauri.bundle.conf.json` adds the two build folders). The script fails above 150 MB and runs `tests/test_package_contents.py` against the installer.
 
 Output: `app/src-tauri/target/release/bundle/nsis/*-setup.exe`, its `.sig`, and `installer/build/size.txt`.
+
+## FFmpeg pin
+
+`installer/ffmpeg.json` names the BtbN build: its release tag, zip, SHA-256 and FFmpeg commit. BtbN deletes daily builds after a few weeks and keeps the month-end ones, so pin a month-end tag (`autobuild-YYYY-MM-DD-...` on the last day of a month). `build.ps1` downloads the zip from BtbN, else from this repository's release named in `mirror_release`, and keeps it only when the hash matches. When neither source has it, the build stops and names both addresses.
+
+To keep a copy in this repository, run `installer/mirror_ffmpeg.ps1` after a build. It prints the `gh` command it would run; `-Upload` runs it. The copy is a pre-release, so it never becomes the release the updater reads.
+
+To move to a newer build:
+
+1. Pick the `win64-lgpl-shared-8.1` zip of a month-end tag at https://github.com/BtbN/FFmpeg-Builds/releases and copy the SHA-256 that GitHub shows for it. A new FFmpeg major version changes the DLL names in `build.ps1` and `THIRD_PARTY.md`.
+2. Update `installer/ffmpeg.json` and the build, commit and source offer lines in `installer/THIRD_PARTY.md`, and `FFMPEG_SOURCE_URL` in `app/src/settings/LicensesSection.tsx`. `tests/test_ffmpeg_pin.py` fails until they agree.
+3. Run `build.ps1`. It stops when the build enables a library that `fetch_ffmpeg_licenses.py` has no license entry for. Add the entry, run `uv run python installer/fetch_ffmpeg_licenses.py`, and review the diff of `installer/licenses/FFmpeg-external-libraries.txt`.
 
 ## Updater signing key
 

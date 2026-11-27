@@ -5,22 +5,33 @@ the libraries below. Their licenses (BSD, MIT, ISC, Apache, MPL, LGPL ...) requi
 travel with the binaries, and BtbN's zip carries only FFmpeg's own LICENSE.txt. This script
 downloads each project's license file from its upstream and writes one text,
 installer/licenses/FFmpeg-external-libraries.txt, which build.ps1 copies into the ffmpeg folder.
-Run it again when the pinned FFmpeg build changes, and review the diff.
+Run it again when the pinned FFmpeg build changes, and review the diff. With --check it reads a
+configure line instead and fails when the build enables a library this list has no entry for;
+build.ps1 runs that check on every build.
 
     uv run python installer/fetch_ffmpeg_licenses.py
+    uv run python installer/fetch_ffmpeg_licenses.py --check <configure line file>
 """
 
 from __future__ import annotations
 
 import base64
 import json
+import re
 import subprocess
+import sys
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 OUT = Path(__file__).parent / "licenses" / "FFmpeg-external-libraries.txt"
 FFMPEG_TAG = "n8.1.3"
+
+# Configure switches that enable no third-party library: build options, CUDA kernels compiled by
+# clang, and Windows' own TLS.
+NOT_LIBRARIES = frozenset(
+    {"--enable-shared", "--enable-version3", "--enable-cuda-llvm", "--enable-schannel"}
+)
 
 GH = "github"
 RAW = "raw"
@@ -141,7 +152,7 @@ LIBRARIES: list[tuple[str, str, str, str, str]] = [
         "--enable-libssh",
         "LGPL-2.1-or-later",
         RAW,
-        "https://git.libssh.org/projects/libssh.git/plain/COPYING",
+        "https://gitlab.com/libssh/libssh-mirror/-/raw/master/COPYING",
     ),
     ("libtheora", "--enable-libtheora", "BSD-3-Clause", GH, "xiph/theora"),
     ("libvpx", "--enable-libvpx", "BSD-3-Clause", GH, "webmproject/libvpx"),
@@ -153,11 +164,12 @@ LIBRARIES: list[tuple[str, str, str, str, str]] = [
     ("OpenAPV", "--enable-liboapv", "BSD-3-Clause", GH, "AcademySoftwareFoundation/openapv"),
     (
         "opencore-amr",
-        "--enable-libopencore-amrnb/-amrwb",
+        "--enable-libopencore-amrnb, --enable-libopencore-amrwb",
         "Apache-2.0",
         RAW,
         "https://sourceforge.net/p/opencore-amr/code/ci/master/tree/LICENSE?format=raw",
     ),
+    ("libva", "--enable-vaapi", "MIT", GH, "intel/libva"),
     ("OpenH264", "--enable-libopenh264", "BSD-2-Clause", GH, "cisco/openh264"),
     ("OpenJPEG", "--enable-libopenjpeg", "BSD-2-Clause", GH, "uclouvain/openjpeg"),
     (
@@ -233,10 +245,31 @@ def fetch(entry: tuple[str, str, str, str, str]) -> tuple[str, str]:
     return name, "\n".join(lines[: int(head)] if head else lines)
 
 
+def unlicensed(configuration: str) -> list[str]:
+    """The --enable switches of a configure line that no LIBRARIES entry covers."""
+    covered = {flag for entry in LIBRARIES for flag in re.findall(r"--enable-[\w-]+", entry[1])}
+    enabled = set(re.findall(r"--enable-[\w-]+", configuration))
+    return sorted(enabled - covered - NOT_LIBRARIES)
+
+
+def check(configuration_file: Path) -> int:
+    missing = unlicensed(configuration_file.read_text(encoding="utf-8"))
+    for flag in missing:
+        print(f"{flag} enables a library with no license entry in {Path(__file__).name}")
+    return 1 if missing else 0
+
+
+def looks_like_license(text: str) -> bool:
+    """False for a fetch error, a stub, or a web page (a bot check answers some hosts with HTML)."""
+    head = text.lstrip()[:200].lower()
+    is_page = "<html" in head or "<!doctype" in head
+    return not text.startswith("!!") and len(text.strip()) >= 100 and not is_page
+
+
 def main() -> None:
     with ThreadPoolExecutor(8) as pool:
         texts = dict(pool.map(fetch, LIBRARIES))
-    failed = [n for n, t in texts.items() if t.startswith("!!") or len(t.strip()) < 100]
+    failed = [n for n, t in texts.items() if not looks_like_license(t)]
     parts = [
         "License texts of the external libraries linked into the bundled FFmpeg build\n"
         f"(BtbN/FFmpeg-Builds, FFmpeg {FFMPEG_TAG}+, LGPL variant, shared). Each text is the\n"
@@ -255,7 +288,11 @@ def main() -> None:
     print(f"{len(LIBRARIES) - len(failed)} of {len(LIBRARIES)} texts written to {OUT}")
     for name in failed:
         print(f"MISSING {name}: {texts[name][:120]!r}")
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--check"]:
+        sys.exit(check(Path(sys.argv[2])))
     main()

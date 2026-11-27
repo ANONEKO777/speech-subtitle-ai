@@ -8,9 +8,9 @@ import { shortVersion } from "../manage/format";
 import type { LicenseEntry } from "../manage/types";
 
 export const PROJECT_URL = "https://github.com/ANONEKO777/speech-subtitle-ai";
-const FFMPEG_SOURCE_URL = "https://github.com/FFmpeg/FFmpeg/tree/a35157abb96167fd7308edc92b55408d5bb084b0";
+const FFMPEG_SOURCE_URL = "https://github.com/FFmpeg/FFmpeg/tree/8dca1586f468bfcbb78ae3ed618af1361d9f140a";
 const FFMPEG_BUILD_URL = "https://github.com/BtbN/FFmpeg-Builds";
-const FFMPEG_SOURCE_LABEL = "FFmpeg a35157abb9";
+const FFMPEG_SOURCE_LABEL = "FFmpeg 8dca1586f4";
 const FFMPEG_LEGAL_URL = "https://ffmpeg.org/legal.html";
 const LGPL_URL = "https://spdx.org/licenses/LGPL-3.0-or-later.html";
 const AGPL_URL = "https://spdx.org/licenses/AGPL-3.0-or-later.html";
