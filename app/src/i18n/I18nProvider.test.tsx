@@ -82,13 +82,20 @@ describe("I18nProvider", () => {
     expect(screen.getByTestId("locale").textContent).toBe("en");
   });
 
-  it("shows Traditional Chinese on a fresh install, even when the browser speaks English", () => {
+  it.each([
+    ["en-US", "en", "Interface language"],
+    ["zh-TW", "zh-TW", "介面語言"],
+    ["zh-CN", "zh-CN", "界面语言"],
+    ["ja-JP", "ja", "表示言語"],
+    ["fr-FR", "en", "Interface language"],
+  ])("paints a fresh install in the system language from the first frame (%s)", (tag, locale, text) => {
     render(
-      <I18nProvider browserLanguages={["en-US"]}>
+      <I18nProvider browserLanguages={[tag]}>
         <Probe />
       </I18nProvider>,
     );
-    expect(screen.getByTestId("locale").textContent).toBe("zh-TW");
+    expect(screen.getByTestId("locale").textContent).toBe(locale);
+    expect(screen.getByTestId("text").textContent).toBe(text);
   });
 
   it("follows the browser language on auto, and English for a language it does not speak", () => {

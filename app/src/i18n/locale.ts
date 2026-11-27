@@ -6,13 +6,13 @@ export const UI_LANGUAGES = ["auto", ...LOCALES] as const;
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
 /**
- * What a fresh install shows until the whole window has an English catalog (W5 flips it to `auto`).
+ * A fresh install, and a settings file with no language, follow the operating system.
  * `tests/test_ui_language.py` keeps it equal to the backend default in `backend/manager/settings.py`.
  */
-export const DEFAULT_UI_LANGUAGE: UiLanguage = "zh-TW";
+export const DEFAULT_UI_LANGUAGE: UiLanguage = "auto";
 
-/** The locales a person can pick. zh-CN and ja stay hidden until their catalogs are complete (W5). */
-export const RELEASED_LOCALES: readonly Locale[] = ["zh-TW", "en"];
+/** The locales a person can pick, and the ones `auto` can land on. */
+export const RELEASED_LOCALES: readonly Locale[] = ["zh-TW", "en", "zh-CN", "ja"];
 
 /** The locales whose catalogs a model wrote and no native speaker has read. The picker says so. */
 export const MACHINE_TRANSLATED: readonly Locale[] = ["zh-CN", "ja"];

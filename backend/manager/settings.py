@@ -51,8 +51,8 @@ class UiLanguage(StrEnum):
     JA = "ja"
 
 
-DEFAULT_UI_LANGUAGE = UiLanguage.ZH_TW
-"""Traditional Chinese until every released language is complete. W5 makes AUTO the default."""
+DEFAULT_UI_LANGUAGE = UiLanguage.AUTO
+"""Follow the operating system, as a fresh install and a settings file with no language do."""
 
 
 def clean_url(value: str, what: str, *, https_only: bool = False) -> str:

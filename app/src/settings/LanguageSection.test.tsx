@@ -35,7 +35,7 @@ const show = (initial: "auto" | "zh-TW" | "en" | "ja" = "zh-TW", released?: Para
 describe("LanguageSection", () => {
   it("offers automatic and the released languages only, each written in itself", () => {
     show();
-    expect(options()).toEqual(["auto", "zh-TW", "en"]);
+    expect(options()).toEqual(["auto", "zh-TW", "en", "zh-CN", "ja"]);
     const names = [...screen.getByTestId<HTMLSelectElement>("ui-language").options].map((o) => o.textContent);
     expect(names[0]).toBe("自動（跟隨系統）");
     expect(names[2]).toBe("English");
@@ -72,8 +72,18 @@ describe("LanguageSection", () => {
     expect(screen.getByRole("option", { name: "日本語（機器翻譯）" })).toBeTruthy();
   });
 
+  it("marks the released Simplified Chinese and Japanese as machine translated, and only those", () => {
+    show("en");
+    const names = [...screen.getByTestId<HTMLSelectElement>("ui-language").options].map((o) => o.textContent ?? "");
+    expect(names.filter((n) => n.includes("(machine translated)"))).toHaveLength(2);
+    expect(names[3]).toMatch(/^简体中文|^中文（简体）/);
+    expect(names[3]).toContain("(machine translated)");
+    expect(names[4]).toBe("日本語 (machine translated)");
+    expect(names[1]).not.toContain("machine");
+  });
+
   it("keeps a saved hidden language visible instead of showing a blank select", () => {
-    show("ja");
+    show("ja", ["zh-TW", "en"]);
     expect(options()).toEqual(["auto", "zh-TW", "en", "ja"]);
     expect((screen.getByTestId("ui-language") as HTMLSelectElement).value).toBe("ja");
   });

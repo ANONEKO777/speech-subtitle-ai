@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import plistlib
 import re
 from pathlib import Path
 
@@ -20,9 +21,19 @@ from backend.manager.settings import (
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_the_window_is_traditional_chinese_until_a_person_picks_a_language(rig: Rig) -> None:
-    assert rig.client.get("/api/settings").json()["ui_language"] == "zh-TW"
-    assert rig.ctx.settings.current.ui_language is UiLanguage.ZH_TW
+def test_the_window_follows_the_system_until_a_person_picks_a_language(rig: Rig) -> None:
+    assert rig.client.get("/api/settings").json()["ui_language"] == "auto"
+    assert rig.ctx.settings.current.ui_language is UiLanguage.AUTO
+
+
+def test_a_mac_declares_every_window_language_so_the_web_view_reports_the_system_one() -> None:
+    plist = plistlib.loads((ROOT / "app" / "src-tauri" / "Info.plist").read_bytes())
+    source = (ROOT / "app" / "src" / "i18n" / "locale.ts").read_text(encoding="utf-8")
+    html_lang = re.search(r"export const HTML_LANG: Record<Locale, string> = \{([^}]+)\}", source)
+
+    assert html_lang is not None
+    tags = re.findall(r':\s*"([^"]+)"', html_lang.group(1))
+    assert sorted(plist["CFBundleLocalizations"]) == sorted(tags)
 
 
 def test_the_frontend_and_the_backend_start_from_the_same_window_language() -> None:

@@ -43,16 +43,23 @@ describe("resolveLocale", () => {
 
   it("takes the first browser language a released catalog speaks", () => {
     expect(resolveLocale("auto", ["fr", "zh-TW", "en"])).toBe("zh-TW");
-    expect(resolveLocale("auto", ["ja", "zh-TW"])).toBe("zh-TW");
-    expect(resolveLocale("auto", ["ja", "zh-TW"], ALL)).toBe("ja");
+    expect(resolveLocale("auto", ["ja", "zh-TW"])).toBe("ja");
+    expect(resolveLocale("auto", ["ja", "zh-TW"], ["zh-TW", "en"])).toBe("zh-TW");
+  });
+
+  it("releases every locale, so a Japanese or mainland-Chinese system gets its own language", () => {
+    expect([...RELEASED_LOCALES].sort()).toEqual([...LOCALES].sort());
+    expect(resolveLocale("auto", ["ja-JP"])).toBe("ja");
+    expect(resolveLocale("auto", ["zh-CN"])).toBe("zh-CN");
+    expect(resolveLocale("auto", ["zh-Hans-SG", "en"])).toBe("zh-CN");
   });
 
   it("keeps a hidden locale out of the window until it is released, whoever asked for it", () => {
-    expect(RELEASED_LOCALES).toEqual(["zh-TW", "en"]);
-    expect(resolveLocale("ja", ["en-US"])).toBe("en");
-    expect(resolveLocale("ja", ["zh-TW"])).toBe("zh-TW");
-    expect(resolveLocale("auto", ["ja-JP"])).toBe("en");
-    expect(resolveLocale("zh-CN", [])).toBe("en");
+    const released: readonly Locale[] = ["zh-TW", "en"];
+    expect(resolveLocale("ja", ["en-US"], released)).toBe("en");
+    expect(resolveLocale("ja", ["zh-TW"], released)).toBe("zh-TW");
+    expect(resolveLocale("auto", ["ja-JP"], released)).toBe("en");
+    expect(resolveLocale("zh-CN", [], released)).toBe("en");
   });
 });
 
@@ -75,10 +82,10 @@ describe("the localStorage mirror", () => {
     expect(localStorage.getItem(MIRROR_KEY)).toBe("ja");
   });
 
-  it("is Traditional Chinese when nothing, or something that is not a language, is stored", () => {
-    expect(readMirror()).toBe("zh-TW");
+  it("follows the system when nothing, or something that is not a language, is stored", () => {
+    expect(readMirror()).toBe("auto");
     localStorage.setItem(MIRROR_KEY, "klingon");
-    expect(readMirror()).toBe("zh-TW");
+    expect(readMirror()).toBe("auto");
   });
 
   it("keeps auto when auto is what is stored", () => {
@@ -93,7 +100,7 @@ describe("the localStorage mirror", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(readMirror()).toBe("zh-TW");
+    expect(readMirror()).toBe("auto");
     expect(() => writeMirror("en")).not.toThrow();
   });
 });

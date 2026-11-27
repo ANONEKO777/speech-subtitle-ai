@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Tauri merges this into the bundle's Info.plist. macOS gives an app only the languages it declares,
+     and the web view's navigator.language comes from that choice, so without this list a Japanese or
+     Chinese Mac reports English and the window's "auto" language follows it. -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>zh-Hant</string>
+    <string>zh-Hans</string>
+    <string>ja</string>
+  </array>
+</dict>
+</plist>
