@@ -41,11 +41,14 @@ def refuse_while_busy(request: Request, busy: Template) -> None:
         raise refused(409, busy())
 
 
-def refused(status: int, notice: Notice) -> HTTPException:
-    """A refusal whose `detail` is the notice's English sentence. `noticed_http_error` sends the
-    notice beside it."""
+def refused(status: int, notice: Notice, *quoted: Notice) -> HTTPException:
+    """A refusal whose `detail` is the notice's English sentence, which may quote the sentences in
+    `quoted`. `noticed_http_error` sends the notices beside it."""
     made = HTTPException(status, notice.message)
-    made.__cause__ = noticed(ValueError, notice)
+    link: BaseException = made
+    for one in (notice, *quoted):
+        link.__cause__ = noticed(ValueError, one)
+        link = link.__cause__
     return made
 
 

@@ -50,6 +50,7 @@ from backend.manager.platforms import MACOS_ARM64
 from backend.manager.profiles import ALL_PROFILES, WHISPER_RUNTIME, WHISPER_TURBO, ProfileId
 from backend.manager.secrets import SecretError
 from backend.manager.settings import LlmSettings, LlmSource, SettingsStore
+from backend.manager.storage import Storage, StorageError
 
 
 def _reply(response: Any) -> Entry:
@@ -486,6 +487,31 @@ def _player(found: dict[str, Entry], tmp: Path) -> None:
         )
 
 
+# Found by the guard: a verify or an update the item refuses, a stopped verify, and a models
+# folder setting that cannot be read.
+
+
+def _guard_found(found: dict[str, Entry], rig: Rig) -> None:
+    client = rig.client
+    found["manage.verifyRuntime"] = _reply(client.post(f"/api/inventory/{WHISPER_RUNTIME}/verify"))
+    rig.install("models", WHISPER_TURBO)
+    rig.remote = rig.registry
+    found["manage.nothingToUpdate"] = _reply(client.post(f"/api/inventory/{WHISPER_TURBO}/update"))
+    try:
+        rig.ctx.inventory.verify_model(rig.registry.models[WHISPER_TURBO], lambda: True)
+    except InterruptedError as exc:
+        found["manage.verifyStopped"] = _entry(str(exc), notices_of(exc))
+    folder = rig.tmp / "settings"
+    folder.mkdir()
+    (folder / "storage.json").write_text('{"models_dir": "m"}', encoding="utf-8")
+    try:
+        Storage(folder)
+    except StorageError as exc:
+        found["storage.cannotRead"] = _replaced(
+            _entry(str(exc), notices_of(exc)), str(rig.tmp), "<tmp>"
+        )
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
@@ -500,6 +526,8 @@ def collect(tmp: Path) -> dict[str, Entry]:
         _storage(found, Rig(tmp / "storage", origin))
         (tmp / "profiles").mkdir()
         _profiles(found, Rig(tmp / "profiles", origin))
+        (tmp / "found").mkdir()
+        _guard_found(found, Rig(tmp / "found", origin))
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

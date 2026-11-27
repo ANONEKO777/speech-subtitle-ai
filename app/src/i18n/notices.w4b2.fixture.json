@@ -1231,5 +1231,73 @@
       }
     ],
     "zh": "無法得知這台電腦的記憶體大小，「Apple 晶片 16 GB」需要 15000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "manage.verifyRuntime": {
+    "before": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded",
+    "text": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded",
+    "notices": [
+      {
+        "code": "manage.verifyRuntime",
+        "params": {
+          "asset": "whispercpp-b5454-win-cuda12.4"
+        },
+        "message": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded"
+      }
+    ],
+    "zh": "whispercpp-b5454-win-cuda12.4 是執行環境，它的壓縮檔在下載時就已經檢查過了"
+  },
+  "manage.nothingToUpdate": {
+    "before": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "text": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "notices": [
+      {
+        "code": "manage.nothingToUpdate",
+        "params": {
+          "asset": "whisper-large-v3-turbo",
+          "reason": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+        },
+        "message": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+      },
+      {
+        "code": "updates.itemNoRemote",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+      }
+    ],
+    "zh": "whisper-large-v3-turbo 沒有可以更新的版本：已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
+  },
+  "manage.verifyStopped": {
+    "before": "verification stopped",
+    "text": "verification stopped",
+    "notices": [
+      {
+        "code": "manage.verifyStopped",
+        "params": {},
+        "message": "verification stopped"
+      }
+    ],
+    "zh": "已停止驗證"
+  },
+  "storage.cannotRead": {
+    "before": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null",
+    "text": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null",
+    "notices": [
+      {
+        "code": "storage.cannotRead",
+        "params": {
+          "path": "<tmp>/settings/storage.json",
+          "error": "models_dir must be an absolute path or null"
+        },
+        "message": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null"
+      },
+      {
+        "code": "storage.notAbsolute",
+        "params": {},
+        "message": "models_dir must be an absolute path or null"
+      }
+    ],
+    "zh": "無法讀取 <tmp>/settings/storage.json：模型資料夾必須是完整路徑，例如 E:\\vst-models"
   }
 }

@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import { parseNotices, word } from "./notice";
 import type { Said } from "./said";
 import fixture from "./notices.w4b2.fixture.json";
+import shellBefore from "./notices.shell.before.json";
+import shell from "./notices.shell.json";
 
 interface Entry {
   readonly before: string;
@@ -69,5 +71,49 @@ describe("every W4b part 2 scenario", () => {
       expect(shown).not.toBe(entry.text);
       expect(shown).not.toMatch(/\{\w+\}/);
     }
+  });
+});
+
+const SHELL_VALUES: Readonly<Record<string, string>> = {
+  path: "C:\videos\talk.mp4",
+  error: "The system cannot find the file specified. (os error 2)",
+  name: '"a/b"',
+  address: "http://example.com/x",
+  host: "example.com",
+};
+
+/** What a window in Traditional Chinese shows for each W4b part 2 shell sentence, with `SHELL_VALUES` filled in. */
+const SHELL_ZH: Readonly<Record<string, string>> = {
+  "shell.file.unreadable": "無法讀取 C:\videos\talk.mp4：The system cannot find the file specified. (os error 2)",
+  "shell.file.notMedia": "C:\videos\talk.mp4 不是影片或音訊檔",
+  "shell.file.badName": '"a/b" 不是有效的檔案名稱',
+  "shell.file.unwritable": "無法寫入 C:\videos\talk.mp4：The system cannot find the file specified. (os error 2)",
+  "shell.folder.notOurs": "C:\videos\talk.mp4 不在這個 App 會寫入的資料夾裡，所以不會開啟",
+  "shell.folder.missing": "C:\videos\talk.mp4 不存在",
+  "shell.link.notPlain": "http://example.com/x 不是標準格式的 https 網址，所以不會開啟",
+  "shell.link.hostNotAllowed": "這個 App 不會開啟 example.com 的連結",
+};
+
+/** A shell rejection as `notice.rs` makes it: the template filled, and itself as the one notice. */
+function fromShell(code: keyof typeof shell): Said {
+  const { english, params } = shell[code];
+  const message = english.replace(/\{(\w+)\}/g, (_, name: string) => SHELL_VALUES[name]!);
+  return { text: message, notices: [{ code, message, params: Object.fromEntries(Object.keys(params).map((n) => [n, SHELL_VALUES[n]!])) }] };
+}
+
+describe("every W4b part 2 shell sentence", () => {
+  const codes = (Object.keys(shell) as (keyof typeof shell)[]).filter((code) => !(code in shellBefore));
+
+  it("is listed here", () => {
+    expect(codes.sort()).toEqual(Object.keys(SHELL_ZH).sort());
+  });
+
+  it.each(codes)("%s: English is the shell's sentence, and Traditional Chinese holds no English sentence", (code) => {
+    const sent = fromShell(code);
+    expect(word(sent, "en")).toBe(sent.text);
+    const shown = word(sent, "zh-TW");
+    expect(shown).toBe(SHELL_ZH[code]);
+    expect(shown.replace(SHELL_VALUES["error"]!, "◇")).not.toMatch(ENGLISH_RUN);
+    for (const locale of ["zh-CN", "ja"] as const) expect(word(sent, locale)).not.toBe(sent.text);
   });
 });

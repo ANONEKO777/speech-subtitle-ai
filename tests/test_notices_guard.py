@@ -9,7 +9,8 @@ in `NOT_SHOWN` with the reason.
 It looks at those places only, because two of the files are mostly prompts for the model. It does
 not see a sentence handed to a call that is not in `SHOWN_CALLS` (the batch's list of skipped
 files, the retry note of a download), one in a `ValueError`, one of a single word, or one in a
-file outside `GUARDED`.
+file outside `GUARDED`. `api/settings.py` and `manager/settings.py` are outside it until the
+settings checks of `pr/P61-i18n-w4b` are merged: their save errors still have no code.
 """
 
 from __future__ import annotations
@@ -22,10 +23,23 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1] / "backend"
 
 GUARDED = (
+    "api/deps.py",
+    "api/downloads.py",
+    "api/inventory.py",
     "api/jobs.py",
+    "api/models.py",
+    "api/player.py",
+    "api/profile.py",
+    "api/projects.py",
+    "api/queue.py",
+    "api/runtimes.py",
     "core/audio.py",
+    "core/cue_edits.py",
     "core/pipeline.py",
+    "core/projects.py",
     "core/queue_runner.py",
+    "core/queue_store.py",
+    "core/render.py",
     "core/summarize.py",
     "core/translate.py",
     "engines/base.py",
@@ -39,9 +53,16 @@ GUARDED = (
     "llm/local_server.py",
     "main.py",
     "manager/download.py",
+    "manager/inventory.py",
+    "manager/llm_check.py",
+    "manager/maintain.py",
     "manager/profiles.py",
     "manager/resolve.py",
+    "manager/secrets.py",
     "manager/selftest.py",
+    "manager/storage.py",
+    "manager/storage_move.py",
+    "manager/switch.py",
     "manager/updates.py",
 )
 
@@ -60,8 +81,13 @@ INTERNAL_ERRORS = frozenset(
     }
 )
 # Calls that build what is shown, wherever they are written.
-SHOWN_CALLS = frozenset({"Failure", "HTTPException", "UpdateItem", "UpdateReport", "_Transient"})
-MESSAGE_NAMES = frozenset({"detail", "message", "note", "reason", "summary", "why"})
+# `finish` is how the batch stores why an item stopped (`store.finish(id, state, error)`).
+SHOWN_CALLS = frozenset(
+    {"Failure", "HTTPException", "UpdateItem", "UpdateReport", "_Transient", "finish"}
+)
+MESSAGE_NAMES = frozenset(
+    {"detail", "error", "message", "msg", "note", "reason", "summary", "warning", "warnings", "why"}
+)
 
 # (file, how the sentence starts, why the window never shows it). `{}` stands for a value.
 NOT_SHOWN: tuple[tuple[str, str, str], ...] = (
@@ -78,6 +104,37 @@ NOT_SHOWN: tuple[tuple[str, str, str], ...] = (
     ("llm/local_server.py", "cancelled while", "a stop, which the window words itself"),
     ("manager/resolve.py", "--llm-model is required", "only a hand-written request raises it"),
     ("manager/resolve.py", "--llm {} is not a URL", "only a hand-written request raises it"),
+    ("api/downloads.py", "unknown download", "an id the window got from the backend"),
+    ("api/queue.py", "unknown queue item", "an id the window got from the backend"),
+    ("api/queue.py", "{} speech can be translated", "the batch dialog offers only these targets"),
+    ("api/projects.py", "{}; charset=utf-8", "a media type"),
+    ("api/projects.py", "text/markdown; charset=utf-8", "a media type"),
+    ("api/projects.py", "some cues are not valid", "the editor words each cue's problem code"),
+    ("core/projects.py", "{} cues cannot be saved", "the editor words each cue's problem code"),
+    ("core/projects.py", "no {} summary yet", "the export menu asks first and words it itself"),
+    (
+        "core/queue_store.py",
+        "on_done {} needs allow_power",
+        "only a hand-written request raises it",
+    ),
+    ("core/queue_store.py", "SELECT {} FROM items", "SQL"),
+    ("core/queue_store.py", "UPDATE items SET state", "SQL"),
+    ("manager/storage.py", "Application Support", "a folder name"),
+    (
+        "manager/storage.py",
+        "storage config must be",
+        "a hand-edited storage.json: storage.cannotRead quotes it",
+    ),
+    (
+        "manager/storage.py",
+        "mirrors must map",
+        "a hand-edited storage.json: storage.cannotRead quotes it",
+    ),
+    (
+        "manager/storage.py",
+        "bad mirror",
+        "a hand-edited storage.json: storage.cannotRead quotes it",
+    ),
 )
 
 _WORD = re.compile(r"[A-Za-z]{2,}")

@@ -15,6 +15,56 @@
     "english": "The backend stopped, and restarting it several times didn't help. Close the app and open it again.",
     "params": {}
   },
+  "shell.file.badName": {
+    "english": "{name} is not a file name",
+    "params": {
+      "name": "text"
+    }
+  },
+  "shell.file.notMedia": {
+    "english": "{path} is not a video or audio file",
+    "params": {
+      "path": "text"
+    }
+  },
+  "shell.file.unreadable": {
+    "english": "cannot read {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
+    }
+  },
+  "shell.file.unwritable": {
+    "english": "cannot write {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
+    }
+  },
+  "shell.folder.missing": {
+    "english": "{path} does not exist",
+    "params": {
+      "path": "text"
+    }
+  },
+  "shell.folder.notOurs": {
+    "english": "{path} is not in a folder this app writes to",
+    "params": {
+      "path": "text"
+    }
+  },
+  "shell.link.hostNotAllowed": {
+    "english": "{host} is not a host this app opens links to",
+    "params": {
+      "host": "text"
+    }
+  },
+  "shell.link.notPlain": {
+    "english": "{address} is not a plain https address in its canonical form",
+    "params": {
+      "address": "text"
+    }
+  },
   "shell.update.badSignature": {
     "english": "The signature of the downloaded update doesn't match, so the app discarded it and won't install it. Download the installer again from the project page.",
     "params": {}

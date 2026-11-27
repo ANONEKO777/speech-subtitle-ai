@@ -14,7 +14,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from backend.core.notices import ACTIVE_PROFILE_NEEDS, DEPENDENT_NEEDS, Notice
+from backend.core.notices import (
+    ACTIVE_PROFILE_NEEDS,
+    DEPENDENT_NEEDS,
+    VERIFY_STOPPED,
+    Notice,
+    noticed,
+)
 from backend.manager.download import CHUNK, InstallState, Item, Plan
 from backend.manager.manifest import Manifest, Record
 from backend.manager.platforms import detect_platform
@@ -248,7 +254,7 @@ class Inventory:
         with path.open("rb") as handle:
             while block := handle.read(CHUNK):
                 if should_stop():
-                    raise InterruptedError("verification stopped")
+                    raise noticed(InterruptedError, VERIFY_STOPPED())
                 digest.update(block)
         stat = path.stat()
         actual = digest.hexdigest()

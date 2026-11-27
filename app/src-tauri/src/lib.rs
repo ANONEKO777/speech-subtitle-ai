@@ -8,6 +8,7 @@ mod sidecar;
 mod updater;
 
 use folders::Folders;
+use notice::Said;
 
 use sidecar::{Backend, BackendState};
 use std::collections::HashSet;
@@ -27,15 +28,15 @@ const MEDIA: [&str; 9] = ["mp4", "mkv", "mov", "webm", "m4v", "avi", "mp3", "wav
 #[derive(Default)]
 struct Picked(Mutex<HashSet<PathBuf>>);
 
-fn allow(app: &AppHandle, path: &Path) -> Result<(), String> {
-    app.asset_protocol_scope().allow_file(path).map_err(|e| e.to_string())
+fn allow(app: &AppHandle, path: &Path) -> Result<(), Said> {
+    app.asset_protocol_scope().allow_file(path).map_err(Said::plain)
 }
 
 /// Opens the native file dialog and lets the asset protocol serve the one file picked. The dialog
 /// runs here, not in the page, so a page script cannot forge a pick. The page gives only the
 /// filter's name, in the language of the window.
 #[tauri::command]
-async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>, filter_name: String) -> Result<Option<String>, String> {
+async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>, filter_name: String) -> Result<Option<String>, Said> {
     let Some(file) = app
         .dialog()
         .file()
@@ -44,7 +45,7 @@ async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>, filter_nam
     else {
         return Ok(None);
     };
-    let path = file.into_path().map_err(|e| e.to_string())?;
+    let path = file.into_path().map_err(Said::plain)?;
     allow(&app, &path)?;
     picked.0.lock().unwrap().insert(path.clone());
     Ok(Some(path.to_string_lossy().into_owned()))
@@ -53,7 +54,7 @@ async fn pick_video(app: AppHandle, picked: tauri::State<'_, Picked>, filter_nam
 /// Opens the native file dialog for several files and returns their paths. The backend reads
 /// them itself when they are queued, so nothing is added to the asset scope here.
 #[tauri::command]
-async fn pick_videos(app: AppHandle, filter_name: String) -> Result<Vec<String>, String> {
+async fn pick_videos(app: AppHandle, filter_name: String) -> Result<Vec<String>, Said> {
     let files = app
         .dialog()
         .file()
@@ -62,7 +63,7 @@ async fn pick_videos(app: AppHandle, filter_name: String) -> Result<Vec<String>,
         .unwrap_or_default();
     files
         .into_iter()
-        .map(|f| f.into_path().map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string()))
+        .map(|f| f.into_path().map(|p| p.to_string_lossy().into_owned()).map_err(Said::plain))
         .collect()
 }
 
@@ -70,16 +71,19 @@ async fn pick_videos(app: AppHandle, filter_name: String) -> Result<Vec<String>,
 /// user picked, or an existing regular file whose real path (symlinks followed) has a media
 /// extension, so a page script cannot widen the scope to documents, keys or other data.
 #[tauri::command]
-fn allow_video(app: AppHandle, picked: tauri::State<'_, Picked>, path: String) -> Result<(), String> {
+fn allow_video(app: AppHandle, picked: tauri::State<'_, Picked>, path: String) -> Result<(), Said> {
     let path = PathBuf::from(path);
     if !picked.0.lock().unwrap().contains(&path) {
-        let real = path.canonicalize().map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+        let shown = path.display().to_string();
+        let real = path
+            .canonicalize()
+            .map_err(|e| notice::FILE_UNREADABLE.with(&[("path", &shown), ("error", &e.to_string())]))?;
         let media = real
             .extension()
             .and_then(|e| e.to_str())
             .is_some_and(|e| MEDIA.iter().any(|m| m.eq_ignore_ascii_case(e)));
         if !real.is_file() || !media {
-            return Err(format!("{} is not a video or audio file", path.display()));
+            return Err(notice::FILE_NOT_MEDIA.with(&[("path", &shown)]));
         }
     }
     allow(&app, &path)
@@ -87,13 +91,13 @@ fn allow_video(app: AppHandle, picked: tauri::State<'_, Picked>, path: String) -
 
 /// A file name with no folders in it, so the dialog's suggestion and the test folder below stay in
 /// one directory.
-fn plain_name(name: &str) -> Result<String, String> {
+fn plain_name(name: &str) -> Result<String, Said> {
     Path::new(name)
         .file_name()
         .and_then(|n| n.to_str())
         .filter(|n| !n.is_empty())
         .map(str::to_owned)
-        .ok_or_else(|| format!("{name:?} is not a file name"))
+        .ok_or_else(|| notice::FILE_BAD_NAME.with(&[("name", &format!("{name:?}"))]))
 }
 
 /// Opens the native save dialog and writes `content` to the file chosen, as UTF-8. The dialog runs
@@ -101,7 +105,7 @@ fn plain_name(name: &str) -> Result<String, String> {
 /// when the person cancelled. When `VST_EXPORT_DIR` is set the file goes there under `name` with
 /// no dialog, which is how the automated drivers, which cannot click a native dialog, collect exports.
 #[tauri::command]
-async fn save_export(app: AppHandle, folders: tauri::State<'_, Folders>, name: String, content: String) -> Result<Option<String>, String> {
+async fn save_export(app: AppHandle, folders: tauri::State<'_, Folders>, name: String, content: String) -> Result<Option<String>, Said> {
     let name = plain_name(&name)?;
     let path = if let Some(dir) = std::env::var_os("VST_EXPORT_DIR") {
         PathBuf::from(dir).join(&name)
@@ -116,9 +120,11 @@ async fn save_export(app: AppHandle, folders: tauri::State<'_, Folders>, name: S
         else {
             return Ok(None);
         };
-        file.into_path().map_err(|e| e.to_string())?
+        file.into_path().map_err(Said::plain)?
     };
-    std::fs::write(&path, content).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    std::fs::write(&path, content).map_err(|e| {
+        notice::FILE_UNWRITABLE.with(&[("path", &path.display().to_string()), ("error", &e.to_string())])
+    })?;
     folders.wrote(&path);
     Ok(Some(path.to_string_lossy().into_owned()))
 }
@@ -126,12 +132,12 @@ async fn save_export(app: AppHandle, folders: tauri::State<'_, Folders>, name: S
 /// Opens the native folder dialog and returns the folder picked, or None when the person cancelled.
 /// The dialog runs here, not in the page, so a page script cannot forge a pick.
 #[tauri::command]
-async fn pick_folder(app: AppHandle, folders: tauri::State<'_, Folders>) -> Result<Option<String>, String> {
+async fn pick_folder(app: AppHandle, folders: tauri::State<'_, Folders>) -> Result<Option<String>, Said> {
     let Some(folder) = app.dialog().file().blocking_pick_folder() else {
         return Ok(None);
     };
-    let path = folder.into_path().map_err(|e| e.to_string())?;
-    folders.picked(&path)?;
+    let path = folder.into_path().map_err(Said::plain)?;
+    folders.picked(&path).map_err(Said::plain)?;
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
@@ -141,21 +147,21 @@ async fn pick_folder(app: AppHandle, folders: tauri::State<'_, Folders>) -> Resu
 /// With `VST_OPEN_FOLDER_LOG` set (the e2e drivers do), the resolved path is appended to that file
 /// and no file manager window opens.
 #[tauri::command]
-fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), String> {
+fn open_folder(folders: tauri::State<'_, Folders>, path: String) -> Result<(), Said> {
     let path = PathBuf::from(path);
     let Some(path) = folders.allowed(&path) else {
-        return Err(format!("{} is not in a folder this app writes to", path.display()));
+        return Err(notice::FOLDER_NOT_OURS.with(&[("path", &path.display().to_string())]));
     };
     let shown = PathBuf::from(path.to_string_lossy().trim_start_matches(r"\\?\"));
     if let Some(log) = std::env::var_os("VST_OPEN_FOLDER_LOG") {
         use std::io::Write;
-        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(|e| e.to_string())?;
-        return writeln!(file, "{}", shown.display()).map_err(|e| e.to_string());
+        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(Said::plain)?;
+        return writeln!(file, "{}", shown.display()).map_err(Said::plain);
     }
     if !path.exists() {
-        return Err(format!("{} does not exist", path.display()));
+        return Err(notice::FOLDER_MISSING.with(&[("path", &path.display().to_string())]));
     }
-    reveal_launch(&shown, &path).spawn()
+    reveal_launch(&shown, &path).spawn().map_err(Said::plain)
 }
 
 /// What to start to show `shown`: the file selected, or the folder opened. `on_disk` is the resolved path, the one to ask whether it is a file.
@@ -168,13 +174,22 @@ fn reveal_launch(shown: &Path, on_disk: &Path) -> platform::Launch {
 /// With `VST_OPEN_URL_LOG` set (the e2e drivers do), the address is appended to that file and no
 /// browser starts.
 #[tauri::command]
-fn open_url(url: String) -> Result<(), String> {
+fn open_url(url: String) -> Result<(), Said> {
     links::open(&url, std::env::var_os("VST_OPEN_URL_LOG").map(PathBuf::from).as_deref())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_empty_file_name_is_refused_with_a_code_and_folders_are_dropped() {
+        let refused = plain_name("").unwrap_err();
+
+        assert_eq!(refused.notices[0].code, "shell.file.badName");
+        assert_eq!(refused.message, "\"\" is not a file name");
+        assert_eq!(plain_name("a/b.srt").unwrap(), "b.srt");
+    }
 
     #[test]
     fn a_file_is_revealed_selected_and_a_folder_is_opened() {

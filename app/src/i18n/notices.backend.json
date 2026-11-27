@@ -592,6 +592,13 @@
       "asset": "text"
     }
   },
+  "manage.nothingToUpdate": {
+    "english": "nothing to update for {asset}: {reason}",
+    "params": {
+      "asset": "text",
+      "reason": "text"
+    }
+  },
   "manage.repair.fileMissing": {
     "english": "the file is missing",
     "params": {}
@@ -621,6 +628,16 @@
       "asset": "text",
       "blockers": "clauses"
     }
+  },
+  "manage.verifyRuntime": {
+    "english": "{asset} is a runtime; its archive was checked when it was downloaded",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.verifyStopped": {
+    "english": "verification stopped",
+    "params": {}
   },
   "move.alreadyRunning": {
     "english": "a move is already running",
@@ -1144,6 +1161,13 @@
     "english": "{field} must not hold a user name, password, query or fragment",
     "params": {
       "field": "word"
+    }
+  },
+  "storage.cannotRead": {
+    "english": "cannot read {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
     }
   },
   "storage.notAbsolute": {

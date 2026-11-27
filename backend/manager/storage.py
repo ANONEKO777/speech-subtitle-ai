@@ -131,4 +131,5 @@ class Storage:
         try:
             return parse_config(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError) as exc:
-            raise StorageError(f"cannot read {path}: {exc}") from exc
+            said = notices.STORAGE_CANNOT_READ(path=str(path), error=str(exc))
+            raise noticed(StorageError, said) from exc

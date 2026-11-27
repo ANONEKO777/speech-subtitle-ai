@@ -14,6 +14,8 @@ from backend.core.notices import (
     BUSY_REPAIR,
     BUSY_UPDATE,
     NOT_INSTALLED,
+    NOTHING_TO_UPDATE,
+    VERIFY_RUNTIME,
     to_json,
 )
 from backend.manager.active import resolve_active
@@ -81,9 +83,7 @@ def verify(asset_id: str, ctx: Context) -> dict[str, Any]:
     _known(ctx, asset_id)
     found = ctx.registry.models.get(asset_id)
     if not isinstance(found, Model):
-        raise HTTPException(
-            400, f"{asset_id} is a runtime; its archive was checked when it was downloaded"
-        )
+        raise refused(400, VERIFY_RUNTIME(asset=asset_id))
     if not ctx.storage.model_file(found).is_file():
         raise refused(409, NOT_INSTALLED(asset=asset_id))
     ctx.inventory.verify_model(found)
@@ -138,7 +138,8 @@ def update_asset(asset_id: str, request: Request, ctx: Context) -> dict[str, Any
         raise HTTPException(502, {"message": str(exc), "url": exc.url}) from exc
     item = next(i for i in report.items if i.id == asset_id)
     if item.status is not UpdateStatus.UPDATE_AVAILABLE or not item.installable:
-        raise HTTPException(409, f"nothing to update for {asset_id}: {item.message}")
+        said = NOTHING_TO_UPDATE(asset=asset_id, reason=item.message)
+        raise refused(409, said, *item.message_notices)
     return job_json(redownload(ctx, asset_id))
 
 

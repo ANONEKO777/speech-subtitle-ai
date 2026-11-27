@@ -94,7 +94,8 @@ function fromShell(code: keyof typeof shell): Said {
   return { text: message, notices: [{ code, message, params: Object.fromEntries(Object.keys(params).map((n) => [n, SHELL_VALUES[n]!])) }] };
 }
 
-const SHELL_CODES = Object.keys(shell) as (keyof typeof shell)[];
+/** The shell sentences W4a moved out of Chinese. The later ones are in `notice.w4b2.test.ts`. */
+const SHELL_CODES = (Object.keys(shell) as (keyof typeof shell)[]).filter((code): code is keyof typeof shell & keyof typeof shellBefore => code in shellBefore);
 
 describe("every shell sentence", () => {
   it("replaced one old sentence each, and the file filter is the only one besides them", () => {

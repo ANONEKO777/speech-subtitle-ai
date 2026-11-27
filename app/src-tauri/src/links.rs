@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use url::Url;
 
+use crate::notice::{self, Said};
 use crate::platform::{self, Launch};
 
 pub const PROJECT_URL: &str = "https://github.com/ANONEKO777/speech-subtitle-ai";
@@ -46,39 +47,39 @@ fn allowed_hosts() -> BTreeSet<String> {
 
 /// Checks `address`, then appends it to `log` when one is given, else starts the default browser
 /// on it. A log means no process is started.
-pub fn open(address: &str, log: Option<&Path>) -> Result<(), String> {
+pub fn open(address: &str, log: Option<&Path>) -> Result<(), Said> {
     open_with(address, log, Launch::spawn)
 }
 
-fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(Launch) -> Result<(), String>) -> Result<(), String> {
+fn open_with(address: &str, log: Option<&Path>, launch: impl FnOnce(Launch) -> Result<(), String>) -> Result<(), Said> {
     let url = check(address)?;
     let Some(log) = log else {
-        return launch(platform::here::browse(&url));
+        return launch(platform::here::browse(&url)).map_err(Said::plain);
     };
-    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(|e| e.to_string())?;
-    writeln!(file, "{url}").map_err(|e| e.to_string())
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(log).map_err(Said::plain)?;
+    writeln!(file, "{url}").map_err(Said::plain)
 }
 
 /// The address in the form it is opened in, when `address` is a plain https address (no
 /// credentials, no port, nothing a shell could read as more than one argument) whose host is in
 /// the allow-list.
-pub fn check(address: &str) -> Result<String, String> {
+pub fn check(address: &str) -> Result<String, Said> {
     check_against(address, &allowed_hosts())
 }
 
-fn check_against(address: &str, hosts: &BTreeSet<String>) -> Result<String, String> {
+fn check_against(address: &str, hosts: &BTreeSet<String>) -> Result<String, Said> {
     let plain = !address.chars().any(|c| c.is_whitespace() || c.is_control() || matches!(c, '"' | '^' | '&' | '\\'));
     let url = Url::parse(address).ok().filter(|u| {
         plain && u.scheme() == "https" && u.username().is_empty() && u.password().is_none() && u.port().is_none()
     });
     let Some(url) = url.filter(|u| u.as_str() == address) else {
-        return Err(format!("{address} is not a plain https address in its canonical form"));
+        return Err(notice::LINK_NOT_PLAIN.with(&[("address", address)]));
     };
     let host = url.host_str().unwrap_or_default();
     if hosts.contains(host) {
         Ok(url.into())
     } else {
-        Err(format!("{host} is not a host this app opens links to"))
+        Err(notice::LINK_HOST_NOT_ALLOWED.with(&[("host", host)]))
     }
 }
 
@@ -159,6 +160,17 @@ mod tests {
         ] {
             assert!(check(bad).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn a_refused_address_says_why_with_a_code_the_window_words() {
+        let odd = check("http://github.com/x").unwrap_err();
+        let elsewhere = check("https://example.com/x").unwrap_err();
+
+        assert_eq!(odd.notices[0].code, "shell.link.notPlain");
+        assert_eq!(odd.message, "http://github.com/x is not a plain https address in its canonical form");
+        assert_eq!(elsewhere.notices[0].code, "shell.link.hostNotAllowed");
+        assert_eq!(elsewhere.message, "example.com is not a host this app opens links to");
     }
 
     #[test]
