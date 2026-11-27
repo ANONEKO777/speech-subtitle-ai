@@ -22,7 +22,7 @@ from backend.core.jobs import (
 from backend.core.languages import DEFAULT_CODE
 from backend.core.languages import get as get_language
 from backend.core.model import DEFAULT_SOURCE
-from backend.core.notices import VIDEO_GONE, noticed
+from backend.core.notices import UNKNOWN_PROJECT, VIDEO_GONE, noticed
 from backend.core.projects import UnknownProject
 from backend.core.source_langs import get_source
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
@@ -102,8 +102,9 @@ def create_job(pid: str, body: JobBody, request: Request) -> dict[str, Any]:
     store, jobs = store_of(request), jobs_of(request)
     try:
         info = store.info(pid)
-    except UnknownProject as exc:
-        raise HTTPException(404, f"unknown project {pid!r}") from exc
+    except UnknownProject:
+        said = UNKNOWN_PROJECT(id=repr(pid))
+        raise HTTPException(404, said.message) from noticed(ValueError, said)
     video = Path(info.project.video_path)
     if not video.is_file():
         gone = VIDEO_GONE(video=str(video))

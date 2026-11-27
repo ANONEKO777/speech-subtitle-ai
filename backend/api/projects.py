@@ -14,6 +14,7 @@ from backend.core.languages import UnknownLanguage
 from backend.core.languages import get as get_language
 from backend.core.media import accepted_extensions, is_media
 from backend.core.model import Cue, Step, StepState
+from backend.core.notices import UNKNOWN_PROJECT, noticed
 from backend.core.projects import (
     MEDIA_TYPES,
     BadCues,
@@ -106,8 +107,9 @@ def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
 def _known(store: ProjectStore, pid: str) -> ProjectInfo:
     try:
         return store.info(pid)
-    except UnknownProject as exc:
-        raise HTTPException(404, f"unknown project {pid!r}") from exc
+    except UnknownProject:
+        said = UNKNOWN_PROJECT(id=repr(pid))
+        raise HTTPException(404, said.message) from noticed(ValueError, said)
 
 
 def _bad_cues(message: str, problems: Sequence[CueProblem]) -> HTTPException:

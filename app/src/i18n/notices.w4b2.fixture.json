@@ -156,6 +156,159 @@
     ],
     "zh": "無法取消狀態為「已取消」的項目"
   },
+  "player.unknownProject": {
+    "before": "unknown project 'nope'",
+    "text": "unknown project 'nope'",
+    "notices": [
+      {
+        "code": "player.unknownProject",
+        "params": {
+          "id": "'nope'"
+        },
+        "message": "unknown project 'nope'"
+      }
+    ],
+    "zh": "找不到這個專案（'nope'）"
+  },
+  "player.unknownExport": {
+    "before": "unknown export 'nope'",
+    "text": "unknown export 'nope'",
+    "notices": [
+      {
+        "code": "player.unknownExport",
+        "params": {
+          "id": "'nope'"
+        },
+        "message": "unknown export 'nope'"
+      }
+    ],
+    "zh": "找不到這個匯出工作（'nope'）"
+  },
+  "player.dirNotAbsolute": {
+    "before": "dir must be an absolute path: relative",
+    "text": "dir must be an absolute path: relative",
+    "notices": [
+      {
+        "code": "player.dirNotAbsolute",
+        "params": {
+          "path": "relative"
+        },
+        "message": "dir must be an absolute path: relative"
+      }
+    ],
+    "zh": "資料夾必須是完整路徑：relative"
+  },
+  "player.notPicked": {
+    "before": "<tmp>/elsewhere is not a folder picked in the app; pick it again",
+    "text": "<tmp>/elsewhere is not a folder picked in the app; pick it again",
+    "notices": [
+      {
+        "code": "player.notPicked",
+        "params": {
+          "folder": "<tmp>/elsewhere"
+        },
+        "message": "<tmp>/elsewhere is not a folder picked in the app; pick it again"
+      }
+    ],
+    "zh": "<tmp>/elsewhere 不是在 App 裡選過的資料夾，請重新選擇"
+  },
+  "player.folderUnusable": {
+    "before": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error",
+    "text": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error",
+    "notices": [
+      {
+        "code": "player.folderUnusable",
+        "params": {
+          "folder": "<tmp>/elsewhere",
+          "error": "[Errno 5] I/O error"
+        },
+        "message": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error"
+      }
+    ],
+    "zh": "無法使用資料夾 <tmp>/elsewhere：[Errno 5] I/O error"
+  },
+  "player.pastEnd": {
+    "before": "start_s is past the end of the video",
+    "text": "start_s is past the end of the video",
+    "notices": [
+      {
+        "code": "player.pastEnd",
+        "params": {},
+        "message": "start_s is past the end of the video"
+      }
+    ],
+    "zh": "開始時間超過了影片的長度"
+  },
+  "player.burnBusy": {
+    "before": "another burn-in export is running",
+    "text": "another burn-in export is running",
+    "notices": [
+      {
+        "code": "player.burnBusy",
+        "params": {},
+        "message": "another burn-in export is running"
+      }
+    ],
+    "zh": "已經有一個燒入字幕的匯出正在進行，請等它完成再試一次"
+  },
+  "player.thumbnailFailed": {
+    "before": "thumbnail of talk.mp4 failed: <ffmpeg>",
+    "text": "thumbnail of talk.mp4 failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.thumbnailFailed",
+        "params": {
+          "video": "talk.mp4",
+          "output": "<ffmpeg>"
+        },
+        "message": "thumbnail of talk.mp4 failed: <ffmpeg>"
+      }
+    ],
+    "zh": "無法產生 talk.mp4 的縮圖：<ffmpeg>"
+  },
+  "player.stillFailed": {
+    "before": "still of talk.mp4 failed: <ffmpeg>",
+    "text": "still of talk.mp4 failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.stillFailed",
+        "params": {
+          "video": "talk.mp4",
+          "output": "<ffmpeg>"
+        },
+        "message": "still of talk.mp4 failed: <ffmpeg>"
+      }
+    ],
+    "zh": "無法擷取 talk.mp4 的畫面：<ffmpeg>"
+  },
+  "player.burnFailed": {
+    "before": "ffmpeg failed: <ffmpeg>",
+    "text": "ffmpeg failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.burnFailed",
+        "params": {
+          "output": "<ffmpeg>"
+        },
+        "message": "ffmpeg failed: <ffmpeg>"
+      }
+    ],
+    "zh": "ffmpeg 執行失敗：<ffmpeg>"
+  },
+  "player.videoGone": {
+    "before": "the video is not at <tmp>/talk.mp4 any more",
+    "text": "the video is not at <tmp>/talk.mp4 any more",
+    "notices": [
+      {
+        "code": "player.videoGone",
+        "params": {
+          "path": "<tmp>/talk.mp4"
+        },
+        "message": "the video is not at <tmp>/talk.mp4 any more"
+      }
+    ],
+    "zh": "影片已經不在 <tmp>/talk.mp4 了"
+  },
   "manage.busy.repair": {
     "before": "a job is running; wait for it before you repair an asset",
     "text": "a job is running; wait for it before you repair an asset",

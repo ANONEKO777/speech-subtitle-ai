@@ -662,6 +662,71 @@
       "machine": "text"
     }
   },
+  "player.burnBusy": {
+    "english": "another burn-in export is running",
+    "params": {}
+  },
+  "player.burnFailed": {
+    "english": "ffmpeg failed: {output}",
+    "params": {
+      "output": "text"
+    }
+  },
+  "player.dirNotAbsolute": {
+    "english": "dir must be an absolute path: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "player.folderUnusable": {
+    "english": "cannot use the folder {folder}: {error}",
+    "params": {
+      "folder": "text",
+      "error": "text"
+    }
+  },
+  "player.notPicked": {
+    "english": "{folder} is not a folder picked in the app; pick it again",
+    "params": {
+      "folder": "text"
+    }
+  },
+  "player.pastEnd": {
+    "english": "start_s is past the end of the video",
+    "params": {}
+  },
+  "player.stillFailed": {
+    "english": "still of {video} failed: {output}",
+    "params": {
+      "video": "text",
+      "output": "text"
+    }
+  },
+  "player.thumbnailFailed": {
+    "english": "thumbnail of {video} failed: {output}",
+    "params": {
+      "video": "text",
+      "output": "text"
+    }
+  },
+  "player.unknownExport": {
+    "english": "unknown export {id}",
+    "params": {
+      "id": "text"
+    }
+  },
+  "player.unknownProject": {
+    "english": "unknown project {id}",
+    "params": {
+      "id": "text"
+    }
+  },
+  "player.videoGone": {
+    "english": "the video is not at {path} any more",
+    "params": {
+      "path": "text"
+    }
+  },
   "profile.asr": {
     "english": "ASR:           {model} via {engine} ({runtime}) on {device}",
     "params": {

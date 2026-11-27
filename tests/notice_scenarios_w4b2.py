@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import errno
 import os
+import re
 import socket
+import subprocess
 import sys
 import time
 import urllib.error
@@ -30,11 +32,14 @@ from download_support import serve
 from manage_support import NO_GPU, Rig
 from notice_scenarios import _slashes
 from notice_scenarios_w4b import Entry, _entry, _replaced
-from test_api import open_client
+from test_api import GUARD, events, make_project, open_client, start_job
+from test_api import Rig as ApiRig
 from test_queue import QueueRig, make_app
 
-from backend.core import queue_runner
+from backend.api import player
+from backend.core import queue_runner, render
 from backend.core.notices import notices_of
+from backend.main import AppConfig, create_app
 from backend.manager import llm_check, maintain, secrets, storage_move, switch
 from backend.manager.download import JobState
 from backend.manager.hardware import Hardware
@@ -360,9 +365,98 @@ def _profiles(found: dict[str, Entry], rig: Rig) -> None:
     found["switch.unknownMemory"] = _switch_warning(rig, unknown, ProfileId.METAL_16GB)
 
 
+# Group 12: the player.
+
+
+def _ffmpeg_said(entry: Entry) -> Entry:
+    """`entry` with what ffmpeg said after "failed: " replaced: it differs between versions."""
+
+    def cut(value: Any) -> Any:
+        if isinstance(value, str):
+            return re.sub(r"failed: .*", "failed: <ffmpeg>", value, flags=re.DOTALL)
+        if isinstance(value, dict):
+            return {key: cut(item) for key, item in cast("dict[str, Any]", value).items()}
+        if isinstance(value, list):
+            return [cut(item) for item in cast("list[Any]", value)]
+        return value
+
+    made = cut(entry)
+    for notice in made["notices"]:
+        if "output" in notice["params"]:
+            notice["params"]["output"] = "<ffmpeg>"
+    return made
+
+
+def _burn_error(client: Any, pid: str) -> Entry:
+    job = client.post(f"/api/projects/{pid}/burn", json={"start_s": 0, "duration_s": 2}).json()
+    deadline = time.monotonic() + 30
+    while (state := client.get(f"/api/burns/{job['id']}").json())["state"] == "running":
+        assert time.monotonic() < deadline, state
+        time.sleep(0.05)
+    return _ffmpeg_said(_entry(state["error"], state.get("error_notices")))
+
+
+def _player(found: dict[str, Entry], tmp: Path) -> None:
+    movie = tmp / "talk.mp4"
+    subprocess.run(
+        [
+            *("ffmpeg", "-v", "error", "-y"),
+            *("-f", "lavfi", "-i", "color=c=0x203040:s=320x180:d=4:r=25"),
+            *("-c:v", "libx264", str(movie)),
+        ],
+        check=True,
+    )
+    app = create_app(AppConfig(tmp / "data", GUARD, ApiRig().resolve))
+    with open_client(app) as client:
+
+        def shot(**body: Any) -> Any:
+            return client.post(f"/api/projects/{pid}/screenshot", json={"time_s": 1.0, **body})
+
+        found["player.unknownProject"] = _reply(client.get("/api/projects/nope/thumbnail"))
+        found["player.unknownExport"] = _reply(client.get("/api/burns/nope"))
+        pid = make_project(client, movie)
+        events(client, start_job(client, pid)["id"])
+        found["player.dirNotAbsolute"] = _reply(shot(dir="relative"))
+        (tmp / "elsewhere").mkdir()
+        found["player.notPicked"] = _replaced(
+            _reply(shot(dir=str(tmp / "elsewhere"))), str(tmp), "<tmp>"
+        )
+
+        def unreadable(*_args: object) -> list[Path]:
+            raise OSError(errno.EIO, "I/O error")
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(player, "picked_folders", unreadable)
+            found["player.folderUnusable"] = _replaced(
+                _reply(shot(dir=str(tmp / "elsewhere"))), str(tmp), "<tmp>"
+            )
+        found["player.pastEnd"] = _reply(
+            client.post(f"/api/projects/{pid}/burn", json={"start_s": 5000, "duration_s": 3})
+        )
+        burns = cast("render.BurnBook", app.state.burns)
+        with pytest.MonkeyPatch.context() as mp:
+            running = render.BurnJob("busy", tmp / "busy.mp4")
+            mp.setitem(burns._jobs, "busy", running)
+            found["player.burnBusy"] = _reply(
+                client.post(f"/api/projects/{pid}/burn", json={"start_s": 0, "duration_s": 1})
+            )
+        movie.write_bytes(b"not a video")
+        found["player.thumbnailFailed"] = _ffmpeg_said(
+            _reply(client.get(f"/api/projects/{pid}/thumbnail"))
+        )
+        found["player.stillFailed"] = _ffmpeg_said(_reply(shot()))
+        found["player.burnFailed"] = _burn_error(client, pid)
+        movie.unlink()
+        found["player.videoGone"] = _replaced(
+            _reply(client.get(f"/api/projects/{pid}/media")), str(tmp), "<tmp>"
+        )
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
+    (tmp / "player").mkdir()
+    _player(found, tmp / "player")
     with serve() as origin:
         (tmp / "manage").mkdir()
         _managing(found, Rig(tmp / "manage", origin))
