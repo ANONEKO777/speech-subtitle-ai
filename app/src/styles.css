@@ -1288,6 +1288,8 @@ button.chapter-time:hover:not(:disabled) {
   inset: auto 0 0;
   z-index: 2;
   display: grid;
+  /* an implicit auto column grows to the button row's own width and takes the time labels past the picture with it */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   padding: var(--space-6) var(--space-3) var(--space-2);
   /* dark enough behind the small time labels that white text keeps 4.5:1 over any frame */
@@ -1357,6 +1359,11 @@ button.chapter-time:hover:not(:disabled) {
   flex: 1;
 }
 
+/* in a narrow window the row is short by up to 23 px, which depends on the speed and the offset shown: only the volume slider gives way */
+.button-row > :not(.grow, .volume) {
+  flex: none;
+}
+
 .button-row button.ghost {
   height: 28px;
   padding: 0 var(--space-2);
@@ -1374,8 +1381,15 @@ button.chapter-time:hover:not(:disabled) {
 }
 
 .slider.volume {
-  width: 64px;
+  flex: 0 1 64px;
+  min-width: 40px;
   margin: 0 var(--space-2);
+}
+
+@container (max-width: 640px) {
+  .slider.volume {
+    margin: 0 var(--space-1);
+  }
 }
 
 .loop-badge {
