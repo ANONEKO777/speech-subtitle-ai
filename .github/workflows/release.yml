@@ -1,0 +1,150 @@
+# A v* tag builds the signed Windows installer and opens a draft release; the operator publishes it.
+# A pull request that touches the release files builds an unsigned installer with no secret and
+# keeps it as a workflow artifact. installer/README.md describes both.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - installer/**
+      - scripts/version.py
+      - scripts/check_release_files.py
+      - app/src-tauri/tauri.conf.json
+      - app/src-tauri/Cargo.toml
+      - app/package.json
+      - pyproject.toml
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      notes: ${{ steps.notes.outputs.notes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Every copy of the version agrees, and the tag names it
+        id: version
+        env:
+          TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+        run: |
+          if [ -n "$TAG" ]; then
+            version=$(python3 scripts/version.py --tag "$TAG")
+          else
+            version=$(python3 scripts/version.py)
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: The app reads latest.json from this repository's latest release
+        run: |
+          want="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/latest.json"
+          got=$(jq -r '.plugins.updater.endpoints | join(" ")' app/src-tauri/tauri.conf.json)
+          if [ "$got" != "$want" ]; then
+            echo "tauri.conf.json updater endpoints are '$got'; the release serves '$want'" >&2
+            exit 1
+          fi
+      - name: What changed, from the message of an annotated tag
+        id: notes
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" --jq 'select(.object.type == "tag") | .object.sha')
+          notes=""
+          if [ -n "$tag" ]; then
+            notes=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag}" --jq .message)
+          fi
+          delimiter="notes_$(openssl rand -hex 8)"
+          { echo "notes<<$delimiter"; echo "$notes"; echo "$delimiter"; } >> "$GITHUB_OUTPUT"
+
+  tests:
+    if: github.event_name == 'push'
+    needs: version
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  installer:
+    needs: [version, tests]
+    if: ${{ !cancelled() && needs.version.result == 'success' && (needs.tests.result == 'success' || needs.tests.result == 'skipped') }}
+    runs-on: windows-latest
+    # Only a tag build reaches the signing key, and the release environment asks the operator first.
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No dependency caches here: a release build starts from the lock files alone.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.8.3"
+          enable-cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Rust
+        run: rustup toolchain install stable --profile minimal --no-self-update && rustup default stable
+      - name: Build without the signing key
+        if: github.event_name == 'pull_request'
+        run: |
+          ./installer/build.ps1 -Unsigned
+          python scripts/check_release_files.py installer/build/release "${{ needs.version.outputs.version }}" --unsigned
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Build and sign
+        if: github.event_name == 'push'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ needs.version.outputs.notes }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'The release environment has no TAURI_SIGNING_PRIVATE_KEY secret (docs/RELEASE-KEY.zh-TW.md)' }
+          ./installer/build.ps1 -UpdateBaseUrl "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:TAG/" -Notes ("$env:NOTES".Trim())
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installer-${{ needs.version.outputs.version }}
+          path: installer/build/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  draft:
+    if: github.event_name == 'push'
+    needs: [version, installer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installer-${{ needs.version.outputs.version }}
+          path: dist
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+          NOTES: ${{ needs.version.outputs.notes }}
+        run: |
+          INSTALLER=$(python3 scripts/check_release_files.py dist "$VERSION")
+          export INSTALLER
+          envsubst '${INSTALLER} ${NOTES}' < installer/release-notes.md > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+            --title "Video Subtitle Translator $VERSION" --notes-file "$RUNNER_TEMP/notes.md"

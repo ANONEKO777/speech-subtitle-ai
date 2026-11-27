@@ -4,7 +4,7 @@
 
 Steps: PyInstaller makes the backend folder (`sidecar.spec`, no PyTorch, no CUDA), the pinned LGPL FFmpeg is downloaded, hash-checked, checked for `--enable-gpl` and `--enable-nonfree`, and checked for libraries without a license entry, then `tauri build --bundles nsis` packs the shell, front end, backend, FFmpeg and licenses (`tauri.bundle.conf.json` adds the two build folders). The script fails above 150 MB and runs `tests/test_package_contents.py` against the installer.
 
-Output: `app/src-tauri/target/release/bundle/nsis/*-setup.exe`, its `.sig`, and `installer/build/size.txt`.
+Output: `installer/build/release` holds the files to upload: the installer, its `.sig`, `latest.json` when `-UpdateBaseUrl` is given, and `SHA256SUMS.txt`. Tauri's own output stays in `app/src-tauri/target/release/bundle/nsis`, and `installer/build/size.txt` records the size.
 
 ## FFmpeg pin
 
@@ -20,19 +20,37 @@ To move to a newer build:
 
 ## Updater signing key
 
-The installer is signed for the Tauri updater with a key kept outside the repository, by default `~/.tauri/video-subtitle-translator.key` (public half `.key.pub`, which is the `pubkey` in `app/src-tauri/tauri.conf.json`). Pass another path with `-Key`. The key has no password. Back it up. A new key means installed apps cannot update to builds signed with it. Never commit it.
+The installer is signed for the Tauri updater with a key kept outside the repository, by default `~/.tauri/video-subtitle-translator.key` (public half `.key.pub`, which is the `pubkey` in `app/src-tauri/tauri.conf.json`). Pass another path with `-Key`. A key without a password needs an empty `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; `build.ps1` sets it when it is unset. Back the key up. A new key means installed apps cannot update to builds signed with it. Never commit it. The release workflow reads the key from the `release` environment; `docs/RELEASE-KEY.zh-TW.md` walks the operator through making a password-protected key and storing it there.
+
+`-Unsigned` builds without any key and without the updater files. Such an installer installs normally but cannot be offered as an update.
+
+## Versions
+
+`version` in `app/src-tauri/tauri.conf.json` is the app version. `package.json`, `Cargo.toml`, `pyproject.toml` and their lock files carry copies. `python scripts/version.py --set X.Y.Z` writes all of them, and `tests/test_version.py` fails when they disagree.
+
+## Releases
+
+`.github/workflows/release.yml` builds releases.
+
+- **A tag `vX.Y.Z`** (the version in `tauri.conf.json`) checks the versions, runs the CI tests, builds on `windows-latest` with the key from the `release` environment, checks the files with `scripts/check_release_files.py`, and creates a **draft** release with the installer, its `.sig`, `latest.json` and `SHA256SUMS.txt`. The release text comes from `installer/release-notes.md`, with the annotated tag's message at the top; that message is also the `notes` in `latest.json`, which the app shows with the update. Nobody sees the draft, and no app finds it, until the operator presses Publish.
+- **A pull request** that touches the release files builds the installer with `-Unsigned`, checks the files, and keeps `installer/build/release` as the workflow artifact `installer-<version>`. It reads no secret and creates no release.
+
+To make a release:
+
+1. `python scripts/version.py --set X.Y.Z`, commit, merge to `main`.
+2. `git tag -a vX.Y.Z -m "<what changed, for the update prompt>"` on that commit, then `git push origin vX.Y.Z`.
+3. Approve the `release` environment when GitHub asks.
+4. Read the draft release, then press Publish.
+
+A tag that does not equal the version stops the workflow before the build. To build again for the same tag, delete its draft release first. The release builds use no dependency cache, so a cache written by a pull request cannot reach a signed build.
 
 ## Updates
 
 The app checks for updates only when the person presses 檢查更新 on the settings page. It never checks at start. The check reads `latest.json` from the address in `plugins.updater.endpoints` in `app/src-tauri/tauri.conf.json`, downloads the installer it names, and checks its signature against the `pubkey` in the same file before offering 安裝並重新啟動.
 
-To publish a build:
+The released app reads `https://github.com/ANONEKO777/speech-subtitle-ai/releases/latest/download/latest.json`, which GitHub serves from the newest published release that is not a pre-release. The release workflow checks that `endpoints` still names this repository. The address must work without signing in: an anonymous request has to get the JSON (or the installer) itself, not a login page. A page that is not JSON shows the person "更新來源回傳的不是更新資訊（網址可能已失效，或需要先登入）".
 
-1. Set the key in the environment, never in a file in the repository: `$env:TAURI_SIGNING_PRIVATE_KEY` is the key text or its path (`-Key` is used when it is unset). `build.ps1` never prints it.
-2. `powershell -File installer/build.ps1 -UpdateBaseUrl https://<where the files will be>/ -Notes "<what changed>"` writes `installer/build/latest.json`. The `url` inside it is `<UpdateBaseUrl>/<installer file name>`.
-3. Upload `latest.json` and `app/src-tauri/target/release/bundle/nsis/*-setup.exe` to that folder, and make `endpoints` in `tauri.conf.json` point at `<UpdateBaseUrl>/latest.json`.
-
-The address must work without signing in: an anonymous request has to get the JSON (or the installer) itself, not a login page. A page that is not JSON shows the person "更新來源回傳的不是更新資訊（網址可能已失效，或需要先登入）". The released app reads `https://github.com/ANONEKO777/speech-subtitle-ai/releases/latest/download/latest.json`, so publishing a build means creating a GitHub release for the tag that has `latest.json` and the `*-setup.exe` as its files and passing `-UpdateBaseUrl https://github.com/ANONEKO777/speech-subtitle-ai/releases/download/<tag>/`. Nothing in this repository creates a release or uploads anything by itself, and no workflow holds the signing key. Apps installed from a build made before this change still look at the old address and need one manual install of a newer build.
+To publish a build by hand instead, set the key as above and run `powershell -File installer/build.ps1 -UpdateBaseUrl https://<where the files will be>/ -Notes "<what changed>"`. Upload everything in `installer/build/release` to that folder, and make `endpoints` point at `<UpdateBaseUrl>/latest.json`. GitHub turns spaces in a release file's name into dots, so `build.ps1` names the installer there with hyphens instead and `latest.json` uses that name.
 
 `VST_UPDATE_URL` replaces the configured address for one run (the e2e drivers use it). The public key still decides what installs.
 
