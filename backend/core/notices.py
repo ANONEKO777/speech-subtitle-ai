@@ -821,6 +821,50 @@ SECRETS_DPAPI_FAILED = _template(
     "secrets.dpapiFailed", "Windows DPAPI failed (error {code})", code="text"
 )
 
+# The models folder (`api/downloads.py`, `manager/storage.py`, `manager/storage_move.py`): models
+# left behind by a change of folder, a move that is refused, and what a move could not finish.
+STORAGE_UNMOVED = _template(
+    "storage.unmoved",
+    "{count} installed model(s), {size} GiB, stay in {old} and are not moved. The app now looks "
+    "for models in {new}, so they show as not installed there. To move them, set the folder "
+    'back, then choose "Move existing models and switch".',
+    count="text",
+    size="text",
+    old="text",
+    new="text",
+)
+STORAGE_NOT_ABSOLUTE = _template(
+    "storage.notAbsolute", "models_dir must be an absolute path or null"
+)
+MOVE_NOT_ABSOLUTE = _template("move.notAbsolute", "target must be an absolute path")
+MOVE_SAME_FOLDER = _template("move.sameFolder", "source and target are the same folder")
+MOVE_NESTED = _template("move.nested", "source and target must not contain each other")
+MOVE_NO_MODELS = _template(
+    "move.noModels", "no installed models were found in {folder}", folder="text"
+)
+MOVE_CLASH = _template(
+    "move.clash",
+    "{target} already holds {models} with other content; nothing was moved",
+    target="text",
+    models="list",
+)
+MOVE_DOWNLOAD_RUNNING = _template(
+    "move.downloadRunning", "a download is running; wait for it or cancel it first"
+)
+MOVE_ALREADY_RUNNING = _template("move.alreadyRunning", "a move is already running")
+MOVE_OTHER_CONTENT = _template(
+    "move.otherContent",
+    "{dest} holds other content than {path}; left alone",
+    dest="text",
+    path="text",
+)
+MOVE_WRONG_SIZE = _template(
+    "move.wrongSize", "{dest} has the wrong size after the move", dest="text"
+)
+MOVE_COULD_NOT_REMOVE = _template(
+    "move.couldNotRemove", "could not remove {path}: {error}", path="text", error="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
