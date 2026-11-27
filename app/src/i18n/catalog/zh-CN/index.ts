@@ -1,4 +1,5 @@
 import type { Key } from "../index";
+import { autoUpdate } from "./autoUpdate";
 import { batch } from "./batch";
 import { editor } from "./editor";
 import { errors } from "./errors";
@@ -17,4 +18,4 @@ import { summary } from "./summary";
 import { update } from "./update";
 import { wizard } from "./wizard";
 
-export const zhCN = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...notices, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;
+export const zhCN = { ...autoUpdate, ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...notices, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } satisfies Record<Key, string>;

@@ -1,3 +1,4 @@
+import { autoUpdate } from "./autoUpdate";
 import { batch } from "./batch";
 import { editor } from "./editor";
 import { errors } from "./errors";
@@ -16,4 +17,4 @@ import { summary } from "./summary";
 import { update } from "./update";
 import { wizard } from "./wizard";
 
-export const en = { ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...notices, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } as const;
+export const en = { ...autoUpdate, ...batch, ...editor, ...errors, ...exports, ...hardware, ...importer, ...languages, ...licenses, ...llm, ...models, ...notices, ...player, ...settings, ...shell, ...summary, ...update, ...wizard } as const;

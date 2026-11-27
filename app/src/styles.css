@@ -2850,3 +2850,92 @@ kbd {
   right: auto;
   width: 250px;
 }
+
+/* The offer of a newer version found at start. It sits above the screen, in the flow, so nothing under it is covered. */
+.update-banner {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-4);
+  margin: var(--space-3) var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(to bottom, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-2);
+}
+
+.update-banner .badge-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.update-banner .badge-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.update-banner-body {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.update-banner-head {
+  margin: 0;
+  color: var(--text);
+  font-weight: var(--weight-medium);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.update-banner-notes {
+  display: grid;
+  gap: 2px;
+}
+
+.update-banner-notes p,
+.update-notes {
+  margin: 0;
+  max-height: calc(4 * 1.55em);
+  overflow-y: auto;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.update-banner-body > p {
+  margin: 0;
+}
+
+.update-banner-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.start-check {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.start-check p {
+  margin: 0;
+}
+
+.start-check .consent > span {
+  display: grid;
+  gap: 2px;
+}
+
+.start-check-label {
+  color: var(--text);
+  font-size: var(--text-md);
+}

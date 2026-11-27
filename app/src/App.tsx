@@ -48,6 +48,8 @@ import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
 import { fetchModelStates } from "./manage/api";
 import { SettingsPage } from "./settings/SettingsPage";
+import { UpdateBanner } from "./settings/UpdateBanner";
+import { START_DELAY_MS, useUpdates, workInProgress } from "./settings/useUpdates";
 import { useUiLanguageSync } from "./settings/useUiLanguageSync";
 import { SettingsBar } from "./settings/SettingsBar";
 import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
@@ -199,6 +201,8 @@ export function App() {
     setFirstRun("done");
   }, []);
   const batch = useBatch(backend);
+  const updates = useUpdates(workInProgress(screen.kind === "importing", batch), START_DELAY_MS);
+  const updateBanner = <UpdateBanner updates={updates} />;
   useEffect(() => {
     if (backend) performance.mark("backend-ready");
   }, [backend]);
@@ -416,6 +420,7 @@ export function App() {
     return (
       <div className="app wizard-app">
         <main>
+          {updateBanner}
           <Wizard backend={backend} onExit={leaveWizard} />
         </main>
       </div>
@@ -509,6 +514,7 @@ export function App() {
         />
       </div>
       <main>
+        {updateBanner}
         {status.kind === "starting" && (
           <div className="empty" data-testid="starting">
             <LoaderCircle className="spin" aria-hidden />
@@ -526,7 +532,7 @@ export function App() {
             <p>{t("app.checkingModels")}</p>
           </div>
         )}
-        {backend && screen.kind === "settings" && <SettingsPage backend={backend} />}
+        {backend && screen.kind === "settings" && <SettingsPage backend={backend} updates={updates} />}
         {screen.kind === "idle" && !screen.error && backend && firstRun === "done" && (
           <div className="home">
             <div className="empty" data-testid="ready">

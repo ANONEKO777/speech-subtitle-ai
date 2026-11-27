@@ -21,6 +21,16 @@ export function parseChecked(raw: unknown, t: Translate = tZhTW): Checked {
 export const reasonOf = (e: unknown): Said | null =>
   typeof e === "string" || e instanceof Error || typeof asRecord(e)?.["message"] === "string" ? said(e) : null;
 
+/** Whether this build can update itself, and its version. Outside the shell, or from a shell without the command, nothing is supported. */
+export const updateBuildInfo = async (): Promise<{ supported: boolean; current: string }> => {
+  try {
+    const o = asRecord(await invoke("update_build_info"));
+    return { supported: o?.["supported"] === true, current: typeof o?.["current"] === "string" ? o["current"] : "" };
+  } catch {
+    return { supported: false, current: "" };
+  }
+};
+
 export const updateCheck = async (t: Translate = tZhTW): Promise<Checked> => parseChecked(await invoke("update_check"), t);
 export const updateDownload = (): Promise<void> => invoke("update_download");
 export const updateInstall = (): Promise<void> => invoke("update_install");

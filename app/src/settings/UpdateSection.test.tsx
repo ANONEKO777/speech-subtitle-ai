@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { UpdateSection } from "./UpdateSection";
+import { EMPTY_BATCH, type BatchItem } from "../batch/model";
 import * as update from "./update";
+import { UpdateSectionAlone as UpdateSection } from "./updateTestkit";
+import { workInProgress } from "./useUpdates";
 
 vi.mock("./update", async (orig) => ({
   ...(await orig<typeof import("./update")>()),
+  updateBuildInfo: vi.fn(() => Promise.resolve({ supported: true, current: "0.1.0" })),
   updateCheck: vi.fn(),
   updateDownload: vi.fn(() => Promise.resolve()),
   updateInstall: vi.fn(() => Promise.resolve()),
@@ -64,6 +67,19 @@ describe("UpdateSection", () => {
     fireEvent.click(await screen.findByTestId("update-download"));
     expect((await screen.findByTestId("update-failed")).textContent).toContain("簽章不符");
     expect(screen.queryByTestId("update-install")).toBeNull();
+  });
+});
+
+describe("workInProgress", () => {
+  const item = (state: BatchItem["state"]) => ({ state }) as BatchItem;
+  it("names a running job, a running batch, or nothing", () => {
+    expect(workInProgress(true, EMPTY_BATCH)).toBe("job");
+    expect(workInProgress(false, EMPTY_BATCH)).toBeNull();
+    expect(workInProgress(false, { ...EMPTY_BATCH, items: [item("running")] })).toBe("batch");
+    expect(workInProgress(false, { ...EMPTY_BATCH, items: [item("queued")] })).toBe("batch");
+    expect(workInProgress(false, { ...EMPTY_BATCH, paused: true, items: [item("queued")] })).toBeNull();
+    expect(workInProgress(false, { ...EMPTY_BATCH, paused: true, items: [item("running")] })).toBe("batch");
+    expect(workInProgress(false, { ...EMPTY_BATCH, items: [item("done"), item("failed"), item("cancelled"), item("paused")] })).toBeNull();
   });
 });
 

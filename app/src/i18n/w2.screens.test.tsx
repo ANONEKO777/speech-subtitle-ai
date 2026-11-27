@@ -8,7 +8,7 @@ import type { Asset, DownloadJob, Inventory, MoveStatus, ProfileView, SelfTest, 
 import { DeleteDialog } from "../models-page/DeleteDialog";
 import { ModelsSection } from "../models-page/ModelsSection";
 import { StorageCard } from "../models-page/StorageCard";
-import { SettingsPage } from "../settings/SettingsPage";
+import { SettingsPageAlone } from "../settings/updateTestkit";
 import { Wizard } from "../wizard/Wizard";
 import { I18nProvider } from "./I18nProvider";
 import type { Locale } from "./locale";
@@ -496,7 +496,7 @@ const SCREENS: Record<string, Screen> = {
   "models: the page as the settings page frames it": async (shot, locale) => {
     mocks.inventory = windowsInventory();
     mocks.settings = settingsView();
-    const { container } = render(wrap(locale, <SettingsPage backend={backend} initial="models" />));
+    const { container } = render(wrap(locale, <SettingsPageAlone backend={backend} initial="models" />));
     await screen.findByTestId("inv-table");
     await waitFor(() => expect(screen.getByTestId("models-dir").textContent).toBe("C:/m"));
     shot("models page", container);
@@ -504,7 +504,7 @@ const SCREENS: Record<string, Screen> = {
   "models: a Mac with a local build": async (shot, locale) => {
     mocks.inventory = macInventory();
     mocks.settings = settingsView("/Users/me/models");
-    const { container } = render(wrap(locale, <SettingsPage backend={backend} initial="models" />));
+    const { container } = render(wrap(locale, <SettingsPageAlone backend={backend} initial="models" />));
     await screen.findByTestId("inv-table");
     shot("mac models", container.querySelector("[data-testid='inv-table']") as Element);
   },
