@@ -948,6 +948,21 @@ PROJECT_NOT_MEDIA = _template(
     accepted="text",
 )
 
+# Found by the guard once it read the files above: a verify or an update the item refuses, a
+# verify that was stopped, and a models folder setting that cannot be read.
+VERIFY_RUNTIME = _template(
+    "manage.verifyRuntime",
+    "{asset} is a runtime; its archive was checked when it was downloaded",
+    asset="text",
+)
+NOTHING_TO_UPDATE = _template(
+    "manage.nothingToUpdate", "nothing to update for {asset}: {reason}", asset="text", reason="text"
+)
+VERIFY_STOPPED = _template("manage.verifyStopped", "verification stopped")
+STORAGE_CANNOT_READ = _template(
+    "storage.cannotRead", "cannot read {path}: {error}", path="text", error="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
