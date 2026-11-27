@@ -76,3 +76,12 @@ def test_a_tag_must_name_the_version(repo: Path) -> None:
 def test_set_refuses_a_version_that_is_not_x_y_z(repo: Path) -> None:
     with pytest.raises(ValueError):
         version.set_version(repo, "0.2.0-rc.1")
+
+
+def test_set_writes_nothing_when_a_copy_cannot_be_found(repo: Path) -> None:
+    uv_lock = repo / "uv.lock"
+    renamed = uv_lock.read_text("utf-8").replace('name = "video', 'name = "renamed')
+    uv_lock.write_text(renamed, "utf-8")
+    with pytest.raises(ValueError, match="uv.lock"):
+        version.set_version(repo, "7.8.9")
+    assert version.found(repo)[0][1] != "7.8.9"

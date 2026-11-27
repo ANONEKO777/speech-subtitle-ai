@@ -87,10 +87,11 @@ def problems(root: Path, tag: str | None = None) -> list[str]:
 def set_version(root: Path, version: str) -> None:
     if not VERSION.fullmatch(version):
         raise ValueError(f"{version!r} is not X.Y.Z")
+    missing = [copy.path for copy, held in found(root) if held is None]
+    if missing:
+        raise ValueError(f"the version field was not found exactly once in {', '.join(missing)}")
     for copy in COPIES:
         text = _read(root, copy.path)
-        if len(copy.find(text)) != 1:
-            raise ValueError(f"{copy.path}: the version field was not found exactly once")
         text = copy.pattern.sub(lambda m: m.group(1) + version + m.group(3), text)
         with (root / copy.path).open("w", encoding="utf-8", newline="") as f:
             f.write(text)
