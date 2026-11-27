@@ -26,7 +26,8 @@ Not available yet:
   (the default) or Ollama.
 - Playing `.mkv`, `.avi` and similar files in the window. Not worked on.
 - Updates from inside the app. "Check for updates" on the settings page says that this platform
-  has no automatic update; install a newer build by hand (see "Updating" below).
+  has no automatic update; install a newer build by hand (see "Updating" below). The app does not
+  check at start on a Mac, and the "Check for updates at startup" switch is off and says why.
 - ffmpeg inside the app. The app uses the Homebrew `ffmpeg` (step 2), so it is not packed in.
 
 ## What is installed where

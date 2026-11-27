@@ -12,7 +12,7 @@ The installer is signed for the Tauri updater with a key kept outside the reposi
 
 ## Updates
 
-The app checks for updates only when the person presses 檢查更新 on the settings page. It never checks at start. The check reads `latest.json` from the address in `plugins.updater.endpoints` in `app/src-tauri/tauri.conf.json`, downloads the installer it names, and checks its signature against the `pubkey` in the same file before offering 安裝並重新啟動.
+On Windows the app checks for updates at start, in the background, at most once a day, unless the person turns off 啟動時檢查更新 on the settings page, and whenever they press 檢查更新 there. A check at start that fails says nothing; the settings page shows the last failure. A newer version appears in a banner with 下載並安裝, 稍後 and 略過此版本, and nothing downloads or installs without a click. The banner refuses to install while a video or the batch is being processed, because the installer stops the backend. The window keeps these preferences in its own storage (`vst.updates.v1`), not in `settings.json`, so an earlier build still reads `settings.json`. The check reads `latest.json` from the address in `plugins.updater.endpoints` in `app/src-tauri/tauri.conf.json`, downloads the installer it names, and checks its signature against the `pubkey` in the same file before offering 安裝並重新啟動.
 
 To publish a build:
 

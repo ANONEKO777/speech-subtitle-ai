@@ -139,7 +139,11 @@ try {
   try {
     console.log(`cold start ${app.coldStartMs} ms`);
     await sleep(3000);
-    check(hits.length === 0, "nothing contacts the update server at startup", `${hits.length} requests in 3 s`);
+    check(hits.length === 0, "nothing contacts the update server in the first seconds after start", `${hits.length} requests in 3 s`);
+    await p.waitForSelector(T("update-banner"), { timeout: 15000 });
+    check(hits.length === 1 && hits[0] === "ok /latest.json", "the check at start asks for latest.json once", hits.join(", "));
+    check(/0\.2\.0/.test(await text(p, "update-banner")), "the banner offers the new version over the wizard", await text(p, "update-banner"));
+    await click(p, "update-banner-later");
 
     await p.waitForSelector(T("wizard-vcredist"));
     const vcText = await text(p, "wizard-vcredist");
@@ -156,7 +160,7 @@ try {
 
     await openUpdates(app);
     check((await text(p, "update-check")) === "檢查更新", "the settings page has a 檢查更新 button");
-    check(!(await p.isVisible(T("update-status") + " > *")), "idle: no state is shown before a press");
+    check(await p.isVisible(T("update-available")), "the section shows what the check at start found");
     await app.resize(1280, 720);
     await app.shot("update-idle-1280.png");
 
