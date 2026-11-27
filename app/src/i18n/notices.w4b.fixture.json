@@ -1070,7 +1070,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image）。"
+    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（結束代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（結束代碼 3）：ggml error no kernel image）。"
   },
   "selftest.exits.stage0": {
     "before": "program.exe exited with code 3: ggml error no kernel image",
@@ -1086,7 +1086,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+    "zh": "program.exe 異常結束（結束代碼 3）：ggml error no kernel image"
   },
   "selftest.exits.stage1": {
     "before": "program.exe exited with code 3: ggml error no kernel image",
@@ -1102,7 +1102,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+    "zh": "program.exe 異常結束（結束代碼 3）：ggml error no kernel image"
   },
   "selftest.hangs.message": {
     "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe did not finish in 15 s; LLM (llama.cpp-b12068-win-cpu): program.exe did not finish in 15 s.",
@@ -1306,7 +1306,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp 沒有啟用 CUDA 後端，改用了 CPU; LLM (llama.cpp-b12068-win-cuda12.4): llama-server 沒有列出任何 CUDA 裝置），改用 CPU 後端。但 CPU 後端也無法使用（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image）。"
+    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp 沒有啟用 CUDA 後端，改用了 CPU; LLM (llama.cpp-b12068-win-cuda12.4): llama-server 沒有列出任何 CUDA 裝置），改用 CPU 後端。但 CPU 後端也無法使用（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（結束代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（結束代碼 3）：ggml error no kernel image）。"
   },
   "selftest.bothFail.reason": {
     "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead.",
@@ -1346,7 +1346,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+    "zh": "program.exe 異常結束（結束代碼 3）：ggml error no kernel image"
   },
   "selftest.bothFail.stage1": {
     "before": "program.exe exited with code 3: ggml error no kernel image",
@@ -1362,7 +1362,7 @@
         "message": "program.exe exited with code 3: ggml error no kernel image"
       }
     ],
-    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+    "zh": "program.exe 異常結束（結束代碼 3）：ggml error no kernel image"
   },
   "selftest.noCpuRuntime.message": {
     "before": "GPU failed and the CPU runtime is not installed. GPU: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). Download whispercpp-b5454-win-cpu, llama.cpp-b12068-win-cpu to have a CPU fallback.",
@@ -1549,7 +1549,7 @@
         "message": "installed, but its version was not recorded; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1"
       }
     ],
-    "zh": "已安裝，但沒有記錄版本。請按「驗證」或「重新下載」，才能和清單版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
+    "zh": "已安裝，但沒有記錄版本。請按「驗證」或「重新下載」，才能和登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
   },
   "updates.item.checkFailed": {
     "before": "installed, but its last check failed; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1",
@@ -1563,7 +1563,7 @@
         "message": "installed, but its last check failed; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1"
       }
     ],
-    "zh": "已安裝，但上次檢查沒有通過。請按「驗證」或「重新下載」，才能和清單版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
+    "zh": "已安裝，但上次檢查沒有通過。請按「驗證」或「重新下載」，才能和登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
   },
   "updates.item.matchesBundle": {
     "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
@@ -1577,7 +1577,7 @@
         "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
       }
     ],
-    "zh": "已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
+    "zh": "已安裝登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
   },
   "updates.item.matchesRemote": {
     "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, remote registry https://example.test/registry.json agrees",
@@ -1592,7 +1592,7 @@
         "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, remote registry https://example.test/registry.json agrees"
       }
     ],
-    "zh": "已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，遠端清單（https://example.test/registry.json）也相同"
+    "zh": "已安裝登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1，與遠端清單（https://example.test/registry.json）一致"
   },
   "updates.item.needsApp": {
     "before": "installed 5359861c739e955e79d9a303bcbc70fb988958b1, remote registry lists v9; this app ships 5359861c739e955e79d9a303bcbc70fb988958b1, so update the app to get it",
@@ -1637,7 +1637,7 @@
         "message": "installed v0, the registry has 5359861c739e955e79d9a303bcbc70fb988958b1"
       }
     ],
-    "zh": "已安裝 v0，清單上的版本是 5359861c739e955e79d9a303bcbc70fb988958b1"
+    "zh": "已安裝 v0，登錄版本是 5359861c739e955e79d9a303bcbc70fb988958b1"
   },
   "updates.available": {
     "before": "Updates available for whisper-large-v3-turbo, qwen3-asr-1.7b-q8_0.",
@@ -1987,7 +1987,7 @@
         "message": "ffmpeg was not found. Install ffmpeg, add it to PATH, or set VST_FFMPEG_DIR."
       }
     ],
-    "zh": "找不到 ffmpeg。請安裝 ffmpeg 並加入 PATH，或設定 VST_FFMPEG_DIR。"
+    "zh": "找不到 ffmpeg。請安裝 ffmpeg 並加入 PATH，或設定環境變數 VST_FFMPEG_DIR。"
   },
   "audio.toolMissing.darwin": {
     "before": "ffmpeg was not found. Install it with `brew install ffmpeg`, or set VST_FFMPEG_DIR.",
@@ -2002,7 +2002,7 @@
         "message": "ffmpeg was not found. Install it with `brew install ffmpeg`, or set VST_FFMPEG_DIR."
       }
     ],
-    "zh": "找不到 ffmpeg。請用 `brew install ffmpeg` 安裝，或設定 VST_FFMPEG_DIR。"
+    "zh": "找不到 ffmpeg。請用 `brew install ffmpeg` 安裝，或設定環境變數 VST_FFMPEG_DIR。"
   },
   "audio.toolTimedOut": {
     "before": "ffprobe on talk.mp4 did not finish in 0 s; stopped it",
@@ -2317,7 +2317,7 @@
         "message": "whispercpp-large-v3-turbo exited with code 3: out of memory"
       }
     ],
-    "zh": "whispercpp-large-v3-turbo 異常結束（代碼 3）：out of memory"
+    "zh": "whispercpp-large-v3-turbo 異常結束（結束代碼 3）：out of memory"
   },
   "engine.exitedSilent": {
     "before": "whispercpp-large-v3-turbo exited with code 3: no output",
@@ -2332,7 +2332,7 @@
         "message": "whispercpp-large-v3-turbo exited with code 3: no output"
       }
     ],
-    "zh": "whispercpp-large-v3-turbo 異常結束（代碼 3），沒有任何輸出"
+    "zh": "whispercpp-large-v3-turbo 異常結束（結束代碼 3），沒有任何輸出"
   },
   "engine.badWhisperJson": {
     "before": "unexpected whisper.cpp JSON in odd.json: KeyError('tokens')",
@@ -2420,7 +2420,7 @@
         "message": "llama-server exited with code 1; see llama.log"
       }
     ],
-    "zh": "llama-server 異常結束（代碼 1），詳情請看 llama.log"
+    "zh": "llama-server 異常結束（結束代碼 1），詳情請看 llama.log"
   },
   "server.notReady": {
     "before": "llama-server was not ready after 0 s; see llama.log",
@@ -2757,7 +2757,7 @@
         "message": "VAD model (see --vad-model) not found: data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
       }
     ],
-    "zh": "找不到 VAD 模型（參數 --vad-model）：data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
+    "zh": "找不到 VAD 模型：data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
   },
   "refuse.llamaServer": {
     "before": "llama-server program (see --llama-server) not found: data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe",
@@ -2771,7 +2771,7 @@
         "message": "llama-server program (see --llama-server) not found: data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
       }
     ],
-    "zh": "找不到 llama-server 程式（參數 --llama-server）：data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
+    "zh": "找不到 llama-server 程式：data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
   },
   "refuse.llmFile": {
     "before": "LLM model file not found: missing.gguf",
