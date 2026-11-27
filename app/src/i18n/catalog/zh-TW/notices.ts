@@ -1,6 +1,23 @@
 import type { notices as en } from "../en/notices";
 
 export const notices = {
+  "notice.download.cutShort": "檔案還沒傳完，連線就中斷了",
+  "notice.download.hashMismatch": "{file} 的 SHA256 檢查沒有通過（應為 {expected}，實際是 {actual}），下載的檔案已刪除。",
+  "notice.download.http": "{url} 回應 HTTP {status}",
+  "notice.download.interrupted": "下載中斷，重試 {retries} 次後仍無法恢復（{reason}）。下載到一半的檔案已保留，重新開始下載就會接著下載。",
+  "notice.download.locked": "{path} 正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。",
+  "notice.download.lockedMoving": "{path}（要移到 {target}）正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。",
+  "notice.download.lockedUnknown": "執行檔或模型的某個檔案或資料夾正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。",
+  "notice.download.missingLinkTarget": "壓縮檔裡有連結指向不存在的檔案：{name}",
+  "notice.download.noEntryPoint": "壓縮檔裡沒有 {file}",
+  "notice.download.noSpace": "{folder} 的磁碟空間不足：還需要 {needed}，目前只剩 {free}。",
+  "notice.download.rangeRefused": "伺服器拒絕續傳，重新下載",
+  "notice.download.unsafeLink": "壓縮檔裡有不安全的連結：{name} -> {target}",
+  "notice.download.unsafeLinkEntry": "壓縮檔裡有不安全的連結：{name}",
+  "notice.download.unsafePath": "壓縮檔裡有不安全的路徑：{name}",
+  "notice.download.unsupportedEntry": "壓縮檔裡有不支援的項目：{name}",
+  "notice.download.writeFailed": "寫入磁碟失敗：{error}",
+  "notice.download.wrongSize": "{url} 傳來 {sent} 位元組，應該是 {expected} 位元組",
   "notice.fonts.missingGlyphs": "字型 {font} 缺少這些字的字形：{chars}，燒錄出來的字幕會變成空白方塊。請安裝含有這些字的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
   "notice.fonts.missingTargetGlyphs": "字型 {font} 缺少{language}字幕要用的字形：{chars}，燒錄出來的字幕會變成空白方塊。請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
   "notice.fonts.noJapaneseMac": "這台 Mac 沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。請用「字體簿」安裝日文字型（例如 Hiragino Sans 或 Yu Gothic）後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",

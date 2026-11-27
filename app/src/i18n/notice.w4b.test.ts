@@ -29,6 +29,7 @@ const DATA: readonly RegExp[] = [
   /ggml error no kernel image/g,
   /The system cannot find the file specified/g,
   /404 Not Found/g,
+  /\[Errno 28\] No space left on device/g,
   /Expecting value: line 1 column 1 \(char 0\)/g,
   /TimeoutError: timed out/g,
   // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".

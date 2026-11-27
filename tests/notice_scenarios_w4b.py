@@ -14,11 +14,14 @@ Paths are written with `/`, so the fixture is the same on every system.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import subprocess
 import sys
+import tarfile
 import urllib.error
+import zipfile
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from email.message import Message
@@ -31,7 +34,7 @@ from notice_scenarios import _slashes
 
 from backend.core import vc_runtime
 from backend.core.notices import notices_of
-from backend.manager import platforms, profiles, selftest, updates
+from backend.manager import download, platforms, profiles, selftest, updates
 from backend.manager import registry as registry_module
 from backend.manager.hardware import Hardware
 from backend.manager.profiles import ProfileId
@@ -250,11 +253,135 @@ def _updates(found: dict[str, Entry]) -> None:
     reading("failed", fails(TimeoutError("timed out")))
 
 
+# Group 4: downloads.
+
+ORIGIN = "https://origin.test/tool.zip"
+
+
+class _Answer(io.BytesIO):
+    """An HTTP response that holds `body` and claims the headers it is given."""
+
+    def __init__(self, body: bytes, headers: dict[str, str] | None = None) -> None:
+        super().__init__(body)
+        self.status, self.headers = 200, headers or {}
+
+
+class _Volume:
+    def __str__(self) -> str:
+        return "/vst"
+
+    def stat(self) -> object:
+        return SimpleNamespace(st_dev=1)
+
+
+def _download_failed(call: Callable[[], object]) -> Entry:
+    try:
+        call()
+    except download.DownloadError as exc:
+        failure = exc.failure
+        return _entry(failure.message, getattr(failure, "message_notices", ()))
+    raise AssertionError("the download did not fail")
+
+
+def _tar(*members: tarfile.TarInfo) -> bytes:
+    held = io.BytesIO()
+    with tarfile.open(fileobj=held, mode="w:gz") as archive:
+        for member in members:
+            archive.addfile(member)
+    return held.getvalue()
+
+
+def _member(name: str, kind: bytes, link: str = "") -> tarfile.TarInfo:
+    member = tarfile.TarInfo(name)
+    member.type, member.linkname = kind, link
+    return member
+
+
+def _downloads(found: dict[str, Entry], tmp: Path) -> None:
+    folder = tmp / "downloads"
+    folder.mkdir()
+    body = b"0123456789"
+    digest = hashlib.sha256(body).hexdigest()
+    policy = download.RetryPolicy(max_failures=0, backoff_s=0)
+
+    def fetched(name: str, answer: object, *, held: bytes | None = None, sha: str = digest) -> None:
+        item = download.Item(ORIGIN, folder / f"{name}.bin", sha, len(body))
+        if held is not None:
+            download.part_of(item.dest).write_bytes(held)
+        job = download.Job(download.Plan(name, (item,)))
+        job.try_start()
+
+        def opener(_request: object, _timeout: float) -> object:
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+
+        found[f"download.{name}"] = _download_failed(
+            lambda: download.fetch(item, job, ORIGIN, opener, policy)
+        )
+
+    def http(status: int) -> Exception:
+        return urllib.error.HTTPError(ORIGIN, status, "x", Message(), io.BytesIO())
+
+    fetched("http404", http(404))
+    fetched("busyServer", http(503))
+    fetched("rangeRefused", http(416), held=body[:4])
+    fetched("cutShort", _Answer(body[:3]))
+    fetched("wrongSize", _Answer(body, {"Content-Length": "7"}))
+    fetched("hashMismatch", _Answer(body), sha="0" * 64)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(download, "_anchor", lambda _folder: _Volume())
+        mp.setattr(download.shutil, "disk_usage", lambda _p: SimpleNamespace(free=1000))
+        found["download.noSpace"] = _download_failed(
+            lambda: download.check_space([(folder, 3 << 20)])
+        )
+
+    def disk(name: str, error: OSError) -> None:
+        failed = download._disk_failure(error).failure
+        found[f"download.{name}"] = _entry(failed.message, getattr(failed, "message_notices", ()))
+
+    disk("locked", PermissionError(13, "denied", "/vst/llama-server.exe"))
+    disk("lockedMoving", PermissionError(13, "denied", "/vst/runtime", None, "/vst/runtime.old"))
+    disk("lockedUnknown", PermissionError(13, "denied"))
+    disk("writeFailed", OSError(28, "No space left on device"))
+
+    zipped = io.BytesIO()
+    with zipfile.ZipFile(zipped, "w") as archive:
+        archive.writestr("../evil.exe", b"x")
+    with zipfile.ZipFile(zipped) as archive:
+        found["download.unsafePath"] = _download_failed(
+            lambda: download.safe_members(archive, folder)
+        )
+    tars = {
+        "unsafeLink": _member("bin/tool", tarfile.SYMTYPE, "/etc/passwd"),
+        "unsafeLinkEntry": _member("bin/tool", tarfile.LNKTYPE, "."),
+        "unsupportedEntry": _member("bin/pipe", tarfile.FIFOTYPE),
+        "missingLinkTarget": _member("bin/tool", tarfile.LNKTYPE, "bin/absent"),
+    }
+    job = download.Job(download.Plan("tar", ()))
+    for name, member in tars.items():
+        path = folder / f"{name}.tar.gz"
+        path.write_bytes(_tar(member))
+        found[f"download.{name}"] = _download_failed(
+            lambda p=path, n=name: download.extract_tar(p, folder / f"out-{n}", job)
+        )
+    empty = folder / "empty.zip"
+    with zipfile.ZipFile(empty, "w") as archive:
+        archive.writestr("readme.txt", b"x")
+    item = download.Item(ORIGIN, empty, "0", 1)
+    plan = download.Plan("empty", (item,), unpack_to=folder / "runtime", entry_point="tool.exe")
+    found["download.noEntryPoint"] = _download_failed(
+        lambda: download.unpack(plan, download.Job(plan))
+    )
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _profiles(found)
     _selftests(found, tmp)
     _updates(found)
+    _downloads(found, tmp)
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

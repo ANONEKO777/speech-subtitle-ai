@@ -2,6 +2,23 @@
 import type { notices as en } from "../en/notices";
 
 export const notices = {
+  "notice.download.cutShort": "文件尚未传完，连接就中断了",
+  "notice.download.hashMismatch": "{file} 未通过 SHA256 校验（应为 {expected}，实际为 {actual}），下载的文件已删除。",
+  "notice.download.http": "{url} 返回 HTTP {status}",
+  "notice.download.interrupted": "下载中断，重试 {retries} 次后仍未恢复（{reason}）。已下载的部分文件已保留，重新开始下载即可继续。",
+  "notice.download.locked": "{path} 被其他程序锁定。请关闭占用它的程序（例如正在运行的语音识别或 LLM 服务器、命令行窗口，或打开着该文件夹的资源管理器窗口），然后重试。",
+  "notice.download.lockedMoving": "{path}（要移动到 {target}）被其他程序锁定。请关闭占用它的程序（例如正在运行的语音识别或 LLM 服务器、命令行窗口，或打开着该文件夹的资源管理器窗口），然后重试。",
+  "notice.download.lockedUnknown": "运行程序或模型的某个文件或文件夹被其他程序锁定。请关闭占用它的程序（例如正在运行的语音识别或 LLM 服务器、命令行窗口，或打开着该文件夹的资源管理器窗口），然后重试。",
+  "notice.download.missingLinkTarget": "压缩包中有链接指向不存在的文件：{name}",
+  "notice.download.noEntryPoint": "压缩包中没有 {file}",
+  "notice.download.noSpace": "{folder} 的磁盘空间不足：还需要 {needed}，目前仅剩 {free}。",
+  "notice.download.rangeRefused": "服务器拒绝续传，重新下载",
+  "notice.download.unsafeLink": "压缩包中有不安全的链接：{name} -> {target}",
+  "notice.download.unsafeLinkEntry": "压缩包中有不安全的链接：{name}",
+  "notice.download.unsafePath": "压缩包中有不安全的路径：{name}",
+  "notice.download.unsupportedEntry": "压缩包中有不支持的条目：{name}",
+  "notice.download.writeFailed": "写入磁盘失败：{error}",
+  "notice.download.wrongSize": "{url} 发送了 {sent} 字节，应为 {expected} 字节",
   "notice.fonts.missingGlyphs": "字体 {font} 缺少这些字的字形：{chars}，烧录出来的字幕会变成空白方块。请安装包含这些字的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
   "notice.fonts.missingTargetGlyphs": "字体 {font} 缺少{language}字幕需要的字形：{chars}，烧录出来的字幕会变成空白方块。请安装支持{language}的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
   "notice.fonts.noJapaneseMac": "这台 Mac 没有可以显示日语字幕的字体（试过 {fonts}），烧录出来的日语会变成空白方块。请用“字体册”安装日语字体（例如 Hiragino Sans 或 Yu Gothic）后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",

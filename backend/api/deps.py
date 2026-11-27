@@ -10,7 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.core.notices import notices_of, to_json
 from backend.manager.context import ManagerContext
-from backend.manager.download import JobStatus, is_locked, readable_os_error
+from backend.manager.download import JobStatus, is_locked, os_error_said
 from backend.manager.maintain import Refused
 
 
@@ -64,4 +64,6 @@ def locked_path_response(_: Request, exc: Exception) -> JSONResponse:
     route that touches files gets it. Other OS errors stay a server error."""
     if not (isinstance(exc, OSError) and is_locked(exc)):
         raise exc
-    return JSONResponse({"detail": {"message": readable_os_error(exc)}}, status_code=409)
+    text, found = os_error_said(exc)
+    body = {"detail": {"message": text}, "notices": to_json(found)}
+    return JSONResponse(body, status_code=409)

@@ -327,7 +327,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       )}
                       {!note && job?.failure && !live && (
                         <span className="sub note-line job-failure bad" role="alert" data-testid={`inv-${asset.id}-note`}>
-                          {job.failure.message}
+                          {word(job.failure.message, locale)}
                         </span>
                       )}
                     </td>

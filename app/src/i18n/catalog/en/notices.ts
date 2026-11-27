@@ -4,6 +4,23 @@
  * holds it there.
  */
 export const notices = {
+  "notice.download.cutShort": "connection closed before the whole file arrived",
+  "notice.download.hashMismatch": "{file} failed its SHA256 check (expected {expected}, got {actual}); the download was deleted.",
+  "notice.download.http": "{url} answered HTTP {status}",
+  "notice.download.interrupted": "Download interrupted and not recovered after {retries} retries ({reason}). The partial file is kept; start the download again to continue.",
+  "notice.download.locked": "{path} is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+  "notice.download.lockedMoving": "{path} (while moving it to {target}) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+  "notice.download.lockedUnknown": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+  "notice.download.missingLinkTarget": "link to a missing file: {name}",
+  "notice.download.noEntryPoint": "archive does not contain {file}",
+  "notice.download.noSpace": "Not enough free disk space on {folder}: need {needed} more, {free} is free.",
+  "notice.download.rangeRefused": "server refused the resume range, restarting",
+  "notice.download.unsafeLink": "unsafe link in archive: {name} -> {target}",
+  "notice.download.unsafeLinkEntry": "unsafe link in archive: {name}",
+  "notice.download.unsafePath": "unsafe path in archive: {name}",
+  "notice.download.unsupportedEntry": "unsupported entry in archive: {name}",
+  "notice.download.writeFailed": "disk write failed: {error}",
+  "notice.download.wrongSize": "{url} sends {sent} bytes, expected {expected}",
   "notice.fonts.missingGlyphs": "The font {font} has no glyphs for these characters: {chars}. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
   "notice.fonts.missingTargetGlyphs": "The font {font} is missing glyphs that the {language} subtitles need: {chars}. The burned-in subtitles would show empty boxes. Install a font that supports {language}, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
   "notice.fonts.noJapaneseMac": "This Mac has no font that can show Japanese subtitles (tried {fonts}), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Hiragino Sans or Yu Gothic) with Font Book, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",

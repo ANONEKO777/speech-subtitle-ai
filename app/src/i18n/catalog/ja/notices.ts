@@ -2,6 +2,23 @@
 import type { notices as en } from "../en/notices";
 
 export const notices = {
+  "notice.download.cutShort": "ファイルを受信し終える前に接続が切れました",
+  "notice.download.hashMismatch": "{file} は SHA256 の検査に失敗しました（想定 {expected}、実際 {actual}）。ダウンロードしたファイルは削除しました。",
+  "notice.download.http": "{url} が HTTP {status} を返しました",
+  "notice.download.interrupted": "ダウンロードが中断し、{retries} 回再試行しても回復しませんでした（{reason}）。途中までのファイルは残っています。ダウンロードを再開すると続きから始まります。",
+  "notice.download.locked": "{path} は別のプログラムによってロックされています。使用中のプログラム（実行中の文字起こしや LLM のサーバー、コマンドウィンドウ、そのフォルダーを開いているエクスプローラーなど）を閉じてから、もう一度お試しください。",
+  "notice.download.lockedMoving": "{path}（{target} への移動中）は別のプログラムによってロックされています。使用中のプログラム（実行中の文字起こしや LLM のサーバー、コマンドウィンドウ、そのフォルダーを開いているエクスプローラーなど）を閉じてから、もう一度お試しください。",
+  "notice.download.lockedUnknown": "ランタイムまたはモデルのファイルやフォルダーは別のプログラムによってロックされています。使用中のプログラム（実行中の文字起こしや LLM のサーバー、コマンドウィンドウ、そのフォルダーを開いているエクスプローラーなど）を閉じてから、もう一度お試しください。",
+  "notice.download.missingLinkTarget": "存在しないファイルへのリンクです：{name}",
+  "notice.download.noEntryPoint": "アーカイブに {file} がありません",
+  "notice.download.noSpace": "{folder} の空き容量が足りません：あと {needed} 必要ですが、空きは {free} です。",
+  "notice.download.rangeRefused": "サーバーが再開の要求を拒否したため、最初からやり直します",
+  "notice.download.unsafeLink": "アーカイブに安全でないリンクがあります：{name} -> {target}",
+  "notice.download.unsafeLinkEntry": "アーカイブに安全でないリンクがあります：{name}",
+  "notice.download.unsafePath": "アーカイブに安全でないパスがあります：{name}",
+  "notice.download.unsupportedEntry": "アーカイブに対応していない項目があります：{name}",
+  "notice.download.writeFailed": "ディスクへの書き込みに失敗しました：{error}",
+  "notice.download.wrongSize": "{url} は {sent} バイトを送ってきましたが、{expected} バイトのはずです",
   "notice.fonts.missingGlyphs": "フォント {font} には次の文字の字形がありません：{chars}。焼き込んだ字幕は空白の四角になります。これらの文字を含むフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
   "notice.fonts.missingTargetGlyphs": "フォント {font} には{language}の字幕に必要な字形がありません：{chars}。焼き込んだ字幕は空白の四角になります。{language}に対応したフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
   "notice.fonts.noJapaneseMac": "この Mac には日本語字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ日本語は空白の四角になります。「Font Book」で日本語フォント（Hiragino Sans や Yu Gothic など）をインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",

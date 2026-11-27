@@ -1715,5 +1715,263 @@
       }
     ],
     "zh": "無法讀取 https://example.test/registry.json 的清單：TimeoutError: timed out"
+  },
+  "download.http404": {
+    "before": "https://origin.test/tool.zip answered HTTP 404",
+    "text": "https://origin.test/tool.zip answered HTTP 404",
+    "notices": [
+      {
+        "code": "download.http",
+        "params": {
+          "url": "https://origin.test/tool.zip",
+          "status": "404"
+        },
+        "message": "https://origin.test/tool.zip answered HTTP 404"
+      }
+    ],
+    "zh": "https://origin.test/tool.zip 回應 HTTP 404"
+  },
+  "download.busyServer": {
+    "before": "Download interrupted and not recovered after 0 retries (HTTP 503). The partial file is kept; start the download again to continue.",
+    "text": "Download interrupted and not recovered after 0 retries (HTTP 503). The partial file is kept; start the download again to continue.",
+    "notices": [
+      {
+        "code": "download.interrupted",
+        "params": {
+          "retries": "0",
+          "reason": "HTTP 503"
+        },
+        "message": "Download interrupted and not recovered after 0 retries (HTTP 503). The partial file is kept; start the download again to continue."
+      }
+    ],
+    "zh": "下載中斷，重試 0 次後仍無法恢復（HTTP 503）。下載到一半的檔案已保留，重新開始下載就會接著下載。"
+  },
+  "download.rangeRefused": {
+    "before": "Download interrupted and not recovered after 0 retries (server refused the resume range, restarting). The partial file is kept; start the download again to continue.",
+    "text": "Download interrupted and not recovered after 0 retries (server refused the resume range, restarting). The partial file is kept; start the download again to continue.",
+    "notices": [
+      {
+        "code": "download.interrupted",
+        "params": {
+          "retries": "0",
+          "reason": "server refused the resume range, restarting"
+        },
+        "message": "Download interrupted and not recovered after 0 retries (server refused the resume range, restarting). The partial file is kept; start the download again to continue."
+      },
+      {
+        "code": "download.rangeRefused",
+        "params": {},
+        "message": "server refused the resume range, restarting"
+      }
+    ],
+    "zh": "下載中斷，重試 0 次後仍無法恢復（伺服器拒絕續傳，重新下載）。下載到一半的檔案已保留，重新開始下載就會接著下載。"
+  },
+  "download.cutShort": {
+    "before": "Download interrupted and not recovered after 0 retries (connection closed before the whole file arrived). The partial file is kept; start the download again to continue.",
+    "text": "Download interrupted and not recovered after 0 retries (connection closed before the whole file arrived). The partial file is kept; start the download again to continue.",
+    "notices": [
+      {
+        "code": "download.interrupted",
+        "params": {
+          "retries": "0",
+          "reason": "connection closed before the whole file arrived"
+        },
+        "message": "Download interrupted and not recovered after 0 retries (connection closed before the whole file arrived). The partial file is kept; start the download again to continue."
+      },
+      {
+        "code": "download.cutShort",
+        "params": {},
+        "message": "connection closed before the whole file arrived"
+      }
+    ],
+    "zh": "下載中斷，重試 0 次後仍無法恢復（檔案還沒傳完，連線就中斷了）。下載到一半的檔案已保留，重新開始下載就會接著下載。"
+  },
+  "download.wrongSize": {
+    "before": "https://origin.test/tool.zip sends 7 bytes, expected 10",
+    "text": "https://origin.test/tool.zip sends 7 bytes, expected 10",
+    "notices": [
+      {
+        "code": "download.wrongSize",
+        "params": {
+          "url": "https://origin.test/tool.zip",
+          "sent": "7",
+          "expected": "10"
+        },
+        "message": "https://origin.test/tool.zip sends 7 bytes, expected 10"
+      }
+    ],
+    "zh": "https://origin.test/tool.zip 傳來 7 位元組，應該是 10 位元組"
+  },
+  "download.hashMismatch": {
+    "before": "hashMismatch.bin failed its SHA256 check (expected 0000000000000000000000000000000000000000000000000000000000000000, got 84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882); the download was deleted.",
+    "text": "hashMismatch.bin failed its SHA256 check (expected 0000000000000000000000000000000000000000000000000000000000000000, got 84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882); the download was deleted.",
+    "notices": [
+      {
+        "code": "download.hashMismatch",
+        "params": {
+          "file": "hashMismatch.bin",
+          "expected": "0000000000000000000000000000000000000000000000000000000000000000",
+          "actual": "84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882"
+        },
+        "message": "hashMismatch.bin failed its SHA256 check (expected 0000000000000000000000000000000000000000000000000000000000000000, got 84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882); the download was deleted."
+      }
+    ],
+    "zh": "hashMismatch.bin 的 SHA256 檢查沒有通過（應為 0000000000000000000000000000000000000000000000000000000000000000，實際是 84d89877f0d4041efb6bf91a16f0248f2fd573e6af05c19f96bedb9f882f7882），下載的檔案已刪除。"
+  },
+  "download.noSpace": {
+    "before": "Not enough free disk space on /vst: need 3.0 MiB more, 1000 B is free.",
+    "text": "Not enough free disk space on /vst: need 3.0 MiB more, 1000 B is free.",
+    "notices": [
+      {
+        "code": "download.noSpace",
+        "params": {
+          "folder": "/vst",
+          "needed": "3.0 MiB",
+          "free": "1000 B"
+        },
+        "message": "Not enough free disk space on /vst: need 3.0 MiB more, 1000 B is free."
+      }
+    ],
+    "zh": "/vst 的磁碟空間不足：還需要 3.0 MiB，目前只剩 1000 B。"
+  },
+  "download.locked": {
+    "before": "/vst/llama-server.exe is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "text": "/vst/llama-server.exe is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "notices": [
+      {
+        "code": "download.locked",
+        "params": {
+          "path": "/vst/llama-server.exe"
+        },
+        "message": "/vst/llama-server.exe is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+      }
+    ],
+    "zh": "/vst/llama-server.exe 正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。"
+  },
+  "download.lockedMoving": {
+    "before": "/vst/runtime (while moving it to /vst/runtime.old) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "text": "/vst/runtime (while moving it to /vst/runtime.old) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "notices": [
+      {
+        "code": "download.lockedMoving",
+        "params": {
+          "path": "/vst/runtime",
+          "target": "/vst/runtime.old"
+        },
+        "message": "/vst/runtime (while moving it to /vst/runtime.old) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+      }
+    ],
+    "zh": "/vst/runtime（要移到 /vst/runtime.old）正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。"
+  },
+  "download.lockedUnknown": {
+    "before": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "text": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "notices": [
+      {
+        "code": "download.lockedUnknown",
+        "params": {},
+        "message": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+      }
+    ],
+    "zh": "執行檔或模型的某個檔案或資料夾正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。"
+  },
+  "download.writeFailed": {
+    "before": "disk write failed: [Errno 28] No space left on device",
+    "text": "disk write failed: [Errno 28] No space left on device",
+    "notices": [
+      {
+        "code": "download.writeFailed",
+        "params": {
+          "error": "[Errno 28] No space left on device"
+        },
+        "message": "disk write failed: [Errno 28] No space left on device"
+      }
+    ],
+    "zh": "寫入磁碟失敗：[Errno 28] No space left on device"
+  },
+  "download.unsafePath": {
+    "before": "unsafe path in archive: '../evil.exe'",
+    "text": "unsafe path in archive: '../evil.exe'",
+    "notices": [
+      {
+        "code": "download.unsafePath",
+        "params": {
+          "name": "'../evil.exe'"
+        },
+        "message": "unsafe path in archive: '../evil.exe'"
+      }
+    ],
+    "zh": "壓縮檔裡有不安全的路徑：'../evil.exe'"
+  },
+  "download.unsafeLink": {
+    "before": "unsafe link in archive: 'bin/tool' -> '/etc/passwd'",
+    "text": "unsafe link in archive: 'bin/tool' -> '/etc/passwd'",
+    "notices": [
+      {
+        "code": "download.unsafeLink",
+        "params": {
+          "name": "'bin/tool'",
+          "target": "'/etc/passwd'"
+        },
+        "message": "unsafe link in archive: 'bin/tool' -> '/etc/passwd'"
+      }
+    ],
+    "zh": "壓縮檔裡有不安全的連結：'bin/tool' -> '/etc/passwd'"
+  },
+  "download.unsafeLinkEntry": {
+    "before": "unsafe link in archive: 'bin/tool'",
+    "text": "unsafe link in archive: 'bin/tool'",
+    "notices": [
+      {
+        "code": "download.unsafeLinkEntry",
+        "params": {
+          "name": "'bin/tool'"
+        },
+        "message": "unsafe link in archive: 'bin/tool'"
+      }
+    ],
+    "zh": "壓縮檔裡有不安全的連結：'bin/tool'"
+  },
+  "download.unsupportedEntry": {
+    "before": "unsupported entry in archive: 'bin/pipe'",
+    "text": "unsupported entry in archive: 'bin/pipe'",
+    "notices": [
+      {
+        "code": "download.unsupportedEntry",
+        "params": {
+          "name": "'bin/pipe'"
+        },
+        "message": "unsupported entry in archive: 'bin/pipe'"
+      }
+    ],
+    "zh": "壓縮檔裡有不支援的項目：'bin/pipe'"
+  },
+  "download.missingLinkTarget": {
+    "before": "link to a missing file: 'bin/tool'",
+    "text": "link to a missing file: 'bin/tool'",
+    "notices": [
+      {
+        "code": "download.missingLinkTarget",
+        "params": {
+          "name": "'bin/tool'"
+        },
+        "message": "link to a missing file: 'bin/tool'"
+      }
+    ],
+    "zh": "壓縮檔裡有連結指向不存在的檔案：'bin/tool'"
+  },
+  "download.noEntryPoint": {
+    "before": "archive does not contain tool.exe",
+    "text": "archive does not contain tool.exe",
+    "notices": [
+      {
+        "code": "download.noEntryPoint",
+        "params": {
+          "file": "tool.exe"
+        },
+        "message": "archive does not contain tool.exe"
+      }
+    ],
+    "zh": "壓縮檔裡沒有 tool.exe"
   }
 }

@@ -278,7 +278,7 @@ const SCREENS: Record<string, Screen> = {
     shot("cancelled", second.container);
     click("wizard-retry");
     await waitFor(() => expect(screen.getByTestId("wizard-download").getAttribute("data-phase")).toBe("running"));
-    setList([job({ state: "failed", failure: { kind: "network", message: "The server closed the connection" } }), job({ id: "j2", state: "downloading" }), job({ id: "j3", state: "downloading" })]);
+    setList([job({ state: "failed", failure: { kind: "network", message: plainText("The server closed the connection") } }), job({ id: "j2", state: "downloading" }), job({ id: "j3", state: "downloading" })]);
     rerender(wrap(locale, <Wizard backend={backend} onExit={() => undefined} />));
     await waitFor(() => expect(screen.getByTestId("wizard-download").getAttribute("data-phase")).toBe("failed"));
     shot("failed", second.container);

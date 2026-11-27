@@ -95,7 +95,7 @@ export function parseJob(raw: unknown): DownloadJob {
     resumedFrom: num(o, "resumed_from"),
     retries: num(o, "retries"),
     note: strOrNull(o, "note"),
-    failure: f ? { kind: str(f, "kind"), message: str(f, "message") } : null,
+    failure: f ? { kind: str(f, "kind"), message: saidField(f, "message") } : null,
   };
 }
 

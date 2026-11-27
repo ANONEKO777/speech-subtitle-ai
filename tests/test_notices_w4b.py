@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from manage_support import Rig
 from notice_scenarios_w4b import collect
 
+from backend.api.deps import locked_path_response
 from backend.core import notices
 from backend.core.notices import noticed, to_json
 from backend.manager.updates import UpdateError
@@ -76,3 +77,24 @@ def test_a_registry_that_cannot_be_read_sends_the_notice_beside_the_refusal(rig:
     reply = rig.client.post("/api/updates/check")
 
     assert reply.status_code == 502 and reply.json()["notices"] == to_json([why])
+
+
+def test_a_failed_download_sends_the_notices_of_its_failure(rig: Rig) -> None:
+    model = next(iter(rig.registry.models.values()))
+    rig.origin.files[f"/{model.id}"] = bytes(model.size_bytes)
+    rig.client.post(f"/api/models/{model.id}/download")
+    rig.wait_jobs()
+
+    failure = next(j for j in rig.client.get("/api/downloads").json() if j["failure"])["failure"]
+
+    assert [n["code"] for n in failure["message_notices"]] == ["download.hashMismatch"]
+    assert inside(failure["message"], failure["message_notices"])
+
+
+def test_a_locked_file_answers_a_409_with_the_notice_beside_it() -> None:
+    reply = locked_path_response(cast("Any", None), PermissionError(13, "denied", "C:/m/a.bin"))
+    body = json.loads(bytes(reply.body))
+
+    assert reply.status_code == 409
+    assert [n["code"] for n in body["notices"]] == ["download.locked"]
+    assert inside(body["detail"]["message"], body["notices"])

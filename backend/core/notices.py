@@ -373,6 +373,74 @@ REGISTRY_UNREADABLE = _template(
     "updates.readFailed", _UNREADABLE + "{error}", url="text", error="text"
 )
 
+# Downloads (`manager/download.py`): why one failed. A file another program holds is also what
+# any route answers (`api/deps.py`).
+NOT_ENOUGH_SPACE = _template(
+    "download.noSpace",
+    "Not enough free disk space on {folder}: need {needed} more, {free} is free.",
+    folder="text",
+    needed="text",
+    free="text",
+)
+DOWNLOAD_HTTP = _template(
+    "download.http", "{url} answered HTTP {status}", url="text", status="text"
+)
+WRONG_SIZE = _template(
+    "download.wrongSize",
+    "{url} sends {sent} bytes, expected {expected}",
+    url="text",
+    sent="text",
+    expected="text",
+)
+_IS_LOCKED = (
+    " is locked by another program. Close the program that holds it, such as a running "
+    "transcription or LLM server, a command window or a File Explorer window open in that "
+    "folder, then try again."
+)
+LOCKED = _template("download.locked", "{path}" + _IS_LOCKED, path="text")
+LOCKED_WHILE_MOVING = _template(
+    "download.lockedMoving",
+    "{path} (while moving it to {target})" + _IS_LOCKED,
+    path="text",
+    target="text",
+)
+LOCKED_SOMEWHERE = _template(
+    "download.lockedUnknown", "a file or folder of the runtime or model" + _IS_LOCKED
+)
+DISK_WRITE_FAILED = _template("download.writeFailed", "disk write failed: {error}", error="text")
+DOWNLOAD_INTERRUPTED = _template(
+    "download.interrupted",
+    "Download interrupted and not recovered after {retries} retries ({reason}). The partial "
+    "file is kept; start the download again to continue.",
+    retries="text",
+    reason="text",
+)
+RESUME_REFUSED = _template("download.rangeRefused", "server refused the resume range, restarting")
+CONNECTION_CUT = _template("download.cutShort", "connection closed before the whole file arrived")
+HASH_MISMATCH = _template(
+    "download.hashMismatch",
+    "{file} failed its SHA256 check (expected {expected}, got {actual}); the download was deleted.",
+    file="text",
+    expected="text",
+    actual="text",
+)
+UNSAFE_PATH = _template("download.unsafePath", "unsafe path in archive: {name}", name="text")
+UNSAFE_LINK = _template(
+    "download.unsafeLink", "unsafe link in archive: {name} -> {target}", name="text", target="text"
+)
+UNSAFE_LINK_ENTRY = _template(
+    "download.unsafeLinkEntry", "unsafe link in archive: {name}", name="text"
+)
+UNSUPPORTED_ENTRY = _template(
+    "download.unsupportedEntry", "unsupported entry in archive: {name}", name="text"
+)
+LINK_TO_NOTHING = _template(
+    "download.missingLinkTarget", "link to a missing file: {name}", name="text"
+)
+ARCHIVE_LACKS_PROGRAM = _template(
+    "download.noEntryPoint", "archive does not contain {file}", file="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 

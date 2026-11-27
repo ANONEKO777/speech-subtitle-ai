@@ -1,4 +1,110 @@
 {
+  "download.cutShort": {
+    "english": "connection closed before the whole file arrived",
+    "params": {}
+  },
+  "download.hashMismatch": {
+    "english": "{file} failed its SHA256 check (expected {expected}, got {actual}); the download was deleted.",
+    "params": {
+      "file": "text",
+      "expected": "text",
+      "actual": "text"
+    }
+  },
+  "download.http": {
+    "english": "{url} answered HTTP {status}",
+    "params": {
+      "url": "text",
+      "status": "text"
+    }
+  },
+  "download.interrupted": {
+    "english": "Download interrupted and not recovered after {retries} retries ({reason}). The partial file is kept; start the download again to continue.",
+    "params": {
+      "retries": "text",
+      "reason": "text"
+    }
+  },
+  "download.locked": {
+    "english": "{path} is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {
+      "path": "text"
+    }
+  },
+  "download.lockedMoving": {
+    "english": "{path} (while moving it to {target}) is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {
+      "path": "text",
+      "target": "text"
+    }
+  },
+  "download.lockedUnknown": {
+    "english": "a file or folder of the runtime or model is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "params": {}
+  },
+  "download.missingLinkTarget": {
+    "english": "link to a missing file: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.noEntryPoint": {
+    "english": "archive does not contain {file}",
+    "params": {
+      "file": "text"
+    }
+  },
+  "download.noSpace": {
+    "english": "Not enough free disk space on {folder}: need {needed} more, {free} is free.",
+    "params": {
+      "folder": "text",
+      "needed": "text",
+      "free": "text"
+    }
+  },
+  "download.rangeRefused": {
+    "english": "server refused the resume range, restarting",
+    "params": {}
+  },
+  "download.unsafeLink": {
+    "english": "unsafe link in archive: {name} -> {target}",
+    "params": {
+      "name": "text",
+      "target": "text"
+    }
+  },
+  "download.unsafeLinkEntry": {
+    "english": "unsafe link in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.unsafePath": {
+    "english": "unsafe path in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.unsupportedEntry": {
+    "english": "unsupported entry in archive: {name}",
+    "params": {
+      "name": "text"
+    }
+  },
+  "download.writeFailed": {
+    "english": "disk write failed: {error}",
+    "params": {
+      "error": "text"
+    }
+  },
+  "download.wrongSize": {
+    "english": "{url} sends {sent} bytes, expected {expected}",
+    "params": {
+      "url": "text",
+      "sent": "text",
+      "expected": "text"
+    }
+  },
   "fonts.missingGlyphs": {
     "english": "The font {font} has no glyphs for these characters: {chars}. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {

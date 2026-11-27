@@ -53,7 +53,7 @@ export type JobState = "queued" | "downloading" | "verifying" | "extracting" | "
 
 export interface JobFailure {
   readonly kind: string;
-  readonly message: string;
+  readonly message: Said;
 }
 
 export interface DownloadJob {
