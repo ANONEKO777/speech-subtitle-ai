@@ -26,4 +26,4 @@ LangString webview2DownloadSuccess ${LANG_JAPANESE} "WebView2 インストーラ
 LangString webview2Downloading ${LANG_JAPANESE} "WebView2 インストーラーをダウンロードしています..."
 LangString webview2InstallError ${LANG_JAPANESE} "エラー：WebView2 のインストールに失敗しました（終了コード $1）"
 LangString webview2InstallSuccess ${LANG_JAPANESE} "WebView2 をインストールしました"
-LangString deleteAppData ${LANG_JAPANESE} "ダウンロードしたモデル、ランタイム、プロジェクトも削除する（チェックしなければ残ります）"
+LangString deleteAppData ${LANG_JAPANESE} "ダウンロードしたモデル、実行ファイル、プロジェクトも削除する（チェックしなければ残ります）"
