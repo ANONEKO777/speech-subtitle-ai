@@ -182,3 +182,23 @@ The terms of the player, its side column, the library and the help overlay.
 | update source | 更新來源 | update source | |
 | signature | 簽章 | signature | |
 | backend | 後端 | backend | |
+
+## W4b part 1: backend messages in Traditional Chinese
+
+Here the English came first and `zh-TW` is new text.
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| remote registry, registry (update check) | 遠端清單, 清單 | remote registry, registry | The app's list of models and runtimes. Not 登錄檔, which is the Windows registry. The table's "Listed version" stays 登錄版本. |
+| speech engine | 辨識引擎 | ASR engine, engine | |
+| ASR, VAD, LLM | 語音辨識, VAD, LLM | ASR, VAD, LLM | VAD and LLM stay as they are. |
+| fallback (speech recognition) | 備用 | fallback | 備用語音辨識. |
+| audio track | 音訊軌 | audio track | |
+| token | token | token | Not translated. |
+| context (LLM) | 內容長度 | context | |
+| archive | 壓縮檔 | archive | |
+| exit code | 結束代碼 | exit code | |
+| redirect | 轉址 | redirect | |
+| locked by another program | 被其他程式鎖定 | locked by another program | |
+| File Explorer | 檔案總管 | File Explorer | Microsoft's name. |
+| command window | 命令列視窗 | command window | |
