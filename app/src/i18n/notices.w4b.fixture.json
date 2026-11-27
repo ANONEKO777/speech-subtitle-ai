@@ -2901,7 +2901,56 @@
         "message": "the summary could not be written: the topic is empty; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
       }
     ],
-    "zh": "寫不出重點摘要：the topic is empty。最後一次回覆的問題：the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+    "zh": "寫不出重點摘要。原因：「the topic is empty」；最後一次回覆的問題：「the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))」"
+  },
+  "summary.notWrittenBusy": {
+    "before": "the summary could not be written: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "text": "the summary could not be written: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "notices": [
+      {
+        "code": "summary.notWritten",
+        "params": {
+          "reason": "https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded",
+          "reply": "the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+        },
+        "message": "the summary could not be written: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+      },
+      {
+        "code": "llm.http",
+        "params": {
+          "url": "https://api.example.test/v1/chat/completions",
+          "status": "503 Service Unavailable",
+          "detail": "overloaded"
+        },
+        "message": "https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded"
+      }
+    ],
+    "zh": "寫不出重點摘要。原因：「https://api.example.test/v1/chat/completions 回應 HTTP 503 Service Unavailable：overloaded」；最後一次回覆的問題：「the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))」"
+  },
+  "translate.cueFailedBusy": {
+    "before": "cue 1 could not be translated after 2 attempts: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded",
+    "text": "cue 1 could not be translated after 2 attempts: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded",
+    "notices": [
+      {
+        "code": "translate.cueFailed",
+        "params": {
+          "cue": "1",
+          "attempts": "2",
+          "reason": "https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded"
+        },
+        "message": "cue 1 could not be translated after 2 attempts: https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded"
+      },
+      {
+        "code": "llm.http",
+        "params": {
+          "url": "https://api.example.test/v1/chat/completions",
+          "status": "503 Service Unavailable",
+          "detail": "overloaded"
+        },
+        "message": "https://api.example.test/v1/chat/completions answered HTTP 503 Service Unavailable: overloaded"
+      }
+    ],
+    "zh": "第 1 句字幕嘗試翻譯 2 次都沒有成功：https://api.example.test/v1/chat/completions 回應 HTTP 503 Service Unavailable：overloaded"
   },
   "batch.videoGone": {
     "before": "the video is gone: gone.mp4",

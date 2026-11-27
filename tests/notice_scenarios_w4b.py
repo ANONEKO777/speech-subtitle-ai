@@ -645,6 +645,27 @@ def _text_failures(found: dict[str, Entry]) -> None:
     found["summary.notWritten"] = _raised(
         lambda: summarize._Run.ask_reduce_or_fall_back(asker, job, [], "reduce zh-TW")
     )
+    config = client.LlmConfig("https://api.example.test/v1", "m")
+    calls = iter(range(100))
+
+    def busy(*_args: object, **_kwargs: object) -> object:
+        body = io.BytesIO(b"overloaded")
+        raise urllib.error.HTTPError(config.chat_url, 503, "Service Unavailable", Message(), body)
+
+    def rejected_then_busy(messages: Any, _temperature: float) -> str:
+        """A reply the check refuses, then a server that is busy when asked again."""
+        return "no" if next(calls) % 2 == 0 else client.chat(config, messages)
+
+    flaky: Any = SimpleNamespace(chat=rejected_then_busy, max_retries=1, sleep=lambda _s: None)
+    flaky.ask_reduce = lambda *args: summarize._Run.ask_reduce(flaky, *args)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(client, "_opener", lambda _c: SimpleNamespace(open=busy))
+        found["summary.notWrittenBusy"] = _raised(
+            lambda: summarize._Run.ask_reduce_or_fall_back(flaky, job, [], "reduce zh-TW")
+        )
+        found["translate.cueFailedBusy"] = _raised(
+            lambda: translate.run(cues, rejected_then_busy, max_retries=1, sleep=lambda _s: None)
+        )
 
 
 def _batch_failures(found: dict[str, Entry]) -> None:

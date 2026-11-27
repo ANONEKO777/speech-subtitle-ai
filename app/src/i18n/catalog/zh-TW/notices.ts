@@ -140,7 +140,7 @@ export const notices = {
   "notice.shell.update.unsupported": "這個平台還沒有自動更新。請到專案網頁下載新版安裝程式，直接取代現有的應用程式。",
   "notice.summary.noPart": "整段內容沒有任何部分能整理成摘要",
   "notice.summary.noText": "逐字稿沒有可以整理成摘要的文字",
-  "notice.summary.notWritten": "寫不出重點摘要：{reason}。最後一次回覆的問題：{reply}",
+  "notice.summary.notWritten": "寫不出重點摘要。原因：「{reason}」；最後一次回覆的問題：「{reply}」",
   "notice.summary.tooLarge": "{label} 大約需要 {tokens} 個 token，超過 {context} 個 token 內容長度的 {limit}",
   "notice.translate.cannotResume": "{file}：無法從這個檔案接著翻譯（{error}）",
   "notice.translate.cueFailed": "第 {cue} 句字幕嘗試翻譯 {attempts} 次都沒有成功：{reason}",

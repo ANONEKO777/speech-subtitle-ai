@@ -40,6 +40,7 @@ const DATA: readonly RegExp[] = [
   /out of memory/g,
   /Access is denied/g,
   /Internal Server Error/g,
+  /Service Unavailable/g,
   // A command to type, as it is.
   /`brew install ffmpeg`/g,
   /model crashed/g,

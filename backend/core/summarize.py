@@ -737,7 +737,7 @@ class _Run:
             result = parse_reduce(failure.reply, replace(job, check_language=False))
         except ReplyError as exc:
             lost = notices.SUMMARY_NOT_WRITTEN(reason=failure.reason, reply=str(exc))
-            raise noticed(SummaryError, lost) from exc
+            raise noticed(SummaryError, lost) from failure
         log.warning(
             "%s: using the last reply without its language check (%s)", label, failure.reason
         )
