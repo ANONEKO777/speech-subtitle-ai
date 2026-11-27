@@ -4,6 +4,7 @@ export const shell = {
   "common.cancel": "取消",
   "common.close": "關閉",
   "common.listSeparator": "、",
+  "common.clauseSeparator": "；",
   "app.title": "字幕翻譯",
   "shell.mediaFilter": "影片與音訊",
   "app.starting": "正在啟動後端…",

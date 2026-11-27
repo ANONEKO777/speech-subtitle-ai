@@ -52,15 +52,18 @@ const DATA: readonly RegExp[] = [
   /subs file: invalid JSON/g,
   // And what the store of the API key says, quoted as the detail of a saved key that cannot be read.
   /Windows DPAPI failed/g,
-  // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".
-  /; LLM \(/g,
 ];
 
 /**
- * The sentences whose English changed: one said "queue" where the window says "batch", and a runtime
- * row was told to verify, which only a model row can.
+ * The sentences whose English changed: one said "queue" where the window says "batch", a runtime
+ * row was told to verify, which only a model row can, and a program that exited with no output
+ * left a colon with nothing after it.
  */
 const REWORDED: Readonly<Record<string, string>> = {
+  "selftest.exitsSilently.message":
+    "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: no output; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: no output.",
+  "selftest.exitsSilently.stage0": "program.exe exited with code 3: no output",
+  "selftest.exitsSilently.stage1": "program.exe exited with code 3: no output",
   "batch.crashed": "the batch crashed",
   "updates.item.runtimeUnrecorded": "installed, but its version was not recorded; re-download it to compare with registry version b5454",
   "updates.item.runtimeCheckFailed": "installed, but its last check failed; re-download it to compare with registry version b5454",
@@ -83,6 +86,13 @@ describe("every W4b scenario", () => {
     expect(shown).toBe(entry.zh);
     expect(DATA.reduce((left, data) => left.replace(data, "◇"), shown)).not.toMatch(ENGLISH_RUN);
   });
+
+  it.each(SCENARIOS.filter(([name]) => name.startsWith("selftest.")))(
+    "%s: Traditional Chinese joins the self-test's failures with Chinese punctuation, and no colon dangles",
+    (_name, entry) => {
+      expect(word(sent(entry), "zh-TW")).not.toMatch(/[:;] |：[；;）)]|：$/);
+    },
+  );
 
   it.each(SCENARIOS)("%s: the other languages fill every placeholder", (_name, entry) => {
     for (const locale of ["zh-CN", "ja"] as const) {

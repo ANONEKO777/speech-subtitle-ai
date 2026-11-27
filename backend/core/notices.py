@@ -22,8 +22,9 @@ from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol, TypeVar, cast
 
-ParamKind = Literal["text", "list", "language"]
-"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it.
+ParamKind = Literal["text", "list", "clauses", "language"]
+"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it,
+and `clauses`, items that hold their own punctuation, with the stronger one (`; ` in English).
 A `language` travels as its code, and the window names it."""
 
 ParamValue = str | list[str]
@@ -60,9 +61,9 @@ class Template:
             if kind == "language":
                 language = cast("NamedLanguage", value)
                 sent[name], shown[name] = language.code, language.name
-            elif kind == "list":
+            elif kind in ("list", "clauses"):
                 items = list(cast("Sequence[str]", value))
-                sent[name], shown[name] = items, ", ".join(items)
+                sent[name], shown[name] = items, (", " if kind == "list" else "; ").join(items)
             else:
                 sent[name] = shown[name] = str(value)
         return Notice(self.code, sent, self.english.format_map(shown))
@@ -279,6 +280,18 @@ PROGRAM_EXITED = _template(
     code="text",
     output="text",
 )
+PROGRAM_EXITED_SILENT = _template(
+    "selftest.exitedSilent",
+    "{program} exited with code {code}: no output",
+    program="text",
+    code="text",
+)
+ASR_STAGE_FAILED = _template(
+    "selftest.asrFailed", "ASR ({runtime}): {detail}", runtime="text", detail="text"
+)
+LLM_STAGE_FAILED = _template(
+    "selftest.llmFailed", "LLM ({runtime}): {detail}", runtime="text", detail="text"
+)
 SIMULATED_CUDA_FAILURE = _template(
     "selftest.simulated", "CUDA failed to initialise (simulated by {variable})", variable="text"
 )
@@ -291,23 +304,23 @@ SEES_CUDA = _template("selftest.cudaSeen", "llama-server sees a CUDA device")
 LLAMA_STARTS = _template("selftest.llamaStarts", "llama-server starts")
 STAGE_NOT_INSTALLED = _template("selftest.notInstalled", "not installed: {missing}", missing="list")
 SELFTEST_PASSED = _template("selftest.passed", "Self-test passed on {device}.", device="text")
-SELFTEST_FAILED = _template("selftest.failed", "Self-test failed: {failures}.", failures="text")
+SELFTEST_FAILED = _template("selftest.failed", "Self-test failed: {failures}.", failures="clauses")
 _FELL_BACK = "The GPU backend failed: {failures}. The CPU backend is used instead."
-GPU_FELL_BACK = _template("selftest.gpuFellBack", _FELL_BACK, failures="text")
+GPU_FELL_BACK = _template("selftest.gpuFellBack", _FELL_BACK, failures="clauses")
 FELL_BACK_AND_PASSED = _template(
-    "selftest.fellBackPassed", _FELL_BACK + " The CPU self-test passed.", failures="text"
+    "selftest.fellBackPassed", _FELL_BACK + " The CPU self-test passed.", failures="clauses"
 )
 FELL_BACK_AND_UNUSABLE = _template(
     "selftest.fellBackUnusable",
     _FELL_BACK + " The CPU backend is not usable either: {cpuFailures}.",
-    failures="text",
-    cpuFailures="text",
+    failures="clauses",
+    cpuFailures="clauses",
 )
 NO_CPU_FALLBACK = _template(
     "selftest.noCpuRuntime",
     "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to "
     "have a CPU fallback.",
-    failures="text",
+    failures="clauses",
     download="list",
 )
 

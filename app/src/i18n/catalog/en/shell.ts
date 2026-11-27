@@ -2,6 +2,7 @@ export const shell = {
   "common.cancel": "Cancel",
   "common.close": "Close",
   "common.listSeparator": ", ",
+  "common.clauseSeparator": "; ",
   "app.title": "Video Subtitle Translator",
   "shell.mediaFilter": "Videos and audio",
   "app.starting": "Starting the backend…",

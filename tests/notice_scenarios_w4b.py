@@ -113,7 +113,7 @@ class _Program:
 
     def __init__(self, how: str) -> None:
         self.how, self.waits = how, 0
-        self.returncode = 3 if how == "exits" else 0
+        self.returncode = 3 if how in ("exits", "silent") else 0
 
     def communicate(self, timeout: float | None = None) -> tuple[bytes, None]:
         self.waits += 1
@@ -183,6 +183,7 @@ def _selftests(found: dict[str, Entry], tmp: Path) -> None:
     _report("selftest.passedGpu", gpu, tmp, found)
     _report("selftest.passedCpu", cpu, tmp, found)
     _report("selftest.exits", cpu, tmp, found, cpu="exits")
+    _report("selftest.exitsSilently", cpu, tmp, found, cpu="silent")
     _report("selftest.hangs", cpu, tmp, found, cpu="hangs")
     _report("selftest.cannotStart", cpu, tmp, found, cpu="missing")
     _report("selftest.fellBack", gpu, tmp, found, simulate=True)

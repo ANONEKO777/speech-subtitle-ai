@@ -27,6 +27,10 @@ FIXTURE = ROOT / "app/src/i18n/notices.w4b.fixture.json"
 
 REWORDED = {
     "batch.crashed": 'said "queue" where the window says "batch"',
+    **{
+        f"selftest.exitsSilently.{part}": "left a colon with nothing after it"
+        for part in ("message", "stage0", "stage1")
+    },
     "updates.item.runtimeUnrecorded": "told a runtime row to verify, which has no Verify button",
     "updates.item.runtimeCheckFailed": "told a runtime row to verify, which has no Verify button",
 }
