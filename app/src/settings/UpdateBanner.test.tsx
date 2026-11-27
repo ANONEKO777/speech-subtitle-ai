@@ -62,6 +62,9 @@ describe("the check at start", () => {
     const banner = screen.getByTestId("update-banner");
     expect(banner.textContent).toContain("有新版 0.2.0（目前 0.1.0）");
     expect(screen.getByTestId("update-banner-notes").textContent).toContain("A new player.");
+    expect(screen.getByTestId("update-banner-install").textContent).toBe("下載並安裝");
+    expect(screen.getByTestId("update-banner-later").textContent).toBe("稍後");
+    expect(screen.getByTestId("update-banner-skip").textContent).toBe("略過此版本");
     expect(stored().lastCheckAt).not.toBeNull();
     expect(update.updateDownload).not.toHaveBeenCalled();
     expect(update.updateInstall).not.toHaveBeenCalled();
