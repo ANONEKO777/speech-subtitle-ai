@@ -22,9 +22,11 @@ from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol, TypeVar, cast
 
-ParamKind = Literal["text", "list", "language"]
-"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it.
-A `language` travels as its code, and the window names it."""
+ParamKind = Literal["text", "list", "language", "clauses", "word"]
+"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it,
+and `clauses`, a list of short sentences, with the stronger one (`; ` in English). A `language`
+travels as its code, and the window names it. A `word` is one of a fixed set of English words, such
+as a batch item's state, that the window words from its catalog (`noticeWord.<word>`)."""
 
 ParamValue = str | list[str]
 
@@ -60,9 +62,9 @@ class Template:
             if kind == "language":
                 language = cast("NamedLanguage", value)
                 sent[name], shown[name] = language.code, language.name
-            elif kind == "list":
+            elif kind in ("list", "clauses"):
                 items = list(cast("Sequence[str]", value))
-                sent[name], shown[name] = items, ", ".join(items)
+                sent[name], shown[name] = items, ("; " if kind == "clauses" else ", ").join(items)
             else:
                 sent[name] = shown[name] = str(value)
         return Notice(self.code, sent, self.english.format_map(shown))
@@ -673,6 +675,37 @@ MIXED_NOT_INSTALLED = _template(
 )
 SAVED_KEY_UNREADABLE = _template(
     "resolve.keyUnreadable", "cannot read the saved API key: {error}", error="text"
+)
+
+# W4b part 2. Each group is in its own block, so the part 1 fix round and this one merge cleanly.
+
+# The batch (`core/queue_runner.py`, `core/queue_store.py`, `api/queue.py`): a file that was not
+# added, and a command the item's state refuses. The window calls the queue a batch.
+BATCH_NOT_A_FOLDER = _template("batch.notAFolder", "not a folder")
+BATCH_FOLDER_SLOW = _template(
+    "batch.folderSlow", "the folder did not answer within {seconds} s", seconds="text"
+)
+BATCH_NOT_A_FILE = _template("batch.notAFile", "not an existing file with an absolute path")
+BATCH_NOT_MEDIA = _template("batch.notMedia", "not a media file extension")
+BATCH_ALREADY_IN = _template(
+    "batch.alreadyIn", "already in the batch as {item} ({state})", item="text", state="word"
+)
+BATCH_NOTHING_GIVEN = _template("batch.nothingGiven", "give at least one item or folder")
+BATCH_BAD_ORDER = _template("batch.badOrder", "the order must list each known item once")
+BATCH_CANNOT_PAUSE = _template(
+    "batch.cannotPause", "cannot pause an item that is {state}", state="word"
+)
+BATCH_CANNOT_RESUME = _template(
+    "batch.cannotResume", "cannot resume an item that is {state}", state="word"
+)
+BATCH_CANNOT_CANCEL = _template(
+    "batch.cannotCancel", "cannot cancel an item that is {state}", state="word"
+)
+BATCH_CANNOT_RETRY = _template(
+    "batch.cannotRetry", "cannot retry an item that is {state}", state="word"
+)
+BATCH_REMOVE_FINISHED_ONLY = _template(
+    "batch.removeFinishedOnly", "only a finished item can be removed; cancel it first"
 )
 
 _NOTICE = "_notice"
