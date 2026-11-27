@@ -10,9 +10,11 @@ from importlib.resources import files
 from pathlib import Path
 from typing import cast
 
+from backend.core import notices
 from backend.core.languages import DEFAULT, ENGLISH, Density, Language
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, FormatError
+from backend.core.notices import noticed
 from backend.core.source_langs import ENGLISH_SOURCE, SourceLanguage, is_bare_punctuation
 from backend.core.subtitle_io import parse_subs, read_text_file, render_subs, write_text_file
 from backend.core.target_routes import OnFailure
@@ -612,10 +614,10 @@ class _Run:
                 self.keep_english_cue(batch, exc, started)
                 return
             if len(batch) == 1:
-                raise TranslationError(
-                    f"cue {first} could not be translated after {exc.attempts} attempts: "
-                    f"{exc.reason}"
-                ) from exc
+                failed = notices.CUE_NOT_TRANSLATED(
+                    cue=str(first), attempts=str(exc.attempts), reason=exc.reason
+                )
+                raise noticed(TranslationError, failed) from exc
             log.warning(
                 "cues %d-%d failed %d attempts; splitting the batch", first, last, exc.attempts
             )
@@ -792,7 +794,8 @@ def translate_file(
         try:
             cues = resume_from(cues, parse_subs(read_text_file(dest)))
         except FormatError as exc:
-            raise FormatError(f"{dest}: cannot resume from this file ({exc})") from exc
+            stale = notices.CANNOT_RESUME(file=str(dest), error=str(exc))
+            raise noticed(FormatError, stale) from exc
 
     def save(state: list[Cue]) -> None:
         write_text_file(dest, render_subs(state))

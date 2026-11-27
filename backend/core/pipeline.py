@@ -21,7 +21,7 @@ from functools import cache
 from importlib.resources import files as package_files
 from pathlib import Path
 
-from backend.core import cue_edits, cue_failures, summarize, translate
+from backend.core import cue_edits, cue_failures, notices, summarize, translate
 from backend.core.artifacts import parse_chunks, parse_words, render_chunks, render_words
 from backend.core.ja_terms import SOURCE_FIXES
 from backend.core.languages import DEFAULT_CODE, ENGLISH, Language
@@ -36,6 +36,7 @@ from backend.core.model import (
     StepStatus,
     Word,
 )
+from backend.core.notices import noticed
 from backend.core.segmenter import CueRules, to_cues, to_mixed_cues
 from backend.core.source_langs import SourceLanguage, get_source
 from backend.core.subtitle_io import (
@@ -271,7 +272,7 @@ def _asr(ctx: _Ctx) -> None:
     chunks = parse_chunks(_read(ctx, File.CHUNKS))
     words = ctx.ports.transcribe(ctx.path(File.AUDIO), chunks, ctx.progress, ctx.cancel)
     if not words:
-        raise NoSpeechError("the ASR engine found no speech in this audio")
+        raise noticed(NoSpeechError, notices.NO_SPEECH())
     write_text_file(ctx.path(File.WORDS), render_words(ctx.settings.asr_engine, words))
 
 

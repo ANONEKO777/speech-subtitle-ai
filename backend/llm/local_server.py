@@ -11,7 +11,8 @@ import urllib.request
 from pathlib import Path
 from types import TracebackType
 
-from backend.core import vc_runtime
+from backend.core import notices, vc_runtime
+from backend.core.notices import noticed
 from backend.core.process_guard import KillOnClose
 
 log = logging.getLogger(__name__)
@@ -62,9 +63,12 @@ class LlamaServer:
         return f"http://{HOST}:{self.port}/v1"
 
     def __enter__(self) -> LlamaServer:
-        for label, path in (("llama-server", self.exe), ("LLM model", self.gguf)):
+        for missing, path in (
+            (notices.SERVER_PROGRAM_MISSING, self.exe),
+            (notices.SERVER_MODEL_MISSING, self.gguf),
+        ):
             if not path.is_file():
-                raise ServerError(f"{label} not found: {path}")
+                raise noticed(ServerError, missing(path=str(path)))
         vc_runtime.require(ServerError)
         self.port = free_port()
         command = [
@@ -83,7 +87,8 @@ class LlamaServer:
                     creationflags=flags,
                 )
         except OSError as exc:
-            raise ServerError(f"cannot start {self.exe}: {exc}") from exc
+            failed = notices.PROGRAM_CANNOT_START(program=str(self.exe), error=str(exc))
+            raise noticed(ServerError, failed) from exc
         try:
             self._job = KillOnClose()
             self._job.adopt(self._proc)
@@ -110,7 +115,8 @@ class LlamaServer:
                 raise ServerError("cancelled while llama-server was starting")
             code = self._proc.poll()
             if code is not None:
-                raise ServerError(f"llama-server exited with code {code}; see {self.log_path}")
+                ended = notices.SERVER_EXITED(status=str(code), log=str(self.log_path))
+                raise noticed(ServerError, ended)
             try:
                 with urllib.request.urlopen(url, timeout=2) as response:
                     if response.status == 200:
@@ -118,9 +124,10 @@ class LlamaServer:
             except (urllib.error.URLError, OSError):
                 pass
             time.sleep(0.5)
-        raise ServerError(
-            f"llama-server was not ready after {self.startup_timeout_s:g} s; see {self.log_path}"
+        slow = notices.SERVER_NOT_READY(
+            seconds=f"{self.startup_timeout_s:g}", log=str(self.log_path)
         )
+        raise noticed(ServerError, slow)
 
     def stop(self) -> None:
         proc, self._proc = self._proc, None

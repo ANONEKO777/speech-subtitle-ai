@@ -1,4 +1,87 @@
 {
+  "audio.ffmpegStopped": {
+    "english": "ffmpeg stopped on {video} (exit code {status}): {detail}",
+    "params": {
+      "video": "text",
+      "status": "text",
+      "detail": "text"
+    }
+  },
+  "audio.ffmpegStoppedSilent": {
+    "english": "ffmpeg stopped on {video} (exit code {status}): no error output, so it was probably killed or ran out of memory",
+    "params": {
+      "video": "text",
+      "status": "text"
+    }
+  },
+  "audio.noAudioTrack": {
+    "english": "{video} has no audio track",
+    "params": {
+      "video": "text"
+    }
+  },
+  "audio.noDataChunk": {
+    "english": "{file} is not a readable wav file: no data chunk",
+    "params": {
+      "file": "text"
+    }
+  },
+  "audio.probeFailed": {
+    "english": "ffprobe could not read {video}: {detail}",
+    "params": {
+      "video": "text",
+      "detail": "text"
+    }
+  },
+  "audio.toolMissing": {
+    "english": "{tool} was not found. Install ffmpeg, add it to PATH, or set {variable}.",
+    "params": {
+      "tool": "text",
+      "variable": "text"
+    }
+  },
+  "audio.toolMissingMac": {
+    "english": "{tool} was not found. Install it with `brew install ffmpeg`, or set {variable}.",
+    "params": {
+      "tool": "text",
+      "variable": "text"
+    }
+  },
+  "audio.toolTimedOut": {
+    "english": "{tool} on {video} did not finish in {seconds} s; stopped it",
+    "params": {
+      "tool": "text",
+      "video": "text",
+      "seconds": "text"
+    }
+  },
+  "audio.unreadableWav": {
+    "english": "{file} is not a readable wav file: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "audio.videoNotFound": {
+    "english": "video not found: {video}",
+    "params": {
+      "video": "text"
+    }
+  },
+  "audio.wavCutShort": {
+    "english": "{file} is cut short: {actual} bytes, its header promises {promised}",
+    "params": {
+      "file": "text",
+      "actual": "text",
+      "promised": "text"
+    }
+  },
+  "audio.wrongFormat": {
+    "english": "{file} is not 16 kHz mono 16-bit PCM",
+    "params": {
+      "file": "text"
+    }
+  },
   "download.cutShort": {
     "english": "connection closed before the whole file arrived",
     "params": {}
@@ -105,6 +188,105 @@
       "expected": "text"
     }
   },
+  "engine.alignerMissing": {
+    "english": "{engine}: aligner not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.badCrispJson": {
+    "english": "unexpected CrispASR JSON in {file}: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.badWhisperJson": {
+    "english": "unexpected whisper.cpp JSON in {file}: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.cannotStart": {
+    "english": "{engine}: cannot start {program}: {error}",
+    "params": {
+      "engine": "text",
+      "program": "text",
+      "error": "text"
+    }
+  },
+  "engine.exited": {
+    "english": "{engine} exited with code {status}: {output}",
+    "params": {
+      "engine": "text",
+      "status": "text",
+      "output": "text"
+    }
+  },
+  "engine.exitedSilent": {
+    "english": "{engine} exited with code {status}: no output",
+    "params": {
+      "engine": "text",
+      "status": "text"
+    }
+  },
+  "engine.modelMissing": {
+    "english": "{engine}: model not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.nonAsciiPath": {
+    "english": "{engine} cannot open a path with non-ASCII characters: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.outputMissing": {
+    "english": "engine output {file} was not written: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.outputNotJson": {
+    "english": "engine output {file} is not valid JSON: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "engine.outputNotObject": {
+    "english": "engine output {file} is not a JSON object",
+    "params": {
+      "file": "text"
+    }
+  },
+  "engine.outputNotUtf8": {
+    "english": "engine output {file} is not valid UTF-8 at byte {byte}",
+    "params": {
+      "file": "text",
+      "byte": "text"
+    }
+  },
+  "engine.programMissing": {
+    "english": "{engine}: binary not found: {path}",
+    "params": {
+      "engine": "text",
+      "path": "text"
+    }
+  },
+  "engine.timedOut": {
+    "english": "{engine} did not finish in {seconds} s",
+    "params": {
+      "engine": "text",
+      "seconds": "text"
+    }
+  },
   "fonts.missingGlyphs": {
     "english": "The font {font} has no glyphs for these characters: {chars}. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {
@@ -138,6 +320,52 @@
       "language": "language",
       "fonts": "list"
     }
+  },
+  "llm.http": {
+    "english": "{url} answered HTTP {status}: {detail}",
+    "params": {
+      "url": "text",
+      "status": "text",
+      "detail": "text"
+    }
+  },
+  "llm.noContent": {
+    "english": "{url} did not return a chat completion: no choices[0].message.content string",
+    "params": {
+      "url": "text"
+    }
+  },
+  "llm.notJson": {
+    "english": "{url} did not return a chat completion: body is not JSON ({error})",
+    "params": {
+      "url": "text",
+      "error": "text"
+    }
+  },
+  "llm.redirected": {
+    "english": "{url} redirected to {location}; redirects are not followed",
+    "params": {
+      "url": "text",
+      "location": "text"
+    }
+  },
+  "llm.timedOut": {
+    "english": "no answer from {url} within {seconds} s",
+    "params": {
+      "url": "text",
+      "seconds": "text"
+    }
+  },
+  "llm.unreachable": {
+    "english": "cannot reach the LLM server at {url}: {reason}",
+    "params": {
+      "url": "text",
+      "reason": "text"
+    }
+  },
+  "pipeline.noSpeech": {
+    "english": "the ASR engine found no speech in this audio",
+    "params": {}
   },
   "platform.unsupported": {
     "english": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is {system} {machine}. Intel Macs and Linux aren't supported yet.",
@@ -294,6 +522,10 @@
       "seconds": "text"
     }
   },
+  "queue.crashed": {
+    "english": "the batch crashed",
+    "params": {}
+  },
   "render.noH264Mac": {
     "english": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {}
@@ -407,6 +639,71 @@
     "english": "whisper.cpp ran without the CUDA backend and used the CPU instead",
     "params": {}
   },
+  "server.exited": {
+    "english": "llama-server exited with code {status}; see {log}",
+    "params": {
+      "status": "text",
+      "log": "text"
+    }
+  },
+  "server.modelMissing": {
+    "english": "LLM model not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "server.notReady": {
+    "english": "llama-server was not ready after {seconds} s; see {log}",
+    "params": {
+      "seconds": "text",
+      "log": "text"
+    }
+  },
+  "server.programMissing": {
+    "english": "llama-server not found: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "summary.noPart": {
+    "english": "no part of the talk could be summarised",
+    "params": {}
+  },
+  "summary.noText": {
+    "english": "the transcript has no text to summarise",
+    "params": {}
+  },
+  "summary.notWritten": {
+    "english": "the summary could not be written: {reason}; the last reply: {reply}",
+    "params": {
+      "reason": "text",
+      "reply": "text"
+    }
+  },
+  "summary.tooLarge": {
+    "english": "{label} needs about {tokens} tokens, over {limit} of the {context} token context",
+    "params": {
+      "label": "text",
+      "tokens": "text",
+      "limit": "text",
+      "context": "text"
+    }
+  },
+  "translate.cannotResume": {
+    "english": "{file}: cannot resume from this file ({error})",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "translate.cueFailed": {
+    "english": "cue {cue} could not be translated after {attempts} attempts: {reason}",
+    "params": {
+      "cue": "text",
+      "attempts": "text",
+      "reason": "text"
+    }
+  },
   "updates.allMatch": {
     "english": "Everything installed matches the remote registry at {url}.",
     "params": {
@@ -493,6 +790,12 @@
     "params": {
       "url": "text",
       "error": "text"
+    }
+  },
+  "video.gone": {
+    "english": "the video is gone: {video}",
+    "params": {
+      "video": "text"
     }
   }
 }

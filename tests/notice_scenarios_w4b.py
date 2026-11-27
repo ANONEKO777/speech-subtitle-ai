@@ -20,7 +20,9 @@ import os
 import subprocess
 import sys
 import tarfile
+import threading
 import urllib.error
+import wave
 import zipfile
 from collections.abc import Callable
 from dataclasses import asdict, replace
@@ -32,8 +34,13 @@ from typing import Any, cast
 import pytest
 from notice_scenarios import _slashes
 
-from backend.core import vc_runtime
+from backend.core import audio, pipeline, queue_runner, summarize, translate, vc_runtime
+from backend.core.model import Cue
 from backend.core.notices import notices_of
+from backend.core.subtitle_io import render_subs
+from backend.engines import base, crispasr, whispercpp
+from backend.llm import client, local_server
+from backend.llm.ask import RepliesRejected
 from backend.manager import download, platforms, profiles, selftest, updates
 from backend.manager import registry as registry_module
 from backend.manager.hardware import Hardware
@@ -376,12 +383,296 @@ def _downloads(found: dict[str, Entry], tmp: Path) -> None:
     )
 
 
+# Group 5: a run that failed.
+
+
+def _ended(code: int = 0, out: str = "", err: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(["tool"], code, out, err)
+
+
+def _wav(path: Path, rate: int = 16000, frames: int = 16000) -> Path:
+    with wave.open(str(path), "wb") as sink:
+        sink.setnchannels(1)
+        sink.setsampwidth(2)
+        sink.setframerate(rate)
+        sink.writeframes(b"\0\0" * frames)
+    return path
+
+
+class _Child:
+    """Stands in for a running program: what it writes on stderr and how it ends."""
+
+    def __init__(self, *_args: object, code: int = 0, said: bytes = b"", **_kwargs: object) -> None:
+        self.returncode, self.pid = code, 1
+        self.stderr = io.BytesIO(said)
+
+    def __enter__(self) -> _Child:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        pass
+
+    def poll(self) -> int | None:
+        return self.returncode
+
+    def wait(self, timeout: float | None = None) -> int:
+        return self.returncode
+
+    def kill(self) -> None:
+        pass
+
+    def terminate(self) -> None:
+        pass
+
+
+def _refuses(*_args: object, **_kwargs: object) -> object:
+    raise OSError("Access is denied")
+
+
+def _audio_failures(found: dict[str, Entry]) -> None:
+    video = Path("talk.mp4")
+    for system in ("win32", "darwin"):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(audio.shutil, "which", lambda *_a, **_k: None)
+            found[f"audio.toolMissing.{system}"] = _raised(
+                lambda s=system: audio.find_tool("ffmpeg", system=s)
+            )
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(audio.subprocess, "Popen", _Child)
+        mp.setattr(audio.process_guard, "adopt", lambda _proc: None)
+        mp.setattr(audio, "_PROBE_TIMEOUT_S", 0.0)
+        found["audio.toolTimedOut"] = _raised(
+            lambda: audio._require_audio_stream(video, Path("ffprobe"), None)
+        )
+    for name, ended in (
+        ("probeFailed", _ended(1, err="moov atom not found")),
+        ("noAudioTrack", _ended(0)),
+    ):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(audio, "_run", lambda *_a, _e=ended, **_k: _e)
+            found[f"audio.{name}"] = _raised(
+                lambda: audio._require_audio_stream(video, Path("ffprobe"), None)
+            )
+    for name, err in (("ffmpegStopped", "Invalid data"), ("ffmpegStoppedSilent", "")):
+        failed = audio._ffmpeg_failure(video, _ended(1, err=err))
+        found[f"audio.{name}"] = _entry(str(failed), notices_of(failed))
+    _wav(Path("slow.wav"), rate=8000)
+    Path("noise.wav").write_bytes(b"not a wav file at all")
+    whole = _wav(Path("cut.wav")).read_bytes()
+    Path("cut.wav").write_bytes(whole[:-100])
+    for name in ("slow", "noise", "cut"):
+        found[f"audio.wav.{name}"] = _raised(lambda n=name: audio.wav_duration_ms(Path(f"{n}.wav")))
+    Path("empty.wav").write_bytes(b"RIFF\x04\0\0\0WAVE")
+
+    class _Header:
+        def __enter__(self) -> _Header:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            pass
+
+        def getframerate(self) -> int:
+            return 16000
+
+        def getnchannels(self) -> int:
+            return 1
+
+        def getsampwidth(self) -> int:
+            return 2
+
+        def getnframes(self) -> int:
+            return 0
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(audio.wave, "open", lambda *_a: _Header())
+        found["audio.wav.noData"] = _raised(lambda: audio.wav_duration_ms(Path("empty.wav")))
+    found["audio.videoNotFound"] = _raised(lambda: audio.extract(Path("gone.mp4"), Path("out.wav")))
+
+
+def _pipeline_failures(found: dict[str, Entry], tmp: Path) -> None:
+    from test_pipeline import SETTINGS, Fakes
+
+    video = tmp / "talk.mp4"
+    video.write_bytes(b"x")
+    silent = replace(Fakes().ports(), transcribe=lambda *_a: [])
+    found["pipeline.noSpeech"] = _raised(
+        lambda: pipeline.run(video, tmp / "project", SETTINGS, silent)
+    )
+
+
+def _engine_failures(found: dict[str, Entry]) -> None:
+    Path("latin.json").write_bytes(b"\xff\xfe")
+    Path("broken.json").write_text("{", encoding="utf-8")
+    Path("list.json").write_text("[]", encoding="utf-8")
+    Path("odd.json").write_text('{"transcription": [{}]}', encoding="utf-8")
+    Path("wordless.json").write_text('{"transcription": [{"text": "x"}]}', encoding="utf-8")
+    for name in ("absent", "latin", "broken", "list"):
+        found[f"engine.output.{name}"] = _raised(lambda n=name: base.read_json(Path(f"{n}.json")))
+    for file in ("whisper", "crisp", "model.bin", "aligner.bin", "mod\u00e8le.bin"):
+        Path(file).write_bytes(b"x")
+    _wav(Path("speech.wav"))
+    here, gone = Path("model.bin"), Path("gone")
+    whisper = whispercpp.WhisperCppEngine(Path("whisper"), here)
+    crisp = crispasr.CrispAsrEngine(Path("crisp"), here, Path("aligner.bin"))
+    cases = {
+        "programMissing": whispercpp.WhisperCppEngine(gone, here),
+        "modelMissing": whispercpp.WhisperCppEngine(Path("whisper"), gone),
+        "alignerMissing": crispasr.CrispAsrEngine(Path("crisp"), here, gone),
+        "nonAsciiPath": crispasr.CrispAsrEngine(
+            Path("crisp"), Path("mod\u00e8le.bin"), Path("aligner.bin")
+        ),
+    }
+    for name, engine in cases.items():
+        found[f"engine.{name}"] = _raised(lambda e=engine: e.transcribe(Path("speech.wav")))
+    runs: dict[str, tuple[Callable[..., object], float | None]] = {
+        "cannotStart": (_refuses, None),
+        "timedOut": (_Child, -1.0),
+        "exited": (lambda *a, **k: _Child(code=3, said=b"out of memory\n"), None),
+        "exitedSilent": (lambda *a, **k: _Child(code=3), None),
+    }
+    for name, (popen, timeout) in runs.items():
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(vc_runtime, "require", lambda _error: None)
+            mp.setattr(base.subprocess, "Popen", popen)
+            mp.setattr(base.process_guard, "adopt", lambda _proc: None)
+            whisper.timeout_s = timeout
+            found[f"engine.{name}"] = _raised(lambda: whisper.transcribe(Path("speech.wav")))
+    for name, engine, output in (
+        ("badWhisperJson", whisper, "odd.json"),
+        ("badCrispJson", crisp, "wordless.json"),
+    ):
+        found[f"engine.{name}"] = _raised(lambda e=engine, o=output: e.parse(Path(o)))
+
+
+def _server_failures(found: dict[str, Entry]) -> None:
+    program, gguf = Path("llama-server"), Path("qwen.gguf")
+
+    def start(wait: float = 5.0) -> object:
+        server = local_server.LlamaServer(
+            program, gguf, log_path=Path("llama.log"), startup_timeout_s=wait
+        )
+        return server.__enter__()
+
+    found["server.programMissing"] = _raised(start)
+    program.write_bytes(b"x")
+    found["server.modelMissing"] = _raised(start)
+    gguf.write_bytes(b"x")
+
+    class _Job:
+        def adopt(self, _proc: object) -> None:
+            pass
+
+        def close(self) -> None:
+            pass
+
+    starts: tuple[tuple[str, Callable[..., object], float], ...] = (
+        ("cannotStart", _refuses, 5.0),
+        ("exited", lambda *a, **k: _Child(code=1), 5.0),
+        ("notReady", _Child, 0.0),
+    )
+    for name, popen, wait in starts:
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(vc_runtime, "require", lambda _error: None)
+            mp.setattr(local_server.subprocess, "Popen", popen)
+            mp.setattr(local_server, "KillOnClose", _Job)
+            found[f"server.{name}"] = _raised(lambda w=wait: start(w))
+
+
+def _chat_failures(found: dict[str, Entry]) -> None:
+    config = client.LlmConfig("http://127.0.0.1:9/v1", "m", timeout_s=30.0)
+    moved = Message()
+    moved["Location"] = "https://elsewhere.test/"
+
+    def http(status: int, reason: str, headers: Message, body: bytes = b"") -> Exception:
+        return urllib.error.HTTPError(config.chat_url, status, reason, headers, io.BytesIO(body))
+
+    answers: dict[str, object] = {
+        "notJson": b"<html>",
+        "noContent": b"{}",
+        "redirected": http(302, "Found", moved),
+        "http": http(500, "Internal Server Error", Message(), b"model crashed"),
+        "timedOut": urllib.error.URLError(TimeoutError()),
+        "unreachable": urllib.error.URLError("connection refused"),
+    }
+    for name, answer in answers.items():
+
+        def open_it(*_args: object, _answer: object = answer, **_kwargs: object) -> object:
+            if isinstance(_answer, Exception):
+                raise _answer
+            return io.BytesIO(cast("bytes", _answer))
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(client, "_opener", lambda _c, o=open_it: SimpleNamespace(open=o))
+            found[f"llm.{name}"] = _raised(
+                lambda: client.chat(config, [{"role": "user", "content": "hi"}])
+            )
+
+
+def _text_failures(found: dict[str, Entry]) -> None:
+    def garbage(*_args: object) -> str:
+        return "no"
+
+    cues = [Cue(1, 0, 1000, "Hello there")]
+    found["translate.cueFailed"] = _raised(lambda: translate.run(cues, garbage, max_retries=0))
+    Path("source.json").write_text(render_subs(cues), encoding="utf-8")
+    Path("partial.json").write_text("{", encoding="utf-8")
+    found["translate.cannotResume"] = _raised(
+        lambda: translate.translate_file(Path("source.json"), Path("partial.json"), garbage)
+    )
+    lines = summarize.lines_from_cues(cues)
+    found["summary.noText"] = _raised(lambda: summarize.run([], garbage))
+    found["summary.noPart"] = _raised(
+        lambda: summarize.run(lines, garbage, max_retries=0, sleep=lambda _s: None)
+    )
+    found["summary.tooLarge"] = _raised(lambda: summarize.run(lines, garbage, context_tokens=10))
+    notes = summarize.MapResult(0, 1000, "a topic", (summarize.Point(0, "a point"),))
+    job = summarize.ReduceInput("zh-TW", 0, 1000, (notes,), (), ())
+
+    def rejected(*_args: object) -> object:
+        raise RepliesRejected("the topic is empty", 1, "no")
+
+    asker: Any = SimpleNamespace(ask_reduce=rejected)
+    found["summary.notWritten"] = _raised(
+        lambda: summarize._Run.ask_reduce_or_fall_back(asker, job, [], "reduce zh-TW")
+    )
+
+
+def _batch_failures(found: dict[str, Entry]) -> None:
+    item: Any = SimpleNamespace(video_path="gone.mp4")
+    _state, text, listed = queue_runner.QueueRunner._execute(cast("Any", None), item)
+    found["batch.videoGone"] = _entry(str(text), listed)
+    saved: list[tuple[object, ...]] = []
+    runner: Any = SimpleNamespace(
+        _lock=threading.RLock(),
+        _current="a",
+        _store=SimpleNamespace(finish=lambda *args: saved.append(args)),
+    )
+    queue_runner.QueueRunner._abandon_current(runner)
+    _id, _state2, _when, said, *rest = saved[0]
+    found["batch.crashed"] = _entry(str(said), rest[0] if rest else ())
+
+
+def _processing(found: dict[str, Entry], tmp: Path) -> None:
+    folder = tmp / "run"
+    folder.mkdir()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.chdir(folder)
+        _audio_failures(found)
+        _engine_failures(found)
+        _server_failures(found)
+        _chat_failures(found)
+        _text_failures(found)
+        _batch_failures(found)
+    _pipeline_failures(found, folder)
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _profiles(found)
     _selftests(found, tmp)
     _updates(found)
     _downloads(found, tmp)
+    _processing(found, tmp)
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

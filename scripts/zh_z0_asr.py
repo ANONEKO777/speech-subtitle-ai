@@ -113,7 +113,7 @@ def main() -> int:
     engine_id = WHISPER_ID if args.engine == "whisper" else CRISPASR_ID
     engine = make_engine(engine_id, strict=not args.lenient)
     if (issue := engine.problem()) is not None:
-        raise SystemExit(issue)
+        raise SystemExit(issue.message)
     if args.wav_dir:
         items = [
             Utterance(p.stem, "zh", p, "", 0.0, "") for p in sorted(args.wav_dir.glob("*.wav"))

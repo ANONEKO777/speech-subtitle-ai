@@ -1973,5 +1973,683 @@
       }
     ],
     "zh": "壓縮檔裡沒有 tool.exe"
+  },
+  "audio.toolMissing.win32": {
+    "before": "ffmpeg was not found. Install ffmpeg, add it to PATH, or set VST_FFMPEG_DIR.",
+    "text": "ffmpeg was not found. Install ffmpeg, add it to PATH, or set VST_FFMPEG_DIR.",
+    "notices": [
+      {
+        "code": "audio.toolMissing",
+        "params": {
+          "tool": "ffmpeg",
+          "variable": "VST_FFMPEG_DIR"
+        },
+        "message": "ffmpeg was not found. Install ffmpeg, add it to PATH, or set VST_FFMPEG_DIR."
+      }
+    ],
+    "zh": "找不到 ffmpeg。請安裝 ffmpeg 並加入 PATH，或設定 VST_FFMPEG_DIR。"
+  },
+  "audio.toolMissing.darwin": {
+    "before": "ffmpeg was not found. Install it with `brew install ffmpeg`, or set VST_FFMPEG_DIR.",
+    "text": "ffmpeg was not found. Install it with `brew install ffmpeg`, or set VST_FFMPEG_DIR.",
+    "notices": [
+      {
+        "code": "audio.toolMissingMac",
+        "params": {
+          "tool": "ffmpeg",
+          "variable": "VST_FFMPEG_DIR"
+        },
+        "message": "ffmpeg was not found. Install it with `brew install ffmpeg`, or set VST_FFMPEG_DIR."
+      }
+    ],
+    "zh": "找不到 ffmpeg。請用 `brew install ffmpeg` 安裝，或設定 VST_FFMPEG_DIR。"
+  },
+  "audio.toolTimedOut": {
+    "before": "ffprobe on talk.mp4 did not finish in 0 s; stopped it",
+    "text": "ffprobe on talk.mp4 did not finish in 0 s; stopped it",
+    "notices": [
+      {
+        "code": "audio.toolTimedOut",
+        "params": {
+          "tool": "ffprobe",
+          "video": "talk.mp4",
+          "seconds": "0"
+        },
+        "message": "ffprobe on talk.mp4 did not finish in 0 s; stopped it"
+      }
+    ],
+    "zh": "ffprobe 處理 talk.mp4 超過 0 秒仍未完成，已停止"
+  },
+  "audio.probeFailed": {
+    "before": "ffprobe could not read talk.mp4: moov atom not found",
+    "text": "ffprobe could not read talk.mp4: moov atom not found",
+    "notices": [
+      {
+        "code": "audio.probeFailed",
+        "params": {
+          "video": "talk.mp4",
+          "detail": "moov atom not found"
+        },
+        "message": "ffprobe could not read talk.mp4: moov atom not found"
+      }
+    ],
+    "zh": "ffprobe 無法讀取 talk.mp4：moov atom not found"
+  },
+  "audio.noAudioTrack": {
+    "before": "talk.mp4 has no audio track",
+    "text": "talk.mp4 has no audio track",
+    "notices": [
+      {
+        "code": "audio.noAudioTrack",
+        "params": {
+          "video": "talk.mp4"
+        },
+        "message": "talk.mp4 has no audio track"
+      }
+    ],
+    "zh": "talk.mp4 沒有音訊軌"
+  },
+  "audio.ffmpegStopped": {
+    "before": "ffmpeg stopped on talk.mp4 (exit code 1): Invalid data",
+    "text": "ffmpeg stopped on talk.mp4 (exit code 1): Invalid data",
+    "notices": [
+      {
+        "code": "audio.ffmpegStopped",
+        "params": {
+          "video": "talk.mp4",
+          "status": "1",
+          "detail": "Invalid data"
+        },
+        "message": "ffmpeg stopped on talk.mp4 (exit code 1): Invalid data"
+      }
+    ],
+    "zh": "ffmpeg 處理 talk.mp4 時停止了（結束代碼 1）：Invalid data"
+  },
+  "audio.ffmpegStoppedSilent": {
+    "before": "ffmpeg stopped on talk.mp4 (exit code 1): no error output, so it was probably killed or ran out of memory",
+    "text": "ffmpeg stopped on talk.mp4 (exit code 1): no error output, so it was probably killed or ran out of memory",
+    "notices": [
+      {
+        "code": "audio.ffmpegStoppedSilent",
+        "params": {
+          "video": "talk.mp4",
+          "status": "1"
+        },
+        "message": "ffmpeg stopped on talk.mp4 (exit code 1): no error output, so it was probably killed or ran out of memory"
+      }
+    ],
+    "zh": "ffmpeg 處理 talk.mp4 時停止了（結束代碼 1）：沒有任何錯誤訊息，可能是被強制結束，或是記憶體不足"
+  },
+  "audio.wav.slow": {
+    "before": "slow.wav is not 16 kHz mono 16-bit PCM",
+    "text": "slow.wav is not 16 kHz mono 16-bit PCM",
+    "notices": [
+      {
+        "code": "audio.wrongFormat",
+        "params": {
+          "file": "slow.wav"
+        },
+        "message": "slow.wav is not 16 kHz mono 16-bit PCM"
+      }
+    ],
+    "zh": "slow.wav 不是 16 kHz 單聲道 16 位元的 PCM 音訊"
+  },
+  "audio.wav.noise": {
+    "before": "noise.wav is not a readable wav file: file does not start with RIFF id",
+    "text": "noise.wav is not a readable wav file: file does not start with RIFF id",
+    "notices": [
+      {
+        "code": "audio.unreadableWav",
+        "params": {
+          "file": "noise.wav",
+          "error": "file does not start with RIFF id"
+        },
+        "message": "noise.wav is not a readable wav file: file does not start with RIFF id"
+      }
+    ],
+    "zh": "noise.wav 不是可以讀取的 wav 檔：file does not start with RIFF id"
+  },
+  "audio.wav.cut": {
+    "before": "cut.wav is cut short: 31944 bytes, its header promises 32044",
+    "text": "cut.wav is cut short: 31944 bytes, its header promises 32044",
+    "notices": [
+      {
+        "code": "audio.wavCutShort",
+        "params": {
+          "file": "cut.wav",
+          "actual": "31944",
+          "promised": "32044"
+        },
+        "message": "cut.wav is cut short: 31944 bytes, its header promises 32044"
+      }
+    ],
+    "zh": "cut.wav 不完整：只有 31944 位元組，檔頭記載應有 32044 位元組"
+  },
+  "audio.wav.noData": {
+    "before": "empty.wav is not a readable wav file: no data chunk",
+    "text": "empty.wav is not a readable wav file: no data chunk",
+    "notices": [
+      {
+        "code": "audio.noDataChunk",
+        "params": {
+          "file": "empty.wav"
+        },
+        "message": "empty.wav is not a readable wav file: no data chunk"
+      }
+    ],
+    "zh": "empty.wav 不是可以讀取的 wav 檔：裡面沒有聲音資料區段"
+  },
+  "audio.videoNotFound": {
+    "before": "video not found: gone.mp4",
+    "text": "video not found: gone.mp4",
+    "notices": [
+      {
+        "code": "audio.videoNotFound",
+        "params": {
+          "video": "gone.mp4"
+        },
+        "message": "video not found: gone.mp4"
+      }
+    ],
+    "zh": "找不到影片：gone.mp4"
+  },
+  "engine.output.absent": {
+    "before": "engine output absent.json was not written: [Errno 2] No such file or directory: 'absent.json'",
+    "text": "engine output absent.json was not written: [Errno 2] No such file or directory: 'absent.json'",
+    "notices": [
+      {
+        "code": "engine.outputMissing",
+        "params": {
+          "file": "absent.json",
+          "error": "[Errno 2] No such file or directory: 'absent.json'"
+        },
+        "message": "engine output absent.json was not written: [Errno 2] No such file or directory: 'absent.json'"
+      }
+    ],
+    "zh": "辨識引擎沒有寫出輸出檔 absent.json：[Errno 2] No such file or directory: 'absent.json'"
+  },
+  "engine.output.latin": {
+    "before": "engine output latin.json is not valid UTF-8 at byte 0",
+    "text": "engine output latin.json is not valid UTF-8 at byte 0",
+    "notices": [
+      {
+        "code": "engine.outputNotUtf8",
+        "params": {
+          "file": "latin.json",
+          "byte": "0"
+        },
+        "message": "engine output latin.json is not valid UTF-8 at byte 0"
+      }
+    ],
+    "zh": "辨識引擎的輸出檔 latin.json 在第 0 個位元組處不是有效的 UTF-8"
+  },
+  "engine.output.broken": {
+    "before": "engine output broken.json is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "text": "engine output broken.json is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "notices": [
+      {
+        "code": "engine.outputNotJson",
+        "params": {
+          "file": "broken.json",
+          "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+        },
+        "message": "engine output broken.json is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+      }
+    ],
+    "zh": "辨識引擎的輸出檔 broken.json 不是有效的 JSON：Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  "engine.output.list": {
+    "before": "engine output list.json is not a JSON object",
+    "text": "engine output list.json is not a JSON object",
+    "notices": [
+      {
+        "code": "engine.outputNotObject",
+        "params": {
+          "file": "list.json"
+        },
+        "message": "engine output list.json is not a JSON object"
+      }
+    ],
+    "zh": "辨識引擎的輸出檔 list.json 不是 JSON 物件"
+  },
+  "engine.programMissing": {
+    "before": "whispercpp-large-v3-turbo: binary not found: gone",
+    "text": "whispercpp-large-v3-turbo: binary not found: gone",
+    "notices": [
+      {
+        "code": "engine.programMissing",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "path": "gone"
+        },
+        "message": "whispercpp-large-v3-turbo: binary not found: gone"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo：找不到程式：gone"
+  },
+  "engine.modelMissing": {
+    "before": "whispercpp-large-v3-turbo: model not found: gone",
+    "text": "whispercpp-large-v3-turbo: model not found: gone",
+    "notices": [
+      {
+        "code": "engine.modelMissing",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "path": "gone"
+        },
+        "message": "whispercpp-large-v3-turbo: model not found: gone"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo：找不到模型：gone"
+  },
+  "engine.alignerMissing": {
+    "before": "crispasr-qwen3-asr-1.7b: aligner not found: gone",
+    "text": "crispasr-qwen3-asr-1.7b: aligner not found: gone",
+    "notices": [
+      {
+        "code": "engine.alignerMissing",
+        "params": {
+          "engine": "crispasr-qwen3-asr-1.7b",
+          "path": "gone"
+        },
+        "message": "crispasr-qwen3-asr-1.7b: aligner not found: gone"
+      }
+    ],
+    "zh": "crispasr-qwen3-asr-1.7b：找不到對齊模型：gone"
+  },
+  "engine.nonAsciiPath": {
+    "before": "crispasr-qwen3-asr-1.7b cannot open a path with non-ASCII characters: modèle.bin",
+    "text": "crispasr-qwen3-asr-1.7b cannot open a path with non-ASCII characters: modèle.bin",
+    "notices": [
+      {
+        "code": "engine.nonAsciiPath",
+        "params": {
+          "engine": "crispasr-qwen3-asr-1.7b",
+          "path": "modèle.bin"
+        },
+        "message": "crispasr-qwen3-asr-1.7b cannot open a path with non-ASCII characters: modèle.bin"
+      }
+    ],
+    "zh": "crispasr-qwen3-asr-1.7b 無法開啟含有中文或其他非 ASCII 字元的路徑：modèle.bin"
+  },
+  "engine.cannotStart": {
+    "before": "whispercpp-large-v3-turbo: cannot start whisper: Access is denied",
+    "text": "whispercpp-large-v3-turbo: cannot start whisper: Access is denied",
+    "notices": [
+      {
+        "code": "engine.cannotStart",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "program": "whisper",
+          "error": "Access is denied"
+        },
+        "message": "whispercpp-large-v3-turbo: cannot start whisper: Access is denied"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo：無法啟動 whisper：Access is denied"
+  },
+  "engine.timedOut": {
+    "before": "whispercpp-large-v3-turbo did not finish in -1 s",
+    "text": "whispercpp-large-v3-turbo did not finish in -1 s",
+    "notices": [
+      {
+        "code": "engine.timedOut",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "seconds": "-1"
+        },
+        "message": "whispercpp-large-v3-turbo did not finish in -1 s"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo 超過 -1 秒仍未完成"
+  },
+  "engine.exited": {
+    "before": "whispercpp-large-v3-turbo exited with code 3: out of memory",
+    "text": "whispercpp-large-v3-turbo exited with code 3: out of memory",
+    "notices": [
+      {
+        "code": "engine.exited",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "status": "3",
+          "output": "out of memory"
+        },
+        "message": "whispercpp-large-v3-turbo exited with code 3: out of memory"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo 異常結束（代碼 3）：out of memory"
+  },
+  "engine.exitedSilent": {
+    "before": "whispercpp-large-v3-turbo exited with code 3: no output",
+    "text": "whispercpp-large-v3-turbo exited with code 3: no output",
+    "notices": [
+      {
+        "code": "engine.exitedSilent",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "status": "3"
+        },
+        "message": "whispercpp-large-v3-turbo exited with code 3: no output"
+      }
+    ],
+    "zh": "whispercpp-large-v3-turbo 異常結束（代碼 3），沒有任何輸出"
+  },
+  "engine.badWhisperJson": {
+    "before": "unexpected whisper.cpp JSON in odd.json: KeyError('tokens')",
+    "text": "unexpected whisper.cpp JSON in odd.json: KeyError('tokens')",
+    "notices": [
+      {
+        "code": "engine.badWhisperJson",
+        "params": {
+          "file": "odd.json",
+          "error": "KeyError('tokens')"
+        },
+        "message": "unexpected whisper.cpp JSON in odd.json: KeyError('tokens')"
+      }
+    ],
+    "zh": "whisper.cpp 寫出的 odd.json 內容格式不符預期：KeyError('tokens')"
+  },
+  "engine.badCrispJson": {
+    "before": "unexpected CrispASR JSON in wordless.json: KeyError('words')",
+    "text": "unexpected CrispASR JSON in wordless.json: KeyError('words')",
+    "notices": [
+      {
+        "code": "engine.badCrispJson",
+        "params": {
+          "file": "wordless.json",
+          "error": "KeyError('words')"
+        },
+        "message": "unexpected CrispASR JSON in wordless.json: KeyError('words')"
+      }
+    ],
+    "zh": "CrispASR 寫出的 wordless.json 內容格式不符預期：KeyError('words')"
+  },
+  "server.programMissing": {
+    "before": "llama-server not found: llama-server",
+    "text": "llama-server not found: llama-server",
+    "notices": [
+      {
+        "code": "server.programMissing",
+        "params": {
+          "path": "llama-server"
+        },
+        "message": "llama-server not found: llama-server"
+      }
+    ],
+    "zh": "找不到 llama-server：llama-server"
+  },
+  "server.modelMissing": {
+    "before": "LLM model not found: qwen.gguf",
+    "text": "LLM model not found: qwen.gguf",
+    "notices": [
+      {
+        "code": "server.modelMissing",
+        "params": {
+          "path": "qwen.gguf"
+        },
+        "message": "LLM model not found: qwen.gguf"
+      }
+    ],
+    "zh": "找不到 LLM 模型：qwen.gguf"
+  },
+  "server.cannotStart": {
+    "before": "cannot start llama-server: Access is denied",
+    "text": "cannot start llama-server: Access is denied",
+    "notices": [
+      {
+        "code": "program.cannotStart",
+        "params": {
+          "program": "llama-server",
+          "error": "Access is denied"
+        },
+        "message": "cannot start llama-server: Access is denied"
+      }
+    ],
+    "zh": "無法啟動 llama-server：Access is denied"
+  },
+  "server.exited": {
+    "before": "llama-server exited with code 1; see llama.log",
+    "text": "llama-server exited with code 1; see llama.log",
+    "notices": [
+      {
+        "code": "server.exited",
+        "params": {
+          "status": "1",
+          "log": "llama.log"
+        },
+        "message": "llama-server exited with code 1; see llama.log"
+      }
+    ],
+    "zh": "llama-server 異常結束（代碼 1），詳情請看 llama.log"
+  },
+  "server.notReady": {
+    "before": "llama-server was not ready after 0 s; see llama.log",
+    "text": "llama-server was not ready after 0 s; see llama.log",
+    "notices": [
+      {
+        "code": "server.notReady",
+        "params": {
+          "seconds": "0",
+          "log": "llama.log"
+        },
+        "message": "llama-server was not ready after 0 s; see llama.log"
+      }
+    ],
+    "zh": "llama-server 超過 0 秒仍未就緒，詳情請看 llama.log"
+  },
+  "llm.notJson": {
+    "before": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: body is not JSON (Expecting value: line 1 column 1 (char 0))",
+    "text": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: body is not JSON (Expecting value: line 1 column 1 (char 0))",
+    "notices": [
+      {
+        "code": "llm.notJson",
+        "params": {
+          "url": "http://127.0.0.1:9/v1/chat/completions",
+          "error": "Expecting value: line 1 column 1 (char 0)"
+        },
+        "message": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: body is not JSON (Expecting value: line 1 column 1 (char 0))"
+      }
+    ],
+    "zh": "http://127.0.0.1:9/v1/chat/completions 沒有回傳聊天回覆：內容不是 JSON（Expecting value: line 1 column 1 (char 0)）"
+  },
+  "llm.noContent": {
+    "before": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: no choices[0].message.content string",
+    "text": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: no choices[0].message.content string",
+    "notices": [
+      {
+        "code": "llm.noContent",
+        "params": {
+          "url": "http://127.0.0.1:9/v1/chat/completions"
+        },
+        "message": "http://127.0.0.1:9/v1/chat/completions did not return a chat completion: no choices[0].message.content string"
+      }
+    ],
+    "zh": "http://127.0.0.1:9/v1/chat/completions 沒有回傳聊天回覆：缺少 choices[0].message.content 文字"
+  },
+  "llm.redirected": {
+    "before": "http://127.0.0.1:9/v1/chat/completions redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "text": "http://127.0.0.1:9/v1/chat/completions redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "notices": [
+      {
+        "code": "llm.redirected",
+        "params": {
+          "url": "http://127.0.0.1:9/v1/chat/completions",
+          "location": "'https://elsewhere.test/'"
+        },
+        "message": "http://127.0.0.1:9/v1/chat/completions redirected to 'https://elsewhere.test/'; redirects are not followed"
+      }
+    ],
+    "zh": "http://127.0.0.1:9/v1/chat/completions 要求轉址到 'https://elsewhere.test/'，App 不會跟著轉址"
+  },
+  "llm.http": {
+    "before": "http://127.0.0.1:9/v1/chat/completions answered HTTP 500 Internal Server Error: model crashed",
+    "text": "http://127.0.0.1:9/v1/chat/completions answered HTTP 500 Internal Server Error: model crashed",
+    "notices": [
+      {
+        "code": "llm.http",
+        "params": {
+          "url": "http://127.0.0.1:9/v1/chat/completions",
+          "status": "500 Internal Server Error",
+          "detail": "model crashed"
+        },
+        "message": "http://127.0.0.1:9/v1/chat/completions answered HTTP 500 Internal Server Error: model crashed"
+      }
+    ],
+    "zh": "http://127.0.0.1:9/v1/chat/completions 回應 HTTP 500 Internal Server Error：model crashed"
+  },
+  "llm.timedOut": {
+    "before": "no answer from http://127.0.0.1:9/v1 within 30 s",
+    "text": "no answer from http://127.0.0.1:9/v1 within 30 s",
+    "notices": [
+      {
+        "code": "llm.timedOut",
+        "params": {
+          "url": "http://127.0.0.1:9/v1",
+          "seconds": "30"
+        },
+        "message": "no answer from http://127.0.0.1:9/v1 within 30 s"
+      }
+    ],
+    "zh": "http://127.0.0.1:9/v1 超過 30 秒沒有回應"
+  },
+  "llm.unreachable": {
+    "before": "cannot reach the LLM server at http://127.0.0.1:9/v1: connection refused",
+    "text": "cannot reach the LLM server at http://127.0.0.1:9/v1: connection refused",
+    "notices": [
+      {
+        "code": "llm.unreachable",
+        "params": {
+          "url": "http://127.0.0.1:9/v1",
+          "reason": "connection refused"
+        },
+        "message": "cannot reach the LLM server at http://127.0.0.1:9/v1: connection refused"
+      }
+    ],
+    "zh": "無法連線到 http://127.0.0.1:9/v1 的 LLM 伺服器：connection refused"
+  },
+  "translate.cueFailed": {
+    "before": "cue 1 could not be translated after 1 attempts: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "text": "cue 1 could not be translated after 1 attempts: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "notices": [
+      {
+        "code": "translate.cueFailed",
+        "params": {
+          "cue": "1",
+          "attempts": "1",
+          "reason": "the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+        },
+        "message": "cue 1 could not be translated after 1 attempts: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+      }
+    ],
+    "zh": "第 1 句字幕嘗試翻譯 1 次都沒有成功：the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+  },
+  "translate.cannotResume": {
+    "before": "partial.json: cannot resume from this file (subs file: invalid JSON (Expecting property name enclosed in double quotes: line 1 column 2 (char 1)))",
+    "text": "partial.json: cannot resume from this file (subs file: invalid JSON (Expecting property name enclosed in double quotes: line 1 column 2 (char 1)))",
+    "notices": [
+      {
+        "code": "translate.cannotResume",
+        "params": {
+          "file": "partial.json",
+          "error": "subs file: invalid JSON (Expecting property name enclosed in double quotes: line 1 column 2 (char 1))"
+        },
+        "message": "partial.json: cannot resume from this file (subs file: invalid JSON (Expecting property name enclosed in double quotes: line 1 column 2 (char 1)))"
+      }
+    ],
+    "zh": "partial.json：無法從這個檔案接著翻譯（subs file: invalid JSON (Expecting property name enclosed in double quotes: line 1 column 2 (char 1))）"
+  },
+  "summary.noText": {
+    "before": "the transcript has no text to summarise",
+    "text": "the transcript has no text to summarise",
+    "notices": [
+      {
+        "code": "summary.noText",
+        "params": {},
+        "message": "the transcript has no text to summarise"
+      }
+    ],
+    "zh": "逐字稿沒有可以整理成摘要的文字"
+  },
+  "summary.noPart": {
+    "before": "no part of the talk could be summarised",
+    "text": "no part of the talk could be summarised",
+    "notices": [
+      {
+        "code": "summary.noPart",
+        "params": {},
+        "message": "no part of the talk could be summarised"
+      }
+    ],
+    "zh": "整段內容沒有任何部分能整理成摘要"
+  },
+  "summary.tooLarge": {
+    "before": "map 1/1 needs about 547 tokens, over 75% of the 10 token context",
+    "text": "map 1/1 needs about 547 tokens, over 75% of the 10 token context",
+    "notices": [
+      {
+        "code": "summary.tooLarge",
+        "params": {
+          "label": "map 1/1",
+          "tokens": "547",
+          "limit": "75%",
+          "context": "10"
+        },
+        "message": "map 1/1 needs about 547 tokens, over 75% of the 10 token context"
+      }
+    ],
+    "zh": "map 1/1 大約需要 547 個 token，超過 10 個 token 內容長度的 75%"
+  },
+  "summary.notWritten": {
+    "before": "the summary could not be written: the topic is empty; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "text": "the summary could not be written: the topic is empty; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))",
+    "notices": [
+      {
+        "code": "summary.notWritten",
+        "params": {
+          "reason": "the topic is empty",
+          "reply": "the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+        },
+        "message": "the summary could not be written: the topic is empty; the last reply: the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+      }
+    ],
+    "zh": "寫不出重點摘要：the topic is empty。最後一次回覆的問題：the reply is not valid JSON (Expecting value: line 1 column 1 (char 0))"
+  },
+  "batch.videoGone": {
+    "before": "the video is gone: gone.mp4",
+    "text": "the video is gone: gone.mp4",
+    "notices": [
+      {
+        "code": "video.gone",
+        "params": {
+          "video": "gone.mp4"
+        },
+        "message": "the video is gone: gone.mp4"
+      }
+    ],
+    "zh": "影片已經不在原本的位置：gone.mp4"
+  },
+  "batch.crashed": {
+    "before": "the queue crashed",
+    "text": "the batch crashed",
+    "notices": [
+      {
+        "code": "queue.crashed",
+        "params": {},
+        "message": "the batch crashed"
+      }
+    ],
+    "zh": "佇列處理時發生錯誤而中斷"
+  },
+  "pipeline.noSpeech": {
+    "before": "asr: the ASR engine found no speech in this audio",
+    "text": "asr: the ASR engine found no speech in this audio",
+    "notices": [
+      {
+        "code": "pipeline.noSpeech",
+        "params": {},
+        "message": "the ASR engine found no speech in this audio"
+      }
+    ],
+    "zh": "asr: 語音辨識在這段聲音裡沒有聽到任何說話內容"
   }
 }

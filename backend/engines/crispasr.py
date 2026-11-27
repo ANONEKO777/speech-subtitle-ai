@@ -5,7 +5,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from backend.core import notices
 from backend.core.model import Segment, Word
+from backend.core.notices import noticed
 from backend.engines.base import (
     EngineOutputError,
     MonotonicProgress,
@@ -69,7 +71,8 @@ class CrispAsrEngine(SubprocessEngine):
             segments = (_segment(item, self.strict) for item in raw["transcription"])
             return [segment for segment in segments if segment is not None]
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise EngineOutputError(f"unexpected CrispASR JSON in {output.name}: {exc!r}") from exc
+            odd = notices.BAD_CRISPASR_JSON(file=output.name, error=repr(exc))
+            raise noticed(EngineOutputError, odd) from exc
 
     def on_stderr_line(self, line: str, progress: MonotonicProgress) -> None:
         if line.startswith("crispasr: audio:"):

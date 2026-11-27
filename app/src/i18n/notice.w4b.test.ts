@@ -32,9 +32,30 @@ const DATA: readonly RegExp[] = [
   /\[Errno 28\] No space left on device/g,
   /Expecting value: line 1 column 1 \(char 0\)/g,
   /TimeoutError: timed out/g,
+  /moov atom not found/g,
+  /Invalid data/g,
+  /file does not start with RIFF id/g,
+  /\[Errno 2\] No such file or directory: 'absent\.json'/g,
+  /Expecting property name enclosed in double quotes: line 1 column 2 \(char 1\)/g,
+  /out of memory/g,
+  /Access is denied/g,
+  /Internal Server Error/g,
+  // A command to type, as it is.
+  /`brew install ffmpeg`/g,
+  /model crashed/g,
+  /connection refused/g,
+  // NOT another program's words: the app wrote these two kinds in English and they are quoted as
+  // a detail. The first two are what the check of a model's answer tells the model, and the third
+  // is what the reader of a damaged subtitle file says. See docs/i18n-notes/w4b1.md.
+  /the reply is not valid JSON/g,
+  /the topic is empty/g,
+  /subs file: invalid JSON/g,
   // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".
   /; LLM \(/g,
 ];
+
+/** The one sentence whose English changed: it said "queue" where the window says "batch". */
+const REWORDED: Readonly<Record<string, string>> = { "batch.crashed": "the batch crashed" };
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */
 const ENGLISH_RUN = /[A-Za-z]{2,}[,;:]? [A-Za-z]{2,}/;
@@ -44,8 +65,8 @@ describe("every W4b scenario", () => {
     for (const [name, entry] of SCENARIOS) expect(parseNotices(entry.notices), name).toEqual(entry.notices);
   });
 
-  it.each(SCENARIOS)("%s: English is what the backend sent before the codes", (_name, entry) => {
-    expect(word(sent(entry), "en")).toBe(entry.before);
+  it.each(SCENARIOS)("%s: English is what the backend sent before the codes", (name, entry) => {
+    expect(word(sent(entry), "en")).toBe(REWORDED[name] ?? entry.before);
   });
 
   it.each(SCENARIOS)("%s: Traditional Chinese is the reviewed wording, with no English sentence left", (_name, entry) => {

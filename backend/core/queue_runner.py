@@ -32,7 +32,14 @@ from backend.core.jobs import (
 )
 from backend.core.media import is_media
 from backend.core.model import Step
-from backend.core.notices import Notice, from_json, notices_of, to_json
+from backend.core.notices import (
+    BATCH_CRASHED,
+    VIDEO_GONE,
+    Notice,
+    from_json,
+    notices_of,
+    to_json,
+)
 from backend.core.pipeline import Ports, Settings
 from backend.core.power import COUNTDOWN_S, Countdown, PowerAction, PowerExecutor
 from backend.core.projects import ProjectStore
@@ -230,7 +237,10 @@ class QueueRunner:
             if item_id is None:
                 return
             try:
-                self._store.finish(item_id, ItemState.FAILED, _now_ms(), "the queue crashed")
+                crashed = BATCH_CRASHED()
+                self._store.finish(
+                    item_id, ItemState.FAILED, _now_ms(), crashed.message, (crashed,)
+                )
             except Exception:
                 log.exception("queue item %s could not be marked failed", item_id)
 
@@ -305,7 +315,8 @@ class QueueRunner:
     def _execute(self, item: QueueItem) -> tuple[ItemState, str | None, tuple[Notice, ...]]:
         video = Path(item.video_path)
         if not video.is_file():
-            return ItemState.FAILED, f"the video is gone: {video}", ()
+            gone = VIDEO_GONE(video=str(video))
+            return ItemState.FAILED, gone.message, (gone,)
         info, _ = self._projects.create(video)
         settings, ports = self._resolver(item.options, info.folder)
         job = self._submit(info.id, video, info.folder, settings, ports)

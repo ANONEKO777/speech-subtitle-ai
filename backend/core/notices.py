@@ -441,6 +441,202 @@ ARCHIVE_LACKS_PROGRAM = _template(
     "download.noEntryPoint", "archive does not contain {file}", file="text"
 )
 
+# A run that failed. The audio step (`core/audio.py`).
+_FIND_FFMPEG = "{tool} was not found. Install "
+TOOL_MISSING = _template(
+    "audio.toolMissing",
+    _FIND_FFMPEG + "ffmpeg, add it to PATH, or set {variable}.",
+    tool="text",
+    variable="text",
+)
+TOOL_MISSING_MAC = _template(
+    "audio.toolMissingMac",
+    _FIND_FFMPEG + "it with `brew install ffmpeg`, or set {variable}.",
+    tool="text",
+    variable="text",
+)
+TOOL_TIMED_OUT = _template(
+    "audio.toolTimedOut",
+    "{tool} on {video} did not finish in {seconds} s; stopped it",
+    tool="text",
+    video="text",
+    seconds="text",
+)
+WAV_WRONG_FORMAT = _template(
+    "audio.wrongFormat", "{file} is not 16 kHz mono 16-bit PCM", file="text"
+)
+WAV_UNREADABLE = _template(
+    "audio.unreadableWav", "{file} is not a readable wav file: {error}", file="text", error="text"
+)
+WAV_NO_DATA = _template(
+    "audio.noDataChunk", "{file} is not a readable wav file: no data chunk", file="text"
+)
+WAV_CUT_SHORT = _template(
+    "audio.wavCutShort",
+    "{file} is cut short: {actual} bytes, its header promises {promised}",
+    file="text",
+    actual="text",
+    promised="text",
+)
+PROBE_FAILED = _template(
+    "audio.probeFailed", "ffprobe could not read {video}: {detail}", video="text", detail="text"
+)
+NO_AUDIO_TRACK = _template("audio.noAudioTrack", "{video} has no audio track", video="text")
+_STOPPED = "ffmpeg stopped on {video} (exit code {status}): "
+FFMPEG_STOPPED = _template(
+    "audio.ffmpegStopped", _STOPPED + "{detail}", video="text", status="text", detail="text"
+)
+FFMPEG_STOPPED_SILENTLY = _template(
+    "audio.ffmpegStoppedSilent",
+    _STOPPED + "no error output, so it was probably killed or ran out of memory",
+    video="text",
+    status="text",
+)
+VIDEO_NOT_FOUND = _template("audio.videoNotFound", "video not found: {video}", video="text")
+
+# The video of a job or a batch item, and the batch itself (`api/jobs.py`, `core/queue_runner.py`).
+VIDEO_GONE = _template("video.gone", "the video is gone: {video}", video="text")
+BATCH_CRASHED = _template("queue.crashed", "the batch crashed")
+NO_SPEECH = _template("pipeline.noSpeech", "the ASR engine found no speech in this audio")
+
+# Speech recognition (`engines/`).
+_OUTPUT = "engine output {file} "
+ENGINE_OUTPUT_MISSING = _template(
+    "engine.outputMissing", _OUTPUT + "was not written: {error}", file="text", error="text"
+)
+ENGINE_OUTPUT_NOT_UTF8 = _template(
+    "engine.outputNotUtf8", _OUTPUT + "is not valid UTF-8 at byte {byte}", file="text", byte="text"
+)
+ENGINE_OUTPUT_NOT_JSON = _template(
+    "engine.outputNotJson", _OUTPUT + "is not valid JSON: {error}", file="text", error="text"
+)
+ENGINE_OUTPUT_NOT_OBJECT = _template(
+    "engine.outputNotObject", _OUTPUT + "is not a JSON object", file="text"
+)
+ENGINE_FILE_MISSING: Mapping[str, Template] = MappingProxyType(
+    {
+        label: _template(
+            f"engine.{code}Missing", "{engine}: " + label + " not found: {path}",
+            engine="text", path="text",
+        )
+        for label, code in (("binary", "program"), ("model", "model"), ("aligner", "aligner"))
+    }
+)  # fmt: skip
+"""By the name of the file in `SubprocessEngine.required_files`."""
+ENGINE_NON_ASCII_PATH = _template(
+    "engine.nonAsciiPath",
+    "{engine} cannot open a path with non-ASCII characters: {path}",
+    engine="text",
+    path="text",
+)
+ENGINE_CANNOT_START = _template(
+    "engine.cannotStart",
+    "{engine}: cannot start {program}: {error}",
+    engine="text",
+    program="text",
+    error="text",
+)
+ENGINE_TIMED_OUT = _template(
+    "engine.timedOut", "{engine} did not finish in {seconds} s", engine="text", seconds="text"
+)
+ENGINE_EXITED = _template(
+    "engine.exited",
+    "{engine} exited with code {status}: {output}",
+    engine="text",
+    status="text",
+    output="text",
+)
+ENGINE_EXITED_SILENTLY = _template(
+    "engine.exitedSilent",
+    "{engine} exited with code {status}: no output",
+    engine="text",
+    status="text",
+)
+BAD_WHISPER_JSON = _template(
+    "engine.badWhisperJson",
+    "unexpected whisper.cpp JSON in {file}: {error}",
+    file="text",
+    error="text",
+)
+BAD_CRISPASR_JSON = _template(
+    "engine.badCrispJson", "unexpected CrispASR JSON in {file}: {error}", file="text", error="text"
+)
+
+# The built-in LLM server (`llm/local_server.py`) and the chat endpoint (`llm/client.py`).
+SERVER_PROGRAM_MISSING = _template(
+    "server.programMissing", "llama-server not found: {path}", path="text"
+)
+SERVER_MODEL_MISSING = _template("server.modelMissing", "LLM model not found: {path}", path="text")
+SERVER_EXITED = _template(
+    "server.exited",
+    "llama-server exited with code {status}; see {log}",
+    status="text",
+    log="text",
+)
+SERVER_NOT_READY = _template(
+    "server.notReady",
+    "llama-server was not ready after {seconds} s; see {log}",
+    seconds="text",
+    log="text",
+)
+_NO_COMPLETION = "{url} did not return a chat completion: "
+LLM_REPLY_NOT_JSON = _template(
+    "llm.notJson", _NO_COMPLETION + "body is not JSON ({error})", url="text", error="text"
+)
+LLM_REPLY_NO_CONTENT = _template(
+    "llm.noContent", _NO_COMPLETION + "no choices[0].message.content string", url="text"
+)
+LLM_REDIRECTED = _template(
+    "llm.redirected",
+    "{url} redirected to {location}; redirects are not followed",
+    url="text",
+    location="text",
+)
+LLM_HTTP = _template(
+    "llm.http", "{url} answered HTTP {status}: {detail}", url="text", status="text", detail="text"
+)
+LLM_TIMED_OUT = _template(
+    "llm.timedOut", "no answer from {url} within {seconds} s", url="text", seconds="text"
+)
+LLM_UNREACHABLE = _template(
+    "llm.unreachable",
+    "cannot reach the LLM server at {url}: {reason}",
+    url="text",
+    reason="text",
+)
+
+# Translation and the summary. A `reason` or `reply` is what the check of the model's answer said
+# back to the model, shown as it is.
+CUE_NOT_TRANSLATED = _template(
+    "translate.cueFailed",
+    "cue {cue} could not be translated after {attempts} attempts: {reason}",
+    cue="text",
+    attempts="text",
+    reason="text",
+)
+CANNOT_RESUME = _template(
+    "translate.cannotResume",
+    "{file}: cannot resume from this file ({error})",
+    file="text",
+    error="text",
+)
+SUMMARY_TOO_LARGE = _template(
+    "summary.tooLarge",
+    "{label} needs about {tokens} tokens, over {limit} of the {context} token context",
+    label="text",
+    tokens="text",
+    limit="text",
+    context="text",
+)
+SUMMARY_NOT_WRITTEN = _template(
+    "summary.notWritten",
+    "the summary could not be written: {reason}; the last reply: {reply}",
+    reason="text",
+    reply="text",
+)
+SUMMARY_NO_TEXT = _template("summary.noText", "the transcript has no text to summarise")
+SUMMARY_NO_PART = _template("summary.noPart", "no part of the talk could be summarised")
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 

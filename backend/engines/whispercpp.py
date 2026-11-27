@@ -8,9 +8,10 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from backend.core import process_guard, vc_runtime
+from backend.core import notices, process_guard, vc_runtime
 from backend.core.language_detect import Heard
 from backend.core.model import Segment, Word
+from backend.core.notices import noticed
 from backend.core.source_langs import is_spaced
 from backend.engines.base import (
     EngineFailedError,
@@ -56,9 +57,8 @@ class WhisperCppEngine(SubprocessEngine):
             segments = (_segment(item, spaced) for item in raw["transcription"])
             return [segment for segment in segments if segment is not None]
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise EngineOutputError(
-                f"unexpected whisper.cpp JSON in {output.name}: {exc!r}"
-            ) from exc
+            odd = notices.BAD_WHISPER_JSON(file=output.name, error=repr(exc))
+            raise noticed(EngineOutputError, odd) from exc
 
     def on_stderr_line(self, line: str, progress: MonotonicProgress) -> None:
         if _PROCESSING.match(line):

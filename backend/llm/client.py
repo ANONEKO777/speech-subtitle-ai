@@ -10,6 +10,9 @@ from http.client import HTTPException, HTTPMessage
 from typing import IO, Literal, TypedDict, cast
 from urllib.parse import urlsplit
 
+from backend.core import notices
+from backend.core.notices import Template, noticed
+
 DEFAULT_TIMEOUT_S = 600.0
 LLM_SEED = 20261105
 """Sent with every request, so a retry at a positive temperature draws the same tokens each run."""
@@ -124,14 +127,15 @@ def _first(value: object) -> object:
 
 
 def _reply_text(raw: bytes, config: LlmConfig) -> str:
-    where = f"{config.chat_url} did not return a chat completion"
     try:
         doc = cast("object", json.loads(raw.decode("utf-8")))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise LlmError(f"{where}: body is not JSON ({exc})") from exc
+        raise _fail(
+            config, notices.LLM_REPLY_NOT_JSON, url=config.chat_url, error=str(exc)
+        ) from exc
     content = _member(_member(_first(_member(doc, "choices")), "message"), "content")
     if not isinstance(content, str):
-        raise LlmError(f"{where}: no choices[0].message.content string")
+        raise _fail(config, notices.LLM_REPLY_NO_CONTENT, url=config.chat_url)
     return content
 
 
@@ -140,9 +144,21 @@ def _redact(config: LlmConfig, text: str) -> str:
 
 
 def _fail(
-    config: LlmConfig, message: str, *, retryable: bool = False, retry_after_s: float | None = None
+    config: LlmConfig,
+    sentence: Template,
+    *,
+    retryable: bool = False,
+    retry_after_s: float | None = None,
+    **params: str,
 ) -> LlmError:
-    return LlmError(_redact(config, message), retryable=retryable, retry_after_s=retry_after_s)
+    """The error that says `sentence`. The window gets the parameters beside the text, so the key
+    is taken out of each of them, not only out of the sentence they make."""
+    said = sentence(**{name: _redact(config, value) for name, value in params.items()})
+
+    def error(message: str) -> LlmError:
+        return LlmError(message, retryable=retryable, retry_after_s=retry_after_s)
+
+    return noticed(error, said)
 
 
 def _retry_after(headers: EmailMessage) -> float | None:
@@ -155,9 +171,12 @@ def _http_error(exc: urllib.error.HTTPError, config: LlmConfig) -> LlmError:
     detail = detail.strip()[:_ERROR_DETAIL_CHARS]
     return _fail(
         config,
-        f"{config.chat_url} answered HTTP {exc.code} {exc.reason}: {detail}",
+        notices.LLM_HTTP,
         retryable=exc.code in _RETRYABLE_STATUS,
         retry_after_s=_retry_after(exc.headers),
+        url=config.chat_url,
+        status=f"{exc.code} {exc.reason}",
+        detail=detail,
     )
 
 
@@ -191,15 +210,27 @@ def chat(
         if 300 <= exc.code < 400:
             raise _fail(
                 config,
-                f"{config.chat_url} redirected to {exc.headers.get('Location')!r}; "
-                "redirects are not followed",
+                notices.LLM_REDIRECTED,
+                url=config.chat_url,
+                location=repr(exc.headers.get("Location")),
             ) from exc
         raise _http_error(exc, config) from exc
     except (urllib.error.URLError, OSError, HTTPException) as exc:
         reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+        retryable = _transient(reason)
         if isinstance(reason, TimeoutError):
-            message = f"no answer from {config.base_url} within {config.timeout_s:g} s"
-        else:
-            message = f"cannot reach the LLM server at {config.base_url}: {reason}"
-        raise _fail(config, message, retryable=_transient(reason)) from exc
+            raise _fail(
+                config,
+                notices.LLM_TIMED_OUT,
+                retryable=retryable,
+                url=config.base_url,
+                seconds=f"{config.timeout_s:g}",
+            ) from exc
+        raise _fail(
+            config,
+            notices.LLM_UNREACHABLE,
+            retryable=retryable,
+            url=config.base_url,
+            reason=str(reason),
+        ) from exc
     return _reply_text(raw, config)

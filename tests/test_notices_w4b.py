@@ -2,23 +2,29 @@
 
 from __future__ import annotations
 
+import io
 import json
+import urllib.error
+from email.message import Message
 from functools import partial
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
+import pytest
 from manage_support import Rig
 from notice_scenarios_w4b import collect
 
 from backend.api.deps import locked_path_response
 from backend.core import notices
-from backend.core.notices import noticed, to_json
+from backend.core.notices import noticed, notices_of, to_json
+from backend.llm import client
 from backend.manager.updates import UpdateError
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "app/src/i18n/notices.w4b.fixture.json"
 
-REWORDED: dict[str, str] = {}
+REWORDED = {"batch.crashed": 'said "queue" where the window says "batch"'}
 """Scenarios whose English changed on purpose, and why."""
 
 
@@ -98,3 +104,32 @@ def test_a_locked_file_answers_a_409_with_the_notice_beside_it() -> None:
     assert reply.status_code == 409
     assert [n["code"] for n in body["notices"]] == ["download.locked"]
     assert inside(body["detail"]["message"], body["notices"])
+
+
+def test_the_api_key_reaches_no_part_of_a_chat_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    key = "sk-secret-123"
+    config = client.LlmConfig("https://api.example.test/v1", "m", key)
+    echoed = f"bad key {key}".encode()
+    moved = Message()
+    moved["Location"] = f"https://api.example.test/?key={key}"
+    answers: list[Exception] = [
+        urllib.error.HTTPError(config.chat_url, 401, key, Message(), io.BytesIO(echoed)),
+        urllib.error.HTTPError(config.chat_url, 302, "Found", moved, io.BytesIO()),
+        urllib.error.URLError(f"proxy refused {key}"),
+    ]
+    for answer in answers:
+
+        def refuse(*_args: object, _answer: Exception = answer, **_kwargs: object) -> None:
+            raise _answer
+
+        opener = SimpleNamespace(open=refuse)
+
+        def opening(_config: object, _opener: object = opener) -> object:
+            return _opener
+
+        monkeypatch.setattr(client, "_opener", opening)
+        with pytest.raises(client.LlmError) as caught:
+            client.chat(config, [{"role": "user", "content": "hi"}])
+        sent = to_json(notices_of(caught.value))
+
+        assert sent and key not in json.dumps(sent) + str(caught.value)
