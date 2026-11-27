@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from backend.core.notices import Notice, from_json
 from backend.manager.profiles import Device, ProfileId
 from backend.manager.settings import write_json_atomic
 
@@ -28,6 +29,9 @@ class StageResult:
     ok: bool
     seconds: float
     detail: str
+    detail_notices: tuple[Notice, ...] = ()
+    """The notices inside `detail`. This and the two fields like it are empty in a file saved
+    before them, and the window then shows the text as it was stored."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +39,7 @@ class Fallback:
     reason: str
     """A sentence a person can read, naming the GPU stage that failed and why."""
     failed: tuple[StageResult, ...]
+    reason_notices: tuple[Notice, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +55,7 @@ class SelfTestReport:
     fallback: Fallback | None
     seconds: float
     message: str
+    message_notices: tuple[Notice, ...] = ()
 
 
 def _stage(raw: dict[str, Any]) -> StageResult:
@@ -61,6 +67,7 @@ def _stage(raw: dict[str, Any]) -> StageResult:
         bool(raw["ok"]),
         float(raw["seconds"]),
         raw["detail"],
+        from_json(raw.get("detail_notices")),
     )
 
 
@@ -74,9 +81,14 @@ def report_from_json(raw: dict[str, Any]) -> SelfTestReport:
         stages=tuple(_stage(s) for s in raw["stages"]),
         fallback=None
         if fb is None
-        else Fallback(fb["reason"], tuple(_stage(s) for s in fb["failed"])),
+        else Fallback(
+            fb["reason"],
+            tuple(_stage(s) for s in fb["failed"]),
+            from_json(fb.get("reason_notices")),
+        ),
         seconds=float(raw["seconds"]),
         message=raw["message"],
+        message_notices=from_json(raw.get("message_notices")),
     )
 
 

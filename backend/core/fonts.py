@@ -17,6 +17,16 @@ from types import MappingProxyType
 from backend.core.audio import AudioError
 from backend.core.languages import DEFAULT_FONT, Language
 from backend.core.model import Cue
+from backend.core.notices import (
+    MISSING_GLYPHS,
+    MISSING_TARGET_GLYPHS,
+    NO_JAPANESE_FONT,
+    NO_JAPANESE_FONT_MACOS,
+    NO_TARGET_FONT,
+    Notice,
+    Template,
+    noticed,
+)
 from backend.core.source_langs import ENGLISH, ENGLISH_SOURCE, SOURCES
 
 CJK_RANGES = (
@@ -32,33 +42,6 @@ General punctuation (curly quotes, em dash, ellipsis) is not here: Arial draws i
 
 def needs_cjk_font(char: str) -> bool:
     return any(low <= ord(char) <= high for low, high in CJK_RANGES)
-
-
-MISSING_FONT_MESSAGE = (
-    "這台電腦沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。"
-    "請到「設定 > 個人化 > 字型」安裝日文字型（例如 Yu Gothic 或 Meiryo），"
-    "或到「設定 > 系統 > 選用功能」新增「日文」的補充字型後再試。"
-    "字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
-MISSING_FONT_MESSAGE_MACOS = (
-    "這台 Mac 沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。"
-    "請用「字體簿」安裝日文字型（例如 Hiragino Sans 或 Yu Gothic）後再試。"
-    "字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
-MISSING_GLYPH_MESSAGE = (
-    "字型 {font} 缺少這些字的字形：{chars}，燒錄出來的字幕會變成空白方塊。"
-    "請安裝含有這些字的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
-
-
-MISSING_TARGET_GLYPH_MESSAGE = (
-    "字型 {font} 缺少{language}字幕要用的字形：{chars}，燒錄出來的字幕會變成空白方塊。"
-    "請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
-MISSING_TARGET_FONT_MESSAGE = (
-    "這台電腦沒有可以顯示{language}字幕的字型（試過 {fonts}），燒錄出來的字幕會變成空白方塊。"
-    "請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。"
-)
 
 
 class FontMissing(AudioError):
@@ -175,10 +158,10 @@ def fonts_for(families: Sequence[str], system: str | None = None) -> tuple[str, 
     return tuple(dict.fromkeys(mapped))
 
 
-def missing_font_message(system: str | None = None) -> str:
+def no_japanese_font(system: str | None = None) -> Template:
     if (sys.platform if system is None else system) == "darwin":
-        return MISSING_FONT_MESSAGE_MACOS
-    return MISSING_FONT_MESSAGE
+        return NO_JAPANESE_FONT_MACOS
+    return NO_JAPANESE_FONT
 
 
 def _names_of_table(table: bytes) -> set[str]:
@@ -357,11 +340,11 @@ def _first_covering(
     needed: set[str],
     candidates: Sequence[str],
     lookup: Lookup,
-    no_font: str,
-    glyphs: str = MISSING_GLYPH_MESSAGE,
+    no_font: Callable[[Sequence[str]], Notice],
+    glyphs: Callable[[str, str], Notice],
 ) -> str:
     """The first family of `candidates` that draws every character of `needed`. When none does,
-    raises `FontMissing`: the `glyphs` message for the family that lacks the fewest, or `no_font`
+    raises `FontMissing`: the `glyphs` notice for the family that lacks the fewest, or `no_font`
     when no family is installed."""
     find = lookup(needed)
     tried: list[str] = []
@@ -377,8 +360,8 @@ def _first_covering(
         lacking[family] = missing
     if lacking:
         family, missing = min(lacking.items(), key=lambda item: len(item[1]))
-        raise FontMissing(glyphs.format(font=family, chars="".join(sorted(missing)[:12])))
-    raise FontMissing(no_font.format(fonts="、".join(tried)))
+        raise noticed(FontMissing, glyphs(family, "".join(sorted(missing)[:12])))
+    raise noticed(FontMissing, no_font(tried))
 
 
 def burn_font(cues: Sequence[Cue], lookup: Lookup | None = None) -> str:
@@ -391,8 +374,13 @@ def burn_font(cues: Sequence[Cue], lookup: Lookup | None = None) -> str:
         return fonts_for(ENGLISH_SOURCE.fonts)[0]
     langs = [code for code in dict.fromkeys(cue.lang for cue in cues) if code in SOURCES]
     families = [font for code in langs if code != ENGLISH for font in SOURCES[code].fonts]
+    japanese = no_japanese_font()
     return _first_covering(
-        needed, fonts_for(families), lookup or system_coverage, missing_font_message()
+        needed,
+        fonts_for(families),
+        lookup or system_coverage,
+        lambda tried: japanese(fonts=tried),
+        lambda font, chars: MISSING_GLYPHS(font=font, chars=chars),
     )
 
 
@@ -407,6 +395,10 @@ def target_font(cues: Sequence[Cue], lang: Language, lookup: Lookup | None = Non
     needed = {c for cue in cues for c in cue.zh if ord(c) > 0x7F and not c.isspace()}
     if not needed:
         return families[0]
-    no_font = MISSING_TARGET_FONT_MESSAGE.replace("{language}", lang.native)
-    glyphs = MISSING_TARGET_GLYPH_MESSAGE.replace("{language}", lang.native)
-    return _first_covering(needed, families, lookup or system_coverage, no_font, glyphs)
+    return _first_covering(
+        needed,
+        families,
+        lookup or system_coverage,
+        lambda tried: NO_TARGET_FONT(language=lang, fonts=tried),
+        lambda font, chars: MISSING_TARGET_GLYPHS(font=font, language=lang, chars=chars),
+    )

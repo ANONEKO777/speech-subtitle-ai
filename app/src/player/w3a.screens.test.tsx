@@ -10,6 +10,7 @@ import { Library } from "./Library";
 import { BurnCard } from "./Overlays";
 import { Player } from "./Player";
 import { NOT_ENGLISH } from "../i18n/notEnglish";
+import { plainText } from "../i18n/said";
 
 /**
  * The player (W3a) rendered in each released language. Traditional Chinese must equal what the player said
@@ -46,7 +47,7 @@ vi.mock("../api/library", async (orig) => ({
       mocks.burn === "done"
         ? { id: "b1", state: "done", percent: 100, output: "C:/Shots/out.mp4", error: null }
         : mocks.burn === "failed"
-          ? { id: "b1", state: "failed", percent: 40, output: "", error: "disk full" }
+          ? { id: "b1", state: "failed", percent: 40, output: "", error: { text: "disk full", notices: [] } }
           : { id: "b1", state: "cancelled", percent: 40, output: "", error: null },
     ),
   cancelBurn: () => Promise.resolve(),
@@ -329,7 +330,7 @@ const SCREENS: Record<string, Screen> = {
     const first = render(wrap(locale, <BurnCard view={running} error={null} onCancel={() => undefined} />));
     shot("running", first.container);
     first.unmount();
-    const second = render(wrap(locale, <BurnCard view={null} error="ffmpeg stopped" onCancel={() => undefined} />));
+    const second = render(wrap(locale, <BurnCard view={null} error={plainText("ffmpeg stopped")} onCancel={() => undefined} />));
     shot("error", second.container);
   },
   "a video the player cannot play": async (shot, locale) => {

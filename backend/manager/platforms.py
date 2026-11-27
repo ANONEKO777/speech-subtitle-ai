@@ -9,14 +9,11 @@ from __future__ import annotations
 import platform as _platform
 import sys
 
+from backend.core.notices import UNSUPPORTED_PLATFORM, noticed
+
 WIN_X64 = "win-x64"
 MACOS_ARM64 = "macos-arm64"
 SUPPORTED = (WIN_X64, MACOS_ARM64)
-
-UNSUPPORTED_MESSAGE = (
-    "這個程式只支援 Windows（64 位元）和搭載 Apple 晶片的 Mac（M1 以後），"
-    "偵測到的是 {system} {machine}，Intel 版 Mac 和 Linux 目前不支援。"
-)
 
 
 class UnsupportedPlatform(RuntimeError):
@@ -33,13 +30,13 @@ def detect_platform(system: str | None = None, machine: str | None = None) -> st
     if system == "darwin" and machine.lower() == "arm64":
         return MACOS_ARM64
     name = {"darwin": "macOS", "linux": "Linux"}.get(system, system)
-    raise UnsupportedPlatform(UNSUPPORTED_MESSAGE.format(system=name, machine=machine or "?"))
+    raise noticed(UnsupportedPlatform, UNSUPPORTED_PLATFORM(system=name, machine=machine or "?"))
 
 
-def check_platform() -> str | None:
-    """None on a supported machine, else the sentence to print before exiting."""
+def check_platform() -> UnsupportedPlatform | None:
+    """None on a supported machine, else the error whose sentence to print before exiting."""
     try:
         detect_platform()
     except UnsupportedPlatform as exc:
-        return str(exc)
+        return exc
     return None

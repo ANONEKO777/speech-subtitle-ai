@@ -32,6 +32,7 @@ from backend.core.jobs import JobOptions
 from backend.core.languages import LANGUAGES, traditional_chars
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, Segment, Step
+from backend.core.notices import notices_of
 from backend.core.pipeline import STEPS, Ports, Settings, derive_key, run
 from backend.core.segmenter import merge_words
 from backend.core.source_langs import (
@@ -850,9 +851,11 @@ class TestFonts:
         )
 
     def test_a_pc_without_a_korean_font_gets_a_message_that_names_the_language(self) -> None:
-        with pytest.raises(fonts.FontMissing, match="한국어") as caught:
+        with pytest.raises(fonts.FontMissing, match="Korean") as caught:
             fonts.target_font(self.cues("안녕하세요"), KO, self.lookup({}))
-        assert "Malgun Gothic" in str(caught.value) and "空白方塊" in str(caught.value)
+        [notice] = notices_of(caught.value)
+        assert (notice.code, notice.params["language"]) == ("fonts.noTargetFont", "ko")
+        assert "Malgun Gothic" in str(caught.value)
 
     def test_a_missing_glyph_is_named(self) -> None:
         with pytest.raises(fonts.FontMissing, match="뷁"):
@@ -911,7 +914,9 @@ class TestGapsOfTheFirstRelease:
             fonts.target_font(
                 TestFonts().cues("안녕 뷁"), KO, TestFonts().lookup({"Malgun Gothic": {"뷁"}})
             )
-        assert "한국어" in str(caught.value) and "Malgun Gothic" in str(caught.value)
+        [notice] = notices_of(caught.value)
+        assert (notice.code, notice.params["language"]) == ("fonts.missingTargetGlyphs", "ko")
+        assert "Korean" in str(caught.value) and "Malgun Gothic" in str(caught.value)
 
     def test_the_burned_subtitle_of_a_target_is_looked_up_for_that_target(
         self, monkeypatch: pytest.MonkeyPatch
@@ -944,7 +949,8 @@ class TestGapsOfTheFirstRelease:
         korean = [Cue(1, 0, 1000, "こんにちは", lang="ja", zh="안녕하세요")]
         with pytest.raises(HTTPException) as caught:
             _look(StillBody(time_s=0), korean, KO)
-        assert caught.value.status_code == 422 and "한국어" in str(caught.value.detail)
+        assert caught.value.status_code == 422 and "Korean" in str(caught.value.detail)
+        assert [n.params.get("language") for n in notices_of(caught.value.__cause__)] == ["ko"]
 
     def test_four_english_words_are_a_sentence_and_three_are_not(self) -> None:
         for code, start in (

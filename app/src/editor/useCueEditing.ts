@@ -5,6 +5,8 @@ import { useT } from "../i18n/I18nProvider";
 import type { Cue } from "../player/cues";
 import { type EditState, edited, fresh, replaceCue, sameCue, undoPlan, undone, withEdited } from "./state";
 import { BACKEND_PROBLEM, type Draft, normalizeText, validateDraft } from "./validate";
+import type { Locale } from "../i18n/locale";
+import { said, word } from "../i18n/notice";
 
 export interface Loaded {
   readonly cues: readonly Cue[];
@@ -26,14 +28,15 @@ export interface CueEditing {
   readonly undo: () => Promise<void>;
 }
 
-const reason = (e: unknown, id: number, t: Translate): string => {
-  if (!(e instanceof ApiError)) return t("editor.noBackend", { reason: e instanceof Error ? e.message : String(e) });
+const reason = (e: unknown, id: number, t: Translate, locale: Locale): string => {
+  const worded = word(said(e), locale);
+  if (!(e instanceof ApiError)) return t("editor.noBackend", { reason: worded });
   const own = e.problems.find((p) => p.id === id) ?? e.problems[0];
   if (own) {
     const key = BACKEND_PROBLEM[own.code];
     return key === undefined ? own.message : t(key);
   }
-  return e.status === 409 ? t("editor.busy", { reason: e.message }) : e.message;
+  return e.status === 409 ? t("editor.busy", { reason: worded }) : worded;
 };
 
 /**
@@ -42,7 +45,7 @@ const reason = (e: unknown, id: number, t: Translate): string => {
  * read afresh, such as after a change of language, and the edit state starts over then.
  */
 export function useCueEditing(backend: Backend, projectId: string, lang: string, loaded: Loaded): CueEditing {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [state, setState] = useState(() => fresh(loaded.cues, loaded.editedIds));
   const [source, setSource] = useState(loaded);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -88,7 +91,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
       try {
         await putCues(backend, projectId, lang, replaceCue(state.cues, after));
       } catch (e) {
-        setRefusal(reason(e, id, t));
+        setRefusal(reason(e, id, t, locale));
         return false;
       }
       const marks = await fetchEditedIds(backend, projectId, lang).catch(() => null);
@@ -101,7 +104,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
       setFailure(null);
       return true;
     },
-    [backend, projectId, lang, state.cues, validate, cancel, t],
+    [backend, projectId, lang, state.cues, validate, cancel, t, locale],
   );
 
   const undo = useCallback(async () => {
@@ -110,7 +113,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
     try {
       await putCues(backend, projectId, lang, plan.cues);
     } catch (e) {
-      setFailure(t("editor.undoFailed", { reason: reason(e, plan.restore.id, t) }));
+      setFailure(t("editor.undoFailed", { reason: reason(e, plan.restore.id, t, locale) }));
       return;
     }
     const marks = await fetchEditedIds(backend, projectId, lang).catch(() => null);
@@ -120,7 +123,7 @@ export function useCueEditing(backend: Backend, projectId: string, lang: string,
     });
     setEditingId(null);
     setFailure(null);
-  }, [backend, projectId, lang, state, t]);
+  }, [backend, projectId, lang, state, t, locale]);
 
   return { state, editingId, refusal, failure, begin, cancel, validate, commit, undo };
 }

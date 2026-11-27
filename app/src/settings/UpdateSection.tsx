@@ -2,6 +2,7 @@ import { Download, RefreshCw, RotateCw } from "lucide-react";
 import { useState } from "react";
 import { useT } from "../i18n/I18nProvider";
 import { type Checked, reasonOf, updateCheck, updateDownload, updateInstall } from "./update";
+import { type Said, word } from "../i18n/notice";
 
 type Available = Extract<Checked, { state: "available" }>;
 
@@ -12,10 +13,10 @@ type Phase =
   | { readonly kind: "downloading"; readonly result: Available }
   | { readonly kind: "downloaded"; readonly result: Available }
   | { readonly kind: "installing" }
-  | { readonly kind: "failed"; readonly reason: string };
+  | { readonly kind: "failed"; readonly reason: Said | null };
 
 export function UpdateSection() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const busy = phase.kind === "checking" || phase.kind === "downloading" || phase.kind === "installing";
 
@@ -24,7 +25,7 @@ export function UpdateSection() {
     try {
       setPhase({ kind: "checked", result: await updateCheck(t) });
     } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e, t) });
+      setPhase({ kind: "failed", reason: reasonOf(e) });
     }
   };
   const download = async (result: Available) => {
@@ -33,7 +34,7 @@ export function UpdateSection() {
       await updateDownload();
       setPhase({ kind: "downloaded", result });
     } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e, t) });
+      setPhase({ kind: "failed", reason: reasonOf(e) });
     }
   };
   const install = async () => {
@@ -41,7 +42,7 @@ export function UpdateSection() {
     try {
       await updateInstall();
     } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e, t) });
+      setPhase({ kind: "failed", reason: reasonOf(e) });
     }
   };
 
@@ -90,7 +91,7 @@ export function UpdateSection() {
         {phase.kind === "installing" && <p className="note">{t("update.installing")}</p>}
         {phase.kind === "failed" && (
           <p className="note bad" role="alert" data-testid="update-failed">
-            {phase.reason}
+            {phase.reason ? word(phase.reason, locale) : t("errors.updateIncomplete")}
           </p>
         )}
       </div>

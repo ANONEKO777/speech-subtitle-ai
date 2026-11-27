@@ -13,12 +13,11 @@ import os
 import sys
 from pathlib import Path
 
+from backend.core.notices import VC_RUNTIME_MISSING, noticed
+
 LIBRARIES = ("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
 INFO_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist"
-MESSAGE = (
-    "這台電腦缺少 Microsoft Visual C++ 可轉散發套件（x64），語音辨識和翻譯程式無法啟動。"
-    f"請到 {INFO_URL} 下載並安裝「vc_redist.x64.exe」，裝好後再試一次。"
-)
+NOTICE = VC_RUNTIME_MISSING(url=INFO_URL)
 
 
 def missing() -> tuple[str, ...]:
@@ -34,4 +33,4 @@ def missing() -> tuple[str, ...]:
 def require(error: type[Exception]) -> None:
     """Raises `error` with the plain message when the runtime is missing."""
     if missing():
-        raise error(MESSAGE)
+        raise noticed(error, NOTICE)

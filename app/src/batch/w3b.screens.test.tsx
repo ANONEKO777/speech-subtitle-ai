@@ -19,6 +19,7 @@ import { CountdownModal } from "./CountdownModal";
 import { EMPTY_BATCH, type Batch, type BatchItem } from "./model";
 import { TargetChoice } from "./TargetChoice";
 import { NOT_ENGLISH } from "../i18n/notEnglish";
+import { plainText } from "../i18n/said";
 
 /**
  * The queue, the batch dialog, the power countdown, the cue editor, the export menu and the summary,
@@ -79,7 +80,7 @@ const ITEMS: readonly BatchItem[] = [
   item("starting", { state: "running", lang: "th" }),
   item("paused", { state: "paused", lang: "zh-CN", progress: 0.2 }),
   item("done", { state: "done", progress: 1, lang: "en", sourceLang: "ja" }),
-  item("failed", { state: "failed", error: "CUDA error: out of memory. See https://example.com/help" }),
+  item("failed", { state: "failed", error: plainText("CUDA error: out of memory. See https://example.com/help") }),
   item("cancelled", { state: "cancelled" }),
 ];
 const loadedBatch = (patch: Partial<Batch>): Batch => ({ ...EMPTY_BATCH, loaded: true, link: "live", ...patch });

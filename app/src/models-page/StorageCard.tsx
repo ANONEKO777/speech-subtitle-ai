@@ -7,6 +7,7 @@ import { fetchInventory, fetchMove, fetchSettings, setModelsDir, startMove } fro
 import { bytes } from "../manage/format";
 import type { MoveStatus, StorageView } from "../manage/types";
 import { isMacShell } from "../platform";
+import { type Said, said, word } from "../i18n/notice";
 
 type Step =
   | { readonly step: "view" }
@@ -19,14 +20,14 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
   const [draft, setDraft] = useState("");
   const [step, setStep] = useState<Step>({ step: "view" });
   const [warnings, setWarnings] = useState<readonly string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const [move, setMove] = useState<MoveStatus | null>(null);
 
   const load = useCallback(async () => {
     try {
       setStorage((await fetchSettings(backend)).storage);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   }, [backend]);
 
@@ -64,7 +65,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
       const installed = (await fetchInventory(backend)).assets.filter((a) => a.type === "model" && a.state === "installed");
       setStep({ step: "confirm", target, models: installed.length, size: installed.reduce((n, a) => n + (a.sizeOnDisk ?? 0), 0) });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   };
 
@@ -77,7 +78,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
       await load();
       onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
       setStep({ step: "view" });
     }
   };
@@ -89,7 +90,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
       setStep({ step: "view" });
       setDraft("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
       setStep({ step: "view" });
     }
   };
@@ -158,7 +159,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
       ))}
       {error && (
         <p className="note bad" role="alert" data-testid="models-dir-error">
-          {error}
+          {word(error, locale)}
         </p>
       )}
 

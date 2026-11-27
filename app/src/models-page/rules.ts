@@ -2,6 +2,7 @@ import type { Translate } from "../i18n";
 import type { Refusal } from "../manage/api";
 import { isActive } from "../manage/downloads";
 import type { Asset, DownloadJob, UpdateItem } from "../manage/types";
+import type { Said } from "../i18n/said";
 
 export type RowAction = "download" | "resume" | "verify" | "repair" | "redownload" | "update" | "delete" | "cancel";
 
@@ -36,13 +37,13 @@ export type DeleteStep =
   | { readonly step: "confirm" }
   | { readonly step: "refused"; readonly refusal: Refusal }
   | { readonly step: "force"; readonly refusal: Refusal; readonly reason: string }
-  | { readonly step: "failed"; readonly message: string };
+  | { readonly step: "failed"; readonly message: Said };
 
 export type DeleteEvent =
   | { readonly type: "refused"; readonly refusal: Refusal }
   | { readonly type: "wantForce" }
   | { readonly type: "reason"; readonly text: string }
-  | { readonly type: "failed"; readonly message: string };
+  | { readonly type: "failed"; readonly message: Said };
 
 /** A delete is plain at first. A refusal shows its blockers, and force (with a typed reason) only when the backend allows it. */
 export function reduceDelete(state: DeleteStep, event: DeleteEvent): DeleteStep {

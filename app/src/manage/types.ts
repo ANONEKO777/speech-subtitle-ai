@@ -1,4 +1,5 @@
 import type { UiLanguage } from "../i18n/locale";
+import type { Said } from "../i18n/said";
 
 /** What the manager routes return, parsed once at the boundary (see `parse.ts`). */
 
@@ -102,7 +103,7 @@ export interface ProfileOption {
 }
 
 export interface Fallback {
-  readonly reason: string;
+  readonly reason: Said;
 }
 
 export interface ProfileView {
@@ -127,7 +128,7 @@ export interface StageResult {
   readonly installed: boolean;
   readonly ok: boolean;
   readonly seconds: number;
-  readonly detail: string;
+  readonly detail: Said;
 }
 
 export interface SelfTest {
@@ -136,7 +137,7 @@ export interface SelfTest {
   readonly stages: readonly StageResult[];
   readonly fallback: Fallback | null;
   readonly seconds: number;
-  readonly message: string;
+  readonly message: Said;
 }
 
 export type LlmSource = "builtin" | "ollama" | "cloud";
@@ -168,7 +169,7 @@ export interface SettingsView {
 export interface LlmTest {
   readonly ok: boolean;
   readonly url: string;
-  readonly detail: string;
+  readonly detail: Said;
   readonly models: readonly string[];
 }
 

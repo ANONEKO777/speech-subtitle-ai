@@ -32,6 +32,7 @@ from backend.core.jobs import (
 )
 from backend.core.media import is_media
 from backend.core.model import Step
+from backend.core.notices import Notice, from_json, notices_of, to_json
 from backend.core.pipeline import Ports, Settings
 from backend.core.power import COUNTDOWN_S, Countdown, PowerAction, PowerExecutor
 from backend.core.projects import ProjectStore
@@ -277,12 +278,13 @@ class QueueRunner:
             self._power.start(PowerAction(settings.on_done.value))
 
     def _run_item(self, item: QueueItem) -> None:
-        state, error = ItemState.FAILED, None
+        state, error, notices = ItemState.FAILED, None, ()
         try:
-            state, error = self._execute(item)
+            state, error, notices = self._execute(item)
         except Exception as exc:
             log.exception("queue item %s crashed", item.id)
             error = f"{type(exc).__name__}: {exc}"
+            notices = notices_of(exc, error)
         with self._lock:
             intent = self._intent
             self._current = self._job = self._live = self._intent = None
@@ -297,18 +299,18 @@ class QueueRunner:
             if state in (ItemState.QUEUED, ItemState.PAUSED):
                 self._store.move(item.id, [ItemState.RUNNING], state, _now_ms())
             else:
-                self._store.finish(item.id, state, _now_ms(), error)
+                self._store.finish(item.id, state, _now_ms(), error, notices)
         self._emit_item(item.id)
 
-    def _execute(self, item: QueueItem) -> tuple[ItemState, str | None]:
+    def _execute(self, item: QueueItem) -> tuple[ItemState, str | None, tuple[Notice, ...]]:
         video = Path(item.video_path)
         if not video.is_file():
-            return ItemState.FAILED, f"the video is gone: {video}"
+            return ItemState.FAILED, f"the video is gone: {video}", ()
         info, _ = self._projects.create(video)
         settings, ports = self._resolver(item.options, info.folder)
         job = self._submit(info.id, video, info.folder, settings, ports)
         if job is None:
-            return ItemState.CANCELLED, None
+            return ItemState.CANCELLED, None, ()
         with self._lock:
             self._job = job
             if self._intent is not None:
@@ -319,11 +321,12 @@ class QueueRunner:
         match job.status:
             case JobStatus.DONE:
                 self._record_timings(item, info.folder, job)
-                return ItemState.DONE, None
+                return ItemState.DONE, None, ()
             case JobStatus.FAILED:
-                return ItemState.FAILED, str(job.outcome.get("error"))
+                error = str(job.outcome.get("error"))
+                return ItemState.FAILED, error, from_json(job.outcome.get("error_notices"))
             case _:
-                return ItemState.CANCELLED, None
+                return ItemState.CANCELLED, None, ()
 
     def _submit(
         self, pid: str, video: Path, folder: Path, settings: Settings, ports: Ports
@@ -412,6 +415,7 @@ class QueueRunner:
             "eta_s": eta.get(item.id) if waiting else None,
             "attempts": item.attempts,
             "last_error": item.last_error,
+            "last_error_notices": to_json(item.last_error_notices),
             "created_at_ms": item.created_at_ms,
             "started_at_ms": item.started_at_ms,
             "finished_at_ms": item.finished_at_ms,

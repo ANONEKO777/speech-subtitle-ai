@@ -6,36 +6,26 @@ import uuid
 from pathlib import Path
 
 from backend.core.audio import HOMEBREW_DIRS
+from backend.core.notices import LOCAL_BUILD, Notice, noticed
 from backend.manager.download import Item, Plan, old_of, part_of, recover_swap, staging_of
 from backend.manager.registry import Registry, Runtime
 from backend.manager.storage import Storage
 
 TRASH_MARK = ".trash-"
-LOCAL_BUILD_MESSAGE = (
-    "{engine} 在這個平台沒有現成的程式可以下載，要在這台電腦上自己編譯一次："
-    "請在專案資料夾執行 {script}（步驟見 docs/MACOS.md）。"
-    "編譯好的 {program} 會放在 {folder}，放在 PATH 上也找得到。"
-)
-
-
-FOUND_ELSEWHERE_MESSAGE = (
-    "{program} 是在 {where} 找到的，不在 App 的執行檔資料夾（{folder}）裡，"
-    "所以 App 沒有刪它。要移除請自己處理（用 Homebrew 裝的就用 brew uninstall）。"
-)
 
 
 class NotInstallable(ValueError):
     pass
 
 
-def local_build_message(runtime: Runtime, storage: Storage) -> str:
+def local_build_notice(runtime: Runtime, storage: Storage) -> Notice:
     """What to tell a person whose runtime is built on the machine and is not there yet."""
     assert runtime.build is not None and runtime.executable is not None
-    return LOCAL_BUILD_MESSAGE.format(
+    return LOCAL_BUILD(
         engine=runtime.engine,
         script=runtime.build.script,
         program=Path(runtime.executable).name,
-        folder=storage.runtime_dir(runtime),
+        folder=str(storage.runtime_dir(runtime)),
     )
 
 
@@ -75,7 +65,7 @@ def program_of(runtime: Runtime, storage: Storage) -> Path:
 def runtime_bundle(runtime_id: str, registry: Registry, storage: Storage) -> tuple[Runtime, ...]:
     runtime = registry.runtimes[runtime_id]
     if runtime.is_local_build:
-        raise NotInstallable(local_build_message(runtime, storage))
+        raise noticed(NotInstallable, local_build_notice(runtime, storage))
     if runtime.executable is None:
         raise NotInstallable(
             f"{runtime_id} is an add-on and installs with the runtime that needs it"

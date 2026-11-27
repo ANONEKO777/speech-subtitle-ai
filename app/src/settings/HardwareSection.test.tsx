@@ -6,6 +6,7 @@ import { tZhTW } from "../i18n";
 import { macView, windowsView } from "../manage/screens.fixture";
 import type { ProfileView } from "../manage/types";
 import { HardwareSection, selfTestText } from "./HardwareSection";
+import { plainText } from "../i18n/said";
 
 const mocks = vi.hoisted(() => ({ view: null as ProfileView | null }));
 
@@ -58,9 +59,9 @@ describe("HardwareSection on a Mac", () => {
 
 describe("selfTestText", () => {
   it("says GPU (Metal) for a Metal run and CPU for a CPU run", () => {
-    const run = { ok: true, device: "metal", stages: [], fallback: null, seconds: 3, message: "ok" };
-    expect(selfTestText(run, tZhTW).title).toContain("GPU（Metal）");
-    expect(selfTestText({ ...run, device: "cpu" }, tZhTW).title).toContain("CPU");
+    const run = { ok: true, device: "metal", stages: [], fallback: null, seconds: 3, message: plainText("ok") };
+    expect(selfTestText(run, tZhTW, "zh-TW").title).toContain("GPU（Metal）");
+    expect(selfTestText({ ...run, device: "cpu" }, tZhTW, "zh-TW").title).toContain("CPU");
   });
 });
 

@@ -22,6 +22,7 @@ from backend.core import audio, fonts, process_guard, render
 from backend.core.fonts import FontMissing, burn_font, fonts_for, macos_coverage, target_font
 from backend.core.languages import get as get_language
 from backend.core.model import Cue
+from backend.core.notices import notices_of
 
 windows_host = pytest.mark.skipif(
     sys.platform != "win32", reason="asserts what the real Windows host does"
@@ -293,7 +294,9 @@ def test_korean_on_a_mac_with_no_korean_font_is_refused_and_names_the_language(
             lambda chars: macos_coverage(chars, [folder]),
         )
 
-    assert "한국어" in str(caught.value)
+    [notice] = notices_of(caught.value)
+    assert (notice.code, notice.params["language"]) == ("fonts.noTargetFont", "ko")
+    assert "Korean" in str(caught.value)
     assert "Apple SD Gothic Neo" in str(caught.value)
 
 
@@ -323,7 +326,9 @@ def test_russian_with_a_font_that_lacks_a_letter_names_the_font_and_the_letter(
             lambda chars: macos_coverage(chars, [folder]),
         )
 
-    assert "Arial" in str(caught.value) and "Русский" in str(caught.value)
+    [notice] = notices_of(caught.value)
+    assert (notice.code, notice.params["language"]) == ("fonts.missingTargetGlyphs", "ru")
+    assert "Arial" in str(caught.value) and "Russian" in str(caught.value)
 
 
 def test_japanese_source_text_on_a_mac_picks_hiragino_sans_when_it_draws_the_text(
@@ -344,10 +349,10 @@ def test_japanese_source_text_on_a_mac_with_no_font_gets_the_mac_message(
     with pytest.raises(FontMissing) as caught:
         burn_font(cues("日本語です"), lambda chars: macos_coverage(chars, [folder]))
 
-    text = str(caught.value)
-    assert text.startswith("這台 Mac")
-    assert "日文" in text and "字體簿" in text and "Hiragino Sans" in text
-    assert "設定 > 個人化" not in text
+    [notice] = notices_of(caught.value)
+    assert notice.code == "fonts.noJapaneseMac"
+    assert "Hiragino Sans" in notice.params["fonts"]
+    assert str(caught.value) == notice.message
 
 
 @windows_host
@@ -355,8 +360,10 @@ def test_japanese_source_text_on_windows_gets_the_windows_message() -> None:
     with pytest.raises(FontMissing) as caught:
         burn_font(cues("日本語です"), lambda _chars: lambda _family: None)
 
-    assert "設定 > 個人化 > 字型" in str(caught.value)
-    assert "Yu Gothic、Meiryo、MS Gothic" in str(caught.value)
+    [notice] = notices_of(caught.value)
+    assert notice.code == "fonts.noJapaneseWindows"
+    assert notice.params == {"fonts": ["Yu Gothic", "Meiryo", "MS Gothic"]}
+    assert "Yu Gothic, Meiryo, MS Gothic" in str(caught.value)
 
 
 def test_english_source_text_keeps_arial_on_both_platforms(as_mac: None) -> None:
@@ -453,9 +460,10 @@ def test_a_mac_ffmpeg_without_a_working_encoder_says_to_install_ffmpeg_with_brew
     with pytest.raises(render.EncoderMissing) as caught:
         render._video_encoder("ffmpeg", "darwin")  # pyright: ignore[reportPrivateUsage]
 
-    assert str(caught.value) == render.NO_ENCODER_MESSAGE_MACOS
-    assert "brew install ffmpeg" in render.NO_ENCODER_MESSAGE_MACOS
-    assert "Windows" not in render.NO_ENCODER_MESSAGE_MACOS
+    [notice] = notices_of(caught.value)
+    assert notice.code == "render.noH264Mac"
+    assert "brew install ffmpeg" in str(caught.value)
+    assert "Windows" not in str(caught.value)
 
 
 def test_the_windows_encoder_command_is_the_one_it_was(monkeypatch: pytest.MonkeyPatch) -> None:

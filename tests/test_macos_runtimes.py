@@ -15,6 +15,7 @@ from typing import Any
 
 import pytest
 
+from backend.core.notices import notices_of
 from backend.engines.table import engine_paths, spec_for
 from backend.manager import registry as registry_module
 from backend.manager.inventory import Inventory
@@ -31,7 +32,7 @@ from backend.manager.resolve import Request, SettingsError, resolve
 from backend.manager.runtimes import (
     NotInstallable,
     delete_runtime,
-    local_build_message,
+    local_build_notice,
     program_of,
     runtime_executable,
     runtime_plan,
@@ -139,7 +140,10 @@ def test_the_folder_wins_over_path(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 def test_the_missing_whisper_message_names_the_one_script_and_the_doc(
     tmp_path: Path,
 ) -> None:
-    message = local_build_message(MAC.runtimes[WHISPER], Storage(tmp_path))
+    notice = local_build_notice(MAC.runtimes[WHISPER], Storage(tmp_path))
+    message = notice.message
+
+    assert notice.code == "runtime.localBuild"
 
     assert "scripts/mac/build_whisper_cli.sh" in message
     assert "docs/MACOS.md" in message
@@ -428,7 +432,6 @@ def test_saving_a_cloud_key_on_a_mac_is_a_plain_refusal_in_traditional_chinese(
     tmp_path: Path,
 ) -> None:
     from backend.manager.secrets import (
-        KEY_NOT_AVAILABLE_MESSAGE,
         LLM_KEY,
         SecretError,
         UnavailableSecretStore,
@@ -442,9 +445,8 @@ def test_saving_a_cloud_key_on_a_mac_is_a_plain_refusal_in_traditional_chinese(
     store.clear(LLM_KEY)
     with pytest.raises(SecretError) as caught:
         store.set(LLM_KEY, "sk-secret")
-    assert str(caught.value) == KEY_NOT_AVAILABLE_MESSAGE
+    assert [n.code for n in notices_of(caught.value)] == ["secrets.cloudKeyUnavailable"]
     assert "sk-secret" not in str(caught.value)
-    assert "Mac" in KEY_NOT_AVAILABLE_MESSAGE and "金鑰" in KEY_NOT_AVAILABLE_MESSAGE
     assert not (tmp_path / "secrets").exists()
 
 

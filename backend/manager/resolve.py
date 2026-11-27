@@ -16,6 +16,7 @@ from backend.core import audio, vad
 from backend.core.languages import DEFAULT_CODE, UnknownLanguage
 from backend.core.languages import get as get_language
 from backend.core.model import DEFAULT_SOURCE, Word
+from backend.core.notices import noticed
 from backend.core.pipeline import LlmSession, Ports, ProgressCb, Settings
 from backend.core.source_langs import UnknownSource, get_source
 from backend.core.summarize import summary_chat
@@ -32,7 +33,7 @@ from backend.llm.local_server import ALL_LAYERS, NO_THINK, LlamaServer
 from backend.manager import registry as registry_module
 from backend.manager.profiles import QWEN3_8B, VAD_MODEL, Device, runtime_set
 from backend.manager.registry import Model, Registry, Runtime
-from backend.manager.runtimes import local_build_message, recover_runtimes
+from backend.manager.runtimes import local_build_notice, recover_runtimes
 from backend.manager.storage import Storage, default_user_data
 
 ENGINE_ALIASES = {"whispercpp": WHISPERCPP_ID, "crispasr": CRISPASR_ID}
@@ -102,7 +103,7 @@ def _asr(request: Request, storage: Storage, registry: Registry) -> tuple[str, s
     found_runtime = cpu_runtime or spec.runtime_id
     runtime = registry.runtimes[found_runtime]
     if runtime.is_local_build and not request.asr_bin and not found.binary.is_file():
-        raise SettingsError(local_build_message(runtime, storage))
+        raise noticed(SettingsError, local_build_notice(runtime, storage))
     try:
         binary = _need_file(request.asr_bin or found.binary, f"{engine_id} program")
         model = _need_file(request.asr_model or found.model, f"{engine_id} model")

@@ -19,6 +19,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api import (
     downloads,
@@ -34,10 +35,11 @@ from backend.api import (
     settings,
 )
 from backend.api.auth import APP_ORIGINS, Guard, GuardConfig, local_hosts, new_token
-from backend.api.deps import locked_path_response
+from backend.api.deps import locked_path_response, noticed_http_error
 from backend.core import parent_watch
 from backend.core.audio import probe_duration_s
 from backend.core.jobs import JobBook, JobOptions, OptionsError, Resolver
+from backend.core.notices import notice_lines, notices_of
 from backend.core.pipeline import Ports, Settings
 from backend.core.power import COUNTDOWN_S, PowerExecutor, system_power
 from backend.core.process_guard import stop_children_on_signals
@@ -153,6 +155,7 @@ def create_app(config: AppConfig) -> FastAPI:
         openapi_url=None,
     )
     app.add_exception_handler(OSError, locked_path_response)
+    app.add_exception_handler(StarletteHTTPException, noticed_http_error)
     app.state.manager = config.manager or build_context(config.user_data)
     app.state.detector = config.detector or real_detector(app.state.manager, config.user_data)
     app.state.projects = projects_store
@@ -243,6 +246,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     unsupported = check_platform()
     if unsupported:
+        for line in notice_lines(notices_of(unsupported)):
+            print(line, file=sys.stderr)
         print(f"error: {unsupported}", file=sys.stderr)
         return 2
     stop_children_on_signals()

@@ -42,6 +42,7 @@ import {
 } from "./model";
 import { baseName } from "./paths";
 import { LinkedText } from "../manage/LinkedText";
+import { said, word } from "../i18n/notice";
 
 const STATE_LABEL: Record<ItemState, PlainKey> = {
   queued: "batch.state.queued",
@@ -69,12 +70,11 @@ interface Drag {
   readonly middles: readonly number[];
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function BatchPanel({ backend, batch, languages, onOpen, onAdd, onError }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const total = overall(batch.items);
-  const run = (p: Promise<unknown>) => void p.catch((e: unknown) => onError(message(e)));
+  const run = (p: Promise<unknown>) => void p.catch((e: unknown) => onError(word(said(e), locale)));
   const [drag, setDrag] = useState<Drag | null>(null);
   const list = useRef<HTMLUListElement>(null);
 
@@ -348,7 +348,7 @@ function Row({ item, nextTarget, languages, dragging, canDrag, onOpen, onAct, on
         <p className="batch-error" role="alert" data-testid={`qerror-${item.id}`}>
           <TriangleAlert className="icon" aria-hidden />
           <span>
-            <LinkedText text={item.error} />
+            <LinkedText text={word(item.error, locale)} />
           </span>
         </p>
       )}
@@ -366,12 +366,12 @@ const POWER_TEXT: Record<PowerAction, { readonly armed: PlainKey; readonly head:
 const ON_DONE_KEYS: readonly OnDone[] = ["notify", "sleep", "shutdown"];
 
 function OnDoneSetting({ backend, batch, onError }: { backend: Backend; batch: Batch; onError: (m: string) => void }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [pending, setPending] = useState<PowerAction | null>(null);
   const [agree, setAgree] = useState(false);
   const save = (onDone: OnDone, allowPower: boolean) =>
     void putSettings(backend, { onDone, allowPower })
-      .catch((e: unknown) => onError(message(e)))
+      .catch((e: unknown) => onError(word(said(e), locale)))
       .finally(() => {
         setPending(null);
         setAgree(false);

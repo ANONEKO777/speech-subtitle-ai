@@ -24,6 +24,7 @@ import { useIdle } from "./useIdle";
 import { useOffset } from "./useOffset";
 import { useToast } from "./useToast";
 import { useTransport } from "./useTransport";
+import { type Said, plainText, said, word } from "../i18n/notice";
 
 interface Props {
   readonly backend: Backend;
@@ -146,8 +147,8 @@ export function Player(props: Props) {
   }, [settings.mode, settings.zhFirst, settings.fontSize, settings.color]);
 
   const fail = useCallback(
-    (what: (reason: string) => string, e: unknown) => showToast({ text: what(e instanceof Error ? e.message : String(e)), error: true }),
-    [showToast],
+    (what: (reason: string) => string, reason: Said) => showToast({ text: what(word(reason, locale)), error: true }),
+    [showToast, locale],
   );
 
   const shoot = useCallback(
@@ -164,11 +165,11 @@ export function Player(props: Props) {
           text: translate(copied ? "player.shot.copied" : "player.shot.notCopied", { path: still.path }),
           action: {
             label: translate("player.openFolder"),
-            run: () => void openFolder(still.path).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), e)),
+            run: () => void openFolder(still.path).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), said(e))),
           },
         });
       } catch (e) {
-        fail((reason) => translate("player.err.shot", { reason }), e);
+        fail((reason) => translate("player.err.shot", { reason }), said(e));
       }
     },
     [backend, projectId, lang, settings.outputDir, look, showToast, fail, translate],
@@ -180,10 +181,10 @@ export function Player(props: Props) {
         text: translate("player.burn.done", { path: view.output }),
         action: {
           label: translate("player.openFolder"),
-          run: () => void openFolder(view.output).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), e)),
+          run: () => void openFolder(view.output).catch((e: unknown) => fail((reason) => translate("player.err.openFolder", { reason }), said(e))),
         },
       });
-    } else if (view.state === "failed") fail((reason) => translate("player.err.export", { reason }), view.error ?? "");
+    } else if (view.state === "failed") fail((reason) => translate("player.err.export", { reason }), view.error ?? plainText(""));
     else showToast({ text: translate("player.burn.cancelled") });
   });
   const startBurn = (clip: boolean) =>
@@ -233,13 +234,13 @@ export function Player(props: Props) {
         showToast({ text: translate("player.pipNote") });
       }
     } catch (e) {
-      fail((reason) => translate("player.err.pip", { reason }), e);
+      fail((reason) => translate("player.err.pip", { reason }), said(e));
     }
   };
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
-    else void stage.current?.requestFullscreen().catch((e: unknown) => fail((reason) => translate("player.err.fullscreen", { reason }), e));
+    else void stage.current?.requestFullscreen().catch((e: unknown) => fail((reason) => translate("player.err.fullscreen", { reason }), said(e)));
   };
 
   const run = (a: Action) => {
@@ -388,7 +389,7 @@ export function Player(props: Props) {
             onPickFolder={() =>
               void pickFolder().then(
                 (dir) => dir && onSettings({ outputDir: dir }),
-                (e: unknown) => fail((reason) => translate("player.err.pickFolder", { reason }), e),
+                (e: unknown) => fail((reason) => translate("player.err.pickFolder", { reason }), said(e)),
               )
             }
             onHelp={() => setHelpOpen(true)}

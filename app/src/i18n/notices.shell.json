@@ -1,0 +1,62 @@
+{
+  "shell.backend.exitedEarly": {
+    "english": "The backend stopped before it was ready.\n{detail}",
+    "params": {
+      "detail": "text"
+    }
+  },
+  "shell.backend.spawnFailed": {
+    "english": "Couldn't start the backend: {error}",
+    "params": {
+      "error": "text"
+    }
+  },
+  "shell.backend.stopped": {
+    "english": "The backend stopped, and restarting it several times didn't help. Close the app and open it again.",
+    "params": {}
+  },
+  "shell.update.badSignature": {
+    "english": "The signature of the downloaded update doesn't match, so the app discarded it and won't install it. Download the installer again from the project page.",
+    "params": {}
+  },
+  "shell.update.badUrl": {
+    "english": "VST_UPDATE_URL isn't a valid address.",
+    "params": {}
+  },
+  "shell.update.checkFirst": {
+    "english": "Check for updates first.",
+    "params": {}
+  },
+  "shell.update.incomplete": {
+    "english": "The update didn't finish. Try again later, or download the installer again from the project page.",
+    "params": {}
+  },
+  "shell.update.noSource": {
+    "english": "This version has no update source set up, so it can't check for updates.",
+    "params": {}
+  },
+  "shell.update.notDownloaded": {
+    "english": "The update hasn't finished downloading yet.",
+    "params": {}
+  },
+  "shell.update.notUpdateInfo": {
+    "english": "The update source didn't return update information (the address may no longer work, or you may need to sign in first). Try again later, or download the installer again from the project page.",
+    "params": {}
+  },
+  "shell.update.stalled": {
+    "english": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection, then click \"Download update\" again.",
+    "params": {}
+  },
+  "shell.update.timeout": {
+    "english": "The update server didn't respond within 10 seconds. Try again later.",
+    "params": {}
+  },
+  "shell.update.unreachable": {
+    "english": "Can't reach the update server. Check your internet connection, then try again later.",
+    "params": {}
+  },
+  "shell.update.unsupported": {
+    "english": "This platform doesn't have automatic updates yet. Download the new installer from the project page and replace the app you have.",
+    "params": {}
+  }
+}

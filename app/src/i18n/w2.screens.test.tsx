@@ -13,6 +13,7 @@ import { Wizard } from "../wizard/Wizard";
 import { I18nProvider } from "./I18nProvider";
 import type { Locale } from "./locale";
 import { NOT_ENGLISH } from "./notEnglish";
+import { plainText } from "./said";
 
 /**
  * Every W2 screen (the first-run wizard and the models page) rendered in each released language.
@@ -140,8 +141,8 @@ const job = (over: Partial<DownloadJob>): DownloadJob => ({
   ...over,
 });
 
-const run = (over: Partial<SelfTest>): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 4.2, message: "ok", ...over });
-const stage = (name: string, ok: boolean) => ({ stage: name, runtimeId: `${name}-rt`, device: "cuda", installed: true, ok, seconds: 1.5, detail: "driver too old" });
+const run = (over: Partial<SelfTest>): SelfTest => ({ ok: true, device: "cuda", stages: [], fallback: null, seconds: 4.2, message: plainText("ok"), ...over });
+const stage = (name: string, ok: boolean) => ({ stage: name, runtimeId: `${name}-rt`, device: "cuda", installed: true, ok, seconds: 1.5, detail: plainText("driver too old") });
 
 const setList = (list: readonly DownloadJob[]) => {
   mocks.dl = { list: [...list], byAsset: new Map(), refresh: () => undefined };
@@ -307,7 +308,7 @@ const SCREENS: Record<string, Screen> = {
     shot("running", container);
     cleanup();
     mocks.selfTestMode = "queue";
-    mocks.selfTests = [run({ stages: [stage("asr", true), stage("llm", true)] }), run({ ok: false, stages: [stage("asr", false)], message: "Nothing started" }), undefined];
+    mocks.selfTests = [run({ stages: [stage("asr", true), stage("llm", true)] }), run({ ok: false, stages: [stage("asr", false)], message: plainText("Nothing started") }), undefined];
     const second = await wizard(locale, view);
     click("wizard-start");
     await screen.findByTestId("wizard-result");

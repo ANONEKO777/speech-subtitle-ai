@@ -3,11 +3,12 @@ import {
   type Backend,
 } from "../api/client";
 import { type BurnView, type Look, cancelBurn, fetchBurn, startBurn } from "../api/library";
+import { type Said, said } from "../i18n/said";
 
 /** The burned-in video export that is running or just ended, followed by polling the backend. */
 export function useBurn(backend: Backend, onEnd: (view: BurnView) => void) {
   const [view, setView] = useState<BurnView | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const end = useRef(onEnd);
   end.current = onEnd;
   const id = view?.state === "running" ? view.id : null;
@@ -22,7 +23,7 @@ export function useBurn(backend: Backend, onEnd: (view: BurnView) => void) {
           setView(next);
           if (next.state !== "running") end.current(next);
         },
-        (e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)),
+        (e: unknown) => alive && setError(said(e)),
       );
     }, 500);
     return () => {
@@ -37,7 +38,7 @@ export function useBurn(backend: Backend, onEnd: (view: BurnView) => void) {
       try {
         setView(await startBurn(backend, projectId, req));
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        setError(said(e));
       }
     },
     [backend],
