@@ -3,16 +3,19 @@ Builds the Windows installer: the PyInstaller backend, the LGPL FFmpeg, the fron
 per-user NSIS installer with the Tauri updater files. Everything lands under installer/build and
 app/src-tauri/target. Nothing is installed on this machine.
 
-  powershell -File installer/build.ps1 [-Key <path to the updater private key>] [-UpdateBaseUrl <https folder that will hold the installer>] [-Notes <text>]
+  powershell -File installer/build.ps1 [-Key <path to the updater private key>] [-UpdateBaseUrl <https folder that will hold the installer>] [-Notes <text>] [-Unsigned]
 
 The updater key is taken from TAURI_SIGNING_PRIVATE_KEY (its text or a path) when that is set, else
-from -Key. The script never prints it. With -UpdateBaseUrl (or VST_UPDATE_BASE_URL) it also writes
-installer/build/latest.json, which the app's update check reads: upload it and the installer to that folder.
+from -Key. The script never prints it. The files to upload land in installer/build/release: the
+installer, its .sig, SHA256SUMS.txt, and with -UpdateBaseUrl (or VST_UPDATE_BASE_URL) latest.json,
+which the app's update check reads. Upload them all to that folder. -Unsigned needs no key and makes
+only the installer and SHA256SUMS.txt; such a build cannot be offered as an update.
 #>
 param(
     [string]$Key = (Join-Path $HOME '.tauri/video-subtitle-translator.key'),
     [string]$UpdateBaseUrl = $env:VST_UPDATE_BASE_URL,
-    [string]$Notes = ''
+    [string]$Notes = '',
+    [switch]$Unsigned
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -91,46 +94,69 @@ foreach ($file in 'ffmpeg.exe', 'ffprobe.exe', 'avcodec-62.dll', 'avdevice-62.dl
 Copy-Item "$($ffRoot.FullName)/LICENSE.txt" "$build/ffmpeg/LICENSE-FFmpeg-LGPL-3.0.txt"
 Copy-Item "$PSScriptRoot/licenses/FFmpeg-external-libraries.txt" "$build/ffmpeg/"
 
-# 3. The installer. The updater key stays outside the repository.
-if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
-    if (-not (Test-Path $Key)) { throw "Updater private key not found at $Key and TAURI_SIGNING_PRIVATE_KEY is not set (see installer/README.md)" }
-    $env:TAURI_SIGNING_PRIVATE_KEY = $Key
+# 3. The installer. The updater key stays outside the repository. -Unsigned builds without it and
+#    without the updater files, for a build check that holds no secret.
+$version = (Get-Content "$root/app/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
+$configs = @('--config', '../installer/tauri.bundle.conf.json')
+if ($Unsigned) {
+    Set-Content "$build/unsigned.conf.json" '{ "bundle": { "createUpdaterArtifacts": false } }'
+    $configs += @('--config', "$build/unsigned.conf.json")
+} else {
+    if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+        if (-not (Test-Path $Key)) { throw "Updater private key not found at $Key and TAURI_SIGNING_PRIVATE_KEY is not set (see installer/README.md)" }
+        $env:TAURI_SIGNING_PRIVATE_KEY = $Key
+    }
+    if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = '' }
 }
-if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = '' }
 Invoke-Checked 'npm ci' { npm --prefix "$root/app" ci }
 Push-Location "$root/app"
-try { Invoke-Checked 'tauri build' { npx tauri build --bundles nsis --config ../installer/tauri.bundle.conf.json } } finally { Pop-Location }
+try { Invoke-Checked 'tauri build' { npx tauri build --bundles nsis @configs } } finally { Pop-Location }
 
 $nsis = Join-Path $root 'app/src-tauri/target/release/bundle/nsis'
-$installer = Get-ChildItem $nsis -Filter '*-setup.exe' | Select-Object -First 1
+$installer = Get-ChildItem $nsis -Filter "*_$($version)_x64-setup.exe" | Select-Object -First 1
+if (-not $installer) { throw "No installer for version $version in $nsis" }
 $mb = [math]::Round($installer.Length / 1MB, 1)
 Set-Content "$build/size.txt" "$($installer.Name) $($installer.Length) bytes ($mb MB), limit 150 MB"
 if ($installer.Length -ge 150MB) { throw "Installer is $mb MB; the limit is 150 MB" }
 
-# latest.json for the updater: the version, the installer's address and the .sig text.
-$signature = Join-Path $nsis "$($installer.Name).sig"
-if (-not (Test-Path $signature)) { throw "No $($installer.Name).sig beside the installer; the updater key was not used" }
-if ($UpdateBaseUrl) {
-    if ($UpdateBaseUrl -notmatch '^https://') { throw "-UpdateBaseUrl must be an https address" }
-    $version = (Get-Content "$root/app/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
-    $latest = [ordered]@{
-        version  = $version
-        notes    = $Notes
-        pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        platforms = [ordered]@{
-            'windows-x86_64' = [ordered]@{
-                signature = (Get-Content $signature -Raw).Trim()
-                url       = "$($UpdateBaseUrl.TrimEnd('/'))/$([uri]::EscapeDataString($installer.Name))"
-            }
-        }
-    }
-    $latest | ConvertTo-Json -Depth 5 | Set-Content "$build/latest.json" -Encoding utf8
-    Write-Host "latest.json written for $version at $build/latest.json"
-} else {
-    Write-Warning "No -UpdateBaseUrl: latest.json was not written, so this build cannot be offered as an update yet."
-}
-
 $env:VST_INSTALLER = $installer.FullName
 Push-Location $root
 try { Invoke-Checked 'package contents test' { uv run pytest tests/test_package_contents.py -q } } finally { Pop-Location }
-Write-Host "OK $($installer.FullName) ($mb MB)"
+
+# 4. The files to upload, in installer/build/release. GitHub turns spaces in a release file's name
+#    into dots, so the installer is renamed first and latest.json names it as GitHub will serve it.
+$release = Join-Path $build 'release'
+Remove-Item $release -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $release | Out-Null
+$asset = $installer.Name -replace ' ', '-'
+Copy-Item $installer.FullName (Join-Path $release $asset)
+if (-not $Unsigned) {
+    $signature = Join-Path $nsis "$($installer.Name).sig"
+    if (-not (Test-Path $signature)) { throw "No $($installer.Name).sig beside the installer; the updater key was not used" }
+    Copy-Item $signature (Join-Path $release "$asset.sig")
+    if ($UpdateBaseUrl) {
+        if ($UpdateBaseUrl -notmatch '^https://') { throw "-UpdateBaseUrl must be an https address" }
+        $latest = [ordered]@{
+            version  = $version
+            notes    = $Notes
+            pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = [ordered]@{
+                'windows-x86_64' = [ordered]@{
+                    signature = (Get-Content $signature -Raw).Trim()
+                    url       = "$($UpdateBaseUrl.TrimEnd('/'))/$asset"
+                }
+            }
+        }
+        # Windows PowerShell's -Encoding utf8 adds a byte-order mark, which serde_json (the updater's
+        # parser) does not accept.
+        [IO.File]::WriteAllText((Join-Path $release 'latest.json'), ($latest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+        Write-Host "latest.json written for $version"
+    } else {
+        Write-Warning "No -UpdateBaseUrl: latest.json was not written, so this build cannot be offered as an update yet."
+    }
+}
+$sums = Get-ChildItem $release -File | Sort-Object Name | ForEach-Object {
+    "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+}
+[IO.File]::WriteAllText((Join-Path $release 'SHA256SUMS.txt'), (($sums -join "`n") + "`n"), [Text.UTF8Encoding]::new($false))
+Write-Host "OK $release ($mb MB installer)"
