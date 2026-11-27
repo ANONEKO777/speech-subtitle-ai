@@ -25,15 +25,15 @@ App 會用「更新簽章」確認下載到的更新檔真的是你發布的。�
 
    ```powershell
    cd D:\WebProject\speech-subtitle-ai\app
-   npx tauri signer generate -w "$HOME\.tauri\video-subtitle-translator-2026.key"
+   npx tauri signer generate -w "$HOME\.tauri\video-subtitle-translator-v2.key"
    ```
 
 3. 它會請你輸入密碼兩次。畫面上不會顯示你打的字，這是正常的。
    - 密碼請用長一點的句子，至少 16 個字元。
    - 立刻把密碼存進你的密碼管理工具。
 4. 完成後，資料夾 `C:\Users\<你的帳號>\.tauri` 裡會多兩個檔案：
-   - `video-subtitle-translator-2026.key`：**私密金鑰**。絕對不能給別人。
-   - `video-subtitle-translator-2026.key.pub`：**公開金鑰**。可以公開，第 4 步要用。
+   - `video-subtitle-translator-v2.key`：**私密金鑰**。絕對不能給別人。
+   - `video-subtitle-translator-v2.key.pub`：**公開金鑰**。可以公開，第 4 步要用。
 
 檔名用 `-2026`，是為了不要蓋掉舊金鑰 `video-subtitle-translator.key`。
 
@@ -43,7 +43,7 @@ App 會用「更新簽章」確認下載到的更新檔真的是你發布的。�
 
 建議這樣放：
 
-- **第一份：** 把 `video-subtitle-translator-2026.key` 複製到一支 USB 隨身碟或外接硬碟。放在家裡固定的地方，平常不插在電腦上。
+- **第一份：** 把 `video-subtitle-translator-v2.key` 複製到一支 USB 隨身碟或外接硬碟。放在家裡固定的地方，平常不插在電腦上。
 - **第二份：** 把同一個檔案當成附件，存進你的密碼管理工具（和密碼放在不同的項目）。或者放在第二支隨身碟，收在另一個地點。
 - **密碼：** 存在密碼管理工具。也可以手寫一份，和第一份隨身碟分開收好。
 
@@ -73,7 +73,7 @@ App 會用「更新簽章」確認下載到的更新檔真的是你發布的。�
    - 名稱 `TAURI_SIGNING_PRIVATE_KEY`。內容是私密金鑰檔案的全部文字。複製的方法：在 PowerShell 輸入
 
      ```powershell
-     (Get-Content "$HOME\.tauri\video-subtitle-translator-2026.key" -Raw).Trim() | Set-Clipboard
+     (Get-Content "$HOME\.tauri\video-subtitle-translator-v2.key" -Raw).Trim() | Set-Clipboard
      ```
 
      然後在網頁的「Value」框裡按 Ctrl+V 貼上，按「Add secret」。
@@ -93,7 +93,7 @@ App 會用「更新簽章」確認下載到的更新檔真的是你發布的。�
 1. 在 PowerShell 輸入：
 
    ```powershell
-   Get-Content "$HOME\.tauri\video-subtitle-translator-2026.key.pub"
+   Get-Content "$HOME\.tauri\video-subtitle-translator-v2.key.pub"
    ```
 
 2. 畫面會出現一長串英數字。把這一串完整複製，傳給我們。這是公開金鑰，給別人看沒有關係。

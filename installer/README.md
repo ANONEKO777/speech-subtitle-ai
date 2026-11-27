@@ -20,7 +20,7 @@ To move to a newer build:
 
 ## Updater signing key
 
-The installer is signed for the Tauri updater with a password-protected key kept outside the repository: minisign key id `501D2BFE8D7BD4B3`, by default at `~/.tauri/video-subtitle-translator-2026.key`. Its public half (`.key.pub`) is the `pubkey` in `app/src-tauri/tauri.conf.json`. Pass another path with `-Key`, and the password in `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The release workflow reads both from the `release` environment, as the secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The operator made the key and set up that environment on 2026-11-28 (`docs/RELEASE-KEY.zh-TW.md`). Never commit the key.
+The installer is signed for the Tauri updater with a password-protected key kept outside the repository: minisign key id `501D2BFE8D7BD4B3`, by default at `~/.tauri/video-subtitle-translator-v2.key`. Its public half (`.key.pub`) is the `pubkey` in `app/src-tauri/tauri.conf.json`. Pass another path with `-Key`, and the password in `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The release workflow reads both from the `release` environment, as the secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The operator made the key and set up that environment on 2026-11-28 (`docs/RELEASE-KEY.zh-TW.md`). Never commit the key.
 
 The key used before, id `6B4A3984C4140F4D` at `~/.tauri/video-subtitle-translator.key` without a password, signed the 0.1.0 builds. Those installs trust only it, so they cannot update to a build signed with the new key and need one manual install of a newer build. The old key stays until no installed copy needs it.
 
