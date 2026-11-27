@@ -4,8 +4,8 @@ import type { licenses as en } from "../en/licenses";
 export const licenses = {
   "lic.title": "サードパーティのライセンス",
   "lic.hint": "アプリが別途ダウンロードする各モデルと実行ファイルのライセンスと入手元です。リンクはブラウザーで開きます。",
-  "lic.program.pre": "このプログラムは ",
-  "lic.program.post": " の下でライセンスされています。ソースコード：",
+  "lic.program.pre": "このプログラムのライセンスは ",
+  "lic.program.post": " です。ソースコード：",
   "lic.ffmpeg.a": "インストーラーには FFmpeg 8.1（",
   "lic.ffmpeg.b": " ビルド、GPL および nonfree コンポーネントは含まない）が同梱されています。独立した ffmpeg.exe と DLL としてインストールフォルダーの ffmpeg サブフォルダーに置かれ、ご自身で置き換えられます。FFmpeg のソースコード：",
   "lic.ffmpeg.c": "、ビルドスクリプト：",

@@ -12,7 +12,7 @@ export const settings = {
   "language.saved": "反映しました。",
   "language.failed": "言語の設定を保存できませんでした：{reason}",
   "settings.title": "設定",
-  "settings.nav.models": "モデルと実行環境",
+  "settings.nav.models": "モデルと実行ファイル",
   "bar.original": "原文",
   "bar.both": "二言語",
   "bar.language": "字幕の言語",
