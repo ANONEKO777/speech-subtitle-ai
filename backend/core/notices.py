@@ -708,6 +708,66 @@ BATCH_REMOVE_FINISHED_ONLY = _template(
     "batch.removeFinishedOnly", "only a finished item can be removed; cancel it first"
 )
 
+
+# Managing models and runtimes (`manager/maintain.py`, `manager/inventory.py`, `api/deps.py`,
+# `api/models.py`, `api/runtimes.py`, `api/inventory.py`): a delete or repair that is refused, what
+# still needs an item, and what a repair found.
+def _busy(code: str, action: str) -> Template:
+    return _template(f"manage.busy.{code}", "a job is running; wait for it before you " + action)
+
+
+BUSY_REPAIR = _busy("repair", "repair an asset")
+BUSY_REDOWNLOAD = _busy("redownload", "download an asset again")
+BUSY_UPDATE = _busy("update", "update an asset")
+BUSY_MOVE = _busy("move", "move the models")
+BUSY_DELETE_MODEL = _busy("deleteModel", "delete a model")
+BUSY_DELETE_RUNTIME = _busy("deleteRuntime", "delete a runtime")
+BUSY_SELFTEST = _busy("selftest", "run the self-test")
+BEING_DOWNLOADED = _template(
+    "manage.beingDownloaded",
+    "{asset} is being downloaded; cancel the download first",
+    asset="text",
+)
+BEING_INSTALLED = _template(
+    "manage.beingInstalled", "{asset} is being installed; cancel the install first", asset="text"
+)
+STILL_NEEDED = _template(
+    "manage.stillNeeded", "{asset} is still needed: {blockers}", asset="text", blockers="clauses"
+)
+ACTIVE_PROFILE_NEEDS = _template("manage.activeProfileNeeds", "the active profile needs it")
+DEPENDENT_NEEDS = _template(
+    "manage.dependentNeeds", "{asset} is installed and needs it", asset="text"
+)
+FORCE_NEEDS_REASON = _template(
+    "manage.forceNeedsReason",
+    "forcing the delete of {asset} needs a reason of at least {characters} characters",
+    asset="text",
+    characters="text",
+)
+CANNOT_DELETE = _template(
+    "manage.cannotDelete", "cannot delete {asset}: {error}", asset="text", error="text"
+)
+NOT_INSTALLED = _template("manage.notInstalled", "{asset} is not installed", asset="text")
+ADD_ON = _template(
+    "manage.addOn",
+    "{asset} is an add-on and installs with the runtime that needs it",
+    asset="text",
+)
+REPAIR_FILE_MISSING = _template("manage.repair.fileMissing", "the file is missing")
+REPAIR_SHA_MATCHES = _template("manage.repair.shaMatches", "the SHA256 matches the registry")
+REPAIR_SHA_DIFFERS = _template(
+    "manage.repair.shaDiffers",
+    "the SHA256 is {actual}..., the registry has {expected}...",
+    actual="text",
+    expected="text",
+)
+REPAIR_RUNTIME_CHECKED = _template(
+    "manage.repair.runtimeChecked",
+    "installed; the archive SHA256 was checked when it was downloaded. "
+    "Use redownload to fetch it again.",
+)
+REPAIR_INCOMPLETE = _template("manage.repair.incomplete", "the install is incomplete")
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 
