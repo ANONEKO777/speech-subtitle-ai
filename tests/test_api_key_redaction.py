@@ -3,6 +3,7 @@ here is invented."""
 
 from __future__ import annotations
 
+import contextlib
 import html
 import io
 import json
@@ -16,6 +17,7 @@ from manage_support import Rig
 
 from backend.core.notices import notices_of, to_json
 from backend.llm import client
+from backend.llm.ask import ask, json_chat, parse_json_reply
 from backend.llm.client import LlmConfig, LlmError
 from backend.manager import llm_check
 from backend.manager.settings import LlmSource
@@ -89,6 +91,73 @@ def test_a_body_cut_inside_the_key_shows_no_piece_of_it(monkeypatch: pytest.Monk
         answer = urllib.error.HTTPError(config.chat_url, 400, "Bad", Message(), io.BytesIO(body))
 
         _no_piece_of(KEY, _chat_failure(monkeypatch, config, answer))
+
+
+def _long_key(length: int) -> str:
+    return "".join("Ab+9/Cd=8_eF-7"[i % 14] for i in range(length))[:length]
+
+
+@pytest.mark.parametrize("length", [1, 7, 8, 9, 500, 2000, 10000])
+def test_a_key_of_any_length_echoed_into_a_cut_body_shows_none_of_it(
+    monkeypatch: pytest.MonkeyPatch, length: int
+) -> None:
+    key = "sk" + _long_key(length - 2) if length > 2 else _long_key(length)
+    config = LlmConfig("https://api.example.test/v1", "m", key)
+    body = f"bad key {key} or {urllib.parse.quote(key, safe='')}; " * 3
+    answer = urllib.error.HTTPError(
+        config.chat_url, 401, "No", Message(), io.BytesIO(body.encode()[:4096])
+    )
+
+    shown = _chat_failure(monkeypatch, config, answer)
+
+    assert "***" in shown, shown[:300]
+    if length >= 8:
+        _no_piece_of(key, shown)
+
+
+@pytest.mark.parametrize(("kept", "shown"), [(7, True), (8, False), (9, False)])
+def test_a_cut_hides_a_key_prefix_from_eight_characters_on(kept: int, shown: bool) -> None:
+    key = "sk-INVENTED-0123456789"
+    text = "bad key " + key[:kept]
+
+    assert (key[:kept] in client.redact(key, text, cut=True)) is shown
+    assert key[:kept] in client.redact(key, text)
+
+
+@pytest.mark.parametrize("status", [429, 503])
+def test_a_long_key_still_lets_a_busy_server_be_asked_again(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    key = "sk" + _long_key(1998)
+    config = LlmConfig("https://api.example.test/v1", "m", key)
+    reply = json.dumps({"choices": [{"message": {"content": '{"ok": 1}'}}]}).encode()
+    answers: list[Exception | bytes] = [
+        urllib.error.HTTPError(
+            config.chat_url, status, "Busy", Message(), io.BytesIO(f"busy {key}".encode())
+        ),
+        reply,
+    ]
+
+    def open_next(*_args: object, **_kwargs: object) -> object:
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return contextlib.nullcontext(SimpleNamespace(read=lambda: answer))
+
+    def opener(_config: LlmConfig) -> object:
+        return SimpleNamespace(open=open_next)
+
+    monkeypatch.setattr(client, "_opener", opener)
+    value, attempt = ask(
+        json_chat(config),
+        [{"role": "user", "content": "hi"}],
+        parse_json_reply,
+        reprompt=str,
+        label="test",
+        sleep=lambda _s: None,
+    )
+
+    assert (value, attempt) == ({"ok": 1}, 2)
 
 
 def test_a_key_in_the_base_url_is_taken_out_of_every_url_a_failure_names(

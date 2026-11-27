@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import re
 import urllib.error
@@ -21,7 +22,7 @@ _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _ERROR_BODY_BYTES = 4096
 _ERROR_DETAIL_CHARS = 500
 _KEY_PREFIX_CHARS = 8
-"""A key cut this short or shorter at the end of a cut body is not redacted."""
+"""A key cut to fewer characters than this at the end of a cut body is not redacted."""
 _RETRYABLE_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 
 
@@ -144,13 +145,13 @@ def _reply_text(raw: bytes, config: LlmConfig) -> str:
     return content
 
 
-def _spellings(char: str) -> str:
+def _forms(char: str) -> list[str]:
     """Each way a server can echo one character of a key: as it is, percent-encoded, JSON-escaped
     or as an HTML entity. Hex digits match in either case, as servers write both, and a JSON
     escape may come with its backslash doubled, as `repr` of the text writes it."""
     code = ord(char)
     escaped = [r"\\+/"] if char == "/" else []
-    forms = [
+    return [
         re.escape(char),
         *escaped,
         f"%{code:02x}",
@@ -158,27 +159,54 @@ def _spellings(char: str) -> str:
         f"&#{code};",
         f"&#x0*{code:x};",
     ]
-    return "(?:" + "|".join(forms) + ")"
 
 
-def _key_pattern(key: str, *, cut: bool) -> re.Pattern[str]:
-    """The key in any mix of the spellings a server echoes. With `cut`, also any prefix of at
-    least `_KEY_PREFIX_CHARS` characters that ends the text, where a body was cut off."""
-    chars = [_spellings(char) for char in key]
-    whole = "".join(chars)
-    if not cut or len(key) <= _KEY_PREFIX_CHARS:
-        return re.compile(whole, re.IGNORECASE)
-    rest = ""
-    for char in reversed(chars[_KEY_PREFIX_CHARS:]):
-        rest = f"(?:{char}{rest})?"
-    prefix = "".join(chars[:_KEY_PREFIX_CHARS]) + rest + r"\Z"
-    return re.compile(f"{whole}|{prefix}", re.IGNORECASE)
+@functools.cache
+def _spellings(char: str) -> tuple[re.Pattern[str], ...]:
+    return tuple(re.compile(form, re.IGNORECASE) for form in _forms(char))
+
+
+def _echo_end(key: str, text: str, start: int, cut: bool) -> int | None:
+    """Where an echo of `key` that begins at `start` ends, or None if none begins there. With
+    `cut`, an echo of at least `_KEY_PREFIX_CHARS` characters that runs to the end of `text`
+    counts too. The walk keeps every place the text has reached, because a key's `%`, `\\` or
+    `&` can be read as itself or as the start of an escape."""
+    reached = {start}
+    for done, char in enumerate(key):
+        if cut and done >= _KEY_PREFIX_CHARS and len(text) in reached:
+            return len(text)
+        reached = {
+            found.end()
+            for end in reached
+            for spelling in _spellings(char)
+            if (found := spelling.match(text, end))
+        }
+        if not reached:
+            return None
+    return max(reached)
 
 
 def redact(key: str, text: str, *, cut: bool = False) -> str:
     """`text` with every echo of `key` replaced by `***`. `cut` says the text was cut off, so a
-    piece of the key at its end goes too."""
-    return _key_pattern(key, cut=cut).sub("***", text) if key else text
+    piece of the key at its end goes too.
+
+    No regex spells out the whole key: one that long takes seconds to compile, and nesting it
+    overflows the parser's stack. A small one finds where the key's first characters appear, and
+    a walk follows the key from each."""
+    if not key:
+        return text
+    head = "".join("(?:" + "|".join(_forms(char)) + ")" for char in key[:_KEY_PREFIX_CHARS])
+    pieces: list[str] = []
+    done = 0
+    for found in re.finditer(f"(?={head})", text, re.IGNORECASE):
+        start = found.start()
+        if start < done:
+            continue
+        end = _echo_end(key, text, start, cut)
+        if end is not None:
+            pieces += [text[done:start], "***"]
+            done = end
+    return "".join([*pieces, text[done:]])
 
 
 def _redact(config: LlmConfig, text: str) -> str:
