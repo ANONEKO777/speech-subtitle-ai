@@ -34,18 +34,22 @@ from typing import Any, cast
 import pytest
 from notice_scenarios import _slashes
 
+from backend import main as app_main
 from backend.core import audio, pipeline, queue_runner, summarize, translate, vc_runtime
 from backend.core.model import Cue
 from backend.core.notices import notices_of
 from backend.core.subtitle_io import render_subs
-from backend.engines import base, crispasr, whispercpp
+from backend.engines import base, crispasr, table, whispercpp
+from backend.engines.table import engine_paths
 from backend.llm import client, local_server
 from backend.llm.ask import RepliesRejected
-from backend.manager import download, platforms, profiles, selftest, updates
+from backend.manager import download, platforms, profiles, resolve, selftest, updates
 from backend.manager import registry as registry_module
 from backend.manager.hardware import Hardware
 from backend.manager.profiles import ProfileId
+from backend.manager.secrets import SecretError
 from backend.manager.selftest_store import SelfTestStore
+from backend.manager.settings import LlmSource
 from backend.manager.storage import Storage
 
 Entry = dict[str, Any]
@@ -666,6 +670,102 @@ def _processing(found: dict[str, Entry], tmp: Path) -> None:
     _pipeline_failures(found, folder)
 
 
+# Group 6: refusals before a run.
+
+
+def _missing_files(found: dict[str, Entry]) -> None:
+    registry = registry_module.load(platform=platforms.WIN_X64)
+    storage = Storage(Path("data"))
+    whisper = engine_paths(whispercpp.ENGINE_ID, storage, registry=registry)
+    crisp = engine_paths(crispasr.ENGINE_ID, storage, registry=registry)
+
+    def refused(name: str, call: Callable[[], object]) -> None:
+        found[f"refuse.{name}"] = _raised(call)
+
+    def asr(source: str = "en", cpu: bool = False) -> object:
+        asked = resolve.Request(source_lang=source, cpu=cpu)
+        return resolve._asr(asked, storage, registry)
+
+    def put(path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x")
+
+    refused("asrProgram", asr)
+    refused("mixedNoCpu", lambda: asr("ja+en", cpu=True))
+    refused("mixedNotInstalled", lambda: asr("ja+en"))
+    put(whisper.binary)
+    refused("asrModel", asr)
+    put(crisp.binary)
+    put(crisp.model)
+    refused("aligner", lambda: asr("ja+en"))
+
+    def vad(path: Path | None = None) -> object:
+        return resolve._vad_model(resolve.Request(vad_model=path), storage, registry)
+
+    refused("vad", lambda: vad(Path("silero.onnx")))
+    refused("vadDefault", vad)
+
+    def llm(**asked: Any) -> object:
+        return resolve._local_llm(resolve.Request(**asked), storage, registry)
+
+    refused("llamaServer", llm)
+    server = Path("llama-server")
+    put(server)
+    refused("llmFile", lambda: llm(llama_server=server, llm="missing.gguf"))
+    refused("llmModel", lambda: llm(llama_server=server))
+
+
+def _saved_key(found: dict[str, Entry], tmp: Path) -> None:
+    def unreadable(_name: str) -> str:
+        raise SecretError("Windows DPAPI failed (error 13)")
+
+    cloud: Any = SimpleNamespace(llm=SimpleNamespace(source=LlmSource.CLOUD))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(app_main, "load_settings", lambda _folder: cloud)
+        mp.setattr(
+            app_main, "default_secret_store", lambda _folder: SimpleNamespace(get=unreadable)
+        )
+        found["refuse.savedKey"] = _raised(lambda: app_main._configured_llm(tmp))
+
+
+def _video_gone(found: dict[str, Entry], tmp: Path) -> None:
+    from test_api import GUARD, Rig, make_project, open_client
+
+    video = tmp / "gone.mp4"
+    video.write_bytes(b"x")
+    config = app_main.AppConfig(tmp / "app-data", GUARD, Rig().resolve)
+    with open_client(app_main.create_app(config)) as c:
+        project = make_project(c, video)
+        video.unlink()
+        reply = c.post(f"/api/projects/{project}/jobs", json={}).json()
+    said = _entry(reply["detail"], reply.get("notices"))
+    found["refuse.videoGone"] = _replaced(said, str(video), "/vst/gone.mp4")
+
+
+def _replaced(value: Any, old: str, new: str) -> Any:
+    if isinstance(value, str):
+        return value.replace(old, new)
+    if isinstance(value, dict):
+        entries = cast("dict[str, object]", value)
+        return {key: _replaced(item, old, new) for key, item in entries.items()}
+    if isinstance(value, list):
+        return [_replaced(item, old, new) for item in cast("list[object]", value)]
+    return value
+
+
+def _refusals(found: dict[str, Entry], tmp: Path) -> None:
+    folder = tmp / "refuse"
+    folder.mkdir()
+    windows = profiles.runtime_set(platforms.WIN_X64)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.chdir(folder)
+        mp.setattr(table, "runtime_set", lambda: windows)
+        mp.setattr(resolve, "runtime_set", lambda: windows)
+        _missing_files(found)
+    _saved_key(found, folder)
+    _video_gone(found, folder)
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _profiles(found)
@@ -673,6 +773,7 @@ def collect(tmp: Path) -> dict[str, Entry]:
     _updates(found)
     _downloads(found, tmp)
     _processing(found, tmp)
+    _refusals(found, tmp)
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

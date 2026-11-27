@@ -2651,5 +2651,183 @@
       }
     ],
     "zh": "asr: 語音辨識在這段聲音裡沒有聽到任何說話內容"
+  },
+  "refuse.asrProgram": {
+    "before": "whispercpp-large-v3-turbo program not found: data/runtimes/whispercpp-b5454-win-cuda12.4/Release/whisper-cli.exe",
+    "text": "whispercpp-large-v3-turbo program not found: data/runtimes/whispercpp-b5454-win-cuda12.4/Release/whisper-cli.exe",
+    "notices": [
+      {
+        "code": "resolve.programMissing",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "path": "data/runtimes/whispercpp-b5454-win-cuda12.4/Release/whisper-cli.exe"
+        },
+        "message": "whispercpp-large-v3-turbo program not found: data/runtimes/whispercpp-b5454-win-cuda12.4/Release/whisper-cli.exe"
+      }
+    ],
+    "zh": "找不到 whispercpp-large-v3-turbo 的程式：data/runtimes/whispercpp-b5454-win-cuda12.4/Release/whisper-cli.exe"
+  },
+  "refuse.mixedNoCpu": {
+    "before": "Japanese and English talks need the Qwen3-ASR engine, which has no CPU build. Turn off CPU mode, or choose one language",
+    "text": "Japanese and English talks need the Qwen3-ASR engine, which has no CPU build. Turn off CPU mode, or choose one language",
+    "notices": [
+      {
+        "code": "resolve.mixedNoCpu",
+        "params": {},
+        "message": "Japanese and English talks need the Qwen3-ASR engine, which has no CPU build. Turn off CPU mode, or choose one language"
+      }
+    ],
+    "zh": "日文與英文混合的影片需要 Qwen3-ASR 引擎，但它沒有 CPU 版。請關閉 CPU 模式，或改選單一語言"
+  },
+  "refuse.mixedNotInstalled": {
+    "before": "Japanese and English talks need the Qwen3-ASR engine, which is installed only with the 24 GB profile: crispasr-qwen3-asr-1.7b program not found: data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe",
+    "text": "Japanese and English talks need the Qwen3-ASR engine, which is installed only with the 24 GB profile: crispasr-qwen3-asr-1.7b program not found: data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe",
+    "notices": [
+      {
+        "code": "resolve.mixedNotInstalled",
+        "params": {
+          "detail": "crispasr-qwen3-asr-1.7b program not found: data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe"
+        },
+        "message": "Japanese and English talks need the Qwen3-ASR engine, which is installed only with the 24 GB profile: crispasr-qwen3-asr-1.7b program not found: data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe"
+      },
+      {
+        "code": "resolve.programMissing",
+        "params": {
+          "engine": "crispasr-qwen3-asr-1.7b",
+          "path": "data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe"
+        },
+        "message": "crispasr-qwen3-asr-1.7b program not found: data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe"
+      }
+    ],
+    "zh": "日文與英文混合的影片需要 Qwen3-ASR 引擎，只有 24 GB 設定檔會安裝它：找不到 crispasr-qwen3-asr-1.7b 的程式：data/runtimes/crispasr-v0.8.49-win-cuda/crispasr-windows-x86_64-cuda/crispasr.exe"
+  },
+  "refuse.asrModel": {
+    "before": "whispercpp-large-v3-turbo model not found: data/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin",
+    "text": "whispercpp-large-v3-turbo model not found: data/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin",
+    "notices": [
+      {
+        "code": "resolve.modelMissing",
+        "params": {
+          "engine": "whispercpp-large-v3-turbo",
+          "path": "data/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin"
+        },
+        "message": "whispercpp-large-v3-turbo model not found: data/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin"
+      }
+    ],
+    "zh": "找不到 whispercpp-large-v3-turbo 的模型：data/models/whisper-large-v3-turbo/ggml-large-v3-turbo.bin"
+  },
+  "refuse.aligner": {
+    "before": "crispasr-qwen3-asr-1.7b aligner model not found: data/models/qwen3-forced-aligner-0.6b-q8_0/qwen3-forced-aligner-0.6b-q8_0.gguf",
+    "text": "crispasr-qwen3-asr-1.7b aligner model not found: data/models/qwen3-forced-aligner-0.6b-q8_0/qwen3-forced-aligner-0.6b-q8_0.gguf",
+    "notices": [
+      {
+        "code": "resolve.alignerMissing",
+        "params": {
+          "engine": "crispasr-qwen3-asr-1.7b",
+          "path": "data/models/qwen3-forced-aligner-0.6b-q8_0/qwen3-forced-aligner-0.6b-q8_0.gguf"
+        },
+        "message": "crispasr-qwen3-asr-1.7b aligner model not found: data/models/qwen3-forced-aligner-0.6b-q8_0/qwen3-forced-aligner-0.6b-q8_0.gguf"
+      }
+    ],
+    "zh": "找不到 crispasr-qwen3-asr-1.7b 的對齊模型：data/models/qwen3-forced-aligner-0.6b-q8_0/qwen3-forced-aligner-0.6b-q8_0.gguf"
+  },
+  "refuse.vad": {
+    "before": "VAD model not found: silero.onnx",
+    "text": "VAD model not found: silero.onnx",
+    "notices": [
+      {
+        "code": "resolve.vadMissing",
+        "params": {
+          "path": "silero.onnx"
+        },
+        "message": "VAD model not found: silero.onnx"
+      }
+    ],
+    "zh": "找不到 VAD 模型：silero.onnx"
+  },
+  "refuse.vadDefault": {
+    "before": "VAD model (see --vad-model) not found: data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx",
+    "text": "VAD model (see --vad-model) not found: data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx",
+    "notices": [
+      {
+        "code": "resolve.vadMissingHint",
+        "params": {
+          "path": "data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
+        },
+        "message": "VAD model (see --vad-model) not found: data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
+      }
+    ],
+    "zh": "找不到 VAD 模型（參數 --vad-model）：data/models/silero-vad-onnx-v6.2.3/silero_vad.onnx"
+  },
+  "refuse.llamaServer": {
+    "before": "llama-server program (see --llama-server) not found: data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe",
+    "text": "llama-server program (see --llama-server) not found: data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe",
+    "notices": [
+      {
+        "code": "resolve.serverMissing",
+        "params": {
+          "path": "data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
+        },
+        "message": "llama-server program (see --llama-server) not found: data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
+      }
+    ],
+    "zh": "找不到 llama-server 程式（參數 --llama-server）：data/runtimes/llama.cpp-b12068-win-cuda12.4/llama-server.exe"
+  },
+  "refuse.llmFile": {
+    "before": "LLM model file not found: missing.gguf",
+    "text": "LLM model file not found: missing.gguf",
+    "notices": [
+      {
+        "code": "resolve.llmFileMissing",
+        "params": {
+          "path": "missing.gguf"
+        },
+        "message": "LLM model file not found: missing.gguf"
+      }
+    ],
+    "zh": "找不到 LLM 模型檔：missing.gguf"
+  },
+  "refuse.llmModel": {
+    "before": "LLM model qwen3-8b-q4_k_m not found: data/models/qwen3-8b-q4_k_m/Qwen3-8B-Q4_K_M.gguf",
+    "text": "LLM model qwen3-8b-q4_k_m not found: data/models/qwen3-8b-q4_k_m/Qwen3-8B-Q4_K_M.gguf",
+    "notices": [
+      {
+        "code": "resolve.llmModelMissing",
+        "params": {
+          "model": "qwen3-8b-q4_k_m",
+          "path": "data/models/qwen3-8b-q4_k_m/Qwen3-8B-Q4_K_M.gguf"
+        },
+        "message": "LLM model qwen3-8b-q4_k_m not found: data/models/qwen3-8b-q4_k_m/Qwen3-8B-Q4_K_M.gguf"
+      }
+    ],
+    "zh": "找不到 LLM 模型 qwen3-8b-q4_k_m：data/models/qwen3-8b-q4_k_m/Qwen3-8B-Q4_K_M.gguf"
+  },
+  "refuse.savedKey": {
+    "before": "cannot read the saved API key: Windows DPAPI failed (error 13)",
+    "text": "cannot read the saved API key: Windows DPAPI failed (error 13)",
+    "notices": [
+      {
+        "code": "resolve.keyUnreadable",
+        "params": {
+          "error": "Windows DPAPI failed (error 13)"
+        },
+        "message": "cannot read the saved API key: Windows DPAPI failed (error 13)"
+      }
+    ],
+    "zh": "無法讀取儲存的 API 金鑰：Windows DPAPI failed (error 13)"
+  },
+  "refuse.videoGone": {
+    "before": "the video is gone: /vst/gone.mp4",
+    "text": "the video is gone: /vst/gone.mp4",
+    "notices": [
+      {
+        "code": "video.gone",
+        "params": {
+          "video": "/vst/gone.mp4"
+        },
+        "message": "the video is gone: /vst/gone.mp4"
+      }
+    ],
+    "zh": "影片已經不在原本的位置：/vst/gone.mp4"
   }
 }

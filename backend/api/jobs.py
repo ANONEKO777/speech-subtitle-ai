@@ -22,6 +22,7 @@ from backend.core.jobs import (
 from backend.core.languages import DEFAULT_CODE
 from backend.core.languages import get as get_language
 from backend.core.model import DEFAULT_SOURCE
+from backend.core.notices import VIDEO_GONE, noticed
 from backend.core.projects import UnknownProject
 from backend.core.source_langs import get_source
 from backend.core.translate import BATCH_SIZE, GlossaryEntry
@@ -105,7 +106,8 @@ def create_job(pid: str, body: JobBody, request: Request) -> dict[str, Any]:
         raise HTTPException(404, f"unknown project {pid!r}") from exc
     video = Path(info.project.video_path)
     if not video.is_file():
-        raise HTTPException(422, f"the video is gone: {video}")
+        gone = VIDEO_GONE(video=str(video))
+        raise HTTPException(422, gone.message) from noticed(ValueError, gone)
     busy = jobs.active(pid)
     if busy is not None:
         raise HTTPException(409, f"job {busy.id} is already running on this project")

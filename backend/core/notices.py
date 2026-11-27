@@ -637,6 +637,44 @@ SUMMARY_NOT_WRITTEN = _template(
 SUMMARY_NO_TEXT = _template("summary.noText", "the transcript has no text to summarise")
 SUMMARY_NO_PART = _template("summary.noPart", "no part of the talk could be summarised")
 
+
+# Refusals before a run (`manager/resolve.py`, `main.py`): a program or model that is not there,
+# a choice this computer cannot run, a saved key that cannot be read.
+def _not_found(code: str, what: str) -> Template:
+    return _template(f"resolve.{code}", what + " not found: {path}", path="text")
+
+
+def _engine_file_not_found(code: str, what: str) -> Template:
+    return _template(
+        f"resolve.{code}", "{engine} " + what + " not found: {path}", engine="text", path="text"
+    )
+
+
+ASR_PROGRAM_NOT_FOUND = _engine_file_not_found("programMissing", "program")
+ASR_MODEL_NOT_FOUND = _engine_file_not_found("modelMissing", "model")
+ASR_ALIGNER_NOT_FOUND = _engine_file_not_found("alignerMissing", "aligner model")
+VAD_NOT_FOUND = _not_found("vadMissing", "VAD model")
+VAD_NOT_FOUND_HINT = _not_found("vadMissingHint", "VAD model (see --vad-model)")
+LLAMA_SERVER_NOT_FOUND = _not_found("serverMissing", "llama-server program (see --llama-server)")
+LLM_FILE_NOT_FOUND = _not_found("llmFileMissing", "LLM model file")
+LLM_MODEL_NOT_FOUND = _template(
+    "resolve.llmModelMissing", "LLM model {model} not found: {path}", model="text", path="text"
+)
+# Only the talk in Japanese and English names its own engine (`tests/test_notices_w4b.py`).
+_MIXED_NEEDS = "Japanese and English talks need the Qwen3-ASR engine, which "
+MIXED_HAS_NO_CPU_BUILD = _template(
+    "resolve.mixedNoCpu",
+    _MIXED_NEEDS + "has no CPU build. Turn off CPU mode, or choose one language",
+)
+MIXED_NOT_INSTALLED = _template(
+    "resolve.mixedNotInstalled",
+    _MIXED_NEEDS + "is installed only with the 24 GB profile: {detail}",
+    detail="text",
+)
+SAVED_KEY_UNREADABLE = _template(
+    "resolve.keyUnreadable", "cannot read the saved API key: {error}", error="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 

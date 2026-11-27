@@ -18,6 +18,7 @@ from notice_scenarios_w4b import collect
 from backend.api.deps import locked_path_response
 from backend.core import notices
 from backend.core.notices import noticed, notices_of, to_json
+from backend.core.source_langs import MIXED, SOURCES
 from backend.llm import client
 from backend.manager.updates import UpdateError
 
@@ -133,3 +134,11 @@ def test_the_api_key_reaches_no_part_of_a_chat_failure(monkeypatch: pytest.Monke
         sent = to_json(notices_of(caught.value))
 
         assert sent and key not in json.dumps(sent) + str(caught.value)
+
+
+def test_only_the_japanese_and_english_talk_names_its_own_speech_engine() -> None:
+    """The two refusals about that engine say "Japanese and English" in the sentence itself. A
+    second language with its own engine needs a language parameter instead."""
+    own = [(code, source.name) for code, source in SOURCES.items() if source.asr_engine]
+
+    assert own == [(MIXED, "Japanese and English")]

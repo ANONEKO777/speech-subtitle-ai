@@ -50,6 +50,8 @@ const DATA: readonly RegExp[] = [
   /the reply is not valid JSON/g,
   /the topic is empty/g,
   /subs file: invalid JSON/g,
+  // And what the store of the API key says, quoted as the detail of a saved key that cannot be read.
+  /Windows DPAPI failed/g,
   // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".
   /; LLM \(/g,
 ];
