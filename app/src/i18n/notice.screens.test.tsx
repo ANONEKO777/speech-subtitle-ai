@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { App } from "../App";
 import { pickVideo, pickVideos, watchBackend, type BackendStatus } from "../api/backend";
 import type { Backend } from "../api/client";
 import { BatchPanel } from "../batch/BatchPanel";
@@ -36,11 +37,16 @@ vi.mock("@tauri-apps/api/event", () => ({
     return Promise.resolve(() => undefined);
   },
 }));
+vi.mock("@tauri-apps/api/webview", () => ({
+  getCurrentWebview: () => ({ onDragDropEvent: () => Promise.resolve(() => undefined) }),
+}));
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   tauri.invoke.mockReset();
+  tauri.listeners.clear();
+  localStorage.clear();
 });
 
 const backend = { port: 1, token: "t" } as Backend;
@@ -161,6 +167,90 @@ describe("what the shell rejects a command with", () => {
     switchTo("en");
 
     expect(screen.getByTestId("update-failed").textContent).toBe(message);
+  });
+});
+
+/** A job's event stream, which the test feeds what the backend would send. */
+class JobStream {
+  static open: JobStream | null = null;
+  onerror: (() => void) | null = null;
+  private readonly handlers = new Map<string, (event: { data: string }) => void>();
+  constructor() {
+    JobStream.open = this;
+  }
+  addEventListener(name: string, handler: (event: { data: string }) => void) {
+    this.handlers.set(name, handler);
+  }
+  close() {}
+  send(name: string, data: unknown) {
+    act(() => this.handlers.get(name)!({ data: JSON.stringify(data) }));
+  }
+}
+
+/** The whole window with a ready backend, on which a person imports a video that is not translated yet. */
+async function importVideo(startJob: { status: number; body: unknown }) {
+  const project = { id: "p1", video_path: "C:/videos/talk.mp4", active_job: null, steps: {}, languages: {} };
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
+    const call = `${init?.method ?? "GET"} ${new URL(url).pathname}`;
+    const found =
+      call === "POST /api/projects" ? { status: 200, body: project } : call === "POST /api/projects/p1/jobs" ? startJob : { status: 404, body: {} };
+    return Promise.resolve(new Response(JSON.stringify(found.body), { status: found.status }));
+  });
+  vi.stubGlobal("EventSource", JobStream);
+  tauri.invoke.mockImplementation((command) => Promise.resolve(command === "backend_info" ? backend : null));
+  show(<App />);
+  fireEvent.change(screen.getByTestId("video-path"), { target: { value: project.video_path } });
+  await waitFor(() => expect(screen.getByTestId("import")).toHaveProperty("disabled", false));
+  fireEvent.click(screen.getByTestId("import"));
+}
+
+describe("the window's own failure screens", () => {
+  afterEach(() => {
+    JobStream.open = null;
+  });
+
+  const inBothLanguages = (testId: string, zhTW: string, english: string) => {
+    const shown = () => screen.getByTestId(testId).textContent;
+    expect(shown()).toBe(zhTW);
+
+    switchTo("en");
+
+    expect(shown()).toBe(english);
+    expect(shown()).not.toMatch(NOT_ENGLISH);
+  };
+
+  it("words the error of a job that fails while the video is processed", async () => {
+    const failed = scenario("vc");
+    await importVideo({ status: 202, body: { id: "j1" } });
+    await waitFor(() => expect(JobStream.open).not.toBeNull());
+
+    JobStream.open!.send("failed", { step: "asr", error: `asr: ${failed.text}`, error_notices: failed.notices });
+
+    await screen.findByTestId("error");
+    inBothLanguages("error", `處理失敗：asr: ${failed.before}`, `Processing failed: asr: ${failed.text}`);
+  });
+
+  it("words the refusal of an import that cannot start", async () => {
+    const refused = scenario("vc");
+
+    await importVideo({ status: 422, body: { detail: refused.text, notices: refused.notices } });
+
+    await screen.findByTestId("error");
+    inBothLanguages("error", refused.before, refused.text);
+  });
+
+  it("words why the backend failed to start, with the backend's own sentence inside the shell's", async () => {
+    const platform = scenario("platform.linux");
+    const exited = "shell.backend.exitedEarly";
+    const message = shell[exited].english.replace("{detail}", () => `error: ${platform.text}`);
+    const notices = [{ code: exited, params: { detail: `error: ${platform.text}` }, message }, ...platform.notices];
+    tauri.invoke.mockResolvedValue(null);
+    show(<App />);
+    await waitFor(() => expect(tauri.listeners.has("backend-failed")).toBe(true));
+
+    act(() => tauri.listeners.get("backend-failed")!({ payload: { message, notices } }));
+
+    inBothLanguages("backend-failed", shellBefore[exited].replace("{detail}", () => `error: ${platform.before}`), message);
   });
 });
 
