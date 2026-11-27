@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
   updatesMode: "ok" as "ok" | "fail",
   verifiedInventory: null as unknown,
   action: "ok" as "ok" | "pending" | "refuse",
-  repair: { action: "redownload", reason: "SHA256 mismatch", job: null } as unknown,
+  repair: { action: "redownload", reason: { text: "SHA256 mismatch", notices: [] }, job: null } as unknown,
   deleteMode: "ok" as "ok" | "refuse" | "refuse-force" | "refuse-plain" | "fail",
   settings: null as unknown,
   move: { state: "idle", target: null, filesTotal: 0, filesDone: 0, bytesTotal: 0, bytesDone: 0, error: null, warnings: [] } as unknown,
@@ -187,7 +187,7 @@ const richInventory = (): Inventory => ({
   runtimesDir: "C:/r",
   installedBytes: 4_800_000_000,
   assets: [
-    asset("whisper-large-v3-turbo", "model", { state: "installed", sizeBytes: 1_600_000_000, sizeOnDisk: 1_600_000_000, path: "C:/m/whisper-large-v3-turbo.bin", shaState: "verified", installedVersion: "1", usedByProfiles: ["gpu-24gb", "gpu-8gb"], inActiveProfile: true, dependents: [{ id: "whispercpp-b5454-win-cuda", installed: true }, { id: "whispercpp-b5454-win-cpu", installed: false }], blockers: ["The active profile needs it"] }),
+    asset("whisper-large-v3-turbo", "model", { state: "installed", sizeBytes: 1_600_000_000, sizeOnDisk: 1_600_000_000, path: "C:/m/whisper-large-v3-turbo.bin", shaState: "verified", installedVersion: "1", usedByProfiles: ["gpu-24gb", "gpu-8gb"], inActiveProfile: true, dependents: [{ id: "whispercpp-b5454-win-cuda", installed: true }, { id: "whispercpp-b5454-win-cpu", installed: false }], blockers: [plainText("The active profile needs it")] }),
     asset("qwen3-8b-q4_k_m", "model", { kind: "llm", state: "installed", sizeBytes: 5_000_000_000, sizeOnDisk: 5_000_000_000, path: "C:/m/qwen3-8b-q4_k_m.gguf", shaState: "corrupt", installedVersion: null }),
     asset("qwen3-asr-1.7b", "model", { state: "partial", sizeBytes: 2_000_000_000, sizeOnDisk: 700_000_000, path: "C:/m/qwen3-asr.part" }),
     asset("whispercpp-b5454-win-cuda", "runtime", { state: "installed", sizeBytes: 480_000_000, sizeOnDisk: 520_000_000, path: "C:/r/whispercpp-b5454-win-cuda", shaState: "verified", installedVersion: "0123456789abcdef0123", version: "0123456789abcdef9999", usedByProfiles: ["gpu-24gb"], inActiveProfile: true }),
@@ -375,9 +375,9 @@ const SCREENS: Record<string, Screen> = {
     click("act-qwen3-8b-q4_k_m-repair");
     await waitFor(() => expect(screen.getByTestId("inv-qwen3-8b-q4_k_m-note").textContent).toContain("redownload"));
     shot("repaired, with a reason", container);
-    mocks.repair = { action: "none", reason: "", job: null };
+    mocks.repair = { action: "none", reason: { text: "", notices: [] }, job: null };
     click("act-qwen3-8b-q4_k_m-repair");
-    await waitFor(() => expect(screen.getByTestId("inv-qwen3-8b-q4_k_m-note").textContent).toContain("none"));
+    await waitFor(() => expect(screen.getByTestId("inv-qwen3-8b-q4_k_m-note").textContent).toContain(locale === "en" ? "none" : "不需要"));
     shot("repaired, no reason", container);
     mocks.action = "refuse";
     click("act-qwen3-8b-q4_k_m-redownload");
@@ -522,7 +522,7 @@ beforeEach(() => {
   mocks.updatesMode = "ok";
   mocks.action = "ok";
   mocks.verifiedInventory = null;
-  mocks.repair = { action: "redownload", reason: "SHA256 mismatch", job: null };
+  mocks.repair = { action: "redownload", reason: { text: "SHA256 mismatch", notices: [] }, job: null };
   mocks.deleteMode = "ok";
   mocks.setDirMode = "ok";
   mocks.moveStartMode = "ok";

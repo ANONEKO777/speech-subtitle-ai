@@ -32,7 +32,7 @@ export interface Asset {
   readonly inActiveProfile: boolean;
   readonly dependents: readonly Dependent[];
   /** Why a plain delete is refused. */
-  readonly blockers: readonly string[];
+  readonly blockers: readonly Said[];
   readonly license: string;
   readonly licenseUrl: string;
   /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */

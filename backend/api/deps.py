@@ -8,7 +8,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.core.notices import Notice, noticed, notices_of, to_json
+from backend.core.notices import Notice, Template, noticed, notices_of, to_json
 from backend.manager.context import ManagerContext
 from backend.manager.download import JobStatus, is_locked, os_error_said
 from backend.manager.maintain import Refused
@@ -35,9 +35,10 @@ def pipeline_busy(request: Request) -> bool:
     return jobs is not None and jobs.busy()
 
 
-def refuse_while_busy(request: Request, action: str) -> None:
+def refuse_while_busy(request: Request, busy: Template) -> None:
+    """`busy` says what waits for the job, as `BUSY_REPAIR` does."""
     if pipeline_busy(request):
-        raise HTTPException(409, f"a job is running; wait for it before you {action}")
+        raise refused(409, busy())
 
 
 def refused(status: int, notice: Notice) -> HTTPException:
@@ -49,7 +50,12 @@ def refused(status: int, notice: Notice) -> HTTPException:
 
 
 def refusal(exc: Refused) -> HTTPException:
-    detail = {"message": str(exc), "blockers": list(exc.blockers), "can_force": exc.status == 409}
+    detail = {
+        "message": str(exc),
+        "blockers": list(exc.blockers),
+        "blockers_notices": to_json(exc.blockers_notices),
+        "can_force": exc.status == 409,
+    }
     return HTTPException(exc.status, detail)
 
 

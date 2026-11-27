@@ -5,7 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from backend.api.deps import Context, job_json, refusal, refuse_while_busy, unknown
+from backend.api.deps import Context, job_json, refusal, refuse_while_busy, refused, unknown
+from backend.core.notices import BEING_INSTALLED, BUSY_DELETE_RUNTIME, BUSY_SELFTEST
 from backend.manager.active import resolve_active
 from backend.manager.context import ManagerContext
 from backend.manager.download import InstallState, JobState
@@ -70,7 +71,7 @@ def last_selftest(ctx: Context) -> dict[str, Any] | None:
 def selftest(request: Request, ctx: Context) -> dict[str, Any]:
     """Run the active profile's ASR and LLM runtimes for a few seconds. When the GPU backend
     fails, the CPU backend is tried and the reason is saved for the pipeline and the page."""
-    refuse_while_busy(request, "run the self-test")
+    refuse_while_busy(request, BUSY_SELFTEST)
     active = resolve_active(ctx.settings.current, ctx.detect_hardware(), ctx.registry)
     report = run_selftest(
         active.selection.profile, ctx.registry, ctx.storage, ctx.selftest, ctx.probe
@@ -84,10 +85,10 @@ def remove_runtime(
 ) -> None:
     if runtime_id not in ctx.registry.runtimes:
         raise unknown("runtime", runtime_id)
-    refuse_while_busy(request, "delete a runtime")
+    refuse_while_busy(request, BUSY_DELETE_RUNTIME)
     active = ctx.runner.active_job(runtime_id)
     if active and active.state is not JobState.QUEUED:
-        raise HTTPException(409, f"{runtime_id} is being installed; cancel the install first")
+        raise refused(409, BEING_INSTALLED(asset=runtime_id))
     try:
         delete_asset(ctx, runtime_id, force, reason)
     except Refused as exc:

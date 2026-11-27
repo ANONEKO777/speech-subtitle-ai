@@ -23,7 +23,7 @@ import type {
   UpdateReport,
 } from "./types";
 import { PROFILE_IDS } from "./types";
-import { saidField } from "../i18n/said";
+import { saidField, saidList } from "../i18n/said";
 
 type Rec = Record<string, unknown>;
 
@@ -63,7 +63,7 @@ export function parseAsset(raw: unknown): Asset {
     usedByProfiles: strings(o["used_by_profiles"]),
     inActiveProfile: bool(o, "in_active_profile"),
     dependents: list(o["dependents"]).map((d) => ({ id: str(rec(d), "id"), installed: bool(rec(d), "installed") })),
-    blockers: strings(o["blockers"]),
+    blockers: saidList(o, "blockers"),
     license: str(o, "license"),
     licenseUrl: str(o, "license_url"),
     localBuild: bool(o, "local_build"),

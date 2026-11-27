@@ -13,7 +13,7 @@ import {
   parseUpdates,
 } from "./parse";
 import type { Asset, DownloadJob, Inventory, LlmSource, ProfileId } from "./types";
-import { type Said, said } from "../i18n/said";
+import { type Said, said, saidField, saidList } from "../i18n/said";
 
 const seg = encodeURIComponent;
 const post = (b: Backend, path: string, body?: unknown) =>
@@ -60,7 +60,7 @@ export async function updateAsset(b: Backend, id: string): Promise<DownloadJob> 
 
 export interface Repair {
   readonly action: string;
-  readonly reason: string;
+  readonly reason: Said;
   readonly job: DownloadJob | null;
 }
 
@@ -69,7 +69,7 @@ export async function repairAsset(b: Backend, id: string): Promise<Repair> {
   const job = asRecord(o?.["job"]);
   return {
     action: typeof o?.["action"] === "string" ? o["action"] : "",
-    reason: typeof o?.["reason"] === "string" ? o["reason"] : "",
+    reason: saidField(o ?? {}, "reason"),
     job: job ? parseJob(job) : null,
   };
 }
@@ -85,15 +85,14 @@ export async function deleteAsset(b: Backend, asset: Pick<Asset, "id" | "type">,
 /** Why a delete or another action was refused: the message, the blockers and whether force is offered. */
 export interface Refusal {
   readonly message: Said;
-  readonly blockers: readonly string[];
+  readonly blockers: readonly Said[];
   readonly canForce: boolean;
 }
 
 export function refusalOf(e: unknown): Refusal {
   if (!(e instanceof ApiError)) return { message: said(e), blockers: [], canForce: false };
   const d = asRecord(e.detail);
-  const blockers = Array.isArray(d?.["blockers"]) ? d["blockers"].filter((x): x is string => typeof x === "string") : [];
-  return { message: said(e), blockers, canForce: d?.["can_force"] === true };
+  return { message: said(e), blockers: d ? saidList(d, "blockers") : [], canForce: d?.["can_force"] === true };
 }
 
 export interface ProfileChange {

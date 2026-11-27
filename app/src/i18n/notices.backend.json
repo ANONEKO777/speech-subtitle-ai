@@ -424,6 +424,112 @@
       "reason": "text"
     }
   },
+  "manage.activeProfileNeeds": {
+    "english": "the active profile needs it",
+    "params": {}
+  },
+  "manage.addOn": {
+    "english": "{asset} is an add-on and installs with the runtime that needs it",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.beingDownloaded": {
+    "english": "{asset} is being downloaded; cancel the download first",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.beingInstalled": {
+    "english": "{asset} is being installed; cancel the install first",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.busy.deleteModel": {
+    "english": "a job is running; wait for it before you delete a model",
+    "params": {}
+  },
+  "manage.busy.deleteRuntime": {
+    "english": "a job is running; wait for it before you delete a runtime",
+    "params": {}
+  },
+  "manage.busy.move": {
+    "english": "a job is running; wait for it before you move the models",
+    "params": {}
+  },
+  "manage.busy.redownload": {
+    "english": "a job is running; wait for it before you download an asset again",
+    "params": {}
+  },
+  "manage.busy.repair": {
+    "english": "a job is running; wait for it before you repair an asset",
+    "params": {}
+  },
+  "manage.busy.selftest": {
+    "english": "a job is running; wait for it before you run the self-test",
+    "params": {}
+  },
+  "manage.busy.update": {
+    "english": "a job is running; wait for it before you update an asset",
+    "params": {}
+  },
+  "manage.cannotDelete": {
+    "english": "cannot delete {asset}: {error}",
+    "params": {
+      "asset": "text",
+      "error": "text"
+    }
+  },
+  "manage.dependentNeeds": {
+    "english": "{asset} is installed and needs it",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.forceNeedsReason": {
+    "english": "forcing the delete of {asset} needs a reason of at least {characters} characters",
+    "params": {
+      "asset": "text",
+      "characters": "text"
+    }
+  },
+  "manage.notInstalled": {
+    "english": "{asset} is not installed",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.repair.fileMissing": {
+    "english": "the file is missing",
+    "params": {}
+  },
+  "manage.repair.incomplete": {
+    "english": "the install is incomplete",
+    "params": {}
+  },
+  "manage.repair.runtimeChecked": {
+    "english": "installed; the archive SHA256 was checked when it was downloaded. Use redownload to fetch it again.",
+    "params": {}
+  },
+  "manage.repair.shaDiffers": {
+    "english": "the SHA256 is {actual}..., the registry has {expected}...",
+    "params": {
+      "actual": "text",
+      "expected": "text"
+    }
+  },
+  "manage.repair.shaMatches": {
+    "english": "the SHA256 matches the registry",
+    "params": {}
+  },
+  "manage.stillNeeded": {
+    "english": "{asset} is still needed: {blockers}",
+    "params": {
+      "asset": "text",
+      "blockers": "clauses"
+    }
+  },
   "pipeline.noSpeech": {
     "english": "the ASR engine found no speech in this audio",
     "params": {}

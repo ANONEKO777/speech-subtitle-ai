@@ -18,15 +18,21 @@ import os
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from download_support import serve
+from manage_support import Rig
 from notice_scenarios import _slashes
 from notice_scenarios_w4b import Entry, _entry, _replaced
 from test_api import open_client
 from test_queue import QueueRig, make_app
 
 from backend.core import queue_runner
+from backend.manager import maintain
+from backend.manager.download import JobState
+from backend.manager.profiles import WHISPER_RUNTIME, WHISPER_TURBO
 
 
 def _reply(response: Any) -> Entry:
@@ -86,9 +92,94 @@ def _batch_refusals(found: dict[str, Entry], tmp: Path) -> None:
         found["batch.cannotCancel"] = _reply(client.post(f"{command}/cancel"))
 
 
+# Group 8: managing models and runtimes.
+
+QWEN3_ASR = "qwen3-asr-1.7b-q8_0"
+SILERO_GGML = "silero-vad-ggml-v6.2.0"
+ADD_ON = "cudart-llama-b12068-win-cuda12.4"
+
+
+def _repaired(reply: Any) -> Entry:
+    body = cast("dict[str, Any]", reply.json())
+    return _entry(body["reason"], body.get("reason_notices"))
+
+
+def _blocker(reply: Any, index: int) -> Entry:
+    detail = cast("dict[str, Any]", reply.json()["detail"])
+    return _entry(detail["blockers"][index], detail.get("blockers_notices"))
+
+
+def _managing(found: dict[str, Entry], rig: Rig) -> None:
+    client = rig.client
+    rig.jobs.running = True
+    for code, call in {
+        "repair": lambda: client.post(f"/api/inventory/{WHISPER_TURBO}/repair"),
+        "redownload": lambda: client.post(f"/api/inventory/{WHISPER_TURBO}/redownload"),
+        "update": lambda: client.post(f"/api/inventory/{WHISPER_TURBO}/update"),
+        "move": lambda: client.post("/api/storage/move", json={"target": str(rig.tmp / "m")}),
+        "deleteModel": lambda: client.delete(f"/api/models/{WHISPER_TURBO}"),
+        "deleteRuntime": lambda: client.delete(f"/api/runtimes/{WHISPER_RUNTIME}"),
+        "selftest": lambda: client.post("/api/runtimes/selftest"),
+    }.items():
+        found[f"manage.busy.{code}"] = _reply(call())
+    rig.jobs.running = False
+
+    def downloading(_asset: str) -> object:
+        return SimpleNamespace(id="j", state=JobState.DOWNLOADING)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(rig.ctx.runner, "active_job", downloading)
+        found["manage.beingDownloaded"] = _reply(client.delete(f"/api/models/{WHISPER_TURBO}"))
+        installing = _reply(client.delete(f"/api/runtimes/{WHISPER_RUNTIME}"))
+        found["manage.beingInstalled"] = _replaced(installing, WHISPER_RUNTIME, "<runtime>")
+    found["manage.notInstalled"] = _reply(client.post(f"/api/inventory/{WHISPER_TURBO}/verify"))
+    found["manage.repair.fileMissing"] = _repaired(
+        client.post(f"/api/inventory/{WHISPER_TURBO}/repair")
+    )
+    rig.wait_jobs()
+    found["manage.repair.incomplete"] = _repaired(
+        client.post(f"/api/inventory/{WHISPER_RUNTIME}/repair")
+    )
+    rig.wait_jobs()
+    found["manage.repair.shaMatches"] = _repaired(
+        client.post(f"/api/inventory/{WHISPER_TURBO}/repair")
+    )
+    found["manage.repair.runtimeChecked"] = _repaired(
+        client.post(f"/api/inventory/{WHISPER_RUNTIME}/repair")
+    )
+    found["manage.addOn"] = _reply(client.post(f"/api/inventory/{ADD_ON}/repair"))
+    needed = client.delete(f"/api/models/{WHISPER_TURBO}")
+    found["manage.stillNeeded"] = _reply(needed)
+    found["manage.activeProfileNeeds"] = _blocker(needed, 0)
+    found["manage.forceNeedsReason"] = _reply(
+        client.delete(f"/api/models/{WHISPER_TURBO}?force=true&reason=no")
+    )
+    model = Path(rig.asset(WHISPER_TURBO)["path"])
+    model.write_bytes(bytes(model.stat().st_size))
+    found["manage.repair.shaDiffers"] = _repaired(
+        client.post(f"/api/inventory/{WHISPER_TURBO}/repair")
+    )
+    rig.wait_jobs()
+    rig.set_profile("cpu")
+    rig.install("models", QWEN3_ASR)
+    found["manage.dependentNeeds"] = _blocker(client.delete(f"/api/models/{SILERO_GGML}"), 0)
+
+    def locked(*_args: object) -> None:
+        raise PermissionError(13, "denied", "C:/m/a.bin")
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(maintain, "delete_model", locked)
+        found["manage.cannotDelete"] = _reply(client.delete(f"/api/models/{QWEN3_ASR}"))
+    rig.set_profile("gpu-24gb")
+    found["manage.stillNeeded.two"] = _reply(client.delete(f"/api/models/{SILERO_GGML}"))
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
+    with serve() as origin:
+        (tmp / "manage").mkdir()
+        _managing(found, Rig(tmp / "manage", origin))
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

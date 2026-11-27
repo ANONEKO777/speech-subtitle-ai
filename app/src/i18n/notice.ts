@@ -30,8 +30,13 @@ function shownParam(kind: ParamKind, value: string | readonly string[], locale: 
   if (typeof value !== "string") return null;
   if (kind === "language") return languageName(locale, { code: value });
   if (kind !== "word") return value;
+  return Object.hasOwn(CATALOGS[locale], `noticeWord.${value}`) ? backendWord(value, locale) : null;
+}
+
+/** One of the backend's fixed English words (a `word` parameter, a repair's action) in the language of the window, or as it came. */
+export function backendWord(value: string, locale: Locale): string {
   const key = `noticeWord.${value}`;
-  return Object.hasOwn(CATALOGS[locale], key) ? CATALOGS[locale][key as Key] : null;
+  return Object.hasOwn(CATALOGS[locale], key) ? CATALOGS[locale][key as Key] : value;
 }
 
 /** The catalog's sentence for `notice`, or its English `message` when the code or a parameter is unknown. */
