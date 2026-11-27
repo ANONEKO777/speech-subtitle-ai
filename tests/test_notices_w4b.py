@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 from manage_support import Rig
 from notice_scenarios_w4b import collect
+
+from backend.core import notices
+from backend.core.notices import noticed, to_json
+from backend.manager.updates import UpdateError
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "app/src/i18n/notices.w4b.fixture.json"
@@ -53,3 +58,21 @@ def test_the_profile_route_sends_the_notices_of_each_line_of_why(rig: Rig) -> No
 
     assert inside(recommended["why"], recommended["why_notices"])
     assert [message for message in sent if message in lines] == lines
+
+
+def test_the_update_check_sends_the_notices_of_its_summary_and_each_item(rig: Rig) -> None:
+    report = rig.client.post("/api/updates/check").json()
+
+    for entry in (report, *report["items"]):
+        assert inside(entry["message"], entry["message_notices"]), entry
+
+
+def test_a_registry_that_cannot_be_read_sends_the_notice_beside_the_refusal(rig: Rig) -> None:
+    url = "https://example.test/registry.json"
+    rig.client.put("/api/settings", json={"registry_url": url})
+    why = notices.REGISTRY_UNREACHABLE(url=url, reason="timed out")
+    rig.remote_error = noticed(partial(UpdateError, url), why)
+
+    reply = rig.client.post("/api/updates/check")
+
+    assert reply.status_code == 502 and reply.json()["notices"] == to_json([why])

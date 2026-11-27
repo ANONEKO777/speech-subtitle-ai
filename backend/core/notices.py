@@ -311,6 +311,68 @@ NO_CPU_FALLBACK = _template(
     download="list",
 )
 
+# The update check (`manager/updates.py`): the summary, each item's state, and why a remote
+# registry could not be read.
+UPDATES_AVAILABLE = _template("updates.available", "Updates available for {assets}.", assets="list")
+UPDATES_ALL_MATCH = _template(
+    "updates.allMatch", "Everything installed matches the remote registry at {url}.", url="text"
+)
+UPDATES_NO_REMOTE = _template(
+    "updates.noRemote",
+    "No remote registry is configured; compared with the registry shipped with this app.",
+)
+ITEM_NOT_INSTALLED = _template("updates.itemNotInstalled", "not installed")
+_COMPARE = "; verify or re-download it to compare with registry version {version}"
+ITEM_CHECK_FAILED = _template(
+    "updates.itemCheckFailed", "installed, but its last check failed" + _COMPARE, version="text"
+)
+ITEM_UNRECORDED = _template(
+    "updates.itemUnrecorded",
+    "installed, but its version was not recorded" + _COMPARE,
+    version="text",
+)
+ITEM_MATCHES_REMOTE = _template(
+    "updates.itemMatchesRemote",
+    "registry version {version} installed, remote registry {url} agrees",
+    version="text",
+    url="text",
+)
+ITEM_MATCHES_BUNDLE = _template(
+    "updates.itemNoRemote",
+    "registry version {version} installed, no remote configured",
+    version="text",
+)
+ITEM_NEEDS_APP = _template(
+    "updates.itemNeedsApp",
+    "installed {installed}, remote registry lists {remote}; this app ships {shipped}, so "
+    "update the app to get it",
+    installed="text",
+    remote="text",
+    shipped="text",
+)
+ITEM_OLDER = _template(
+    "updates.itemOlder",
+    "installed {installed}, the registry has {available}",
+    installed="text",
+    available="text",
+)
+_UNREADABLE = "could not read the registry at {url}: "
+REGISTRY_HTTP = _template(
+    "updates.readHttp", _UNREADABLE + "HTTP {status}", url="text", status="text"
+)
+REGISTRY_UNREACHABLE = _template(
+    "updates.readConnect", _UNREADABLE + "cannot connect ({reason})", url="text", reason="text"
+)
+REGISTRY_INVALID = _template(
+    "updates.readInvalid",
+    _UNREADABLE + "it is not a valid registry ({error})",
+    url="text",
+    error="text",
+)
+REGISTRY_UNREADABLE = _template(
+    "updates.readFailed", _UNREADABLE + "{error}", url="text", error="text"
+)
+
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)
 

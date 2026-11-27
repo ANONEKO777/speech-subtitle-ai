@@ -14,19 +14,24 @@ Paths are written with `/`, so the fixture is the same on every system.
 
 from __future__ import annotations
 
+import io
 import os
 import subprocess
 import sys
+import urllib.error
 from collections.abc import Callable
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from email.message import Message
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
 from notice_scenarios import _slashes
 
 from backend.core import vc_runtime
-from backend.manager import platforms, profiles, selftest
+from backend.core.notices import notices_of
+from backend.manager import platforms, profiles, selftest, updates
 from backend.manager import registry as registry_module
 from backend.manager.hardware import Hardware
 from backend.manager.profiles import ProfileId
@@ -172,10 +177,84 @@ def _selftests(found: dict[str, Entry], tmp: Path) -> None:
     _report("selftest.notInstalled", cpu, tmp, found, absent=("cpu",))
 
 
+# Group 3: the update check.
+
+REMOTE = "https://example.test/registry.json"
+
+
+def _said(carrier: object) -> Entry:
+    """A report or an item: its `message`, and the notices a newer commit sends beside it."""
+    return _entry(carrier.message, getattr(carrier, "message_notices", ()))  # pyright: ignore
+
+
+def _raised(call: Callable[[], object]) -> Entry:
+    """What `call` raises, with the notices it or its causes carry."""
+    try:
+        call()
+    except Exception as exc:
+        return _entry(str(exc), notices_of(exc))
+    raise AssertionError("nothing was raised")
+
+
+def _updates(found: dict[str, Entry]) -> None:
+    bundled = registry_module.load(platform=platforms.WIN_X64)
+    first, second = list(bundled.models.values())[:2]
+    newer = replace(
+        bundled, models={**bundled.models, first.id: replace(first, version="v9", sha256="f" * 64)}
+    )
+    installed: dict[str, object] = {}
+
+    def record(ok: bool = True, version: str = first.version, sha: str = first.sha256) -> object:
+        return SimpleNamespace(ok=ok, version=version, sha256=sha)
+
+    inv: Any = SimpleNamespace(
+        registry=bundled,
+        manifest=SimpleNamespace(get=lambda asset_id: installed.get(asset_id)),
+        is_installed=lambda asset_id: asset_id in installed,
+    )
+
+    def item(name: str, remote: registry_module.Registry | None = None) -> None:
+        url = REMOTE if remote else None
+        found[f"updates.item.{name}"] = _said(updates._item(inv, first.id, remote, url))
+
+    item("notInstalled")
+    found["updates.noRemote"] = _said(updates.check_updates(inv, None))
+    installed[first.id] = None
+    item("unrecorded")
+    installed[first.id] = record(ok=False)
+    item("checkFailed")
+    installed[first.id] = record()
+    item("matchesBundle")
+    item("matchesRemote", bundled)
+    item("needsApp", newer)
+    found["updates.allMatch"] = _said(updates.check_updates(inv, REMOTE, lambda _url: bundled))
+    installed[first.id] = record(version="v0", sha="0" * 64)
+    installed[second.id] = record(version="v0", sha="0" * 64)
+    item("older")
+    found["updates.available"] = _said(updates.check_updates(inv, None))
+
+    def reading(name: str, answer: Callable[..., object]) -> None:
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(updates.urllib.request, "urlopen", answer)
+            found[f"updates.read.{name}"] = _raised(lambda: updates.fetch_registry(REMOTE))
+
+    def fails(error: Exception) -> Callable[..., object]:
+        def open_it(*_args: object, **_kwargs: object) -> object:
+            raise error
+
+        return open_it
+
+    reading("http", fails(urllib.error.HTTPError(REMOTE, 404, "Not Found", Message(), None)))
+    reading("connect", fails(urllib.error.URLError("refused")))
+    reading("invalid", lambda *_a, **_k: io.BytesIO(b"<html>"))
+    reading("failed", fails(TimeoutError("timed out")))
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _profiles(found)
     _selftests(found, tmp)
+    _updates(found)
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

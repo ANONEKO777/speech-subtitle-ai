@@ -13,8 +13,11 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import partial
 from typing import cast
 
+from backend.core import notices
+from backend.core.notices import Notice, noticed
 from backend.manager.inventory import Inventory, asset
 from backend.manager.registry import Registry, RegistryError
 from backend.manager.registry import parse as parse_registry
@@ -24,8 +27,10 @@ _MAX_BYTES = 2 << 20
 
 
 class UpdateError(Exception):
-    def __init__(self, url: str, reason: str) -> None:
-        super().__init__(f"could not read the registry at {url}: {reason}")
+    """A remote registry that could not be read."""
+
+    def __init__(self, url: str, message: str) -> None:
+        super().__init__(message)
         self.url = url
 
 
@@ -47,6 +52,7 @@ class UpdateItem:
     """The downloader can fetch the newer version with this app. False when only the remote
     registry knows it, which means the app itself needs updating."""
     message: str
+    message_notices: tuple[Notice, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +62,7 @@ class UpdateReport:
     message: str
     items: tuple[UpdateItem, ...]
     new_in_remote: tuple[str, ...]
+    message_notices: tuple[Notice, ...]
 
 
 def fetch_registry(url: str) -> Registry:
@@ -65,13 +72,17 @@ def fetch_registry(url: str) -> Registry:
             raw = cast("object", json.loads(response.read(_MAX_BYTES).decode("utf-8")))
         return parse_registry(raw)
     except urllib.error.HTTPError as exc:
-        raise UpdateError(url, f"HTTP {exc.code} {exc.reason}") from exc
+        why = notices.REGISTRY_HTTP(url=url, status=f"{exc.code} {exc.reason}")
+        raise noticed(partial(UpdateError, url), why) from exc
     except urllib.error.URLError as exc:
-        raise UpdateError(url, f"cannot connect ({exc.reason})") from exc
+        why = notices.REGISTRY_UNREACHABLE(url=url, reason=str(exc.reason))
+        raise noticed(partial(UpdateError, url), why) from exc
     except (RegistryError, ValueError) as exc:
-        raise UpdateError(url, f"it is not a valid registry ({exc})") from exc
+        why = notices.REGISTRY_INVALID(url=url, error=str(exc))
+        raise noticed(partial(UpdateError, url), why) from exc
     except (TimeoutError, OSError) as exc:
-        raise UpdateError(url, f"{type(exc).__name__}: {exc}") from exc
+        why = notices.REGISTRY_UNREADABLE(url=url, error=f"{type(exc).__name__}: {exc}")
+        raise noticed(partial(UpdateError, url), why) from exc
 
 
 def _item(
@@ -81,42 +92,46 @@ def _item(
     assert bundled is not None
     other = asset(remote, asset_id) if remote is not None else None
     remote_version = other.version if other else None
-    if not inv.is_installed(asset_id):
+
+    def item(
+        status: UpdateStatus, installed: str | None, installable: bool, said: Notice
+    ) -> UpdateItem:
         return UpdateItem(
             asset_id,
-            UpdateStatus.NOT_INSTALLED,
-            None,
+            status,
+            installed,
             bundled.version,
             remote_version,
-            True,
-            "not installed",
+            installable,
+            said.message,
+            (said,),
         )
+
+    if not inv.is_installed(asset_id):
+        return item(UpdateStatus.NOT_INSTALLED, None, True, notices.ITEM_NOT_INSTALLED())
     record = inv.manifest.get(asset_id)
     if record is None or not record.ok:
-        why = "its last check failed" if record else "its version was not recorded"
-        return UpdateItem(
-            asset_id, UpdateStatus.UNKNOWN, None, bundled.version, remote_version, True,
-            f"installed, but {why}; verify or re-download it to compare with "
-            f"registry version {bundled.version}",
-        )  # fmt: skip
+        why = notices.ITEM_CHECK_FAILED if record else notices.ITEM_UNRECORDED
+        return item(UpdateStatus.UNKNOWN, None, True, why(version=bundled.version))
     target = other or bundled
     if record.sha256 == target.sha256 and record.version == target.version:
-        where = f"remote registry {remote_url} agrees" if remote else "no remote configured"
-        return UpdateItem(
-            asset_id, UpdateStatus.CURRENT, record.version, bundled.version, remote_version, True,
-            f"registry version {record.version} installed, {where}",
-        )  # fmt: skip
+        agrees = (
+            notices.ITEM_MATCHES_REMOTE(version=record.version, url=str(remote_url))
+            if remote
+            else notices.ITEM_MATCHES_BUNDLE(version=record.version)
+        )
+        return item(UpdateStatus.CURRENT, record.version, True, agrees)
     newer_than_bundle = other is not None and (other.sha256 != bundled.sha256)
     note = (
-        f"installed {record.version}, remote registry lists {other.version if other else ''}; "
-        f"this app ships {bundled.version}, so update the app to get it"
+        notices.ITEM_NEEDS_APP(
+            installed=record.version,
+            remote=other.version if other else "",
+            shipped=bundled.version,
+        )
         if newer_than_bundle
-        else f"installed {record.version}, the registry has {target.version}"
+        else notices.ITEM_OLDER(installed=record.version, available=target.version)
     )
-    return UpdateItem(
-        asset_id, UpdateStatus.UPDATE_AVAILABLE, record.version, bundled.version, remote_version,
-        not newer_than_bundle, note,
-    )  # fmt: skip
+    return item(UpdateStatus.UPDATE_AVAILABLE, record.version, not newer_than_bundle, note)
 
 
 def check_updates(
@@ -130,11 +145,10 @@ def check_updates(
     new = tuple(i for i in (*remote.models, *remote.runtimes) if i not in ids) if remote else ()
     available = [i.id for i in items if i.status is UpdateStatus.UPDATE_AVAILABLE]
     if available:
-        message = f"Updates available for {', '.join(available)}."
+        summary = notices.UPDATES_AVAILABLE(assets=available)
     elif remote_url:
-        message = f"Everything installed matches the remote registry at {remote_url}."
+        summary = notices.UPDATES_ALL_MATCH(url=remote_url)
     else:
-        message = (
-            "No remote registry is configured; compared with the registry shipped with this app."
-        )
-    return UpdateReport(remote_url, time.time_ns() // 1_000_000, message, items, new)
+        summary = notices.UPDATES_NO_REMOTE()
+    now = time.time_ns() // 1_000_000
+    return UpdateReport(remote_url, now, summary.message, items, new, (summary,))

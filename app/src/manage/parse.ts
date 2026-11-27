@@ -214,13 +214,13 @@ const updateItem = (raw: unknown): UpdateItem => {
     id: str(o, "id"),
     status: status === "not_installed" || status === "current" || status === "update_available" ? status : "unknown",
     installable: bool(o, "installable"),
-    message: str(o, "message"),
+    message: saidField(o, "message"),
   };
 };
 
 export const parseUpdates = (raw: unknown): UpdateReport => {
   const o = rec(raw);
-  return { message: str(o, "message"), items: list(o["items"]).map(updateItem) };
+  return { message: saidField(o, "message"), items: list(o["items"]).map(updateItem) };
 };
 
 export const parseLicenses = (raw: unknown): LicenseEntry[] =>

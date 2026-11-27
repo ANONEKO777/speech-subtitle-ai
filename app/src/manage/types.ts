@@ -177,11 +177,11 @@ export interface UpdateItem {
   readonly id: string;
   readonly status: "not_installed" | "current" | "update_available" | "unknown";
   readonly installable: boolean;
-  readonly message: string;
+  readonly message: Said;
 }
 
 export interface UpdateReport {
-  readonly message: string;
+  readonly message: Said;
   readonly items: readonly UpdateItem[];
 }
 

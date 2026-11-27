@@ -1512,5 +1512,208 @@
       }
     ],
     "zh": "尚未安裝：llama.cpp-b12068-win-cpu"
+  },
+  "updates.item.notInstalled": {
+    "before": "not installed",
+    "text": "not installed",
+    "notices": [
+      {
+        "code": "updates.itemNotInstalled",
+        "params": {},
+        "message": "not installed"
+      }
+    ],
+    "zh": "尚未安裝"
+  },
+  "updates.noRemote": {
+    "before": "No remote registry is configured; compared with the registry shipped with this app.",
+    "text": "No remote registry is configured; compared with the registry shipped with this app.",
+    "notices": [
+      {
+        "code": "updates.noRemote",
+        "params": {},
+        "message": "No remote registry is configured; compared with the registry shipped with this app."
+      }
+    ],
+    "zh": "沒有設定遠端清單，已和 App 內附的清單比對。"
+  },
+  "updates.item.unrecorded": {
+    "before": "installed, but its version was not recorded; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "text": "installed, but its version was not recorded; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "notices": [
+      {
+        "code": "updates.itemUnrecorded",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "installed, but its version was not recorded; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1"
+      }
+    ],
+    "zh": "已安裝，但沒有記錄版本。請按「驗證」或「重新下載」，才能和清單版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
+  },
+  "updates.item.checkFailed": {
+    "before": "installed, but its last check failed; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "text": "installed, but its last check failed; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "notices": [
+      {
+        "code": "updates.itemCheckFailed",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "installed, but its last check failed; verify or re-download it to compare with registry version 5359861c739e955e79d9a303bcbc70fb988958b1"
+      }
+    ],
+    "zh": "已安裝，但上次檢查沒有通過。請按「驗證」或「重新下載」，才能和清單版本 5359861c739e955e79d9a303bcbc70fb988958b1 比對"
+  },
+  "updates.item.matchesBundle": {
+    "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "text": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "notices": [
+      {
+        "code": "updates.itemNoRemote",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+      }
+    ],
+    "zh": "已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
+  },
+  "updates.item.matchesRemote": {
+    "before": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, remote registry https://example.test/registry.json agrees",
+    "text": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, remote registry https://example.test/registry.json agrees",
+    "notices": [
+      {
+        "code": "updates.itemMatchesRemote",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1",
+          "url": "https://example.test/registry.json"
+        },
+        "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, remote registry https://example.test/registry.json agrees"
+      }
+    ],
+    "zh": "已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，遠端清單（https://example.test/registry.json）也相同"
+  },
+  "updates.item.needsApp": {
+    "before": "installed 5359861c739e955e79d9a303bcbc70fb988958b1, remote registry lists v9; this app ships 5359861c739e955e79d9a303bcbc70fb988958b1, so update the app to get it",
+    "text": "installed 5359861c739e955e79d9a303bcbc70fb988958b1, remote registry lists v9; this app ships 5359861c739e955e79d9a303bcbc70fb988958b1, so update the app to get it",
+    "notices": [
+      {
+        "code": "updates.itemNeedsApp",
+        "params": {
+          "installed": "5359861c739e955e79d9a303bcbc70fb988958b1",
+          "remote": "v9",
+          "shipped": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "installed 5359861c739e955e79d9a303bcbc70fb988958b1, remote registry lists v9; this app ships 5359861c739e955e79d9a303bcbc70fb988958b1, so update the app to get it"
+      }
+    ],
+    "zh": "已安裝 5359861c739e955e79d9a303bcbc70fb988958b1，遠端清單列的是 v9。這個 App 內附的是 5359861c739e955e79d9a303bcbc70fb988958b1，要先更新 App 才能取得新版"
+  },
+  "updates.allMatch": {
+    "before": "Everything installed matches the remote registry at https://example.test/registry.json.",
+    "text": "Everything installed matches the remote registry at https://example.test/registry.json.",
+    "notices": [
+      {
+        "code": "updates.allMatch",
+        "params": {
+          "url": "https://example.test/registry.json"
+        },
+        "message": "Everything installed matches the remote registry at https://example.test/registry.json."
+      }
+    ],
+    "zh": "已安裝的項目都和遠端清單（https://example.test/registry.json）一致。"
+  },
+  "updates.item.older": {
+    "before": "installed v0, the registry has 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "text": "installed v0, the registry has 5359861c739e955e79d9a303bcbc70fb988958b1",
+    "notices": [
+      {
+        "code": "updates.itemOlder",
+        "params": {
+          "installed": "v0",
+          "available": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "installed v0, the registry has 5359861c739e955e79d9a303bcbc70fb988958b1"
+      }
+    ],
+    "zh": "已安裝 v0，清單上的版本是 5359861c739e955e79d9a303bcbc70fb988958b1"
+  },
+  "updates.available": {
+    "before": "Updates available for whisper-large-v3-turbo, qwen3-asr-1.7b-q8_0.",
+    "text": "Updates available for whisper-large-v3-turbo, qwen3-asr-1.7b-q8_0.",
+    "notices": [
+      {
+        "code": "updates.available",
+        "params": {
+          "assets": [
+            "whisper-large-v3-turbo",
+            "qwen3-asr-1.7b-q8_0"
+          ]
+        },
+        "message": "Updates available for whisper-large-v3-turbo, qwen3-asr-1.7b-q8_0."
+      }
+    ],
+    "zh": "有可以更新的項目：whisper-large-v3-turbo、qwen3-asr-1.7b-q8_0。"
+  },
+  "updates.read.http": {
+    "before": "could not read the registry at https://example.test/registry.json: HTTP 404 Not Found",
+    "text": "could not read the registry at https://example.test/registry.json: HTTP 404 Not Found",
+    "notices": [
+      {
+        "code": "updates.readHttp",
+        "params": {
+          "url": "https://example.test/registry.json",
+          "status": "404 Not Found"
+        },
+        "message": "could not read the registry at https://example.test/registry.json: HTTP 404 Not Found"
+      }
+    ],
+    "zh": "無法讀取 https://example.test/registry.json 的清單：HTTP 404 Not Found"
+  },
+  "updates.read.connect": {
+    "before": "could not read the registry at https://example.test/registry.json: cannot connect (refused)",
+    "text": "could not read the registry at https://example.test/registry.json: cannot connect (refused)",
+    "notices": [
+      {
+        "code": "updates.readConnect",
+        "params": {
+          "url": "https://example.test/registry.json",
+          "reason": "refused"
+        },
+        "message": "could not read the registry at https://example.test/registry.json: cannot connect (refused)"
+      }
+    ],
+    "zh": "無法讀取 https://example.test/registry.json 的清單：無法連線（refused）"
+  },
+  "updates.read.invalid": {
+    "before": "could not read the registry at https://example.test/registry.json: it is not a valid registry (Expecting value: line 1 column 1 (char 0))",
+    "text": "could not read the registry at https://example.test/registry.json: it is not a valid registry (Expecting value: line 1 column 1 (char 0))",
+    "notices": [
+      {
+        "code": "updates.readInvalid",
+        "params": {
+          "url": "https://example.test/registry.json",
+          "error": "Expecting value: line 1 column 1 (char 0)"
+        },
+        "message": "could not read the registry at https://example.test/registry.json: it is not a valid registry (Expecting value: line 1 column 1 (char 0))"
+      }
+    ],
+    "zh": "無法讀取 https://example.test/registry.json 的清單：內容不是有效的清單（Expecting value: line 1 column 1 (char 0)）"
+  },
+  "updates.read.failed": {
+    "before": "could not read the registry at https://example.test/registry.json: TimeoutError: timed out",
+    "text": "could not read the registry at https://example.test/registry.json: TimeoutError: timed out",
+    "notices": [
+      {
+        "code": "updates.readFailed",
+        "params": {
+          "url": "https://example.test/registry.json",
+          "error": "TimeoutError: timed out"
+        },
+        "message": "could not read the registry at https://example.test/registry.json: TimeoutError: timed out"
+      }
+    ],
+    "zh": "無法讀取 https://example.test/registry.json 的清單：TimeoutError: timed out"
   }
 }
