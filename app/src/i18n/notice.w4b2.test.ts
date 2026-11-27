@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { parseNotices, word } from "./notice";
 import type { Said } from "./said";
 import fixture from "./notices.w4b2.fixture.json";
+import { parseMove } from "../manage/parse";
 import shellBefore from "./notices.shell.before.json";
 import shell from "./notices.shell.json";
 
@@ -115,5 +116,27 @@ describe("every W4b part 2 shell sentence", () => {
     expect(shown).toBe(SHELL_ZH[code]);
     expect(shown.replace(SHELL_VALUES["error"]!, "◇")).not.toMatch(ENGLISH_RUN);
     for (const locale of ["zh-CN", "ja"] as const) expect(word(sent, locale)).not.toBe(sent.text);
+  });
+});
+
+describe("a move status", () => {
+  it("keeps the notices of its error and warnings, so a Chinese window words them", () => {
+    const remove = fixture["move.couldNotRemove"];
+    const failed = fixture["move.otherContent"];
+    const status = parseMove({
+      state: "done",
+      target: "F:/m",
+      files_total: 1,
+      files_done: 1,
+      bytes_total: 1,
+      bytes_done: 1,
+      error: failed.text,
+      error_notices: failed.notices,
+      warnings: [remove.text],
+      warnings_notices: remove.notices,
+    });
+
+    expect(word(status.warnings[0]!, "zh-TW")).toBe(remove.zh);
+    expect(word(status.error!, "zh-TW")).toBe(failed.zh);
   });
 });
