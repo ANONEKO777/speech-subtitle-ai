@@ -23,6 +23,11 @@ const sent = (entry: Entry): Said => ({ text: entry.text, notices: parseNotices(
  * app wrote does not belong here.
  */
 const DATA: readonly RegExp[] = [
+  /Windows DPAPI/g,
+  // What a program, a server or the operating system said, as the stand-ins in the scenarios say it.
+  /network is down/g,
+  /Server Error/g,
+  /Expecting property name enclosed in double quotes: line 1 column 2 \(char 1\)/g,
 ];
 
 /** The sentences whose English changed: they said "queue" where the window says "batch". */

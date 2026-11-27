@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from backend.api.deps import Context
 from backend.api.downloads import get_storage
+from backend.core.notices import to_json
 from backend.manager.llm_check import test_connection
 from backend.manager.secrets import LLM_KEY, SecretError
 from backend.manager.settings import (
@@ -73,6 +74,7 @@ def view(ctx: Context) -> dict[str, Any]:
         "ui_language": current.ui_language.value,
         "cloud_consent_text": CLOUD_CONSENT_TEXT,
         "problem": ctx.settings.problem,
+        "problem_notices": to_json(ctx.settings.problem_notices),
         "storage": get_storage(ctx),
     }
 

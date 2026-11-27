@@ -13,6 +13,8 @@ from http.client import HTTPException, HTTPMessage
 from typing import IO, cast
 from urllib.parse import urlsplit
 
+from backend.core import notices
+from backend.core.notices import Notice
 from backend.manager.profiles import QWEN3_8B, runtime_set
 from backend.manager.registry import Registry
 from backend.manager.runtimes import runtime_executable
@@ -30,6 +32,7 @@ class ConnectionResult:
     url: str
     detail: str
     models: tuple[str, ...] = ()
+    detail_notices: tuple[Notice, ...] = ()
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -68,40 +71,64 @@ def _names(doc: object, list_key: str, name_key: str) -> tuple[str, ...]:
     return tuple(names)
 
 
-def _reason(reason: object) -> str:
+def _reason(reason: object) -> Notice:
     if isinstance(reason, ConnectionRefusedError):
-        return "connection refused, nothing is listening at that address"
+        return notices.LLM_TEST_REFUSED()
     if isinstance(reason, TimeoutError):
-        return f"no answer within {TIMEOUT_S:g} s"
+        return notices.LLM_TEST_TIMED_OUT(seconds=f"{TIMEOUT_S:g}")
     if isinstance(reason, socket.gaierror):
-        return "the host name was not found"
-    return f"cannot connect ({reason})"
+        return notices.LLM_TEST_HOST_NOT_FOUND()
+    return notices.LLM_TEST_CANNOT_CONNECT(reason=str(reason))
+
+
+def _redacted(notice: Notice, key: str | None) -> Notice:
+    """`notice` with the API key taken out of its sentence and every parameter: the window gets
+    both."""
+    if not key:
+        return notice
+
+    def clean(value: str | list[str]) -> str | list[str]:
+        if isinstance(value, str):
+            return value.replace(key, "***")
+        return [one.replace(key, "***") for one in value]
+
+    params = {name: clean(value) for name, value in notice.params.items()}
+    return Notice(notice.code, params, notice.message.replace(key, "***"))
+
+
+def _result(
+    ok: bool, source: LlmSource, url: str, said: tuple[Notice, ...], models: tuple[str, ...] = ()
+) -> ConnectionResult:
+    return ConnectionResult(ok, source, url, said[0].message, models, said)
 
 
 def _probe(
     source: LlmSource, url: str, key: str | None, list_key: str, name_key: str
 ) -> ConnectionResult:
-    def fail(why: str) -> ConnectionResult:
-        message = f"could not use {url}: {why}"
-        return ConnectionResult(False, source, url, message.replace(key, "***") if key else message)
+    def fail(why: Notice | str) -> ConnectionResult:
+        """`why` is a sentence of ours, or the words of the server or the system."""
+        inside = (why,) if isinstance(why, Notice) else ()
+        text = why.message if isinstance(why, Notice) else why
+        said = (notices.LLM_TEST_COULD_NOT_USE(url=url, why=text), *inside)
+        return _result(False, source, url, tuple(_redacted(one, key) for one in said))
 
     try:
         doc = _get_json(url, key)
     except urllib.error.HTTPError as exc:
         if 300 <= exc.code < 400:
-            return fail(
-                f"it redirected to {exc.headers.get('Location')!r}; redirects are not followed"
-            )
+            location = repr(exc.headers.get("Location"))
+            return fail(notices.LLM_TEST_REDIRECTED(location=location))
         if exc.code in (401, 403):
-            return fail(f"the server rejected the API key (HTTP {exc.code})")
+            return fail(notices.LLM_TEST_KEY_REJECTED(status=str(exc.code)))
         return fail(f"HTTP {exc.code} {exc.reason}")
     except urllib.error.URLError as exc:
         return fail(_reason(exc.reason))
     except (TimeoutError, OSError, HTTPException) as exc:
         return fail(f"{type(exc).__name__}: {exc}")
     except ValueError:
-        return fail("the answer is not JSON, so this is not that kind of server")
-    return ConnectionResult(True, source, url, "connected", _names(doc, list_key, name_key))
+        return fail(notices.LLM_TEST_NOT_JSON())
+    connected = (notices.LLM_TEST_CONNECTED(),)
+    return _result(True, source, url, connected, _names(doc, list_key, name_key))
 
 
 def _with_model(result: ConnectionResult, wanted: str) -> ConnectionResult:
@@ -110,13 +137,8 @@ def _with_model(result: ConnectionResult, wanted: str) -> ConnectionResult:
     known = {name.removesuffix(":latest") for name in result.models}
     if wanted.removesuffix(":latest") in known:
         return result
-    return ConnectionResult(
-        False,
-        result.source,
-        result.url,
-        f"connected to {result.url}, but model {wanted!r} is not installed there",
-        result.models,
-    )
+    missing = notices.LLM_TEST_MODEL_MISSING(url=result.url, model=repr(wanted))
+    return _result(False, result.source, result.url, (missing,), result.models)
 
 
 def test_connection(
@@ -127,12 +149,7 @@ def test_connection(
         return _with_model(found, llm.ollama_model.strip())
     if llm.source is LlmSource.CLOUD:
         if not api_key:
-            return ConnectionResult(
-                False,
-                llm.source,
-                llm.cloud_url,
-                "no API key to test with: enter the key for this address",
-            )
+            return _result(False, llm.source, llm.cloud_url, (notices.LLM_TEST_NO_KEY(),))
         found = _probe(LlmSource.CLOUD, f"{llm.cloud_url}/models", api_key, "data", "id")
         return _with_model(found, llm.cloud_model.strip())
     gguf = storage.model_file(registry.models[QWEN3_8B])
@@ -151,5 +168,5 @@ def test_connection(
     ]
     where = str(server or storage.runtimes_root)
     if missing:
-        return ConnectionResult(False, llm.source, where, f"not installed: {', '.join(missing)}")
-    return ConnectionResult(True, llm.source, where, "llama-server and the model are installed")
+        return _result(False, llm.source, where, (notices.LLM_TEST_NOT_INSTALLED(missing=missing),))
+    return _result(True, llm.source, where, (notices.LLM_TEST_BUILTIN_READY(),))

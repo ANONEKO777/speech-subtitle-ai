@@ -162,7 +162,7 @@ export interface SettingsView {
   readonly uiLanguage: UiLanguage;
   readonly llm: LlmSaved;
   readonly consentText: string;
-  readonly problem: string | null;
+  readonly problem: Said | null;
   readonly storage: StorageView;
 }
 

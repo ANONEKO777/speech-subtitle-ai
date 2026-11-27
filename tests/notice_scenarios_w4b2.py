@@ -15,8 +15,11 @@ fixture is the same on every system and in every temporary folder.
 from __future__ import annotations
 
 import os
+import socket
 import sys
 import time
+import urllib.error
+from email.message import Message
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -30,9 +33,12 @@ from test_api import open_client
 from test_queue import QueueRig, make_app
 
 from backend.core import queue_runner
-from backend.manager import maintain
+from backend.core.notices import notices_of
+from backend.manager import llm_check, maintain, secrets
 from backend.manager.download import JobState
 from backend.manager.profiles import WHISPER_RUNTIME, WHISPER_TURBO
+from backend.manager.secrets import SecretError
+from backend.manager.settings import LlmSettings, LlmSource, SettingsStore
 
 
 def _reply(response: Any) -> Entry:
@@ -174,12 +180,97 @@ def _managing(found: dict[str, Entry], rig: Rig) -> None:
     found["manage.stillNeeded.two"] = _reply(client.delete(f"/api/models/{SILERO_GGML}"))
 
 
+# Group 9: the LLM page.
+
+
+def _tested(
+    found: dict[str, Entry], name: str, rig: Rig, llm: LlmSettings, key: str | None
+) -> None:
+    result = llm_check.test_connection(llm, key, rig.registry, rig.ctx.storage)
+    found[name] = _entry(result.detail, getattr(result, "detail_notices", ()))
+
+
+def _llm_page(found: dict[str, Entry], rig: Rig) -> None:
+    ollama = LlmSettings(LlmSource.OLLAMA, "http://127.0.0.1:9", "qwen3:8b")
+    cloud = LlmSettings(
+        LlmSource.CLOUD,
+        cloud_url="https://api.example.test/v1",
+        cloud_model="m",
+        cloud_consent=True,
+    )
+    moved = Message()
+    moved["Location"] = "https://elsewhere.test/"
+    answers: dict[str, object] = {
+        "llmTest.refused": urllib.error.URLError(ConnectionRefusedError()),
+        "llmTest.timedOut": urllib.error.URLError(TimeoutError()),
+        "llmTest.hostNotFound": urllib.error.URLError(socket.gaierror()),
+        "llmTest.cannotConnect": urllib.error.URLError(OSError("network is down")),
+        "llmTest.redirected": urllib.error.HTTPError("u", 302, "Found", moved, None),
+        "llmTest.keyRejected": urllib.error.HTTPError("u", 401, "Unauthorized", Message(), None),
+        "llmTest.couldNotUse": urllib.error.HTTPError("u", 500, "Server Error", Message(), None),
+        "llmTest.notJson": ValueError("not json"),
+        "llmTest.modelMissing": {"models": [{"name": "other"}]},
+        "llmTest.connected": {"models": [{"name": "qwen3:8b"}]},
+    }
+    for name, answer in answers.items():
+
+        def get_json(_url: str, _key: str | None, _answer: object = answer) -> object:
+            if isinstance(_answer, BaseException):
+                raise _answer
+            return _answer
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(llm_check, "_get_json", get_json)
+            _tested(found, name, rig, ollama, None)
+    _tested(found, "llmTest.noKey", rig, cloud, None)
+    _tested(found, "llmTest.notInstalled", rig, LlmSettings(), None)
+    with pytest.MonkeyPatch.context() as mp:
+        program = rig.tmp / "llama-server.exe"
+        program.write_bytes(b"MZ")
+        mp.setattr(llm_check, "runtime_executable", lambda *_args: program)  # pyright: ignore[reportUnknownArgumentType]
+        gguf = rig.ctx.storage.model_file(rig.registry.models[llm_check.QWEN3_8B])
+        gguf.parent.mkdir(parents=True, exist_ok=True)
+        gguf.write_bytes(b"gguf")
+        _tested(found, "llmTest.builtinReady", rig, LlmSettings(), None)
+    reply = rig.client.put(
+        "/api/settings", json={"registry_url": "https://example.test/r.json?token=1"}
+    )
+    found["settings.urlParts"] = _reply(reply)
+    (rig.tmp / "user").mkdir()
+    (rig.tmp / "user" / "settings.json").write_text("{", encoding="utf-8")
+    store = SettingsStore(rig.tmp / "user")
+    problem = store.problem or ""
+    found["settings.fileNotUsed"] = _replaced(
+        _entry(problem, getattr(store, "problem_notices", ())), str(rig.tmp / "user"), "<user>"
+    )
+    for name, failure in {"secrets.needDpapi": "needs", "secrets.dpapiFailed": "failed"}.items():
+        found[name] = _secret_failure(failure)
+
+
+def _secret_failure(failure: str) -> Entry:
+    """What storing the API key says when Windows DPAPI is not there, or refuses."""
+    refuse = SimpleNamespace(CryptProtectData=lambda *_args: 0)
+    with pytest.MonkeyPatch.context() as mp:
+        if failure == "needs":
+            mp.setattr(secrets.sys, "platform", "linux")
+        else:
+            mp.setattr(secrets.ctypes, "windll", SimpleNamespace(crypt32=refuse), raising=False)
+            mp.setattr(secrets.ctypes, "GetLastError", lambda: 13, raising=False)
+        try:
+            secrets._transform(b"k", protect=True)
+        except SecretError as exc:
+            return _entry(str(exc), notices_of(exc))
+    raise AssertionError(failure)
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _batch_refusals(found, tmp)
     with serve() as origin:
         (tmp / "manage").mkdir()
         _managing(found, Rig(tmp / "manage", origin))
+        (tmp / "llm").mkdir()
+        _llm_page(found, Rig(tmp / "llm", origin))
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

@@ -186,7 +186,7 @@ const llmView = (over: Partial<SettingsView["llm"]> = {}, problem: string | null
   uiLanguage: "zh-TW",
   llm: { source: "builtin", ollamaUrl: "http://127.0.0.1:11434", ollamaModel: "", cloudUrl: "", cloudModel: "", cloudConsent: false, apiKeySet: false, ...over },
   consentText: "",
-  problem,
+  problem: problem === null ? null : plainText(problem),
   storage: { userData: "C:/u", modelsDir: "C:/m", runtimesDir: "C:/r", defaultModelsDir: "C:/m", usingDefault: true } as unknown as SettingsView["storage"],
 });
 

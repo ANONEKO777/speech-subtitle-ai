@@ -116,7 +116,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
 
       {settings.problem && (
         <p className="note bad" role="alert">
-          {t("llm.problem", { problem: settings.problem })}
+          {t("llm.problem", { problem: word(settings.problem, locale) })}
         </p>
       )}
 

@@ -23,7 +23,7 @@ import type {
   UpdateReport,
 } from "./types";
 import { PROFILE_IDS } from "./types";
-import { saidField, saidList } from "../i18n/said";
+import { saidField, saidList, saidOrNull } from "../i18n/said";
 
 type Rec = Record<string, unknown>;
 
@@ -197,7 +197,7 @@ export function parseSettings(raw: unknown): SettingsView {
     uiLanguage: isUiLanguage(o["ui_language"]) ? o["ui_language"] : DEFAULT_UI_LANGUAGE,
     llm,
     consentText: str(o, "cloud_consent_text"),
-    problem: strOrNull(o, "problem"),
+    problem: saidOrNull(o, "problem"),
     storage: { userData: str(s, "user_data"), modelsDir: str(s, "models_dir"), customModelsDir: strOrNull(s, "custom_models_dir") },
   };
 }

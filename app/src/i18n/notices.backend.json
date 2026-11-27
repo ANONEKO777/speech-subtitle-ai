@@ -424,6 +424,74 @@
       "reason": "text"
     }
   },
+  "llmTest.builtinReady": {
+    "english": "llama-server and the model are installed",
+    "params": {}
+  },
+  "llmTest.cannotConnect": {
+    "english": "cannot connect ({reason})",
+    "params": {
+      "reason": "text"
+    }
+  },
+  "llmTest.connected": {
+    "english": "connected",
+    "params": {}
+  },
+  "llmTest.couldNotUse": {
+    "english": "could not use {url}: {why}",
+    "params": {
+      "url": "text",
+      "why": "text"
+    }
+  },
+  "llmTest.hostNotFound": {
+    "english": "the host name was not found",
+    "params": {}
+  },
+  "llmTest.keyRejected": {
+    "english": "the server rejected the API key (HTTP {status})",
+    "params": {
+      "status": "text"
+    }
+  },
+  "llmTest.modelMissing": {
+    "english": "connected to {url}, but model {model} is not installed there",
+    "params": {
+      "url": "text",
+      "model": "text"
+    }
+  },
+  "llmTest.noKey": {
+    "english": "no API key to test with: enter the key for this address",
+    "params": {}
+  },
+  "llmTest.notInstalled": {
+    "english": "not installed: {missing}",
+    "params": {
+      "missing": "list"
+    }
+  },
+  "llmTest.notJson": {
+    "english": "the answer is not JSON, so this is not that kind of server",
+    "params": {}
+  },
+  "llmTest.redirected": {
+    "english": "it redirected to {location}; redirects are not followed",
+    "params": {
+      "location": "text"
+    }
+  },
+  "llmTest.refused": {
+    "english": "connection refused, nothing is listening at that address",
+    "params": {}
+  },
+  "llmTest.timedOut": {
+    "english": "no answer within {seconds} s",
+    "params": {
+      "seconds": "text"
+    }
+  },
   "manage.activeProfileNeeds": {
     "english": "the active profile needs it",
     "params": {}
@@ -796,6 +864,16 @@
     "english": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
     "params": {}
   },
+  "secrets.dpapiFailed": {
+    "english": "Windows DPAPI failed (error {code})",
+    "params": {
+      "code": "text"
+    }
+  },
+  "secrets.needDpapi": {
+    "english": "storing the API key needs Windows DPAPI",
+    "params": {}
+  },
   "selftest.asrNote": {
     "english": "transcribed one second of silence",
     "params": {}
@@ -898,6 +976,19 @@
     "english": "llama-server not found: {path}",
     "params": {
       "path": "text"
+    }
+  },
+  "settings.fileNotUsed": {
+    "english": "{file} was not used: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "settings.urlParts": {
+    "english": "{field} must not hold a user name, password, query or fragment",
+    "params": {
+      "field": "word"
     }
   },
   "summary.noPart": {

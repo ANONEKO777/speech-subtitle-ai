@@ -473,5 +473,291 @@
       }
     ],
     "zh": "silero-vad-ggml-v6.2.0 還有其他地方需要用到：目前使用的設定檔需要它；已安裝的 qwen3-asr-1.7b-q8_0 需要它"
+  },
+  "llmTest.refused": {
+    "before": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address",
+    "text": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "connection refused, nothing is listening at that address"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address"
+      },
+      {
+        "code": "llmTest.refused",
+        "params": {},
+        "message": "connection refused, nothing is listening at that address"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：連線被拒絕，這個位址沒有服務在執行"
+  },
+  "llmTest.timedOut": {
+    "before": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s",
+    "text": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "no answer within 5 s"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s"
+      },
+      {
+        "code": "llmTest.timedOut",
+        "params": {
+          "seconds": "5"
+        },
+        "message": "no answer within 5 s"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：5 秒內沒有回應"
+  },
+  "llmTest.hostNotFound": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the host name was not found",
+    "text": "could not use http://127.0.0.1:9/api/tags: the host name was not found",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the host name was not found"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the host name was not found"
+      },
+      {
+        "code": "llmTest.hostNotFound",
+        "params": {},
+        "message": "the host name was not found"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：找不到這個主機名稱"
+  },
+  "llmTest.cannotConnect": {
+    "before": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)",
+    "text": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "cannot connect (network is down)"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)"
+      },
+      {
+        "code": "llmTest.cannotConnect",
+        "params": {
+          "reason": "network is down"
+        },
+        "message": "cannot connect (network is down)"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：無法連線（network is down）"
+  },
+  "llmTest.redirected": {
+    "before": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "text": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "it redirected to 'https://elsewhere.test/'; redirects are not followed"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed"
+      },
+      {
+        "code": "llmTest.redirected",
+        "params": {
+          "location": "'https://elsewhere.test/'"
+        },
+        "message": "it redirected to 'https://elsewhere.test/'; redirects are not followed"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：它要求轉址到 'https://elsewhere.test/'，App 不會跟著轉址"
+  },
+  "llmTest.keyRejected": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)",
+    "text": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the server rejected the API key (HTTP 401)"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)"
+      },
+      {
+        "code": "llmTest.keyRejected",
+        "params": {
+          "status": "401"
+        },
+        "message": "the server rejected the API key (HTTP 401)"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：伺服器拒絕了這把 API 金鑰（HTTP 401）"
+  },
+  "llmTest.couldNotUse": {
+    "before": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error",
+    "text": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "HTTP 500 Server Error"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：HTTP 500 Server Error"
+  },
+  "llmTest.notJson": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server",
+    "text": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the answer is not JSON, so this is not that kind of server"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server"
+      },
+      {
+        "code": "llmTest.notJson",
+        "params": {},
+        "message": "the answer is not JSON, so this is not that kind of server"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：回應的內容不是 JSON，這個位址應該不是這種服務"
+  },
+  "llmTest.modelMissing": {
+    "before": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there",
+    "text": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there",
+    "notices": [
+      {
+        "code": "llmTest.modelMissing",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "model": "'qwen3:8b'"
+        },
+        "message": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there"
+      }
+    ],
+    "zh": "已連線到 http://127.0.0.1:9/api/tags，但那裡沒有安裝模型 'qwen3:8b'"
+  },
+  "llmTest.connected": {
+    "before": "connected",
+    "text": "connected",
+    "notices": [
+      {
+        "code": "llmTest.connected",
+        "params": {},
+        "message": "connected"
+      }
+    ],
+    "zh": "已連線"
+  },
+  "llmTest.noKey": {
+    "before": "no API key to test with: enter the key for this address",
+    "text": "no API key to test with: enter the key for this address",
+    "notices": [
+      {
+        "code": "llmTest.noKey",
+        "params": {},
+        "message": "no API key to test with: enter the key for this address"
+      }
+    ],
+    "zh": "沒有可以用來測試的 API 金鑰，請輸入這個網址的金鑰"
+  },
+  "llmTest.notInstalled": {
+    "before": "not installed: llama-server, qwen3-8b-q4_k_m",
+    "text": "not installed: llama-server, qwen3-8b-q4_k_m",
+    "notices": [
+      {
+        "code": "llmTest.notInstalled",
+        "params": {
+          "missing": [
+            "llama-server",
+            "qwen3-8b-q4_k_m"
+          ]
+        },
+        "message": "not installed: llama-server, qwen3-8b-q4_k_m"
+      }
+    ],
+    "zh": "尚未安裝：llama-server、qwen3-8b-q4_k_m"
+  },
+  "llmTest.builtinReady": {
+    "before": "llama-server and the model are installed",
+    "text": "llama-server and the model are installed",
+    "notices": [
+      {
+        "code": "llmTest.builtinReady",
+        "params": {},
+        "message": "llama-server and the model are installed"
+      }
+    ],
+    "zh": "llama-server 和模型都已安裝"
+  },
+  "settings.urlParts": {
+    "before": "registry_url must not hold a user name, password, query or fragment",
+    "text": "registry_url must not hold a user name, password, query or fragment",
+    "notices": [
+      {
+        "code": "settings.urlParts",
+        "params": {
+          "field": "registry_url"
+        },
+        "message": "registry_url must not hold a user name, password, query or fragment"
+      }
+    ],
+    "zh": "遠端清單網址不能包含使用者名稱、密碼、查詢字串或 # 後面的片段"
+  },
+  "settings.fileNotUsed": {
+    "before": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "text": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "notices": [
+      {
+        "code": "settings.fileNotUsed",
+        "params": {
+          "file": "<user>/settings.json",
+          "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+        },
+        "message": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+      }
+    ],
+    "zh": "<user>/settings.json 沒有被採用：Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  "secrets.needDpapi": {
+    "before": "storing the API key needs Windows DPAPI",
+    "text": "storing the API key needs Windows DPAPI",
+    "notices": [
+      {
+        "code": "secrets.needDpapi",
+        "params": {},
+        "message": "storing the API key needs Windows DPAPI"
+      }
+    ],
+    "zh": "儲存 API 金鑰需要 Windows 的 DPAPI"
+  },
+  "secrets.dpapiFailed": {
+    "before": "Windows DPAPI failed (error 13)",
+    "text": "Windows DPAPI failed (error 13)",
+    "notices": [
+      {
+        "code": "secrets.dpapiFailed",
+        "params": {
+          "code": "13"
+        },
+        "message": "Windows DPAPI failed (error 13)"
+      }
+    ],
+    "zh": "Windows DPAPI 執行失敗（錯誤代碼 13）"
   }
 }

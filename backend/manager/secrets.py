@@ -12,7 +12,12 @@ from ctypes import wintypes
 from pathlib import Path
 from typing import Protocol
 
-from backend.core.notices import CLOUD_KEY_UNAVAILABLE, noticed
+from backend.core.notices import (
+    CLOUD_KEY_UNAVAILABLE,
+    SECRETS_DPAPI_FAILED,
+    SECRETS_NEED_DPAPI,
+    noticed,
+)
 from backend.manager.platforms import WIN_X64, detect_platform
 
 SECRETS_DIR = "secrets"
@@ -42,7 +47,7 @@ def _blob_of(data: bytes) -> tuple[_Blob, ctypes.Array[ctypes.c_char]]:
 
 def _transform(data: bytes, *, protect: bool) -> bytes:
     if sys.platform != "win32":
-        raise SecretError("storing the API key needs Windows DPAPI")
+        raise noticed(SecretError, SECRETS_NEED_DPAPI())
     source, _keep = _blob_of(data)
     entropy, _keep_entropy = _blob_of(_ENTROPY)
     out = _Blob()
@@ -58,7 +63,7 @@ def _transform(data: bytes, *, protect: bool) -> bytes:
         ctypes.byref(out),
     )
     if not ok:
-        raise SecretError(f"Windows DPAPI failed (error {ctypes.GetLastError()})")
+        raise noticed(SecretError, SECRETS_DPAPI_FAILED(code=str(ctypes.GetLastError())))
     try:
         return ctypes.string_at(out.pbData, out.cbData)
     finally:

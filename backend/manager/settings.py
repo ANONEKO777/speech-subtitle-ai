@@ -16,6 +16,13 @@ from pathlib import Path
 from typing import cast
 from urllib.parse import urlsplit
 
+from backend.core.notices import (
+    SETTINGS_FILE_NOT_USED,
+    SETTINGS_URL_PARTS,
+    Notice,
+    noticed,
+    notices_of,
+)
 from backend.manager.profiles import ProfileId
 
 log = logging.getLogger(__name__)
@@ -61,7 +68,7 @@ def clean_url(value: str, what: str, *, https_only: bool = False) -> str:
     if parts.scheme not in schemes or not parts.hostname:
         raise SettingsError(f"{what} must be an {' or '.join(schemes)} URL with a host")
     if parts.username or parts.password or parts.query or parts.fragment:
-        raise SettingsError(f"{what} must not hold a user name, password, query or fragment")
+        raise noticed(SettingsError, SETTINGS_URL_PARTS(field=what))
     return value.strip().rstrip("/")
 
 
@@ -197,6 +204,7 @@ class SettingsStore:
         self._lock = threading.Lock()
         self.problem: str | None = None
         """Why the file on disk was not used, so the page can say so. None when it was fine."""
+        self.problem_notices: tuple[Notice, ...] = ()
         self._current = self._load()
 
     @property
@@ -208,6 +216,7 @@ class SettingsStore:
             write_json_atomic(self._path, settings_json(settings))
             self._current = settings
             self.problem = None
+            self.problem_notices = ()
 
     def _load(self) -> AppSettings:
         try:
@@ -216,7 +225,8 @@ class SettingsStore:
         except FileNotFoundError:
             return AppSettings()
         except (OSError, ValueError) as exc:
-            self.problem = f"{self._path} was not used: {exc}"
+            said = SETTINGS_FILE_NOT_USED(file=str(self._path), error=str(exc))
+            self.problem, self.problem_notices = said.message, (said, *notices_of(exc))
             log.warning("%s", self.problem)
             return AppSettings()
 
