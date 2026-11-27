@@ -26,11 +26,11 @@ import { profileBlurb, profileName } from "../manage/profileText";
 export const VC_REDIST_URL = "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist";
 import { downloadPlan } from "./plan";
 import { type WizardError, initialWizard, reduceWizard } from "./flow";
+import { said, word } from "../i18n/notice";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "finished" | "skipped") => void }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [state, dispatch] = useReducer(reduceWizard, initialWizard);
   const [licenses, setLicenses] = useState<ReadonlyMap<string, LicenseEntry>>(new Map());
   const downloads = useDownloads(backend);
@@ -39,7 +39,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
   useEffect(() => {
     fetchProfile(backend).then(
       (view) => dispatch({ type: "loaded", view }),
-      (e: unknown) => dispatch({ type: "loadFailed", error: message(e) }),
+      (e: unknown) => dispatch({ type: "loadFailed", error: said(e) }),
     );
     void fetchLicenses(backend).then((list) => setLicenses(new Map(list.map((l) => [l.id, l]))), () => undefined);
   }, [backend]);
@@ -65,7 +65,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
         downloads.refresh();
         dispatch({ type: "started", jobIds: [...jobs, ...extra].map((j) => j.id) });
       } catch (e) {
-        if (alive) dispatch({ type: "startFailed", error: message(e) });
+        if (alive) dispatch({ type: "startFailed", error: said(e) });
       }
     })();
     return () => {
@@ -85,7 +85,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
     runSelfTest(backend)
       .then(
         (test) => (test ? dispatch({ type: "selfTested", test }) : dispatch({ type: "selfTestFailed", error: null })),
-        (e: unknown) => dispatch({ type: "selfTestFailed", error: message(e) }),
+        (e: unknown) => dispatch({ type: "selfTestFailed", error: said(e) }),
       )
       .finally(() => {
         testing.current = false;
@@ -121,7 +121,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
         {state.step === "detect-failed" && (
           <>
             <p className="note bad" role="alert">
-              {state.error}
+              {word(state.error, locale)}
             </p>
             <div className="dialog-buttons start">
               <button type="button" className="ghost" data-testid="wizard-skip" onClick={() => dispatch({ type: "skip" })}>
@@ -152,7 +152,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
             {state.jobs.length > 0 && <OverallLine jobs={state.jobs} />}
             {state.error && (
               <p className="note bad" role="alert" data-testid="wizard-error">
-                {errorText(state.error, t)}
+                {errorText(state.error, t, locale)}
               </p>
             )}
             <div className="dialog-buttons start">
@@ -197,7 +197,7 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
             {state.test && <SelfTestPanel result={state.test} running={false} />}
             {(state.error || state.test === null) && (
               <p className="note bad" role="alert" data-testid="wizard-error">
-                {state.error || t("wizard.noResult")}
+                {(state.error && word(state.error, locale)) || t("wizard.noResult")}
               </p>
             )}
             <div className="dialog-buttons start">
@@ -225,8 +225,8 @@ export function Wizard({ backend, onExit }: { backend: Backend; onExit: (how: "f
   );
 }
 
-const errorText = (error: WizardError, t: Translate): string =>
-  typeof error === "string" ? error : t("wizard.jobFailed", { id: error.assetId, message: error.message ?? t("wizard.downloadFailed") });
+const errorText = (error: WizardError, t: Translate, locale: Locale): string =>
+  "assetId" in error ? t("wizard.jobFailed", { id: error.assetId, message: error.message ?? t("wizard.downloadFailed") }) : word(error, locale);
 
 function OverallLine({ jobs }: { jobs: readonly DownloadJob[] }) {
   const { t, locale } = useT();

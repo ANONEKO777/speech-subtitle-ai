@@ -1,0 +1,33 @@
+/**
+ * The sentences the backend and the shell send, by code (`../../notice.ts`). Each English text
+ * equals the sender's template in `notices.backend.json` or `notices.shell.json`, and a test
+ * holds it there.
+ */
+export const notices = {
+  "notice.fonts.missingGlyphs": "The font {font} has no glyphs for these characters: {chars}. The burned-in subtitles would show empty boxes. Install a font that has these characters, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.fonts.missingTargetGlyphs": "The font {font} is missing glyphs that the {language} subtitles need: {chars}. The burned-in subtitles would show empty boxes. Install a font that supports {language}, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.fonts.noJapaneseMac": "This Mac has no font that can show Japanese subtitles (tried {fonts}), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Hiragino Sans or Yu Gothic) with Font Book, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.fonts.noJapaneseWindows": "This computer has no font that can show Japanese subtitles (tried {fonts}), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Yu Gothic or Meiryo) in \"Settings > Personalization > Fonts\", or add the Japanese supplemental fonts in \"Settings > System > Optional features\", then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.fonts.noTargetFont": "This computer has no font that can show {language} subtitles (tried {fonts}), so the burned-in subtitles would show empty boxes. Install a font that supports {language}, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.platform.unsupported": "This app runs only on Windows (64-bit) and on Macs with Apple silicon (M1 or later). This computer is {system} {machine}. Intel Macs and Linux aren't supported yet.",
+  "notice.render.noH264Mac": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.render.noH264Windows": "Windows on this computer has no H.264 encoder, so the subtitles can't be burned into the video. In \"Settings > System > Optional features\", install \"Media Feature Pack\" (only Windows N and KN editions need it), or run Windows Update, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
+  "notice.runtime.foundElsewhere": "The app didn't delete {program}: it was found in {where}, not in the app's runtimes folder ({folder}). To remove it, do that yourself (if you installed it with Homebrew, use brew uninstall).",
+  "notice.runtime.localBuild": "There's no ready-made {engine} program to download for this platform, so you need to build it once on this computer. In the project folder, run {script} (the steps are in docs/MACOS.md). The built {program} goes in {folder}. The app also finds it on your PATH.",
+  "notice.runtime.vcMissing": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to {url} to download and install \"vc_redist.x64.exe\", then try again.",
+  "notice.secrets.cloudKeyUnavailable": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
+  "notice.shell.backend.exitedEarly": "The backend stopped before it was ready.\n{detail}",
+  "notice.shell.backend.spawnFailed": "Couldn't start the backend: {error}",
+  "notice.shell.backend.stopped": "The backend stopped, and restarting it several times didn't help. Close the app and open it again.",
+  "notice.shell.update.badSignature": "The signature of the downloaded update doesn't match, so the app discarded it and won't install it. Download the installer again from the project page.",
+  "notice.shell.update.badUrl": "VST_UPDATE_URL isn't a valid address.",
+  "notice.shell.update.checkFirst": "Check for updates first.",
+  "notice.shell.update.incomplete": "The update didn't finish. Try again later, or download the installer again from the project page.",
+  "notice.shell.update.noSource": "This version has no update source set up, so it can't check for updates.",
+  "notice.shell.update.notDownloaded": "The update hasn't finished downloading yet.",
+  "notice.shell.update.notUpdateInfo": "The update source didn't return update information (the address may no longer work, or you may need to sign in first). Try again later, or download the installer again from the project page.",
+  "notice.shell.update.stalled": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection, then click \"Download update\" again.",
+  "notice.shell.update.timeout": "The update server didn't respond within 10 seconds. Try again later.",
+  "notice.shell.update.unreachable": "Can't reach the update server. Check your internet connection, then try again later.",
+  "notice.shell.update.unsupported": "This platform doesn't have automatic updates yet. Download the new installer from the project page and replace the app you have.",
+} as const;

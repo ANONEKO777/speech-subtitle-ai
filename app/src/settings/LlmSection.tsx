@@ -6,6 +6,7 @@ import { useT } from "../i18n/I18nProvider";
 import { fetchSettings, saveLlm, testLlm } from "../manage/api";
 import type { LlmSaved, LlmSource, LlmTest, SettingsView } from "../manage/types";
 import { type LlmDraft, draftFrom, toBody, validateLlm } from "./llm";
+import { type Said, plainText, said, word } from "../i18n/notice";
 
 const SOURCES: readonly { id: LlmSource; label: PlainKey; hint: PlainKey }[] = [
   { id: "builtin", label: "llm.builtin", hint: "llm.builtinHint" },
@@ -30,14 +31,14 @@ function Field({ label, error, children, id }: { label: string; error: string | 
 }
 
 export function LlmSection({ backend }: { backend: Backend }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [settings, setSettings] = useState<SettingsView | null>(null);
   const [draft, setDraft] = useState<LlmDraft | null>(null);
   const [result, setResult] = useState<LlmTest | null>(null);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,7 +46,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
       setSettings(s);
       setDraft(draftFrom(s.llm));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   }, [backend]);
 
@@ -58,7 +59,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
       <section className="panel" data-testid="llm-section">
         {error && (
           <p className="note bad" role="alert">
-            {error}
+            {word(error, locale)}
           </p>
         )}
       </section>
@@ -79,7 +80,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
     try {
       setResult(await testLlm(backend, toBody(draft)));
     } catch (e) {
-      setResult({ ok: false, url: "", detail: e instanceof ApiError ? e.message : String(e), models: [] });
+      setResult({ ok: false, url: "", detail: e instanceof ApiError ? said(e) : plainText(String(e)), models: [] });
     } finally {
       setTesting(false);
     }
@@ -94,7 +95,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
       setDraft(draftFrom(s.llm));
       setSaved(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     } finally {
       setSaving(false);
     }
@@ -231,7 +232,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
                   {t("llm.url")}<code data-testid="llm-test-url">{result.url}</code>
                 </p>
               )}
-              <p data-testid="llm-test-detail">{result.detail}</p>
+              <p data-testid="llm-test-detail">{word(result.detail, locale)}</p>
               {result.models.length > 0 && <p className="sub">{t("llm.models", { models: result.models.slice(0, 8).join(t("common.listSeparator")) })}</p>}
             </div>
           </div>
@@ -239,7 +240,7 @@ export function LlmSection({ backend }: { backend: Backend }) {
         {error && (
           <p className="note bad" role="alert" data-testid="llm-save-error">
             <Cloud className="icon" aria-hidden />
-            {error}
+            {word(error, locale)}
           </p>
         )}
         {saved && (

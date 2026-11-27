@@ -16,6 +16,7 @@ from typing import Any
 import jsonschema
 import pytest
 
+from backend.core.notices import notices_of
 from backend.manager import platforms, registry
 from backend.manager.platforms import MACOS_ARM64, WIN_X64, UnsupportedPlatform, detect_platform
 from backend.manager.registry import RegistryError
@@ -211,7 +212,7 @@ def test_an_intel_mac_and_linux_get_one_plain_sentence(
     assert named in text
     assert "Intel" in text and "Apple" in text
     assert "\n" not in text
-    assert text.count("。") == 1
+    assert [n.code for n in notices_of(caught.value)] == ["platform.unsupported"]
 
 
 def test_the_check_returns_none_on_a_supported_machine_and_the_sentence_otherwise(
@@ -221,9 +222,11 @@ def test_the_check_returns_none_on_a_supported_machine_and_the_sentence_otherwis
     monkeypatch.setattr("sys.platform", "linux")
     monkeypatch.setattr("platform.machine", lambda: "x86_64")
 
-    assert platforms.check_platform() == platforms.UNSUPPORTED_MESSAGE.format(
-        system="Linux", machine="x86_64"
-    )
+    found = platforms.check_platform()
+    assert found is not None
+    [notice] = notices_of(found)
+    assert notice.params == {"system": "Linux", "machine": "x86_64"}
+    assert str(found) == notice.message
 
 
 def test_the_command_line_stops_with_the_sentence_and_no_stack_trace(
@@ -240,7 +243,7 @@ def test_the_command_line_stops_with_the_sentence_and_no_stack_trace(
 
     err = capsys.readouterr().err
     assert code == cli.EXIT_USAGE
-    assert err.startswith("error: 這個程式只支援")
+    assert err.startswith("error: This app runs only on Windows")
     assert "Traceback" not in err
     assert err.count("\n") == 1
 
@@ -264,6 +267,9 @@ def test_the_service_stops_with_the_sentence_and_never_starts_on_an_unsupported_
     err = capsys.readouterr().err
     assert code == 2
     assert started == []
-    assert err.startswith("error: 這個程式只支援")
+    notice_line, sentence = err.splitlines()
+    sent = json.loads(notice_line.removeprefix("VST_NOTICE "))
+    assert sent["code"] == "platform.unsupported"
+    assert sentence == f"error: {sent['message']}"
+    assert notice_line.isascii()
     assert "Traceback" not in err
-    assert err.count("\n") == 1

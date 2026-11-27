@@ -6,6 +6,7 @@ export const shell = {
   "common.close": "閉じる",
   "common.listSeparator": "、",
   "app.title": "字幕翻訳",
+  "shell.mediaFilter": "動画と音声",
   "app.starting": "バックエンドを起動しています…",
   "app.checkingModels": "モデルを確認しています…",
   "app.ready": "バックエンドの準備ができました",

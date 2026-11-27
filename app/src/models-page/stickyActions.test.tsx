@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "../api/client";
 import { windowsInventory } from "../manage/screens.fixture";
@@ -14,6 +14,7 @@ import { ModelsSection } from "./ModelsSection";
 vi.mock("../manage/api", async (orig) => ({
   ...(await orig<typeof import("../manage/api")>()),
   fetchInventory: () => Promise.resolve(windowsInventory()),
+  verifyAsset: () => Promise.reject(new Error("a job is running")),
 }));
 
 const downloads = { list: [], byAsset: new Map(), refresh: () => undefined };
@@ -44,5 +45,16 @@ describe("the models table keeps its Actions column on screen", () => {
     expect(note.textContent).toBe("it failed its SHA256 check");
     expect(note.getAttribute("role")).toBe("alert");
     expect(note.matches("td.actions-cell > .note-line.job-failure")).toBe(true);
+  });
+
+  it("does not cap any other note in that cell, such as a refused action", async () => {
+    render(<ModelsSection backend={{ port: 1, token: "t" } as Backend} downloads={downloads} />);
+    const button = (await waitFor(() => screen.getAllByTestId(/^act-.+-verify$/)))[0]!;
+    const id = button.getAttribute("data-testid")!.slice("act-".length, -"-verify".length);
+    fireEvent.click(button);
+    const note = await waitFor(() => screen.getByTestId(`inv-${id}-note`));
+    expect(note.textContent).toContain("a job is running");
+    expect(note.matches("td.actions-cell > .note-line")).toBe(true);
+    expect(note.classList.contains("job-failure")).toBe(false);
   });
 });

@@ -19,6 +19,7 @@ from backend.core.audio import AudioError, probe_duration_s
 from backend.core.fonts import FontMissing, burn_font, target_font
 from backend.core.languages import Language, UnknownLanguage, get
 from backend.core.model import Cue
+from backend.core.notices import to_json
 from backend.core.playback import MAX_OFFSET_MS, Playback, with_changes
 from backend.core.projects import NotReady, ProjectStore, UnknownProject
 from backend.core.render import BurnBook, BurnBusy, SubtitleLook
@@ -258,6 +259,7 @@ def _burn_json(job: render.BurnJob) -> dict[str, Any]:
         "percent": round(job.percent, 1),
         "output": str(job.output),
         "error": job.error,
+        "error_notices": to_json(job.error_notices),
     }
 
 

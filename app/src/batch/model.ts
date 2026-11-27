@@ -1,6 +1,7 @@
 import { asRecord } from "../api/client";
 import { type SourceLang, parseSourceLang } from "../api/sourceLang";
 import { type PlainKey, type Translate, tZhTW } from "../i18n";
+import { type Said, saidField } from "../i18n/said";
 
 export const STEP_ORDER = ["audio", "vad", "asr", "segment", "translate", "export", "summarize"] as const;
 export type QueueStep = (typeof STEP_ORDER)[number];
@@ -35,7 +36,7 @@ export interface BatchItem {
   readonly progress: number;
   readonly etaS: number | null;
   readonly attempts: number;
-  readonly error: string | null;
+  readonly error: Said | null;
   readonly audioS: number | null;
 }
 
@@ -120,7 +121,7 @@ export function parseItem(raw: unknown): BatchItem | null {
     progress: Math.min(1, Math.max(0, num(o["progress"]) ?? 0)),
     etaS: num(o["eta_s"]),
     attempts: num(o["attempts"]) ?? 0,
-    error: typeof error === "string" && error !== "" ? error : null,
+    error: typeof error === "string" && error !== "" ? saidField(o, "last_error") : null,
     audioS: num(o["audio_s"]),
   };
 }

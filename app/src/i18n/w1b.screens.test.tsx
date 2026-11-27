@@ -13,6 +13,7 @@ import { SettingsBar } from "../settings/SettingsBar";
 import { DEFAULTS } from "../settings/settings";
 import { I18nProvider } from "./I18nProvider";
 import type { Locale } from "./locale";
+import { NOT_ENGLISH } from "./notEnglish";
 
 /**
  * The names of the languages, the window title and the platform examples, in each released language.
@@ -129,7 +130,6 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef]/;
 const FIXTURE = "src/i18n/w1b.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W1B_FIXTURE"] === "write";
 interface Files {
@@ -243,8 +243,8 @@ describe.each(["zh-TW", "en"] as const)("W1b screens in %s", (locale) => {
       expect(Object.keys(seen).length).toBeGreaterThan(0);
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
-          expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
-          for (const a of h.attrs) expect(CJK.test(a), `${name} / ${label}: ${a}`).toBe(false);
+          expect(NOT_ENGLISH.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
+          for (const a of h.attrs) expect(NOT_ENGLISH.test(a), `${name} / ${label}: ${a}`).toBe(false);
         }
         return;
       }
@@ -308,7 +308,7 @@ describe("what the English window says", () => {
 describe("a Mac", () => {
   it("is shown a Mac path in the import box, in each language", () => {
     separator("/");
-    expect(render(wrap("en", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("Full path to the video, e.g. /Users/me/Movies/talk.mp4");
+    expect(render(wrap("en", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("Video path, e.g. /Users/me/Movies/talk.mp4");
     cleanup();
     expect(render(wrap("zh-TW", importBox())).getByTestId("video-path").getAttribute("placeholder")).toBe("影片的完整路徑，例如 /Users/me/Movies/talk.mp4");
   });

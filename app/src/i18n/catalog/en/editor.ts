@@ -12,11 +12,11 @@ export const editor = {
   "editor.problem.outOfOrder": "Starts before the previous subtitle",
   "editor.problem.sourceLocked": "The original can't be changed, only the translation and the times",
   "editor.problem.badText": "The text has extra spaces or line breaks",
-  "editor.tooLong": "{seconds} s long, over the 7-second limit",
+  "editor.tooLong": "{seconds} s is over the 7-second limit",
   "editor.outOfOrder": "Starts before the previous subtitle ({time})",
   "editor.overlapBefore": "Overlaps the previous subtitle, which ends at {time}",
   "editor.overlapAfter": "Overlaps the next subtitle, which starts at {time}",
   "editor.noBackend": "Can't reach the backend ({reason})",
-  "editor.busy": "A job is using this project, so it can't be saved right now ({reason})",
+  "editor.busy": "A job is using this project, so your change can't be saved right now ({reason})",
   "editor.undoFailed": "Couldn't undo: {reason}",
 } as const;

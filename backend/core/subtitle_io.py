@@ -668,7 +668,10 @@ def _parse_steps(raw: object, where: str) -> dict[Step, StepState]:
     for name, item in raw_steps.items():
         here = f"{where}.{name}"
         obj = _json_object(item, here)
-        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional={"key", "degraded"})
+        # `error_notices` was saved before this was released. It is accepted and dropped, because
+        # an earlier build refuses a step key it does not know and then hides the whole project.
+        optional = {"key", "degraded", "error_notices"}
+        _json_keys(obj, {"status", "updated_at_ms", "error"}, here, optional=optional)
         updated, error, key = obj["updated_at_ms"], obj["error"], obj.get("key")
         try:
             steps[Step(name)] = StepState(

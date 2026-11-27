@@ -4,6 +4,7 @@ import type { Backend } from "../api/client";
 import { useI18n, useT } from "../i18n/I18nProvider";
 import { HTML_LANG, type Locale, MACHINE_TRANSLATED, RELEASED_LOCALES, type UiLanguage } from "../i18n/locale";
 import { saveUiLanguage } from "../manage/api";
+import { type Said, said, word } from "../i18n/notice";
 
 /** A language written in itself, such as 日本語. The browser's own table, not ours. */
 function ownName(locale: Locale): string {
@@ -18,7 +19,7 @@ function ownName(locale: Locale): string {
 export function LanguageSection({ backend, released = RELEASED_LOCALES }: { backend: Backend; released?: readonly Locale[] }) {
   const { t } = useT();
   const i18n = useI18n();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const [saved, setSaved] = useState(false);
   if (!i18n) return null;
   const { uiLanguage, setUiLanguage } = i18n;
@@ -33,7 +34,7 @@ export function LanguageSection({ backend, released = RELEASED_LOCALES }: { back
       () => setSaved(true),
       (e: unknown) => {
         setUiLanguage(before);
-        setError(e instanceof Error ? e.message : String(e));
+        setError(said(e));
       },
     );
   };
@@ -72,7 +73,7 @@ export function LanguageSection({ backend, released = RELEASED_LOCALES }: { back
         )}
         {error && (
           <p className="note bad" role="alert" data-testid="language-error">
-            {t("language.failed", { reason: error })}
+            {t("language.failed", { reason: word(error, i18n.locale) })}
           </p>
         )}
       </div>

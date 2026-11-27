@@ -42,9 +42,10 @@ def test_nothing_is_missing_when_all_three_are_there(
 
 
 def test_the_message_names_the_download_and_no_dll_code():
-    assert vc_runtime.INFO_URL in vc_runtime.MESSAGE
-    assert "vc_redist.x64.exe" in vc_runtime.MESSAGE
-    assert "0xC0000135" not in vc_runtime.MESSAGE
+    assert vc_runtime.NOTICE.code == "runtime.vcMissing"
+    assert vc_runtime.INFO_URL in vc_runtime.NOTICE.message
+    assert "vc_redist.x64.exe" in vc_runtime.NOTICE.message
+    assert "0xC0000135" not in vc_runtime.NOTICE.message
 
 
 def test_the_self_test_stops_before_starting_anything(monkeypatch: pytest.MonkeyPatch):

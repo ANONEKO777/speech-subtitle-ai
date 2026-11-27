@@ -166,3 +166,19 @@ The terms of the player, its side column, the library and the help overlay.
 | start, end (of a subtitle) | 開始, 結束 | Start, End | The two times in the cue editor. |
 | undo | 復原 | undo | "Couldn't undo: ...". |
 | jump to | 跳到 | jump to | A chapter time in the summary: "Jump to 1:05:30". |
+
+## W4a: sentences from the backend and the shell
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| burned-in subtitles | 燒錄出來的字幕 | burned-in subtitles | The old backend sentences say 燒錄 and the window's menus say 燒入. Both are kept in Chinese. |
+| empty boxes | 空白方塊 | empty boxes | What a font with no glyph draws. |
+| glyph | 字形 | glyph | |
+| Optional features | 選用功能 | Optional features | The Windows settings page, quoted with its path: "Settings > System > Optional features". |
+| Japanese supplemental fonts | 「日文」的補充字型 | Japanese supplemental fonts | |
+| Media Feature Pack | 媒體功能套件 | Media Feature Pack | Microsoft's name. |
+| Font Book | 字體簿 | Font Book | Apple's name. |
+| runtimes folder | 執行檔資料夾 | runtimes folder | "Runtime" is the glossary word for 執行環境 and 執行檔. |
+| update source | 更新來源 | update source | |
+| signature | 簽章 | signature | |
+| backend | 後端 | backend | |

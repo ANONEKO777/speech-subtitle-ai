@@ -14,12 +14,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.api import inventory, profile, runtimes, settings
+from backend.core.notices import CLOUD_KEY_UNAVAILABLE
 from backend.manager import registry as registry_module
 from backend.manager.context import build_context
 from backend.manager.hardware import Hardware
 from backend.manager.platforms import MACOS_ARM64
 from backend.manager.profiles import ProfileId
-from backend.manager.secrets import KEY_NOT_AVAILABLE_MESSAGE, UnavailableSecretStore
+from backend.manager.secrets import UnavailableSecretStore
 from backend.manager.switch import download_missing, requirements
 
 MAC = registry_module.load(platform=MACOS_ARM64)
@@ -122,7 +123,7 @@ def test_saving_a_cloud_key_on_a_mac_is_a_422_with_the_plain_refusal(client: Any
     )
 
     assert reply.status_code == 422
-    assert reply.json()["detail"] == KEY_NOT_AVAILABLE_MESSAGE
+    assert reply.json()["detail"] == CLOUD_KEY_UNAVAILABLE().message
     assert "sk-secret-123" not in reply.text
 
 
@@ -220,7 +221,7 @@ def test_a_whisper_found_on_path_is_listed_with_where_and_the_delete_leaves_it_a
     for reply in (plain, forced):
         assert reply.status_code == 400
         assert reply.json()["detail"]["can_force"] is False
-        assert "沒有刪它" in reply.json()["detail"]["message"]
+        assert "The app didn't delete whisper-cli" in reply.json()["detail"]["message"]
         assert str(program.parent) in reply.json()["detail"]["message"]
     assert program.read_bytes() == b"x"
 

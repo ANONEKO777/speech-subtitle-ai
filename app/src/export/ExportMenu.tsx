@@ -4,6 +4,7 @@ import { saveExport } from "../api/backend";
 import type { Backend } from "../api/client";
 import { useT } from "../i18n/I18nProvider";
 import { type ExportItem, NoSummary } from "./exports";
+import { said, word } from "../i18n/notice";
 
 /** A menu entry that starts something instead of saving a file. */
 export interface ExportAction {
@@ -23,7 +24,7 @@ interface Props {
 }
 
 export function ExportMenu({ backend, projectId, items, actions = [], onResult }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -44,7 +45,7 @@ export function ExportMenu({ backend, projectId, items, actions = [], onResult }
       const path = await saveExport(item.file, await item.text(backend, projectId));
       onResult(path ? t("export.done", { path }) : t("export.cancelled"));
     } catch (e) {
-      const reason = e instanceof NoSummary ? t("export.noSummary") : e instanceof Error ? e.message : String(e);
+      const reason = e instanceof NoSummary ? t("export.noSummary") : word(said(e), locale);
       onResult(t("export.failed", { reason }));
     } finally {
       setBusy(false);

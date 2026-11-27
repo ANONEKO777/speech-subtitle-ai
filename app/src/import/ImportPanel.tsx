@@ -110,7 +110,7 @@ export function ImportPanel({ busy, sourceLang, unavailable, onSourceLang, targe
   const [path, setPath] = useState("");
 
   async function browse() {
-    const picked = await pickVideo();
+    const picked = await pickVideo(t("shell.mediaFilter"));
     if (picked) setPath(picked);
   }
 

@@ -724,12 +724,8 @@ def run(
                 )
             except BaseException as exc:
                 cancelled = stop.is_set() or isinstance(exc, KeyboardInterrupt | Cancelled)
-                store.mark(
-                    spec.step,
-                    StepStatus.FAILED,
-                    key,
-                    "cancelled" if cancelled else f"{type(exc).__name__}: {exc}",
-                )
+                error = "cancelled" if cancelled else f"{type(exc).__name__}: {exc}"
+                store.mark(spec.step, StepStatus.FAILED, key, error)
                 if cancelled and isinstance(exc, Exception) and not isinstance(exc, Cancelled):
                     raise Cancelled(f"{spec.step.value} was cancelled") from exc
                 if isinstance(exc, Exception) and not isinstance(exc, Cancelled):

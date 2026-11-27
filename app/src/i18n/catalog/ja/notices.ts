@@ -1,0 +1,31 @@
+// Machine translation. No native speaker has read it.
+import type { notices as en } from "../en/notices";
+
+export const notices = {
+  "notice.fonts.missingGlyphs": "フォント {font} には次の文字の字形がありません：{chars}。焼き込んだ字幕は空白の四角になります。これらの文字を含むフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.fonts.missingTargetGlyphs": "フォント {font} には{language}の字幕に必要な字形がありません：{chars}。焼き込んだ字幕は空白の四角になります。{language}に対応したフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.fonts.noJapaneseMac": "この Mac には日本語字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ日本語は空白の四角になります。「Font Book」で日本語フォント（Hiragino Sans や Yu Gothic など）をインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.fonts.noJapaneseWindows": "このパソコンには日本語字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ日本語は空白の四角になります。「設定 > 個人用設定 > フォント」で日本語フォント（Yu Gothic や Meiryo など）をインストールするか、「設定 > システム > オプション機能」で日本語の補助フォントを追加してから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.fonts.noTargetFont": "このパソコンには{language}の字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ字幕は空白の四角になります。{language}に対応したフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.platform.unsupported": "このアプリが対応しているのは Windows（64 ビット）と Apple シリコン搭載の Mac（M1 以降）だけです。このコンピューターは {system} {machine} です。Intel 版 Mac と Linux にはまだ対応していません。",
+  "notice.render.noH264Mac": "この Mac の ffmpeg には使用できる H.264 エンコーダーがないため、字幕を動画に焼き込めません。ターミナルで brew install ffmpeg を実行して完全版の ffmpeg をインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.render.noH264Windows": "このパソコンの Windows には H.264 エンコーダーがないため、字幕を動画に焼き込めません。「設定 > システム > オプション機能」で「メディア機能パック」をインストールする（Windows N または KN エディションのみ必要）か、Windows Update を実行してから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
+  "notice.runtime.foundElsewhere": "{program} は {where} で見つかりました。アプリのランタイムフォルダー（{folder}）内ではないため、アプリは削除していません。削除する場合はご自身で行ってください（Homebrew でインストールした場合は brew uninstall を使います）。",
+  "notice.runtime.localBuild": "このプラットフォーム向けにダウンロードできる {engine} のプログラムはないため、このコンピューターで一度ビルドする必要があります。プロジェクトフォルダーで {script} を実行してください（手順は docs/MACOS.md）。ビルドした {program} は {folder} に置かれます。PATH 上にあっても見つかります。",
+  "notice.runtime.vcMissing": "このパソコンには Microsoft Visual C++ 再頒布可能パッケージ（x64）がないため、音声認識と翻訳のプログラムを起動できません。{url} から「vc_redist.x64.exe」をダウンロードしてインストールしてから、もう一度お試しください。",
+  "notice.secrets.cloudKeyUnavailable": "このバージョンでは、Mac でクラウドの API キーをまだ保存できません。ローカルモデル（既定）か Ollama を使ってください。クラウドキーの保存は今後追加します。",
+  "notice.shell.backend.exitedEarly": "バックエンドは準備が整う前に終了しました。\n{detail}",
+  "notice.shell.backend.spawnFailed": "バックエンドを起動できません：{error}",
+  "notice.shell.backend.stopped": "バックエンドが停止し、何度再起動しても復旧しませんでした。アプリを閉じてから開き直してください。",
+  "notice.shell.update.badSignature": "ダウンロードした更新ファイルの署名が一致しないため破棄しました。インストールはされません。プロジェクトのページからインストーラーをダウンロードし直してください。",
+  "notice.shell.update.badUrl": "VST_UPDATE_URL が有効なアドレスではありません。",
+  "notice.shell.update.checkFirst": "先に更新を確認してください。",
+  "notice.shell.update.incomplete": "更新は完了しませんでした。しばらくしてからもう一度試すか、プロジェクトのページからインストーラーをダウンロードし直してください。",
+  "notice.shell.update.noSource": "このバージョンには更新元が設定されていないため、更新を確認できません。",
+  "notice.shell.update.notDownloaded": "更新ファイルのダウンロードがまだ完了していません。",
+  "notice.shell.update.notUpdateInfo": "更新元から返されたのは更新情報ではありません（アドレスが無効になっているか、先にサインインが必要な可能性があります）。しばらくしてからもう一度試すか、プロジェクトのページからインストーラーをダウンロードし直してください。",
+  "notice.shell.update.stalled": "更新ファイルのダウンロード中にデータが届かなくなったため、中止しました。ネットワーク接続を確認して、もう一度「ダウンロード」を押してください。",
+  "notice.shell.update.timeout": "更新サーバーが 10 秒以内に応答しませんでした。しばらくしてからもう一度お試しください。",
+  "notice.shell.update.unreachable": "更新サーバーに接続できません。ネットワーク接続を確認して、しばらくしてからもう一度お試しください。",
+  "notice.shell.update.unsupported": "このプラットフォームにはまだ自動更新がありません。プロジェクトのページから新しいインストーラーをダウンロードして、現在のアプリと置き換えてください。",
+} satisfies Record<keyof typeof en, string>;

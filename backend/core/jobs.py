@@ -21,6 +21,7 @@ from pathlib import Path
 
 from backend.core.languages import DEFAULT_CODE
 from backend.core.model import DEFAULT_SOURCE, Step
+from backend.core.notices import Notice, from_json, notices_of, to_json
 from backend.core.pipeline import (
     Cancelled,
     PipelineError,
@@ -189,6 +190,7 @@ class Job:
         self._step: Step | None = None
         self._overall = 0.0
         self._error: str | None = None
+        self._error_notices: tuple[Notice, ...] = ()
         self._lock = threading.Lock()
         self.log.append(EventKind.STATUS, {"status": JobStatus.QUEUED.value})
 
@@ -207,6 +209,7 @@ class Job:
                 "step": self._step.value if self._step else None,
                 "overall": self._overall,
                 "error": self._error,
+                "error_notices": to_json(self._error_notices),
                 "created_at_ms": self.created_at_ms,
             }
 
@@ -256,6 +259,7 @@ class Job:
         self._status = status
         if status is JobStatus.FAILED:
             self._error = str(data.get("error"))
+            self._error_notices = from_json(data.get("error_notices"))
         if status is JobStatus.DONE:
             self._overall = 1.0
         self.outcome = data
@@ -331,6 +335,10 @@ class JobBook:
             job.finish(JobStatus.CANCELLED, EventKind.CANCELLED, {})
 
 
+def _failure(error: str, exc: Exception) -> dict[str, object]:
+    return {"error": error, "error_notices": to_json(notices_of(exc, error))}
+
+
 def _work(job: Job, video: Path, folder: Path, settings: Settings, ports: Ports) -> None:
     if not job.start():
         return
@@ -339,9 +347,11 @@ def _work(job: Job, video: Path, folder: Path, settings: Settings, ports: Ports)
     except Cancelled:
         job.finish(JobStatus.CANCELLED, EventKind.CANCELLED, {})
     except PipelineError as exc:
-        job.finish(JobStatus.FAILED, EventKind.FAILED, {"error": str(exc), "step": exc.step.value})
+        data = _failure(str(exc), exc) | {"step": exc.step.value}
+        job.finish(JobStatus.FAILED, EventKind.FAILED, data)
     except Exception as exc:
         log.exception("job %s crashed", job.id)
-        job.finish(JobStatus.FAILED, EventKind.FAILED, {"error": f"{type(exc).__name__}: {exc}"})
+        data = _failure(f"{type(exc).__name__}: {exc}", exc)
+        job.finish(JobStatus.FAILED, EventKind.FAILED, data)
     else:
         job.finish(JobStatus.DONE, EventKind.DONE, {"report": _report_json(report)})

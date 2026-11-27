@@ -1,6 +1,6 @@
 import { CircleAlert, Download, HardDriveDownload, RefreshCw, RotateCcw, ShieldCheck, Trash2, Wrench, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type Backend, ApiError } from "../api/client";
+import { ApiError, type Backend } from "../api/client";
 import type { Translate } from "../i18n";
 import { useT } from "../i18n/I18nProvider";
 import {
@@ -21,25 +21,27 @@ import type { Downloads } from "../manage/useDownloads";
 import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/types";
 import { DeleteDialog } from "./DeleteDialog";
 import { type RowAction, rowActions, shaText, stateText } from "./rules";
+import type { Locale } from "../i18n/locale";
+import { type Said, plainText, said, word } from "../i18n/notice";
 
 /** What a row action left to say. Kept as data and worded at render, so a language switch re-words it. */
 type Note =
   | { readonly kind: "verified"; readonly ok: boolean }
   | { readonly kind: "repaired"; readonly action: string; readonly reason: string }
-  | { readonly kind: "refused"; readonly message: string; readonly blockers: readonly string[] };
+  | { readonly kind: "refused"; readonly message: Said; readonly blockers: readonly string[] };
 
 type Working = Exclude<RowAction, "delete">;
 
 const isBad = (note: Note): boolean => (note.kind === "verified" ? !note.ok : note.kind === "refused");
 
-function noteText(note: Note, t: Translate): string {
+function noteText(note: Note, t: Translate, locale: Locale): string {
   switch (note.kind) {
     case "verified":
       return note.ok ? t("models.verify.ok") : t("models.verify.bad", { repair: t("models.action.repair") });
     case "repaired":
       return note.reason ? t("models.repaired.reason", { action: note.action, reason: note.reason }) : t("models.repaired", { action: note.action });
     case "refused":
-      return [note.message, ...note.blockers].join(t("models.blockerSeparator"));
+      return [word(note.message, locale), ...note.blockers].join(t("models.blockerSeparator"));
   }
 }
 
@@ -57,7 +59,7 @@ const ACTION_ICON: Record<RowAction, typeof Download> = {
 export function ModelsSection({ backend, downloads }: { backend: Backend; downloads: Downloads }) {
   const { t, plural, locale } = useT();
   const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Said | null>(null);
   const [busy, setBusy] = useState<ReadonlyMap<string, Working>>(new Map());
   const [notes, setNotes] = useState<ReadonlyMap<string, Note>>(new Map());
   const [updates, setUpdates] = useState<UpdateReport | null>(null);
@@ -69,7 +71,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       setInventory(await fetchInventory(backend));
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(said(e));
     }
   }, [backend]);
 
@@ -148,7 +150,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       setError(null);
     } catch (e) {
       setUpdates(null);
-      setError(e instanceof ApiError ? e.message : String(e));
+      setError(e instanceof ApiError ? said(e) : plainText(String(e)));
     } finally {
       setChecking(false);
     }
@@ -177,7 +179,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
       {error && (
         <p className="note bad" role="alert" data-testid="inv-error">
           <CircleAlert className="icon" aria-hidden />
-          {error}
+          {word(error, locale)}
         </p>
       )}
       {updates && (
@@ -320,7 +322,7 @@ export function ModelsSection({ backend, downloads }: { backend: Backend; downlo
                       {working && <span className="sub">{t(`models.working.${working}`)}</span>}
                       {note && (
                         <span className={`sub note-line ${isBad(note) ? "bad" : "ok"}`} role={isBad(note) ? "alert" : "status"} data-testid={`inv-${asset.id}-note`}>
-                          {noteText(note, t)}
+                          {noteText(note, t, locale)}
                         </span>
                       )}
                       {!note && job?.failure && !live && (

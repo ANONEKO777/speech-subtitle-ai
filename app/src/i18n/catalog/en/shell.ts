@@ -3,6 +3,7 @@ export const shell = {
   "common.close": "Close",
   "common.listSeparator": ", ",
   "app.title": "Video Subtitle Translator",
+  "shell.mediaFilter": "Videos and audio",
   "app.starting": "Starting the backend…",
   "app.checkingModels": "Checking models…",
   "app.ready": "Backend ready",

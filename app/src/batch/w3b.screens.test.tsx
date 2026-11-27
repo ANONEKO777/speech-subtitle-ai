@@ -18,6 +18,8 @@ import { BatchPanel } from "./BatchPanel";
 import { CountdownModal } from "./CountdownModal";
 import { EMPTY_BATCH, type Batch, type BatchItem } from "./model";
 import { TargetChoice } from "./TargetChoice";
+import { NOT_ENGLISH } from "../i18n/notEnglish";
+import { plainText } from "../i18n/said";
 
 /**
  * The queue, the batch dialog, the power countdown, the cue editor, the export menu and the summary,
@@ -78,7 +80,7 @@ const ITEMS: readonly BatchItem[] = [
   item("starting", { state: "running", lang: "th" }),
   item("paused", { state: "paused", lang: "zh-CN", progress: 0.2 }),
   item("done", { state: "done", progress: 1, lang: "en", sourceLang: "ja" }),
-  item("failed", { state: "failed", error: "CUDA error: out of memory. See https://example.com/help" }),
+  item("failed", { state: "failed", error: plainText("CUDA error: out of memory. See https://example.com/help") }),
   item("cancelled", { state: "cancelled" }),
 ];
 const loadedBatch = (patch: Partial<Batch>): Batch => ({ ...EMPTY_BATCH, loaded: true, link: "live", ...patch });
@@ -166,8 +168,6 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-/** Thai, Hangul (jamo and syllables), kana, Han and full-width characters: what an English window must not show. */
-const NOT_ENGLISH = /[\u0e00-\u0e7f\u1100-\u11ff\u3000-\u303f\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\ua960-\ua97f\uac00-\ud7ff\uff00-\uffef]/;
 const FIXTURE = "src/batch/w3b.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W3B_FIXTURE"] === "write";
 interface Files {
@@ -412,9 +412,37 @@ describe("what the English window says", () => {
     panel("en", loadedBatch({}));
     change("ondone-select", "shutdown");
     expect(screen.getByTestId("ondone-warn").textContent).toBe(
-      "Shutting down interrupts everything else running on the computer. When the batch finishes, the computer first counts down 60 seconds, and you can press Cancel to stop it. If you don't, it shuts down, and any unsaved work is lost.I understand, and I agree to shut down the computer when the batch finishesCancelTurn on",
+      "Shutting down interrupts everything else running on the computer. When the batch finishes, the computer first counts down 60 seconds, and you can press Cancel to stop the countdown. If you don't cancel, the computer shuts down, and any unsaved work is lost.I understand, and I agree to shut down the computer when the batch finishesCancelTurn on",
     );
     expect(screen.getByTestId("ondone-confirm").hasAttribute("disabled")).toBe(true);
+  });
+
+  it.each([
+    {
+      action: "sleep",
+      armed: "On: when everything is done, the computer goes to sleep after a 60-second countdown you can cancel.",
+      warn: "Sleep interrupts everything else running on the computer. When the batch finishes, the computer first counts down 60 seconds, and you can press Cancel to stop the countdown. If you don't cancel, the computer goes to sleep, and nothing is processed while it sleeps.",
+      agree: "I understand, and I agree to put the computer to sleep when the batch finishes",
+      cancel: "Cancel, don't sleep",
+    },
+    {
+      action: "shutdown",
+      armed: "On: when everything is done, the computer shuts down after a 60-second countdown you can cancel.",
+      warn: "Shutting down interrupts everything else running on the computer. When the batch finishes, the computer first counts down 60 seconds, and you can press Cancel to stop the countdown. If you don't cancel, the computer shuts down, and any unsaved work is lost.",
+      agree: "I understand, and I agree to shut down the computer when the batch finishes",
+      cancel: "Cancel, don't shut down",
+    },
+  ] as const)("says every piece of safety text for $action", ({ action, armed, warn, agree, cancel }) => {
+    const on = panel("en", loadedBatch({ settings: { onDone: action, allowPower: true } }));
+    expect(screen.getByTestId("ondone-armed").textContent).toBe(armed);
+    on.unmount();
+    panel("en", loadedBatch({}));
+    change("ondone-select", action);
+    expect(screen.getByTestId("ondone-warn").querySelector("p")?.textContent).toBe(warn);
+    expect(screen.getByTestId("ondone-agree").closest("label")?.textContent).toBe(agree);
+    cleanup();
+    render(wrap("en", <CountdownModal countdown={{ action, deadlineMs: Date.now() + 42_000 }} onCancel={() => undefined} />));
+    expect(screen.getByTestId("countdown-cancel").textContent).toBe(cancel);
   });
 
   it("counts the seconds before sleep with the right plural", () => {
@@ -468,6 +496,28 @@ describe("what the English window says", () => {
     change("edit-end", "0:05.500");
     expect(screen.getByTestId("edit-error").textContent).toBe("Overlaps the next subtitle, which starts at 0:05.000");
     expect(container.querySelector(".editor-hint")?.textContent).toBe("Enter to save · Shift+Enter for a new line · Esc to cancel");
+  });
+});
+
+describe("the message for each problem code the backend sends about a cue", () => {
+  it.each([
+    ["empty", "文字不能是空的", "The text can't be empty"],
+    ["end_before_start", "結束時間早於開始時間", "The end is before the start"],
+    ["too_long", "超過 7 秒的上限", "Longer than the 7-second limit"],
+    ["overlap", "與相鄰的字幕重疊", "Overlaps a neighboring subtitle"],
+    ["out_of_order", "開始時間早於上一條", "Starts before the previous subtitle"],
+    ["english_changed", "原文不能修改，只能改譯文和時間", "The original can't be changed, only the translation and the times"],
+    ["bad_text", "文字有多餘的空白或換行", "The text has extra spaces or line breaks"],
+  ])("%s", async (code, zhTW, en) => {
+    replies = { "PUT /api/projects/p/subtitles": { status: 422, body: { detail: { problems: [{ id: 2, code, message: "backend words" }] } } } };
+    for (const [locale, expected] of [["zh-TW", zhTW], ["en", en]] as const) {
+      const { unmount } = render(wrap(locale, <Editing id={2} />));
+      fireEvent.click(screen.getByTestId("begin"));
+      change("edit-text", "Two, changed.");
+      fireEvent.keyDown(screen.getByTestId("edit-text"), { key: "Enter" });
+      await waitFor(() => expect(screen.getByTestId("edit-error").textContent).toBe(expected));
+      unmount();
+    }
   });
 });
 

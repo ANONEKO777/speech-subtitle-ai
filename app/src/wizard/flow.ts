@@ -1,11 +1,12 @@
 import type { DownloadJob, ProfileId, ProfileView, SelfTest } from "../manage/types";
+import type { Said } from "../i18n/said";
 
-/** What went wrong, as the screen words it: backend or shell text shown as it came, or a failed download the screen names. */
-export type WizardError = string | { readonly assetId: string; readonly message: string | null };
+/** What went wrong, as the screen words it: backend or shell text with its notices, or a failed download the screen names. */
+export type WizardError = Said | { readonly assetId: string; readonly message: string | null };
 
 export type WizardState =
   | { readonly step: "detect" }
-  | { readonly step: "detect-failed"; readonly error: string }
+  | { readonly step: "detect-failed"; readonly error: Said }
   | { readonly step: "choose"; readonly view: ProfileView; readonly selected: ProfileId }
   | {
       readonly step: "download";
@@ -22,24 +23,24 @@ export type WizardState =
       readonly view: ProfileView;
       readonly selected: ProfileId;
       readonly test: SelfTest | null;
-      readonly error: string | null;
+      readonly error: Said | null;
     }
   | { readonly step: "finished" }
   | { readonly step: "skipped" };
 
 export type WizardEvent =
   | { readonly type: "loaded"; readonly view: ProfileView }
-  | { readonly type: "loadFailed"; readonly error: string }
+  | { readonly type: "loadFailed"; readonly error: Said }
   | { readonly type: "select"; readonly profile: ProfileId }
   | { readonly type: "start" }
   | { readonly type: "started"; readonly jobIds: readonly string[] }
-  | { readonly type: "startFailed"; readonly error: string }
+  | { readonly type: "startFailed"; readonly error: Said }
   | { readonly type: "polled"; readonly jobs: readonly DownloadJob[] }
   | { readonly type: "cancelDownload" }
   | { readonly type: "retry" }
   | { readonly type: "back" }
   | { readonly type: "selfTested"; readonly test: SelfTest }
-  | { readonly type: "selfTestFailed"; readonly error: string | null }
+  | { readonly type: "selfTestFailed"; readonly error: Said | null }
   | { readonly type: "rerunSelfTest" }
   | { readonly type: "finish" }
   | { readonly type: "skip" };

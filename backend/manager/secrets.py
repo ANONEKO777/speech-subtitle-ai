@@ -12,6 +12,7 @@ from ctypes import wintypes
 from pathlib import Path
 from typing import Protocol
 
+from backend.core.notices import CLOUD_KEY_UNAVAILABLE, noticed
 from backend.manager.platforms import WIN_X64, detect_platform
 
 SECRETS_DIR = "secrets"
@@ -112,12 +113,6 @@ class MemorySecretStore:
         self._values.pop(name, None)
 
 
-KEY_NOT_AVAILABLE_MESSAGE = (
-    "這個版本在 Mac 上還不能儲存雲端 API 金鑰。請改用本機模型（預設）或 Ollama；"
-    "雲端金鑰的儲存之後會再加上。"
-)
-
-
 class UnavailableSecretStore:
     """For a platform with no key store yet (macOS): nothing is saved and saving says so in plain
     words, so the settings page shows a refusal and not an error. Reading finds no key."""
@@ -126,7 +121,7 @@ class UnavailableSecretStore:
         return None
 
     def set(self, name: str, value: str) -> None:
-        raise SecretError(KEY_NOT_AVAILABLE_MESSAGE)
+        raise noticed(SecretError, CLOUD_KEY_UNAVAILABLE())
 
     def clear(self, name: str) -> None:
         return None

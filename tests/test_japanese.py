@@ -22,6 +22,7 @@ from backend.core.fonts import FontMissing, Lookup, burn_font, file_covers, wind
 from backend.core.kana import romanize_katakana
 from backend.core.languages import get as get_language
 from backend.core.model import Cue, FormatError, Project, Segment, Step, Word
+from backend.core.notices import notices_of
 from backend.core.pipeline import STEPS, Settings, derive_key, run
 from backend.core.segmenter import CueRules, merge_words, to_cues, violations
 from backend.core.source_langs import (
@@ -767,8 +768,10 @@ class TestBurnFont:
         assert burn_font(self.JA, lookup) == "Meiryo"
 
     def test_a_pc_with_no_japanese_font_is_told_so(self) -> None:
-        with pytest.raises(FontMissing, match="Yu Gothic、Meiryo、MS Gothic"):
+        with pytest.raises(FontMissing, match="Yu Gothic, Meiryo, MS Gothic") as caught:
             burn_font(self.JA, self.installed())
+        [notice] = notices_of(caught.value)
+        assert notice.params == {"fonts": ["Yu Gothic", "Meiryo", "MS Gothic"]}
 
     def test_a_missing_glyph_is_named(self) -> None:
         lookup = self.installed({"Yu Gothic": {"語", "本"}, "Meiryo": {"語"}})

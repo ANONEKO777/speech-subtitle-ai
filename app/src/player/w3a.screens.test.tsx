@@ -9,6 +9,8 @@ import { DEFAULTS } from "../settings/settings";
 import { Library } from "./Library";
 import { BurnCard } from "./Overlays";
 import { Player } from "./Player";
+import { NOT_ENGLISH } from "../i18n/notEnglish";
+import { plainText } from "../i18n/said";
 
 /**
  * The player (W3a) rendered in each released language. Traditional Chinese must equal what the player said
@@ -45,7 +47,7 @@ vi.mock("../api/library", async (orig) => ({
       mocks.burn === "done"
         ? { id: "b1", state: "done", percent: 100, output: "C:/Shots/out.mp4", error: null }
         : mocks.burn === "failed"
-          ? { id: "b1", state: "failed", percent: 40, output: "", error: "disk full" }
+          ? { id: "b1", state: "failed", percent: 40, output: "", error: { text: "disk full", notices: [] } }
           : { id: "b1", state: "cancelled", percent: 40, output: "", error: null },
     ),
   cancelBurn: () => Promise.resolve(),
@@ -75,7 +77,6 @@ function harvest(root: Element): Harvest {
   return { text, attrs };
 }
 
-const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]/;
 
 const FIXTURE = "src/player/w3a.screens.zh-TW.fixture.json";
 const WRITE = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env["W3A_FIXTURE"] === "write";
@@ -329,7 +330,7 @@ const SCREENS: Record<string, Screen> = {
     const first = render(wrap(locale, <BurnCard view={running} error={null} onCancel={() => undefined} />));
     shot("running", first.container);
     first.unmount();
-    const second = render(wrap(locale, <BurnCard view={null} error="ffmpeg stopped" onCancel={() => undefined} />));
+    const second = render(wrap(locale, <BurnCard view={null} error={plainText("ffmpeg stopped")} onCancel={() => undefined} />));
     shot("error", second.container);
   },
   "a video the player cannot play": async (shot, locale) => {
@@ -408,8 +409,8 @@ describe.each(["zh-TW", "en"] as const)("W3a screens in %s", (locale) => {
       expect(Object.keys(seen).length).toBeGreaterThan(0);
       if (locale === "en") {
         for (const [label, h] of Object.entries(seen)) {
-          expect(CJK.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
-          for (const a of h.attrs) expect(CJK.test(a), `${name} / ${label}: ${a}`).toBe(false);
+          expect(NOT_ENGLISH.test(h.text), `${name} / ${label}: ${h.text}`).toBe(false);
+          for (const a of h.attrs) expect(NOT_ENGLISH.test(a), `${name} / ${label}: ${a}`).toBe(false);
         }
         return;
       }

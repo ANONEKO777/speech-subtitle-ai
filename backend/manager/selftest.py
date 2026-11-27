@@ -15,10 +15,11 @@ import sys
 import tempfile
 import time
 import wave
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from backend.core import vc_runtime
+from backend.core.notices import Notice, notices_of, unique
 from backend.core.process_guard import adopt
 from backend.manager.profiles import Device, Profile, Stage, runtime_set
 from backend.manager.registry import Registry
@@ -137,16 +138,14 @@ def _attempt(
             )
             continue
         started = time.monotonic()
+        notices: tuple[Notice, ...] = ()
         try:
             note = probe(stage, program, model, device, PROBE_TIMEOUT_S)
             ok = True
         except ProbeFailed as exc:
-            note, ok = str(exc), False
-        results.append(
-            StageResult(
-                stage, runtime_id, device, True, ok, round(time.monotonic() - started, 2), note
-            )
-        )
+            note, ok, notices = str(exc), False, notices_of(exc)
+        seconds = round(time.monotonic() - started, 2)
+        results.append(StageResult(stage, runtime_id, device, True, ok, seconds, note, notices))
     return results
 
 
@@ -161,6 +160,11 @@ def _all_ok(results: list[StageResult]) -> bool:
 
 def _names(results: list[StageResult]) -> str:
     return "; ".join(f"{r.stage.upper()} ({r.runtime_id}): {r.detail}" for r in results if not r.ok)
+
+
+def _notices(results: Sequence[StageResult]) -> tuple[Notice, ...]:
+    """The notices in the sentence `_names` makes of the failed results."""
+    return unique(n for r in results if not r.ok for n in r.detail_notices)
 
 
 def run_selftest(
@@ -185,7 +189,7 @@ def run_selftest(
         if all(r.installed for r in cpu):
             failed = tuple(r for r in first if not r.ok)
             reason = f"The GPU backend failed: {_names(first)}. The CPU backend is used instead."
-            fallback = Fallback(reason, failed)
+            fallback = Fallback(reason, failed, _notices(failed))
             device = Device.CPU
             stages = cpu
             message = (
@@ -208,6 +212,7 @@ def run_selftest(
         fallback=fallback,
         seconds=round(time.monotonic() - started, 2),
         message=message,
+        message_notices=_notices([*first, *stages]),
     )
     store.save(report)
     return report
