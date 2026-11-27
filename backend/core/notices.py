@@ -72,7 +72,7 @@ _REGISTRY: dict[str, Template] = {}
 REGISTRY: Mapping[str, Template] = MappingProxyType(_REGISTRY)
 
 
-def _template(code: str, english: str, **params: ParamKind) -> Template:
+def _template(code: str, english: str, /, **params: ParamKind) -> Template:
     if code in _REGISTRY:
         raise ValueError(f"the notice code {code!r} is registered twice")
     made = _REGISTRY[code] = Template(code, english, MappingProxyType(params))
@@ -262,6 +262,54 @@ CLOUD_LLM_RECOMMENDED = _template(
     "profile.cloudRecommended", "Cloud LLM:     recommended, only after you opt in"
 )
 CLOUD_LLM_OPTIONAL = _template("profile.cloudOptional", "Cloud LLM:     optional")
+
+# The self-test (`manager/selftest.py`): a program that did not run, what each stage said, and the
+# sentences around them. A wrapper quotes the stage sentences in a text parameter, and the window
+# words them because each is a notice of its own, listed after the wrapper.
+PROGRAM_CANNOT_START = _template(
+    "program.cannotStart", "cannot start {program}: {error}", program="text", error="text"
+)
+PROGRAM_TIMED_OUT = _template(
+    "program.timedOut", "{program} did not finish in {seconds} s", program="text", seconds="text"
+)
+PROGRAM_EXITED = _template(
+    "selftest.exited",
+    "{program} exited with code {code}: {output}",
+    program="text",
+    code="text",
+    output="text",
+)
+SIMULATED_CUDA_FAILURE = _template(
+    "selftest.simulated", "CUDA failed to initialise (simulated by {variable})", variable="text"
+)
+WHISPER_USED_THE_CPU = _template(
+    "selftest.whisperUsedCpu", "whisper.cpp ran without the CUDA backend and used the CPU instead"
+)
+NO_CUDA_DEVICE = _template("selftest.noCudaDevice", "llama-server lists no CUDA device")
+HEARD_SILENCE = _template("selftest.asrNote", "transcribed one second of silence")
+SEES_CUDA = _template("selftest.cudaSeen", "llama-server sees a CUDA device")
+LLAMA_STARTS = _template("selftest.llamaStarts", "llama-server starts")
+STAGE_NOT_INSTALLED = _template("selftest.notInstalled", "not installed: {missing}", missing="list")
+SELFTEST_PASSED = _template("selftest.passed", "Self-test passed on {device}.", device="text")
+SELFTEST_FAILED = _template("selftest.failed", "Self-test failed: {failures}.", failures="text")
+_FELL_BACK = "The GPU backend failed: {failures}. The CPU backend is used instead."
+GPU_FELL_BACK = _template("selftest.gpuFellBack", _FELL_BACK, failures="text")
+FELL_BACK_AND_PASSED = _template(
+    "selftest.fellBackPassed", _FELL_BACK + " The CPU self-test passed.", failures="text"
+)
+FELL_BACK_AND_UNUSABLE = _template(
+    "selftest.fellBackUnusable",
+    _FELL_BACK + " The CPU backend is not usable either: {cpuFailures}.",
+    failures="text",
+    cpuFailures="text",
+)
+NO_CPU_FALLBACK = _template(
+    "selftest.noCpuRuntime",
+    "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to "
+    "have a CPU fallback.",
+    failures="text",
+    download="list",
+)
 
 _NOTICE = "_notice"
 E = TypeVar("E", bound=BaseException)

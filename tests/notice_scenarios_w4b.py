@@ -15,17 +15,23 @@ Paths are written with `/`, so the fixture is the same on every system.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from notice_scenarios import _slashes
 
-from backend.manager import platforms, profiles
+from backend.core import vc_runtime
+from backend.manager import platforms, profiles, selftest
 from backend.manager import registry as registry_module
 from backend.manager.hardware import Hardware
 from backend.manager.profiles import ProfileId
+from backend.manager.selftest_store import SelfTestStore
+from backend.manager.storage import Storage
 
 Entry = dict[str, Any]
 
@@ -78,9 +84,98 @@ def _profiles(found: dict[str, Entry]) -> None:
         )
 
 
+# Group 2: the self-test, each report made by `run_selftest` with the real probe.
+
+PROGRAM = Path("/vst/program.exe")
+
+
+class _Program:
+    """Stands in for `subprocess.Popen`: it ends as `how` says without starting anything."""
+
+    def __init__(self, how: str) -> None:
+        self.how, self.waits = how, 0
+        self.returncode = 3 if how == "exits" else 0
+
+    def communicate(self, timeout: float | None = None) -> tuple[bytes, None]:
+        self.waits += 1
+        if self.how == "hangs" and self.waits == 1:
+            raise subprocess.TimeoutExpired("program", timeout or 0)
+        said = {"exits": b"ggml error\nno kernel image", "cudaOk": b"CUDA0", "noCuda": b"none"}
+        return said.get(self.how, b""), None
+
+    def kill(self) -> None:
+        pass
+
+
+def _start(gpu: str, cpu: str) -> Callable[..., _Program]:
+    """`gpu` and `cpu` say how a program ends on that device. A CPU command is told apart from a
+    GPU one by its flags."""
+
+    def popen(command: list[str], **_kwargs: object) -> _Program:
+        how = cpu if "-ng" in command or "--version" in command else gpu
+        if how == "missing":
+            raise OSError("The system cannot find the file specified")
+        return _Program(how)
+
+    return popen
+
+
+def _report(
+    name: str,
+    profile_id: ProfileId,
+    tmp: Path,
+    found: dict[str, Entry],
+    *,
+    gpu: str = "cudaOk",
+    cpu: str = "ok",
+    absent: tuple[str, ...] = (),
+    simulate: bool = False,
+) -> None:
+    registry = registry_module.load(platform=platforms.WIN_X64)
+    profile = next(p for p in profiles.profiles_for(platforms.WIN_X64) if p.id is profile_id)
+    model = tmp / "model.bin"
+    model.write_bytes(b"x")
+
+    def executable(runtime_id: str, *_rest: object) -> Path | None:
+        return None if runtime_id.endswith(absent or ("\0",)) else PROGRAM
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.delenv("VST_SIMULATE_NO_VCRUNTIME", raising=False)
+        if simulate:
+            mp.setenv(selftest.FAULT_ENV, "1")
+        else:
+            mp.delenv(selftest.FAULT_ENV, raising=False)
+        mp.setattr(vc_runtime, "require", lambda _error: None)
+        mp.setattr(selftest, "runtime_executable", executable)
+        mp.setattr(Storage, "model_file", lambda *_a: model)
+        mp.setattr(selftest, "adopt", lambda _proc: None)
+        mp.setattr(selftest.subprocess, "Popen", _start(gpu, cpu))
+        report = asdict(selftest.run_selftest(profile, registry, Storage(tmp), SelfTestStore(tmp)))
+    found[f"{name}.message"] = _entry(report["message"], report.get("message_notices"))
+    if report["fallback"]:
+        fallback = report["fallback"]
+        found[f"{name}.reason"] = _entry(fallback["reason"], fallback.get("reason_notices"))
+    for index, stage in enumerate(report["stages"]):
+        found[f"{name}.stage{index}"] = _entry(stage["detail"], stage.get("detail_notices"))
+
+
+def _selftests(found: dict[str, Entry], tmp: Path) -> None:
+    gpu, cpu = ProfileId.GPU_24GB, ProfileId.CPU
+    _report("selftest.passedGpu", gpu, tmp, found)
+    _report("selftest.passedCpu", cpu, tmp, found)
+    _report("selftest.exits", cpu, tmp, found, cpu="exits")
+    _report("selftest.hangs", cpu, tmp, found, cpu="hangs")
+    _report("selftest.cannotStart", cpu, tmp, found, cpu="missing")
+    _report("selftest.fellBack", gpu, tmp, found, simulate=True)
+    _report("selftest.bothFail", gpu, tmp, found, gpu="noCuda", cpu="exits")
+    _report("selftest.noCpuRuntime", gpu, tmp, found, simulate=True, absent=("cpu",))
+    _report("selftest.notInstalled", cpu, tmp, found, absent=("cpu",))
+
+
 def collect(tmp: Path) -> dict[str, Entry]:
     found: dict[str, Entry] = {}
     _profiles(found)
+    _selftests(found, tmp)
     return {name: _slashes(entry) for name, entry in found.items()}
 
 

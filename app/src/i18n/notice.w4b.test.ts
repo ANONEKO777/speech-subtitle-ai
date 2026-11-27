@@ -25,6 +25,11 @@ const sent = (entry: Entry): Said => ({ text: entry.text, notices: parseNotices(
 const DATA: readonly RegExp[] = [
   /CUDA Toolkit/g,
   /Visual C\+\+/g,
+  // What a program or the operating system said, as the stand-ins in the scenarios say it.
+  /ggml error no kernel image/g,
+  /The system cannot find the file specified/g,
+  // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".
+  /; LLM \(/g,
 ];
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */

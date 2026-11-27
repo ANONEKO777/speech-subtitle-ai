@@ -174,6 +174,20 @@
     "english": "Why:           An NVIDIA GPU was found but its VRAM could not be read.",
     "params": {}
   },
+  "program.cannotStart": {
+    "english": "cannot start {program}: {error}",
+    "params": {
+      "program": "text",
+      "error": "text"
+    }
+  },
+  "program.timedOut": {
+    "english": "{program} did not finish in {seconds} s",
+    "params": {
+      "program": "text",
+      "seconds": "text"
+    }
+  },
   "render.noH264Mac": {
     "english": "The ffmpeg on this Mac has no usable H.264 encoder, so the subtitles can't be burned into the video. In Terminal, run brew install ffmpeg to install the full ffmpeg, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
     "params": {}
@@ -207,6 +221,84 @@
   },
   "secrets.cloudKeyUnavailable": {
     "english": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
+    "params": {}
+  },
+  "selftest.asrNote": {
+    "english": "transcribed one second of silence",
+    "params": {}
+  },
+  "selftest.cudaSeen": {
+    "english": "llama-server sees a CUDA device",
+    "params": {}
+  },
+  "selftest.exited": {
+    "english": "{program} exited with code {code}: {output}",
+    "params": {
+      "program": "text",
+      "code": "text",
+      "output": "text"
+    }
+  },
+  "selftest.failed": {
+    "english": "Self-test failed: {failures}.",
+    "params": {
+      "failures": "text"
+    }
+  },
+  "selftest.fellBackPassed": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU self-test passed.",
+    "params": {
+      "failures": "text"
+    }
+  },
+  "selftest.fellBackUnusable": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU backend is not usable either: {cpuFailures}.",
+    "params": {
+      "failures": "text",
+      "cpuFailures": "text"
+    }
+  },
+  "selftest.gpuFellBack": {
+    "english": "The GPU backend failed: {failures}. The CPU backend is used instead.",
+    "params": {
+      "failures": "text"
+    }
+  },
+  "selftest.llamaStarts": {
+    "english": "llama-server starts",
+    "params": {}
+  },
+  "selftest.noCpuRuntime": {
+    "english": "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to have a CPU fallback.",
+    "params": {
+      "failures": "text",
+      "download": "list"
+    }
+  },
+  "selftest.noCudaDevice": {
+    "english": "llama-server lists no CUDA device",
+    "params": {}
+  },
+  "selftest.notInstalled": {
+    "english": "not installed: {missing}",
+    "params": {
+      "missing": "list"
+    }
+  },
+  "selftest.passed": {
+    "english": "Self-test passed on {device}.",
+    "params": {
+      "device": "text"
+    }
+  },
+  "selftest.simulated": {
+    "english": "CUDA failed to initialise (simulated by {variable})",
+    "params": {
+      "variable": "text"
+    }
+  },
+  "selftest.whisperUsedCpu": {
+    "english": "whisper.cpp ran without the CUDA backend and used the CPU instead",
     "params": {}
   }
 }

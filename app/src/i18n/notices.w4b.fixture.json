@@ -972,5 +972,545 @@
       }
     ],
     "zh": "設定檔：apple-cpu（Apple 晶片，只用 CPU，沒有 GPU 加速）\n原因：這是你自己選的設定檔。\n語音辨識：whisper-large-v3-turbo，使用 whispercpp（whispercpp-b5454-macos-metal），在 cpu 上執行\n本機 LLM：qwen3-8b-q4_k_m, 8B，使用 llama.cpp（llama.cpp-b12068-macos-metal），在 cpu 上執行\n雲端 LLM：建議使用，你同意後才會啟用"
+  },
+  "selftest.passedGpu.message": {
+    "before": "Self-test passed on CUDA.",
+    "text": "Self-test passed on CUDA.",
+    "notices": [
+      {
+        "code": "selftest.passed",
+        "params": {
+          "device": "CUDA"
+        },
+        "message": "Self-test passed on CUDA."
+      }
+    ],
+    "zh": "自檢通過，使用 CUDA。"
+  },
+  "selftest.passedGpu.stage0": {
+    "before": "transcribed one second of silence",
+    "text": "transcribed one second of silence",
+    "notices": [
+      {
+        "code": "selftest.asrNote",
+        "params": {},
+        "message": "transcribed one second of silence"
+      }
+    ],
+    "zh": "已完成一秒靜音的語音辨識"
+  },
+  "selftest.passedGpu.stage1": {
+    "before": "llama-server sees a CUDA device",
+    "text": "llama-server sees a CUDA device",
+    "notices": [
+      {
+        "code": "selftest.cudaSeen",
+        "params": {},
+        "message": "llama-server sees a CUDA device"
+      }
+    ],
+    "zh": "llama-server 偵測到 CUDA 裝置"
+  },
+  "selftest.passedCpu.message": {
+    "before": "Self-test passed on CPU.",
+    "text": "Self-test passed on CPU.",
+    "notices": [
+      {
+        "code": "selftest.passed",
+        "params": {
+          "device": "CPU"
+        },
+        "message": "Self-test passed on CPU."
+      }
+    ],
+    "zh": "自檢通過，使用 CPU。"
+  },
+  "selftest.passedCpu.stage0": {
+    "before": "transcribed one second of silence",
+    "text": "transcribed one second of silence",
+    "notices": [
+      {
+        "code": "selftest.asrNote",
+        "params": {},
+        "message": "transcribed one second of silence"
+      }
+    ],
+    "zh": "已完成一秒靜音的語音辨識"
+  },
+  "selftest.passedCpu.stage1": {
+    "before": "llama-server starts",
+    "text": "llama-server starts",
+    "notices": [
+      {
+        "code": "selftest.llamaStarts",
+        "params": {},
+        "message": "llama-server starts"
+      }
+    ],
+    "zh": "llama-server 可以啟動"
+  },
+  "selftest.exits.message": {
+    "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image.",
+    "text": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image.",
+    "notices": [
+      {
+        "code": "selftest.failed",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image"
+        },
+        "message": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image."
+      },
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image）。"
+  },
+  "selftest.exits.stage0": {
+    "before": "program.exe exited with code 3: ggml error no kernel image",
+    "text": "program.exe exited with code 3: ggml error no kernel image",
+    "notices": [
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+  },
+  "selftest.exits.stage1": {
+    "before": "program.exe exited with code 3: ggml error no kernel image",
+    "text": "program.exe exited with code 3: ggml error no kernel image",
+    "notices": [
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+  },
+  "selftest.hangs.message": {
+    "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe did not finish in 15 s; LLM (llama.cpp-b12068-win-cpu): program.exe did not finish in 15 s.",
+    "text": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe did not finish in 15 s; LLM (llama.cpp-b12068-win-cpu): program.exe did not finish in 15 s.",
+    "notices": [
+      {
+        "code": "selftest.failed",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cpu): program.exe did not finish in 15 s; LLM (llama.cpp-b12068-win-cpu): program.exe did not finish in 15 s"
+        },
+        "message": "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe did not finish in 15 s; LLM (llama.cpp-b12068-win-cpu): program.exe did not finish in 15 s."
+      },
+      {
+        "code": "program.timedOut",
+        "params": {
+          "program": "program.exe",
+          "seconds": "15"
+        },
+        "message": "program.exe did not finish in 15 s"
+      }
+    ],
+    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): program.exe 超過 15 秒仍未完成; LLM (llama.cpp-b12068-win-cpu): program.exe 超過 15 秒仍未完成）。"
+  },
+  "selftest.hangs.stage0": {
+    "before": "program.exe did not finish in 15 s",
+    "text": "program.exe did not finish in 15 s",
+    "notices": [
+      {
+        "code": "program.timedOut",
+        "params": {
+          "program": "program.exe",
+          "seconds": "15"
+        },
+        "message": "program.exe did not finish in 15 s"
+      }
+    ],
+    "zh": "program.exe 超過 15 秒仍未完成"
+  },
+  "selftest.hangs.stage1": {
+    "before": "program.exe did not finish in 15 s",
+    "text": "program.exe did not finish in 15 s",
+    "notices": [
+      {
+        "code": "program.timedOut",
+        "params": {
+          "program": "program.exe",
+          "seconds": "15"
+        },
+        "message": "program.exe did not finish in 15 s"
+      }
+    ],
+    "zh": "program.exe 超過 15 秒仍未完成"
+  },
+  "selftest.cannotStart.message": {
+    "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified; LLM (llama.cpp-b12068-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified.",
+    "text": "Self-test failed: ASR (whispercpp-b5454-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified; LLM (llama.cpp-b12068-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified.",
+    "notices": [
+      {
+        "code": "selftest.failed",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified; LLM (llama.cpp-b12068-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified"
+        },
+        "message": "Self-test failed: ASR (whispercpp-b5454-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified; LLM (llama.cpp-b12068-win-cpu): cannot start /vst/program.exe: The system cannot find the file specified."
+      },
+      {
+        "code": "program.cannotStart",
+        "params": {
+          "program": "/vst/program.exe",
+          "error": "The system cannot find the file specified"
+        },
+        "message": "cannot start /vst/program.exe: The system cannot find the file specified"
+      }
+    ],
+    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): 無法啟動 /vst/program.exe：The system cannot find the file specified; LLM (llama.cpp-b12068-win-cpu): 無法啟動 /vst/program.exe：The system cannot find the file specified）。"
+  },
+  "selftest.cannotStart.stage0": {
+    "before": "cannot start /vst/program.exe: The system cannot find the file specified",
+    "text": "cannot start /vst/program.exe: The system cannot find the file specified",
+    "notices": [
+      {
+        "code": "program.cannotStart",
+        "params": {
+          "program": "/vst/program.exe",
+          "error": "The system cannot find the file specified"
+        },
+        "message": "cannot start /vst/program.exe: The system cannot find the file specified"
+      }
+    ],
+    "zh": "無法啟動 /vst/program.exe：The system cannot find the file specified"
+  },
+  "selftest.cannotStart.stage1": {
+    "before": "cannot start /vst/program.exe: The system cannot find the file specified",
+    "text": "cannot start /vst/program.exe: The system cannot find the file specified",
+    "notices": [
+      {
+        "code": "program.cannotStart",
+        "params": {
+          "program": "/vst/program.exe",
+          "error": "The system cannot find the file specified"
+        },
+        "message": "cannot start /vst/program.exe: The system cannot find the file specified"
+      }
+    ],
+    "zh": "無法啟動 /vst/program.exe：The system cannot find the file specified"
+  },
+  "selftest.fellBack.message": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead. The CPU self-test passed.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead. The CPU self-test passed.",
+    "notices": [
+      {
+        "code": "selftest.fellBackPassed",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+        },
+        "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead. The CPU self-test passed."
+      },
+      {
+        "code": "selftest.simulated",
+        "params": {
+          "variable": "VST_SIMULATE_CUDA_FAILURE"
+        },
+        "message": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+      }
+    ],
+    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）; LLM (llama.cpp-b12068-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）），改用 CPU 後端。CPU 自檢通過。"
+  },
+  "selftest.fellBack.reason": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead.",
+    "notices": [
+      {
+        "code": "selftest.gpuFellBack",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+        },
+        "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). The CPU backend is used instead."
+      },
+      {
+        "code": "selftest.simulated",
+        "params": {
+          "variable": "VST_SIMULATE_CUDA_FAILURE"
+        },
+        "message": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+      }
+    ],
+    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）; LLM (llama.cpp-b12068-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）），改用 CPU 後端。"
+  },
+  "selftest.fellBack.stage0": {
+    "before": "transcribed one second of silence",
+    "text": "transcribed one second of silence",
+    "notices": [
+      {
+        "code": "selftest.asrNote",
+        "params": {},
+        "message": "transcribed one second of silence"
+      }
+    ],
+    "zh": "已完成一秒靜音的語音辨識"
+  },
+  "selftest.fellBack.stage1": {
+    "before": "llama-server starts",
+    "text": "llama-server starts",
+    "notices": [
+      {
+        "code": "selftest.llamaStarts",
+        "params": {},
+        "message": "llama-server starts"
+      }
+    ],
+    "zh": "llama-server 可以啟動"
+  },
+  "selftest.bothFail.message": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image.",
+    "notices": [
+      {
+        "code": "selftest.fellBackUnusable",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device",
+          "cpuFailures": "ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image"
+        },
+        "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: ggml error no kernel image."
+      },
+      {
+        "code": "selftest.whisperUsedCpu",
+        "params": {},
+        "message": "whisper.cpp ran without the CUDA backend and used the CPU instead"
+      },
+      {
+        "code": "selftest.noCudaDevice",
+        "params": {},
+        "message": "llama-server lists no CUDA device"
+      },
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp 沒有啟用 CUDA 後端，改用了 CPU; LLM (llama.cpp-b12068-win-cuda12.4): llama-server 沒有列出任何 CUDA 裝置），改用 CPU 後端。但 CPU 後端也無法使用（ASR (whispercpp-b5454-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image; LLM (llama.cpp-b12068-win-cpu): program.exe 異常結束（代碼 3）：ggml error no kernel image）。"
+  },
+  "selftest.bothFail.reason": {
+    "before": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead.",
+    "text": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead.",
+    "notices": [
+      {
+        "code": "selftest.gpuFellBack",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device"
+        },
+        "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp ran without the CUDA backend and used the CPU instead; LLM (llama.cpp-b12068-win-cuda12.4): llama-server lists no CUDA device. The CPU backend is used instead."
+      },
+      {
+        "code": "selftest.whisperUsedCpu",
+        "params": {},
+        "message": "whisper.cpp ran without the CUDA backend and used the CPU instead"
+      },
+      {
+        "code": "selftest.noCudaDevice",
+        "params": {},
+        "message": "llama-server lists no CUDA device"
+      }
+    ],
+    "zh": "GPU 後端失敗（ASR (whispercpp-b5454-win-cuda12.4): whisper.cpp 沒有啟用 CUDA 後端，改用了 CPU; LLM (llama.cpp-b12068-win-cuda12.4): llama-server 沒有列出任何 CUDA 裝置），改用 CPU 後端。"
+  },
+  "selftest.bothFail.stage0": {
+    "before": "program.exe exited with code 3: ggml error no kernel image",
+    "text": "program.exe exited with code 3: ggml error no kernel image",
+    "notices": [
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+  },
+  "selftest.bothFail.stage1": {
+    "before": "program.exe exited with code 3: ggml error no kernel image",
+    "text": "program.exe exited with code 3: ggml error no kernel image",
+    "notices": [
+      {
+        "code": "selftest.exited",
+        "params": {
+          "program": "program.exe",
+          "code": "3",
+          "output": "ggml error no kernel image"
+        },
+        "message": "program.exe exited with code 3: ggml error no kernel image"
+      }
+    ],
+    "zh": "program.exe 異常結束（代碼 3）：ggml error no kernel image"
+  },
+  "selftest.noCpuRuntime.message": {
+    "before": "GPU failed and the CPU runtime is not installed. GPU: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). Download whispercpp-b5454-win-cpu, llama.cpp-b12068-win-cpu to have a CPU fallback.",
+    "text": "GPU failed and the CPU runtime is not installed. GPU: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). Download whispercpp-b5454-win-cpu, llama.cpp-b12068-win-cpu to have a CPU fallback.",
+    "notices": [
+      {
+        "code": "selftest.noCpuRuntime",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)",
+          "download": [
+            "whispercpp-b5454-win-cpu",
+            "llama.cpp-b12068-win-cpu"
+          ]
+        },
+        "message": "GPU failed and the CPU runtime is not installed. GPU: ASR (whispercpp-b5454-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE); LLM (llama.cpp-b12068-win-cuda12.4): CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE). Download whispercpp-b5454-win-cpu, llama.cpp-b12068-win-cpu to have a CPU fallback."
+      },
+      {
+        "code": "selftest.simulated",
+        "params": {
+          "variable": "VST_SIMULATE_CUDA_FAILURE"
+        },
+        "message": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+      }
+    ],
+    "zh": "GPU 失敗（ASR (whispercpp-b5454-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）; LLM (llama.cpp-b12068-win-cuda12.4): CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）），而且沒有安裝 CPU 版的執行檔。請下載 whispercpp-b5454-win-cpu、llama.cpp-b12068-win-cpu，GPU 失敗時才能改用 CPU。"
+  },
+  "selftest.noCpuRuntime.stage0": {
+    "before": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)",
+    "text": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)",
+    "notices": [
+      {
+        "code": "selftest.simulated",
+        "params": {
+          "variable": "VST_SIMULATE_CUDA_FAILURE"
+        },
+        "message": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+      }
+    ],
+    "zh": "CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）"
+  },
+  "selftest.noCpuRuntime.stage1": {
+    "before": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)",
+    "text": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)",
+    "notices": [
+      {
+        "code": "selftest.simulated",
+        "params": {
+          "variable": "VST_SIMULATE_CUDA_FAILURE"
+        },
+        "message": "CUDA failed to initialise (simulated by VST_SIMULATE_CUDA_FAILURE)"
+      }
+    ],
+    "zh": "CUDA 初始化失敗（由 VST_SIMULATE_CUDA_FAILURE 模擬）"
+  },
+  "selftest.noCpuRuntime.stage2": {
+    "before": "not installed: whispercpp-b5454-win-cpu",
+    "text": "not installed: whispercpp-b5454-win-cpu",
+    "notices": [
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "whispercpp-b5454-win-cpu"
+          ]
+        },
+        "message": "not installed: whispercpp-b5454-win-cpu"
+      }
+    ],
+    "zh": "尚未安裝：whispercpp-b5454-win-cpu"
+  },
+  "selftest.noCpuRuntime.stage3": {
+    "before": "not installed: llama.cpp-b12068-win-cpu",
+    "text": "not installed: llama.cpp-b12068-win-cpu",
+    "notices": [
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "llama.cpp-b12068-win-cpu"
+          ]
+        },
+        "message": "not installed: llama.cpp-b12068-win-cpu"
+      }
+    ],
+    "zh": "尚未安裝：llama.cpp-b12068-win-cpu"
+  },
+  "selftest.notInstalled.message": {
+    "before": "Self-test failed: ASR (whispercpp-b5454-win-cpu): not installed: whispercpp-b5454-win-cpu; LLM (llama.cpp-b12068-win-cpu): not installed: llama.cpp-b12068-win-cpu.",
+    "text": "Self-test failed: ASR (whispercpp-b5454-win-cpu): not installed: whispercpp-b5454-win-cpu; LLM (llama.cpp-b12068-win-cpu): not installed: llama.cpp-b12068-win-cpu.",
+    "notices": [
+      {
+        "code": "selftest.failed",
+        "params": {
+          "failures": "ASR (whispercpp-b5454-win-cpu): not installed: whispercpp-b5454-win-cpu; LLM (llama.cpp-b12068-win-cpu): not installed: llama.cpp-b12068-win-cpu"
+        },
+        "message": "Self-test failed: ASR (whispercpp-b5454-win-cpu): not installed: whispercpp-b5454-win-cpu; LLM (llama.cpp-b12068-win-cpu): not installed: llama.cpp-b12068-win-cpu."
+      },
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "whispercpp-b5454-win-cpu"
+          ]
+        },
+        "message": "not installed: whispercpp-b5454-win-cpu"
+      },
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "llama.cpp-b12068-win-cpu"
+          ]
+        },
+        "message": "not installed: llama.cpp-b12068-win-cpu"
+      }
+    ],
+    "zh": "自檢沒有通過（ASR (whispercpp-b5454-win-cpu): 尚未安裝：whispercpp-b5454-win-cpu; LLM (llama.cpp-b12068-win-cpu): 尚未安裝：llama.cpp-b12068-win-cpu）。"
+  },
+  "selftest.notInstalled.stage0": {
+    "before": "not installed: whispercpp-b5454-win-cpu",
+    "text": "not installed: whispercpp-b5454-win-cpu",
+    "notices": [
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "whispercpp-b5454-win-cpu"
+          ]
+        },
+        "message": "not installed: whispercpp-b5454-win-cpu"
+      }
+    ],
+    "zh": "尚未安裝：whispercpp-b5454-win-cpu"
+  },
+  "selftest.notInstalled.stage1": {
+    "before": "not installed: llama.cpp-b12068-win-cpu",
+    "text": "not installed: llama.cpp-b12068-win-cpu",
+    "notices": [
+      {
+        "code": "selftest.notInstalled",
+        "params": {
+          "missing": [
+            "llama.cpp-b12068-win-cpu"
+          ]
+        },
+        "message": "not installed: llama.cpp-b12068-win-cpu"
+      }
+    ],
+    "zh": "尚未安裝：llama.cpp-b12068-win-cpu"
   }
 }

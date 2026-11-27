@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 
 from backend.api import downloads, inventory, models, profile, runtimes, settings
 from backend.api.deps import locked_path_response
+from backend.core.notices import Notice
 from backend.manager import registry
 from backend.manager.context import ManagerContext, build_context
 from backend.manager.hardware import Hardware
@@ -77,7 +78,9 @@ class Rig:
         self.start(GPU_4090)
         self.client.put("/api/storage", json={"mirrors": {ORIGIN: origin.url("/")}})
 
-    def run_probe(self, stage: str, program: Path, model: Path, device: Any, timeout: float) -> str:
+    def run_probe(
+        self, stage: str, program: Path, model: Path, device: Any, timeout: float
+    ) -> str | Notice:
         return self.probe(stage, program, model, device, timeout)
 
     def fetch_remote(self, url: str) -> Registry:

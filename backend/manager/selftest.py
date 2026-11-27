@@ -18,8 +18,9 @@ import wave
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from backend.core import notices as sentences
 from backend.core import vc_runtime
-from backend.core.notices import Notice, notices_of, unique
+from backend.core.notices import Notice, noticed, notices_of, unique
 from backend.core.process_guard import adopt
 from backend.manager.profiles import Device, Profile, Stage, runtime_set
 from backend.manager.registry import Registry
@@ -36,8 +37,9 @@ class ProbeFailed(Exception):
     pass
 
 
-Probe = Callable[[str, Path, Path, Device, float], str]
-"""(stage, program, model file, device, timeout) -> a short note, or raise ProbeFailed."""
+Probe = Callable[[str, Path, Path, Device, float], str | Notice]
+"""(stage, program, model file, device, timeout) -> a short note, or raise ProbeFailed. A note the
+window can word is a `Notice`."""
 
 
 def _run(command: list[str], timeout_s: float) -> str:
@@ -52,24 +54,31 @@ def _run(command: list[str], timeout_s: float) -> str:
             creationflags=flags,
         )
     except OSError as exc:
-        raise ProbeFailed(f"cannot start {command[0]}: {exc}") from exc
+        failed = sentences.PROGRAM_CANNOT_START(program=command[0], error=str(exc))
+        raise noticed(ProbeFailed, failed) from exc
     adopt(proc)
     try:
         out, _ = proc.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.communicate()
-        raise ProbeFailed(f"{Path(command[0]).name} did not finish in {timeout_s:g} s") from None
+        slow = sentences.PROGRAM_TIMED_OUT(program=Path(command[0]).name, seconds=f"{timeout_s:g}")
+        raise noticed(ProbeFailed, slow) from None
     text = out.decode("utf-8", errors="replace")
     if proc.returncode != 0:
         tail = " ".join(text.strip().splitlines()[-2:])[:300]
-        raise ProbeFailed(f"{Path(command[0]).name} exited with code {proc.returncode}: {tail}")
+        raise noticed(
+            ProbeFailed,
+            sentences.PROGRAM_EXITED(
+                program=Path(command[0]).name, code=str(proc.returncode), output=tail
+            ),
+        )
     return text
 
 
-def real_probe(stage: str, program: Path, model: Path, device: Device, timeout_s: float) -> str:
+def real_probe(stage: str, program: Path, model: Path, device: Device, timeout_s: float) -> Notice:
     if device is Device.CUDA and os.environ.get(FAULT_ENV):
-        raise ProbeFailed(f"CUDA failed to initialise (simulated by {FAULT_ENV})")
+        raise noticed(ProbeFailed, sentences.SIMULATED_CUDA_FAILURE(variable=FAULT_ENV))
     if stage == _ASR:
         with tempfile.TemporaryDirectory(prefix="vst-selftest-") as folder:
             wav = Path(folder) / "silence.wav"
@@ -83,15 +92,15 @@ def real_probe(stage: str, program: Path, model: Path, device: Device, timeout_s
                 command += ["-ng", "-ac", "128"]
             text = _run(command, timeout_s)
         if device is Device.CUDA and "CUDA0" not in text:
-            raise ProbeFailed("whisper.cpp ran without the CUDA backend and used the CPU instead")
-        return "transcribed one second of silence"
+            raise noticed(ProbeFailed, sentences.WHISPER_USED_THE_CPU())
+        return sentences.HEARD_SILENCE()
     if device is Device.CUDA:
         text = _run([str(program), "--list-devices"], timeout_s)
         if "CUDA" not in text:
-            raise ProbeFailed("llama-server lists no CUDA device")
-        return "llama-server sees a CUDA device"
+            raise noticed(ProbeFailed, sentences.NO_CUDA_DEVICE())
+        return sentences.SEES_CUDA()
     _run([str(program), "--version"], timeout_s)
-    return "llama-server starts"
+    return sentences.LLAMA_STARTS()
 
 
 def _stages(profile: Profile, device: Device) -> list[tuple[str, str, str]]:
@@ -125,22 +134,17 @@ def _attempt(
             if not present
         ]
         if missing or program is None:
+            absent = sentences.STAGE_NOT_INSTALLED(missing=missing)
             results.append(
-                StageResult(
-                    stage,
-                    runtime_id,
-                    device,
-                    False,
-                    False,
-                    0.0,
-                    f"not installed: {', '.join(missing)}",
-                )
+                StageResult(stage, runtime_id, device, False, False, 0.0, absent.message, (absent,))
             )
             continue
         started = time.monotonic()
         notices: tuple[Notice, ...] = ()
         try:
-            note = probe(stage, program, model, device, PROBE_TIMEOUT_S)
+            said = probe(stage, program, model, device, PROBE_TIMEOUT_S)
+            note = said.message if isinstance(said, Notice) else said
+            notices = (said,) if isinstance(said, Notice) else ()
             ok = True
         except ProbeFailed as exc:
             note, ok, notices = str(exc), False, notices_of(exc)
@@ -149,9 +153,9 @@ def _attempt(
     return results
 
 
-def _to_download(results: list[StageResult], profile: Profile) -> str:
+def _to_download(results: list[StageResult], profile: Profile) -> list[str]:
     """The CPU runtimes the self-test could not find, as the ids the download route takes."""
-    return ", ".join(r.runtime_id for r in results if not r.installed) or profile.id.value
+    return [r.runtime_id for r in results if not r.installed] or [profile.id.value]
 
 
 def _all_ok(results: list[StageResult]) -> bool:
@@ -165,6 +169,12 @@ def _names(results: list[StageResult]) -> str:
 def _notices(results: Sequence[StageResult]) -> tuple[Notice, ...]:
     """The notices in the sentence `_names` makes of the failed results."""
     return unique(n for r in results if not r.ok for n in r.detail_notices)
+
+
+def _inside(summary: Notice, results: Sequence[StageResult]) -> tuple[Notice, ...]:
+    """`summary` and the stage notices its sentence quotes."""
+    quoted = (n for n in _notices(results) if n.message in summary.message)
+    return unique((summary, *quoted))
 
 
 def run_selftest(
@@ -181,27 +191,28 @@ def run_selftest(
     device = wanted.device
     stages = first
     if _all_ok(first):
-        message = f"Self-test passed on {device.value.upper()}."
+        summary = sentences.SELFTEST_PASSED(device=device.value.upper())
     elif wanted.device is Device.CPU or not all(r.installed for r in first):
-        message = f"Self-test failed: {_names(first)}."
+        summary = sentences.SELFTEST_FAILED(failures=_names(first))
     else:
         cpu = _attempt(profile, Device.CPU, registry, storage, probe)
         if all(r.installed for r in cpu):
             failed = tuple(r for r in first if not r.ok)
-            reason = f"The GPU backend failed: {_names(first)}. The CPU backend is used instead."
-            fallback = Fallback(reason, failed, _notices(failed))
+            reason = sentences.GPU_FELL_BACK(failures=_names(first))
+            fallback = Fallback(reason.message, failed, unique((reason, *_notices(failed))))
             device = Device.CPU
             stages = cpu
-            message = (
-                f"{reason} The CPU self-test passed."
+            summary = (
+                sentences.FELL_BACK_AND_PASSED(failures=_names(first))
                 if _all_ok(stages)
-                else f"{reason} The CPU backend is not usable either: {_names(stages)}."
+                else sentences.FELL_BACK_AND_UNUSABLE(
+                    failures=_names(first), cpuFailures=_names(stages)
+                )
             )
         else:
             stages = [*first, *cpu]
-            message = (
-                f"GPU failed and the CPU runtime is not installed. GPU: {_names(first)}. "
-                f"Download {_to_download(cpu, profile)} to have a CPU fallback."
+            summary = sentences.NO_CPU_FALLBACK(
+                failures=_names(first), download=_to_download(cpu, profile)
             )
     report = SelfTestReport(
         at_ms=time.time_ns() // 1_000_000,
@@ -211,8 +222,8 @@ def run_selftest(
         stages=tuple(stages),
         fallback=fallback,
         seconds=round(time.monotonic() - started, 2),
-        message=message,
-        message_notices=_notices([*first, *stages]),
+        message=summary.message,
+        message_notices=_inside(summary, [*first, *stages]),
     )
     store.save(report)
     return report
