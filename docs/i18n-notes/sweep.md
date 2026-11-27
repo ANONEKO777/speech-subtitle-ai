@@ -87,8 +87,10 @@ An asterisk marks a shortened name. "2 rows" means that the toolbar wrapped.
 
 | Failing cells | `422a635` | now |
 |---|---|---|
-| Header | 900 of 3040 | 0 |
+| Header | 840 of 3040 | 0 |
 | Control row | 168 of 336 | 0 |
+
+Both columns come from the same script and the same floors. With 66 and 130 px for the Traditional Chinese window too, `422a635` fails 900 header cells.
 
 `other.mjs` checks the library cards and the licenses table the same way: 8 of 16 cells failed on `422a635`, and none fails now.
 
