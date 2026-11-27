@@ -755,6 +755,18 @@ def _saved_key(found: dict[str, Entry], tmp: Path) -> None:
         found["refuse.savedKey"] = _raised(lambda: app_main._configured_llm(tmp))
 
 
+def _unsendable_key(found: dict[str, Entry]) -> None:
+    """An invented key with a line break, which no HTTP header can carry. An older commit takes
+    it and fails at the first request instead, so the scenario sends one to a loopback port."""
+    request = resolve.Request(llm="http://127.0.0.1:9/v1", llm_model="m", llm_key="sk-INV\nENTED")
+
+    def send() -> None:
+        config = resolve._remote_config(request)
+        client.chat(config, [{"role": "user", "content": "hi"}])
+
+    found["refuse.keyUnsendable"] = _raised(send)
+
+
 def _video_gone(found: dict[str, Entry], tmp: Path) -> None:
     from test_api import GUARD, Rig, make_project, open_client
 
@@ -790,6 +802,7 @@ def _refusals(found: dict[str, Entry], tmp: Path) -> None:
         mp.setattr(resolve, "runtime_set", lambda: windows)
         _missing_files(found)
     _saved_key(found, folder)
+    _unsendable_key(found)
     _video_gone(found, folder)
 
 

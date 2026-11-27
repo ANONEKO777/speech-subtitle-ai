@@ -623,6 +623,11 @@ LLM_UNREACHABLE = _template(
     url="text",
     reason="text",
 )
+LLM_KEY_UNSENDABLE = _template(
+    "llm.keyUnsendable",
+    "the API key holds a space, a line break or another character that cannot be sent; "
+    "enter the key again",
+)
 
 # Translation and the summary. A `reason` or `reply` is what the check of the model's answer said
 # back to the model, shown as it is.

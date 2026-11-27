@@ -57,10 +57,12 @@ const DATA: readonly RegExp[] = [
 
 /**
  * The sentences whose English changed: one said "queue" where the window says "batch", a runtime
- * row was told to verify, which only a model row can, and a program that exited with no output
- * left a colon with nothing after it.
+ * row was told to verify, which only a model row can, a program that exited with no output left a
+ * colon with nothing after it, and a key no header can carry failed at the first request with the
+ * key in the text.
  */
 const REWORDED: Readonly<Record<string, string>> = {
+  "refuse.keyUnsendable": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
   "selftest.exitsSilently.message":
     "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: no output; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: no output.",
   "selftest.exitsSilently.stage0": "program.exe exited with code 3: no output",

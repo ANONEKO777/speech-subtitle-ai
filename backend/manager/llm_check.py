@@ -13,6 +13,7 @@ from http.client import HTTPException, HTTPMessage
 from typing import IO, cast
 from urllib.parse import urlsplit
 
+from backend.llm.client import redact
 from backend.manager.profiles import QWEN3_8B, runtime_set
 from backend.manager.registry import Registry
 from backend.manager.runtimes import runtime_executable
@@ -83,7 +84,7 @@ def _probe(
 ) -> ConnectionResult:
     def fail(why: str) -> ConnectionResult:
         message = f"could not use {url}: {why}"
-        return ConnectionResult(False, source, url, message.replace(key, "***") if key else message)
+        return ConnectionResult(False, source, url, redact(key or "", message))
 
     try:
         doc = _get_json(url, key)

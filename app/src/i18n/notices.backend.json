@@ -329,6 +329,10 @@
       "detail": "text"
     }
   },
+  "llm.keyUnsendable": {
+    "english": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
+    "params": {}
+  },
   "llm.noContent": {
     "english": "{url} did not return a chat completion: no choices[0].message.content string",
     "params": {

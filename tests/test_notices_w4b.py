@@ -31,6 +31,7 @@ REWORDED = {
         f"selftest.exitsSilently.{part}": "left a colon with nothing after it"
         for part in ("message", "stage0", "stage1")
     },
+    "refuse.keyUnsendable": "a key no header can carry failed at the first request, key and all",
     "updates.item.runtimeUnrecorded": "told a runtime row to verify, which has no Verify button",
     "updates.item.runtimeCheckFailed": "told a runtime row to verify, which has no Verify button",
 }

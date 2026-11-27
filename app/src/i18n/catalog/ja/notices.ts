@@ -51,6 +51,7 @@ export const notices = {
   "notice.fonts.noJapaneseWindows": "このパソコンには日本語字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ日本語は空白の四角になります。「設定 > 個人用設定 > フォント」で日本語フォント（Yu Gothic や Meiryo など）をインストールするか、「設定 > システム > オプション機能」で日本語の補助フォントを追加してから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
   "notice.fonts.noTargetFont": "このパソコンには{language}の字幕を表示できるフォントがないため（確認したフォント：{fonts}）、焼き込んだ字幕は空白の四角になります。{language}に対応したフォントをインストールしてから、もう一度お試しください。字幕ファイル（SRT、ASS）は影響を受けないため、引き続き書き出せます。",
   "notice.llm.http": "{url} が HTTP {status} を返しました：{detail}",
+  "notice.llm.keyUnsendable": "API キーに空白、改行、または送信できない文字が含まれています。キーを入力し直してください",
   "notice.llm.noContent": "{url} はチャットの応答を返しませんでした：choices[0].message.content の文字列がありません",
   "notice.llm.notJson": "{url} はチャットの応答を返しませんでした：本文が JSON ではありません（{error}）",
   "notice.llm.redirected": "{url} は {location} へのリダイレクトを返しました。リダイレクトには従いません",

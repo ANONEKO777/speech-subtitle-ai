@@ -3154,6 +3154,18 @@
     ],
     "zh": "無法讀取儲存的 API 金鑰：Windows DPAPI failed (error 13)"
   },
+  "refuse.keyUnsendable": {
+    "before": "Invalid header value b'Bearer sk-INV/nENTED'",
+    "text": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
+    "notices": [
+      {
+        "code": "llm.keyUnsendable",
+        "params": {},
+        "message": "the API key holds a space, a line break or another character that cannot be sent; enter the key again"
+      }
+    ],
+    "zh": "API 金鑰裡有空格、換行或其他無法傳送的字元，請重新輸入金鑰"
+  },
   "refuse.videoGone": {
     "before": "the video is gone: /vst/gone.mp4",
     "text": "the video is gone: /vst/gone.mp4",

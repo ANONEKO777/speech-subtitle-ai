@@ -53,6 +53,7 @@ export const notices = {
   "notice.fonts.noJapaneseWindows": "This computer has no font that can show Japanese subtitles (tried {fonts}), so burned-in Japanese would turn into empty boxes. Install a Japanese font (such as Yu Gothic or Meiryo) in \"Settings > Personalization > Fonts\", or add the Japanese supplemental fonts in \"Settings > System > Optional features\", then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
   "notice.fonts.noTargetFont": "This computer has no font that can show {language} subtitles (tried {fonts}), so the burned-in subtitles would show empty boxes. Install a font that supports {language}, then try again. Subtitle files (SRT, ASS) aren't affected, and you can still export them.",
   "notice.llm.http": "{url} answered HTTP {status}: {detail}",
+  "notice.llm.keyUnsendable": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
   "notice.llm.noContent": "{url} did not return a chat completion: no choices[0].message.content string",
   "notice.llm.notJson": "{url} did not return a chat completion: body is not JSON ({error})",
   "notice.llm.redirected": "{url} redirected to {location}; redirects are not followed",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
@@ -19,6 +20,8 @@ LLM_SEED = 20261105
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _ERROR_BODY_BYTES = 4096
 _ERROR_DETAIL_CHARS = 500
+_KEY_PREFIX_CHARS = 8
+"""A key cut this short or shorter at the end of a cut body is not redacted."""
 _RETRYABLE_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 
 
@@ -61,6 +64,8 @@ class LlmConfig:
                 "base_url must not hold a user name, password, query or fragment; "
                 "pass the key as api_key"
             )
+        if not all("!" <= char <= "~" for char in self.api_key):
+            raise noticed(ValueError, notices.LLM_KEY_UNSENDABLE())
         if self.api_key and parts.scheme == "http" and not self.is_local:
             raise ValueError(
                 f"refusing to send an API key over plain http to {parts.hostname}; use https"
@@ -139,8 +144,45 @@ def _reply_text(raw: bytes, config: LlmConfig) -> str:
     return content
 
 
+def _spellings(char: str) -> str:
+    """Each way a server can echo one character of a key: as it is, percent-encoded, JSON-escaped
+    or as an HTML entity. Hex digits match in either case, as servers write both, and a JSON
+    escape may come with its backslash doubled, as `repr` of the text writes it."""
+    code = ord(char)
+    escaped = [r"\\+/"] if char == "/" else []
+    forms = [
+        re.escape(char),
+        *escaped,
+        f"%{code:02x}",
+        rf"\\+u{code:04x}",
+        f"&#{code};",
+        f"&#x0*{code:x};",
+    ]
+    return "(?:" + "|".join(forms) + ")"
+
+
+def _key_pattern(key: str, *, cut: bool) -> re.Pattern[str]:
+    """The key in any mix of the spellings a server echoes. With `cut`, also any prefix of at
+    least `_KEY_PREFIX_CHARS` characters that ends the text, where a body was cut off."""
+    chars = [_spellings(char) for char in key]
+    whole = "".join(chars)
+    if not cut or len(key) <= _KEY_PREFIX_CHARS:
+        return re.compile(whole, re.IGNORECASE)
+    rest = ""
+    for char in reversed(chars[_KEY_PREFIX_CHARS:]):
+        rest = f"(?:{char}{rest})?"
+    prefix = "".join(chars[:_KEY_PREFIX_CHARS]) + rest + r"\Z"
+    return re.compile(f"{whole}|{prefix}", re.IGNORECASE)
+
+
+def redact(key: str, text: str, *, cut: bool = False) -> str:
+    """`text` with every echo of `key` replaced by `***`. `cut` says the text was cut off, so a
+    piece of the key at its end goes too."""
+    return _key_pattern(key, cut=cut).sub("***", text) if key else text
+
+
 def _redact(config: LlmConfig, text: str) -> str:
-    return text.replace(config.api_key, "***") if config.api_key else text
+    return redact(config.api_key, text)
 
 
 def _fail(
@@ -167,7 +209,8 @@ def _retry_after(headers: EmailMessage) -> float | None:
 
 
 def _http_error(exc: urllib.error.HTTPError, config: LlmConfig) -> LlmError:
-    detail = _redact(config, exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace"))
+    body = exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace")
+    detail = redact(config.api_key, body, cut=True)
     detail = detail.strip()[:_ERROR_DETAIL_CHARS]
     return _fail(
         config,

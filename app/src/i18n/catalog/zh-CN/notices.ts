@@ -51,6 +51,7 @@ export const notices = {
   "notice.fonts.noJapaneseWindows": "这台电脑没有可以显示日语字幕的字体（试过 {fonts}），烧录出来的日语会变成空白方块。请在“设置 > 个性化 > 字体”中安装日语字体（例如 Yu Gothic 或 Meiryo），或在“设置 > 系统 > 可选功能”中添加日语补充字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
   "notice.fonts.noTargetFont": "这台电脑没有可以显示{language}字幕的字体（试过 {fonts}），烧录出来的字幕会变成空白方块。请安装支持{language}的字体后再试。字幕文件（SRT、ASS）不受影响，仍可导出。",
   "notice.llm.http": "{url} 返回 HTTP {status}：{detail}",
+  "notice.llm.keyUnsendable": "API 密钥中含有空格、换行或其他无法发送的字符，请重新输入密钥",
   "notice.llm.noContent": "{url} 没有返回聊天回复：缺少 choices[0].message.content 文本",
   "notice.llm.notJson": "{url} 没有返回聊天回复：内容不是 JSON（{error}）",
   "notice.llm.redirected": "{url} 要求重定向到 {location}，应用不会跟随重定向",

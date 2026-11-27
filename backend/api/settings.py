@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from backend.api.deps import Context
 from backend.api.downloads import get_storage
@@ -33,7 +33,13 @@ class LlmBody(BaseModel):
     cloud_consent: bool = False
     """Must be true to save a cloud source: the content of your videos leaves this machine."""
     api_key: str | None = None
-    """Write only. Omit to keep the saved key, send an empty string to delete it."""
+    """Write only. Omit to keep the saved key, send an empty string to delete it. Spaces and line
+    breaks around it are dropped, as a pasted key often carries them and none can be sent."""
+
+    @field_validator("api_key")
+    @classmethod
+    def _trimmed(cls, key: str | None) -> str | None:
+        return key.strip() if key is not None else None
 
     def settings(self, *, consent: bool | None = None) -> LlmSettings:
         return LlmSettings(

@@ -50,6 +50,7 @@ export const notices = {
   "notice.fonts.noJapaneseWindows": "這台電腦沒有可以顯示日文字幕的字型（試過 {fonts}），燒錄出來的日文會變成空白方塊。請到「設定 > 個人化 > 字型」安裝日文字型（例如 Yu Gothic 或 Meiryo），或到「設定 > 系統 > 選用功能」新增「日文」的補充字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
   "notice.fonts.noTargetFont": "這台電腦沒有可以顯示{language}字幕的字型（試過 {fonts}），燒錄出來的字幕會變成空白方塊。請安裝含有{language}的字型後再試。字幕檔（SRT、ASS）不受影響，仍可匯出。",
   "notice.llm.http": "{url} 回應 HTTP {status}：{detail}",
+  "notice.llm.keyUnsendable": "API 金鑰裡有空格、換行或其他無法傳送的字元，請重新輸入金鑰",
   "notice.llm.noContent": "{url} 沒有回傳聊天回覆：缺少 choices[0].message.content 文字",
   "notice.llm.notJson": "{url} 沒有回傳聊天回覆：內容不是 JSON（{error}）",
   "notice.llm.redirected": "{url} 要求轉址到 {location}，App 不會跟著轉址",
