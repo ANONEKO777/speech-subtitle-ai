@@ -8,7 +8,7 @@ import { DEFAULTS } from "./settings";
 
 /**
  * jsdom lays nothing out, so these tests give the text and the box that holds it their widths: each character is
- * 10 px wide, and every box is `room` px wide.
+ * 10 px wide, the toolbar's type is 10 px (so one em is one character), and every box is `room` px wide.
  */
 function measured(room: number) {
   vi.stubGlobal(
@@ -22,14 +22,25 @@ function measured(room: number) {
     return { width: this.toString().length * 10 } as DOMRect;
   };
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: room } as DOMRect);
+  const real = window.getComputedStyle.bind(window);
+  vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+    const style = real(element, pseudo);
+    if (element.classList.contains("cut-name")) Object.defineProperty(style, "fontSize", { value: "10px" });
+    return style;
+  });
 }
 
-const bar = (locale: Locale, langName: string) =>
-  render(
-    <I18nProvider initial={locale}>
-      <SettingsBar langName={langName} settings={DEFAULTS} onChange={() => undefined} />
-    </I18nProvider>,
-  );
+const barOf = (locale: Locale, langName: string) => (
+  <I18nProvider initial={locale}>
+    <SettingsBar langName={langName} settings={DEFAULTS} onChange={() => undefined} />
+  </I18nProvider>
+);
+const bar = (locale: Locale, langName: string) => render(barOf(locale, langName));
+
+/** The two places the name is shown: on the middle button and in the switch's words. */
+const places = (view: ReturnType<typeof bar>) => [...view.container.querySelectorAll<HTMLElement>(".cut-name")];
+/** For each place: whether the name may shrink, and whether it is shortened now. */
+const states = (view: ReturnType<typeof bar>) => places(view).map((place) => [place.hasAttribute("data-shrinks"), place.hasAttribute("data-cut")]);
 
 afterEach(() => {
   cleanup();
@@ -63,5 +74,55 @@ describe.each([
     expect(label?.getAttribute("title")).toBe(switchTip);
     expect(label?.querySelector("[data-cut]")?.textContent).toBe(onTop);
     expect(label?.querySelector("[data-cut] [title]")).toBeNull();
+  });
+});
+
+describe("which names the toolbar may shorten", () => {
+  it.each(["日本語", "繁體中文", "ไทย", "Five."])("never lets %s shrink", (name) => {
+    measured(1000);
+    expect(states(bar("en", name))).toEqual([
+      [false, false],
+      [false, false],
+    ]);
+  });
+
+  it("lets a name longer than five characters of type shrink, keeping three and a half of them and the words around it", () => {
+    measured(1000);
+    const [button, words] = places(bar("en", "Korean"));
+    for (const place of [button, words]) {
+      expect(place?.hasAttribute("data-shrinks")).toBe(true);
+      expect(place?.style.getPropertyValue("--name-kept")).toBe("3.5em");
+    }
+    expect(button?.style.getPropertyValue("--name-rest")).toBe("0px");
+    expect(words?.style.getPropertyValue("--name-rest")).toBe(`${" on top".length * 10}px`);
+  });
+
+  it("calls a name shortened as soon as its box is a pixel short of it", () => {
+    const name = "Bahasa Indonesia";
+    measured(name.length * 10 - 1);
+    const [button] = places(bar("en", name));
+    expect(button?.hasAttribute("data-cut")).toBe(true);
+    expect(button?.querySelector("[title]")?.getAttribute("title")).toBe(name);
+  });
+
+  it("measures again when the language playing changes, though no box changed its size", () => {
+    measured(150);
+    const view = bar("en", "Thai");
+    expect(states(view)).toEqual([
+      [false, false],
+      [false, false],
+    ]);
+    view.rerender(barOf("en", "Bahasa Indonesia"));
+    expect(states(view)).toEqual([
+      [true, true],
+      [true, true],
+    ]);
+    expect(screen.getByRole("switch").getAttribute("aria-label")).toBe("Bahasa Indonesia on top");
+    view.rerender(barOf("en", "Thai"));
+    expect(states(view)).toEqual([
+      [false, false],
+      [false, false],
+    ]);
+    expect(screen.getByRole("switch").getAttribute("aria-label")).toBeNull();
   });
 });

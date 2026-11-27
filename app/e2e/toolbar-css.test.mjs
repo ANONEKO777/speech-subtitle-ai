@@ -68,8 +68,9 @@ describe("the stylesheet keeps the player toolbar on one row for a language name
     expect(rule("header:has(.queue-chip)", NARROW)).toContain("--toolbar-slider: 38px;");
   });
 
-  it("shortens a language name with an ellipsis and keeps 3.5em of it and the words around it", () => {
-    expect(rule(".cut-name")).toContain("grid-template-columns: minmax(min(calc(3.5em + var(--name-rest, 0px)), var(--name-full, 0px)), max-content);");
+  it("gives a name its whole width unless it may shrink, and then keeps the part of it that CutName says", () => {
+    expect(rule(".cut-name")).toContain("grid-template-columns: max-content;");
+    expect(rule(".cut-name[data-shrinks]")).toContain("grid-template-columns: minmax(calc(var(--name-kept) + var(--name-rest)), max-content);");
     expect(rule(".cut-name > span")).toContain("white-space: nowrap;");
     // a box that clips while the name is whole changes the pixels of the usual toolbar
     expect(rule(".cut-name > span")).not.toContain("overflow");

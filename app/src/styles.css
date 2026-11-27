@@ -1955,10 +1955,14 @@ header:has(.settings) .field input {
   flex: none;
 }
 
-/* a name that can be shortened: the track says that the least it takes is 3.5em of the name plus the words around it, or all of a shorter text */
+/* a name in the toolbar. Its track is the whole text, so it takes no less. A name long enough to be worth shortening (CutName says which) may take as little as the part of it that is kept, plus the words around it. */
 .cut-name {
   display: grid;
-  grid-template-columns: minmax(min(calc(3.5em + var(--name-rest, 0px)), var(--name-full, 0px)), max-content);
+  grid-template-columns: max-content;
+}
+
+.cut-name[data-shrinks] {
+  grid-template-columns: minmax(calc(var(--name-kept) + var(--name-rest)), max-content);
 }
 
 .cut-name > span {
