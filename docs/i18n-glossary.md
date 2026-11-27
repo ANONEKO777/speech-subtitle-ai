@@ -202,3 +202,13 @@ Here the English came first and `zh-TW` is new text.
 | locked by another program | 被其他程式鎖定 | locked by another program | |
 | File Explorer | 檔案總管 | File Explorer | Microsoft's name. |
 | command window | 命令列視窗 | command window | |
+
+## R2 (update check at start)
+
+| Concept | zh-TW | English | Note |
+|---|---|---|---|
+| check at start | 啟動時檢查 | check at startup | The switch is 啟動時檢查更新 / Check for updates at startup. |
+| download and install (one click) | 下載並安裝 | Download and install | The banner's button. The settings page keeps 下載更新 and 安裝並重新啟動 as two steps. |
+| later (until the next start) | 稍後 | Later | |
+| skip this version | 略過此版本 | Skip this version | Skips that one version only. |
+| what's new (release notes) | 更新內容 | What's new | The notes are data from `latest.json` and are not translated. |
