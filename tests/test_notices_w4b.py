@@ -25,7 +25,18 @@ from backend.manager.updates import UpdateError
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "app/src/i18n/notices.w4b.fixture.json"
 
-REWORDED = {"batch.crashed": 'said "queue" where the window says "batch"'}
+REWORDED = {
+    "batch.crashed": 'said "queue" where the window says "batch"',
+    **{
+        f"selftest.exitsSilently.{part}": "left a colon with nothing after it"
+        for part in ("message", "stage0", "stage1")
+    },
+    "refuse.keyUnsendable": "a key no header can carry failed at the first request, key and all",
+    "updates.item.runtimeUnrecorded": "told a runtime row to verify, which has no Verify button",
+    "updates.item.runtimeCheckFailed": "told a runtime row to verify, which has no Verify button",
+    "updates.item.localBuild": "sent a local build to buttons its row lacks",
+    "updates.item.localBuildElsewhere": "sent a local build to buttons its row lacks",
+}
 """Scenarios whose English changed on purpose, and why."""
 
 

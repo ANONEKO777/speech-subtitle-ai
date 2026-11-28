@@ -1,7 +1,6 @@
 import type { notices2 as en } from "../en/notices2";
 
 export const notices2 = {
-  "common.clauseSeparator": "；",
   "notice.batch.alreadyIn": "已經在佇列中（項目 {item}，{state}）",
   "notice.batch.badOrder": "新的排列順序要包含佇列中的每個項目，而且每個只能出現一次",
   "notice.batch.cannotCancel": "無法取消狀態為「{state}」的項目",

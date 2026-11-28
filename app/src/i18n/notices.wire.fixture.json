@@ -19,10 +19,48 @@
       {
         "code": "selftest.fellBackUnusable",
         "params": {
-          "failures": "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
-          "cpuFailures": "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          "failures": [
+            "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+            "LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          ],
+          "cpuFailures": [
+            "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+            "LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          ]
         },
         "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.. The CPU backend is used instead. The CPU backend is not usable either: ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.."
+      },
+      {
+        "code": "selftest.asrFailed",
+        "params": {
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      },
+      {
+        "code": "selftest.llmFailed",
+        "params": {
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      },
+      {
+        "code": "selftest.asrFailed",
+        "params": {
+          "runtime": "whispercpp-b5454-win-cpu",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      },
+      {
+        "code": "selftest.llmFailed",
+        "params": {
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
       },
       {
         "code": "runtime.vcMissing",
@@ -53,9 +91,28 @@
       {
         "code": "selftest.failed",
         "params": {
-          "failures": "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          "failures": [
+            "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+            "LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          ]
         },
         "message": "Self-test failed: ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.."
+      },
+      {
+        "code": "selftest.asrFailed",
+        "params": {
+          "runtime": "whispercpp-b5454-win-cpu",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "ASR (whispercpp-b5454-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      },
+      {
+        "code": "selftest.llmFailed",
+        "params": {
+          "runtime": "llama.cpp-b12068-win-cpu",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "LLM (llama.cpp-b12068-win-cpu): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
       },
       {
         "code": "runtime.vcMissing",
@@ -86,9 +143,28 @@
       {
         "code": "selftest.gpuFellBack",
         "params": {
-          "failures": "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          "failures": [
+            "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.",
+            "LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+          ]
         },
         "message": "The GPU backend failed: ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.; LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again.. The CPU backend is used instead."
+      },
+      {
+        "code": "selftest.asrFailed",
+        "params": {
+          "runtime": "whispercpp-b5454-win-cuda12.4",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "ASR (whispercpp-b5454-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+      },
+      {
+        "code": "selftest.llmFailed",
+        "params": {
+          "runtime": "llama.cpp-b12068-win-cuda12.4",
+          "detail": "This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
+        },
+        "message": "LLM (llama.cpp-b12068-win-cuda12.4): This computer doesn't have the Microsoft Visual C++ Redistributable (x64), so the speech recognition and translation programs can't start. Go to https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist to download and install \"vc_redist.x64.exe\", then try again."
       },
       {
         "code": "runtime.vcMissing",

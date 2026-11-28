@@ -40,6 +40,7 @@ const DATA: readonly RegExp[] = [
   /out of memory/g,
   /Access is denied/g,
   /Internal Server Error/g,
+  /Service Unavailable/g,
   // A command to type, as it is.
   /`brew install ffmpeg`/g,
   /model crashed/g,
@@ -52,12 +53,27 @@ const DATA: readonly RegExp[] = [
   /subs file: invalid JSON/g,
   // And what the store of the API key says, quoted as the detail of a saved key that cannot be read.
   /Windows DPAPI failed/g,
-  // The self-test joins its stage names as "ASR (runtime): ...; LLM (runtime): ...".
-  /; LLM \(/g,
 ];
 
-/** The one sentence whose English changed: it said "queue" where the window says "batch". */
-const REWORDED: Readonly<Record<string, string>> = { "batch.crashed": "the batch crashed" };
+/**
+ * The sentences whose English changed: one said "queue" where the window says "batch", a runtime
+ * row was told to verify, which only a model row can, a runtime built on the machine was told to
+ * re-download, which it cannot, a program that exited with no output left a
+ * colon with nothing after it, and a key no header can carry failed at the first request with the
+ * key in the text.
+ */
+const REWORDED: Readonly<Record<string, string>> = {
+  "refuse.keyUnsendable": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
+  "selftest.exitsSilently.message":
+    "Self-test failed: ASR (whispercpp-b5454-win-cpu): program.exe exited with code 3: no output; LLM (llama.cpp-b12068-win-cpu): program.exe exited with code 3: no output.",
+  "selftest.exitsSilently.stage0": "program.exe exited with code 3: no output",
+  "selftest.exitsSilently.stage1": "program.exe exited with code 3: no output",
+  "batch.crashed": "the batch crashed",
+  "updates.item.runtimeUnrecorded": "installed, but its version was not recorded; re-download it to compare with registry version b5454",
+  "updates.item.runtimeCheckFailed": "installed, but its last check failed; re-download it to compare with registry version b5454",
+  "updates.item.localBuild": "built on this computer, so the app does not track its version; to get a newer version, run scripts/mac/build_whisper_cli.sh again",
+  "updates.item.localBuildElsewhere": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
+};
 
 /** Two English words in a row, which a name alone is not and a sentence always is. */
 const ENGLISH_RUN = /[A-Za-z]{2,}[,;:]? [A-Za-z]{2,}/;
@@ -76,6 +92,13 @@ describe("every W4b scenario", () => {
     expect(shown).toBe(entry.zh);
     expect(DATA.reduce((left, data) => left.replace(data, "◇"), shown)).not.toMatch(ENGLISH_RUN);
   });
+
+  it.each(SCENARIOS.filter(([name]) => name.startsWith("selftest.")))(
+    "%s: Traditional Chinese joins the self-test's failures with Chinese punctuation, and no colon dangles",
+    (_name, entry) => {
+      expect(word(sent(entry), "zh-TW")).not.toMatch(/[:;] |：[；;）)]|：$/);
+    },
+  );
 
   it.each(SCENARIOS)("%s: the other languages fill every placeholder", (_name, entry) => {
     for (const locale of ["zh-CN", "ja"] as const) {

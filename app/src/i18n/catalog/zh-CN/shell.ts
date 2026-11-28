@@ -5,6 +5,7 @@ export const shell = {
   "common.cancel": "取消",
   "common.close": "关闭",
   "common.listSeparator": "、",
+  "common.clauseSeparator": "；",
   "app.title": "字幕翻译",
   "shell.mediaFilter": "视频和音频",
   "app.starting": "正在启动后端…",

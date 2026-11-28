@@ -1,6 +1,5 @@
 /** The W4b part 2 sentences of the backend and the shell (`../../notice.ts`), and the words their parameters use. Each English sentence equals its sender's template. */
 export const notices2 = {
-  "common.clauseSeparator": "; ",
   "notice.batch.alreadyIn": "already in the batch as {item} ({state})",
   "notice.batch.badOrder": "the order must list each known item once",
   "notice.batch.cannotCancel": "cannot cancel an item that is {state}",

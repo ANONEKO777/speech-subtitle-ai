@@ -113,7 +113,7 @@ class _Program:
 
     def __init__(self, how: str) -> None:
         self.how, self.waits = how, 0
-        self.returncode = 3 if how == "exits" else 0
+        self.returncode = 3 if how in ("exits", "silent") else 0
 
     def communicate(self, timeout: float | None = None) -> tuple[bytes, None]:
         self.waits += 1
@@ -183,6 +183,7 @@ def _selftests(found: dict[str, Entry], tmp: Path) -> None:
     _report("selftest.passedGpu", gpu, tmp, found)
     _report("selftest.passedCpu", cpu, tmp, found)
     _report("selftest.exits", cpu, tmp, found, cpu="exits")
+    _report("selftest.exitsSilently", cpu, tmp, found, cpu="silent")
     _report("selftest.hangs", cpu, tmp, found, cpu="hangs")
     _report("selftest.cannotStart", cpu, tmp, found, cpu="missing")
     _report("selftest.fellBack", gpu, tmp, found, simulate=True)
@@ -237,6 +238,23 @@ def _updates(found: dict[str, Entry]) -> None:
     item("unrecorded")
     installed[first.id] = record(ok=False)
     item("checkFailed")
+    tool = next(iter(bundled.runtimes))
+    for name, held in (("runtimeUnrecorded", None), ("runtimeCheckFailed", record(ok=False))):
+        installed[tool] = held
+        found[f"updates.item.{name}"] = _said(updates._item(inv, tool, None, None))
+    del installed[tool]
+    mac = registry_module.load(platform=platforms.MACOS_ARM64)
+    built = next(r for r in mac.runtimes.values() if r.build is not None)
+    on_mac: Any = SimpleNamespace(
+        registry=mac,
+        manifest=SimpleNamespace(get=lambda _id: None),
+        is_installed=lambda _id: True,
+        storage=None,
+    )
+    for name, outside in (("localBuild", None), ("localBuildElsewhere", Path("/bin/whisper-cli"))):
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(updates, "found_outside_runtimes", lambda *_a, _at=outside: _at, False)
+            found[f"updates.item.{name}"] = _said(updates._item(on_mac, built.id, None, None))
     installed[first.id] = record()
     item("matchesBundle")
     item("matchesRemote", bundled)
@@ -639,6 +657,27 @@ def _text_failures(found: dict[str, Entry]) -> None:
     found["summary.notWritten"] = _raised(
         lambda: summarize._Run.ask_reduce_or_fall_back(asker, job, [], "reduce zh-TW")
     )
+    config = client.LlmConfig("https://api.example.test/v1", "m")
+    calls = iter(range(100))
+
+    def busy(*_args: object, **_kwargs: object) -> object:
+        body = io.BytesIO(b"overloaded")
+        raise urllib.error.HTTPError(config.chat_url, 503, "Service Unavailable", Message(), body)
+
+    def rejected_then_busy(messages: Any, _temperature: float) -> str:
+        """A reply the check refuses, then a server that is busy when asked again."""
+        return "no" if next(calls) % 2 == 0 else client.chat(config, messages)
+
+    flaky: Any = SimpleNamespace(chat=rejected_then_busy, max_retries=1, sleep=lambda _s: None)
+    flaky.ask_reduce = lambda *args: summarize._Run.ask_reduce(flaky, *args)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(client, "_opener", lambda _c: SimpleNamespace(open=busy))
+        found["summary.notWrittenBusy"] = _raised(
+            lambda: summarize._Run.ask_reduce_or_fall_back(flaky, job, [], "reduce zh-TW")
+        )
+        found["translate.cueFailedBusy"] = _raised(
+            lambda: translate.run(cues, rejected_then_busy, max_retries=1, sleep=lambda _s: None)
+        )
 
 
 def _batch_failures(found: dict[str, Entry]) -> None:
@@ -728,6 +767,18 @@ def _saved_key(found: dict[str, Entry], tmp: Path) -> None:
         found["refuse.savedKey"] = _raised(lambda: app_main._configured_llm(tmp))
 
 
+def _unsendable_key(found: dict[str, Entry]) -> None:
+    """An invented key with a line break, which no HTTP header can carry. An older commit takes
+    it and fails at the first request instead, so the scenario sends one to a loopback port."""
+    request = resolve.Request(llm="http://127.0.0.1:9/v1", llm_model="m", llm_key="sk-INV\nENTED")
+
+    def send() -> None:
+        config = resolve._remote_config(request)
+        client.chat(config, [{"role": "user", "content": "hi"}])
+
+    found["refuse.keyUnsendable"] = _raised(send)
+
+
 def _video_gone(found: dict[str, Entry], tmp: Path) -> None:
     from test_api import GUARD, Rig, make_project, open_client
 
@@ -763,6 +814,7 @@ def _refusals(found: dict[str, Entry], tmp: Path) -> None:
         mp.setattr(resolve, "runtime_set", lambda: windows)
         _missing_files(found)
     _saved_key(found, folder)
+    _unsendable_key(found)
     _video_gone(found, folder)
 
 

@@ -2,7 +2,6 @@
 import type { notices2 as en } from "../en/notices2";
 
 export const notices2 = {
-  "common.clauseSeparator": "；",
   "notice.batch.alreadyIn": "已经在队列中（项目 {item}，{state}）",
   "notice.batch.badOrder": "新的排列顺序要包含队列中的每个项目，而且每个只能出现一次",
   "notice.batch.cannotCancel": "无法取消状态为“{state}”的项目",

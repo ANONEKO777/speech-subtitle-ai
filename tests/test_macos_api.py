@@ -250,3 +250,31 @@ def test_a_missing_whisper_is_not_marked_as_found_elsewhere(
     row = {e["id"]: e for e in client.get("/api/inventory").json()["assets"]}[WHISPER]
 
     assert (row["state"], row["found_outside_runtimes"]) == ("not_installed", False)
+
+
+@pytest.mark.parametrize("built_here", [True, False])
+def test_the_update_check_tells_a_built_whisper_what_its_row_can_do(
+    client: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, built_here: bool
+) -> None:
+    if built_here:
+        folder = client.ctx.storage.runtime_dir(MAC.runtimes[WHISPER])
+        folder.mkdir(parents=True)
+        (folder / "whisper-cli").write_bytes(b"x")
+        fake_which(monkeypatch, None)
+    else:
+        program = tmp_path / "homebrew" / "whisper-cli"
+        program.parent.mkdir()
+        program.write_bytes(b"x")
+        fake_which(monkeypatch, program)
+
+    items = {i["id"]: i for i in client.post("/api/updates/check").json()["items"]}
+    said = items[WHISPER]["message_notices"]
+
+    assert (items[WHISPER]["status"], items[WHISPER]["installable"]) == ("unknown", False)
+    assert "download" not in items[WHISPER]["message"]
+    if built_here:
+        assert [(n["code"], n["params"]) for n in said] == [
+            ("updates.localBuild", {"script": "scripts/mac/build_whisper_cli.sh"})
+        ]
+    else:
+        assert [n["code"] for n in said] == ["updates.localBuildElsewhere"]

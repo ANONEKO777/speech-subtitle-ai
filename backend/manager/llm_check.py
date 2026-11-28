@@ -8,6 +8,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
 from http.client import HTTPException, HTTPMessage
 from typing import IO, cast
@@ -15,6 +16,7 @@ from urllib.parse import urlsplit
 
 from backend.core import notices
 from backend.core.notices import Notice
+from backend.llm.client import redact
 from backend.manager.profiles import QWEN3_8B, runtime_set
 from backend.manager.registry import Registry
 from backend.manager.runtimes import runtime_executable
@@ -71,29 +73,14 @@ def _names(doc: object, list_key: str, name_key: str) -> tuple[str, ...]:
     return tuple(names)
 
 
-def _reason(reason: object) -> Notice:
+def _reason(reason: object, hide: Callable[[str], str]) -> Notice:
     if isinstance(reason, ConnectionRefusedError):
         return notices.LLM_TEST_REFUSED()
     if isinstance(reason, TimeoutError):
         return notices.LLM_TEST_TIMED_OUT(seconds=f"{TIMEOUT_S:g}")
     if isinstance(reason, socket.gaierror):
         return notices.LLM_TEST_HOST_NOT_FOUND()
-    return notices.LLM_TEST_CANNOT_CONNECT(reason=str(reason))
-
-
-def _redacted(notice: Notice, key: str | None) -> Notice:
-    """`notice` with the API key taken out of its sentence and every parameter: the window gets
-    both."""
-    if not key:
-        return notice
-
-    def clean(value: str | list[str]) -> str | list[str]:
-        if isinstance(value, str):
-            return value.replace(key, "***")
-        return [one.replace(key, "***") for one in value]
-
-    params = {name: clean(value) for name, value in notice.params.items()}
-    return Notice(notice.code, params, notice.message.replace(key, "***"))
+    return notices.LLM_TEST_CANNOT_CONNECT(reason=hide(str(reason)))
 
 
 def _result(
@@ -105,26 +92,32 @@ def _result(
 def _probe(
     source: LlmSource, url: str, key: str | None, list_key: str, name_key: str
 ) -> ConnectionResult:
+    def hide(words: str) -> str:
+        """The server's or the system's `words` without the key. Either may have cut them off."""
+        return redact(key or "", words, cut=True)
+
     def fail(why: Notice | str) -> ConnectionResult:
-        """`why` is a sentence of ours, or the words of the server or the system."""
+        """`why` is a sentence of ours, or the words of the server or the system, the key already
+        hidden from either."""
         inside = (why,) if isinstance(why, Notice) else ()
         text = why.message if isinstance(why, Notice) else why
-        said = (notices.LLM_TEST_COULD_NOT_USE(url=url, why=text), *inside)
-        return _result(False, source, url, tuple(_redacted(one, key) for one in said))
+        said = notices.LLM_TEST_COULD_NOT_USE(url=redact(key or "", url), why=text)
+        return _result(False, source, url, (said, *inside))
 
     try:
         doc = _get_json(url, key)
     except urllib.error.HTTPError as exc:
         if 300 <= exc.code < 400:
-            location = repr(exc.headers.get("Location"))
+            moved = exc.headers.get("Location")
+            location = repr(hide(moved) if moved is not None else None)
             return fail(notices.LLM_TEST_REDIRECTED(location=location))
         if exc.code in (401, 403):
             return fail(notices.LLM_TEST_KEY_REJECTED(status=str(exc.code)))
-        return fail(f"HTTP {exc.code} {exc.reason}")
+        return fail(hide(f"HTTP {exc.code} {exc.reason}"))
     except urllib.error.URLError as exc:
-        return fail(_reason(exc.reason))
+        return fail(_reason(exc.reason, hide))
     except (TimeoutError, OSError, HTTPException) as exc:
-        return fail(f"{type(exc).__name__}: {exc}")
+        return fail(hide(f"{type(exc).__name__}: {exc}"))
     except ValueError:
         return fail(notices.LLM_TEST_NOT_JSON())
     connected = (notices.LLM_TEST_CONNECTED(),)

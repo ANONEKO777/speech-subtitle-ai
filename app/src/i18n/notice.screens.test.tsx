@@ -119,9 +119,10 @@ describe("a self-test that fails for want of the Visual C++ runtime", () => {
     const body = () => screen.getByTestId("selftest-body").textContent;
     const stages = () => screen.getByTestId("selftest-result").querySelector("li")!.textContent;
     const vc = scenario("vc").before;
-    const gpu = `ASR (whispercpp-b5454-win-cuda12.4): ${vc}; LLM (llama.cpp-b12068-win-cuda12.4): ${vc}`;
-    const cpu = `ASR (whispercpp-b5454-win-cpu): ${vc}; LLM (llama.cpp-b12068-win-cpu): ${vc}`;
-    expect(body()).toBe(`GPU 後端失敗（${gpu}），改用 CPU 後端。但 CPU 後端也無法使用（${cpu}）。`);
+    expect(vc.endsWith("。")).toBe(true);
+    const gpu = `語音辨識（whispercpp-b5454-win-cuda12.4）：${vc}LLM（llama.cpp-b12068-win-cuda12.4）：${vc}`;
+    const cpu = `語音辨識（whispercpp-b5454-win-cpu）：${vc}LLM（llama.cpp-b12068-win-cpu）：${vc}`;
+    expect(body()).toBe(`GPU 後端失敗，已改用 CPU 後端，但 CPU 後端也無法使用。GPU 失敗原因：${gpu}CPU 失敗原因：${cpu}`);
     expect(stages()).toContain(stage.before);
 
     switchTo("en");

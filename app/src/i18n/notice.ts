@@ -54,9 +54,14 @@ export function wordNotice(notice: Notice, locale: Locale): string {
   return known ? worded : notice.message;
 }
 
+/** A quoted Chinese or Japanese sentence keeps its own full stop, so the join or the stop after it goes. */
+const tidy = (text: string): string => text.replace(/。[。；]/g, "。");
+
 /** The text in the language of the window. */
 export const word = (said: Said, locale: Locale): string =>
-  said.notices.reduce((text, notice) => {
-    const shown = wordNotice(notice, locale);
-    return text.replaceAll(notice.message, () => shown);
-  }, said.text);
+  tidy(
+    said.notices.reduce((text, notice) => {
+      const shown = wordNotice(notice, locale);
+      return text.replaceAll(notice.message, () => shown);
+    }, said.text),
+  );

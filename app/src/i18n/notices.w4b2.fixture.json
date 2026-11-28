@@ -1266,7 +1266,7 @@
         "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
       }
     ],
-    "zh": "whisper-large-v3-turbo 沒有可以更新的版本：已安裝清單版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
+    "zh": "whisper-large-v3-turbo 沒有可以更新的版本：已安裝登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
   },
   "manage.verifyStopped": {
     "before": "verification stopped",

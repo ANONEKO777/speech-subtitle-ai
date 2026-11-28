@@ -2,7 +2,6 @@
 import type { notices2 as en } from "../en/notices2";
 
 export const notices2 = {
-  "common.clauseSeparator": "；",
   "notice.batch.alreadyIn": "すでにバッチに入っています（項目 {item}、{state}）",
   "notice.batch.badOrder": "新しい順番には、バッチのすべての項目を 1 回ずつ含める必要があります",
   "notice.batch.cannotCancel": "状態が「{state}」の項目はキャンセルできません",

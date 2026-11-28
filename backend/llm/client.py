@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import functools
 import json
+import re
 import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
@@ -19,6 +21,8 @@ LLM_SEED = 20261105
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _ERROR_BODY_BYTES = 4096
 _ERROR_DETAIL_CHARS = 500
+_KEY_PREFIX_CHARS = 8
+"""A key cut to fewer characters than this at the end of a cut body is not redacted."""
 _RETRYABLE_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 
 
@@ -36,6 +40,11 @@ class LlmError(Exception):
         super().__init__(message)
         self.retryable = retryable
         self.retry_after_s = retry_after_s
+
+
+def sendable(key: str) -> bool:
+    """Whether an HTTP header can carry `key`: printable ASCII with no space."""
+    return all("!" <= char <= "~" for char in key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +70,8 @@ class LlmConfig:
                 "base_url must not hold a user name, password, query or fragment; "
                 "pass the key as api_key"
             )
+        if not sendable(self.api_key):
+            raise noticed(ValueError, notices.LLM_KEY_UNSENDABLE())
         if self.api_key and parts.scheme == "http" and not self.is_local:
             raise ValueError(
                 f"refusing to send an API key over plain http to {parts.hostname}; use https"
@@ -139,8 +150,80 @@ def _reply_text(raw: bytes, config: LlmConfig) -> str:
     return content
 
 
+def _forms(char: str) -> list[str]:
+    """Each way a server can echo one character of a key: as it is, percent-encoded, JSON-escaped
+    or as an HTML entity. Hex digits match in either case, as servers write both, and a JSON
+    escape may come with its backslash doubled, as `repr` of the text writes it."""
+    code = ord(char)
+    escaped = [r"\\+/"] if char == "/" else []
+    return [
+        re.escape(char),
+        *escaped,
+        f"%{code:02x}",
+        rf"\\+u{code:04x}",
+        f"&#{code};",
+        f"&#x0*{code:x};",
+    ]
+
+
+@functools.cache
+def _spellings(char: str) -> tuple[re.Pattern[str], ...]:
+    return tuple(re.compile(form, re.IGNORECASE) for form in _forms(char))
+
+
+_CUT_ESCAPE = re.compile(r"(?:%[0-9a-f]?|\\+(?:u[0-9a-f]{0,3})?|&(?:#x?[0-9a-f]*)?)?", re.I)
+"""The start of one encoded character, where a cut fell inside its spelling."""
+
+
+def _echo_end(key: str, text: str, start: int, cut: bool) -> int | None:
+    """Where an echo of `key` that begins at `start` ends, or None if none begins there. With
+    `cut`, an echo of at least `_KEY_PREFIX_CHARS` characters that runs to the end of `text`
+    counts too. The walk keeps every place the text has reached, because a key's `%`, `\\` or
+    `&` can be read as itself or as the start of an escape."""
+    reached = {start}
+    for done, char in enumerate(key):
+        if (
+            cut
+            and done >= _KEY_PREFIX_CHARS
+            and any(_CUT_ESCAPE.fullmatch(text, end) for end in reached)
+        ):
+            return len(text)
+        reached = {
+            found.end()
+            for end in reached
+            for spelling in _spellings(char)
+            if (found := spelling.match(text, end))
+        }
+        if not reached:
+            return None
+    return max(reached)
+
+
+def redact(key: str, text: str, *, cut: bool = False) -> str:
+    """`text` with every echo of `key` replaced by `***`. `cut` says the text was cut off, so a
+    piece of the key at its end goes too.
+
+    No regex spells out the whole key: one that long takes seconds to compile, and nesting it
+    overflows the parser's stack. A small one finds where the key's first characters appear, and
+    a walk follows the key from each."""
+    if not key:
+        return text
+    head = "".join("(?:" + "|".join(_forms(char)) + ")" for char in key[:_KEY_PREFIX_CHARS])
+    pieces: list[str] = []
+    done = 0
+    for found in re.finditer(f"(?={head})", text, re.IGNORECASE):
+        start = found.start()
+        if start < done:
+            continue
+        end = _echo_end(key, text, start, cut)
+        if end is not None:
+            pieces += [text[done:start], "***"]
+            done = end
+    return "".join([*pieces, text[done:]])
+
+
 def _redact(config: LlmConfig, text: str) -> str:
-    return text.replace(config.api_key, "***") if config.api_key else text
+    return redact(config.api_key, text)
 
 
 def _fail(
@@ -167,7 +250,8 @@ def _retry_after(headers: EmailMessage) -> float | None:
 
 
 def _http_error(exc: urllib.error.HTTPError, config: LlmConfig) -> LlmError:
-    detail = _redact(config, exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace"))
+    body = exc.read(_ERROR_BODY_BYTES).decode("utf-8", errors="replace")
+    detail = redact(config.api_key, body, cut=True)
     detail = detail.strip()[:_ERROR_DETAIL_CHARS]
     return _fail(
         config,

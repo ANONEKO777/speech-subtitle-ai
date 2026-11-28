@@ -5,6 +5,7 @@ export const shell = {
   "common.cancel": "キャンセル",
   "common.close": "閉じる",
   "common.listSeparator": "、",
+  "common.clauseSeparator": "／",
   "app.title": "字幕翻訳",
   "shell.mediaFilter": "動画と音声",
   "app.starting": "バックエンドを起動しています…",
