@@ -56,6 +56,7 @@ import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
 import { Wizard } from "./wizard/Wizard";
 import { LinkedText } from "./manage/LinkedText";
 import { KEY, parseSettings } from "./settings/settings";
+import { readStored, writeStored } from "./storage";
 
 /** Why the window went home. `processing` is a job that failed, and a null `reason` is its lost connection. */
 interface ImportError {
@@ -157,8 +158,8 @@ export function App() {
   const { t, plural, locale } = texts;
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
-  const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
-  const [queue, setQueue] = useState(() => parseQueue(localStorage.getItem(QUEUE_KEY)));
+  const [settings, setSettings] = useState(() => parseSettings(readStored(KEY)));
+  const [queue, setQueue] = useState(() => parseQueue(readStored(QUEUE_KEY)));
   const [library, setLibrary] = useState<readonly LibraryItem[]>([]);
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
@@ -180,8 +181,8 @@ export function App() {
     return () => stop?.();
   }, []);
 
-  useEffect(() => localStorage.setItem(KEY, JSON.stringify(settings)), [settings]);
-  useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
+  useEffect(() => writeStored(KEY, JSON.stringify(settings)), [settings]);
+  useEffect(() => writeStored(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
   useUiLanguageSync(backend);
@@ -189,7 +190,7 @@ export function App() {
     if (!backend) return;
     let alive = true;
     fetchModelStates(backend).then(
-      (models) => alive && setFirstRun(needsWizard(models, localStorage.getItem(SKIPPED_KEY) === "1") ? "wizard" : "done"),
+      (models) => alive && setFirstRun(needsWizard(models, readStored(SKIPPED_KEY) === "1") ? "wizard" : "done"),
       () => alive && setFirstRun("done"),
     );
     return () => {
@@ -197,7 +198,7 @@ export function App() {
     };
   }, [backend]);
   const leaveWizard = useCallback((how: "finished" | "skipped") => {
-    if (how === "skipped") localStorage.setItem(SKIPPED_KEY, "1");
+    if (how === "skipped") writeStored(SKIPPED_KEY, "1");
     setFirstRun("done");
   }, []);
   const batch = useBatch(backend);
