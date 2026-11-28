@@ -22,8 +22,9 @@ from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol, TypeVar, cast
 
-ParamKind = Literal["text", "list", "language"]
-"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it.
+ParamKind = Literal["text", "list", "clauses", "language"]
+"""`text` is shown as it is. A `list` is joined with the separator of the language that shows it,
+and `clauses`, items that hold their own punctuation, with the stronger one (`; ` in English).
 A `language` travels as its code, and the window names it."""
 
 ParamValue = str | list[str]
@@ -60,9 +61,9 @@ class Template:
             if kind == "language":
                 language = cast("NamedLanguage", value)
                 sent[name], shown[name] = language.code, language.name
-            elif kind == "list":
+            elif kind in ("list", "clauses"):
                 items = list(cast("Sequence[str]", value))
-                sent[name], shown[name] = items, ", ".join(items)
+                sent[name], shown[name] = items, (", " if kind == "list" else "; ").join(items)
             else:
                 sent[name] = shown[name] = str(value)
         return Notice(self.code, sent, self.english.format_map(shown))
@@ -279,6 +280,18 @@ PROGRAM_EXITED = _template(
     code="text",
     output="text",
 )
+PROGRAM_EXITED_SILENT = _template(
+    "selftest.exitedSilent",
+    "{program} exited with code {code}: no output",
+    program="text",
+    code="text",
+)
+ASR_STAGE_FAILED = _template(
+    "selftest.asrFailed", "ASR ({runtime}): {detail}", runtime="text", detail="text"
+)
+LLM_STAGE_FAILED = _template(
+    "selftest.llmFailed", "LLM ({runtime}): {detail}", runtime="text", detail="text"
+)
 SIMULATED_CUDA_FAILURE = _template(
     "selftest.simulated", "CUDA failed to initialise (simulated by {variable})", variable="text"
 )
@@ -291,23 +304,23 @@ SEES_CUDA = _template("selftest.cudaSeen", "llama-server sees a CUDA device")
 LLAMA_STARTS = _template("selftest.llamaStarts", "llama-server starts")
 STAGE_NOT_INSTALLED = _template("selftest.notInstalled", "not installed: {missing}", missing="list")
 SELFTEST_PASSED = _template("selftest.passed", "Self-test passed on {device}.", device="text")
-SELFTEST_FAILED = _template("selftest.failed", "Self-test failed: {failures}.", failures="text")
+SELFTEST_FAILED = _template("selftest.failed", "Self-test failed: {failures}.", failures="clauses")
 _FELL_BACK = "The GPU backend failed: {failures}. The CPU backend is used instead."
-GPU_FELL_BACK = _template("selftest.gpuFellBack", _FELL_BACK, failures="text")
+GPU_FELL_BACK = _template("selftest.gpuFellBack", _FELL_BACK, failures="clauses")
 FELL_BACK_AND_PASSED = _template(
-    "selftest.fellBackPassed", _FELL_BACK + " The CPU self-test passed.", failures="text"
+    "selftest.fellBackPassed", _FELL_BACK + " The CPU self-test passed.", failures="clauses"
 )
 FELL_BACK_AND_UNUSABLE = _template(
     "selftest.fellBackUnusable",
     _FELL_BACK + " The CPU backend is not usable either: {cpuFailures}.",
-    failures="text",
-    cpuFailures="text",
+    failures="clauses",
+    cpuFailures="clauses",
 )
 NO_CPU_FALLBACK = _template(
     "selftest.noCpuRuntime",
     "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to "
     "have a CPU fallback.",
-    failures="text",
+    failures="clauses",
     download="list",
 )
 
@@ -322,14 +335,32 @@ UPDATES_NO_REMOTE = _template(
     "No remote registry is configured; compared with the registry shipped with this app.",
 )
 ITEM_NOT_INSTALLED = _template("updates.itemNotInstalled", "not installed")
+# A model row has Verify and Re-download, a runtime row only Re-download, so each names its own.
 _COMPARE = "; verify or re-download it to compare with registry version {version}"
-ITEM_CHECK_FAILED = _template(
-    "updates.itemCheckFailed", "installed, but its last check failed" + _COMPARE, version="text"
+_COMPARE_RUNTIME = "; re-download it to compare with registry version {version}"
+_CHECK_FAILED, _UNRECORDED = (
+    "installed, but its last check failed",
+    "installed, but its version was not recorded",
 )
-ITEM_UNRECORDED = _template(
-    "updates.itemUnrecorded",
-    "installed, but its version was not recorded" + _COMPARE,
-    version="text",
+ITEM_CHECK_FAILED = _template("updates.itemCheckFailed", _CHECK_FAILED + _COMPARE, version="text")
+ITEM_UNRECORDED = _template("updates.itemUnrecorded", _UNRECORDED + _COMPARE, version="text")
+RUNTIME_CHECK_FAILED = _template(
+    "updates.runtimeCheckFailed", _CHECK_FAILED + _COMPARE_RUNTIME, version="text"
+)
+RUNTIME_UNRECORDED = _template(
+    "updates.runtimeUnrecorded", _UNRECORDED + _COMPARE_RUNTIME, version="text"
+)
+# A runtime built on the machine has no download, so its row has no Re-download.
+LOCAL_BUILD_UNTRACKED = _template(
+    "updates.localBuild",
+    "built on this computer, so the app does not track its version; to get a newer version, "
+    "run {script} again",
+    script="text",
+)
+LOCAL_BUILD_ELSEWHERE_UNTRACKED = _template(
+    "updates.localBuildElsewhere",
+    "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track "
+    "its version",
 )
 ITEM_MATCHES_REMOTE = _template(
     "updates.itemMatchesRemote",
@@ -603,6 +634,11 @@ LLM_UNREACHABLE = _template(
     "cannot reach the LLM server at {url}: {reason}",
     url="text",
     reason="text",
+)
+LLM_KEY_UNSENDABLE = _template(
+    "llm.keyUnsendable",
+    "the API key holds a space, a line break or another character that cannot be sent; "
+    "enter the key again",
 )
 
 # Translation and the summary. A `reason` or `reply` is what the check of the model's answer said

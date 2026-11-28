@@ -84,6 +84,8 @@ def ask(
     attempts = retries + 1
     sent: list[Message] = list(messages)
     reason, text = "", ""
+    said_why: Exception | None = None
+    """What gave `reason`, so the error raised at the end carries its notice."""
     server_error: LlmError | None = None
     answered = False
     for attempt in range(1, attempts + 1):
@@ -92,7 +94,7 @@ def ask(
         except LlmError as exc:
             if not exc.retryable:
                 raise
-            reason, server_error = str(exc), exc
+            reason, said_why, server_error = str(exc), exc, exc
             log.warning("%s attempt %d failed: %s", label, attempt, reason)
             delay = min(2.0 ** (attempt - 1), 8.0)
             if exc.retry_after_s is not None:
@@ -103,7 +105,7 @@ def ask(
         try:
             return parse(text), attempt
         except ReplyError as exc:
-            reason = str(exc)
+            reason, said_why = str(exc), exc
             log.warning("%s attempt %d rejected: %s", label, attempt, reason)
             echoed = echo_limit is None or len(text) <= echo_limit
             sent = [
@@ -113,4 +115,4 @@ def ask(
             ]
     if server_error and not answered:
         raise server_error
-    raise RepliesRejected(reason, attempts, text)
+    raise RepliesRejected(reason, attempts, text) from said_why

@@ -15,7 +15,9 @@ import shell from "./notices.shell.json";
 export type { Notice, Said } from "./said";
 export { parseNotices, plainText, said, saidField } from "./said";
 
-type ParamKind = "text" | "list" | "language";
+type ParamKind = "text" | "list" | "clauses" | "language";
+
+const SEPARATOR = { list: "common.listSeparator", clauses: "common.clauseSeparator" } as const;
 
 /** Every code a sender has, with the kind of each parameter. */
 export const SENT: Readonly<Record<string, { readonly english: string; readonly params: Readonly<Record<string, string>> }>> = {
@@ -24,7 +26,7 @@ export const SENT: Readonly<Record<string, { readonly english: string; readonly 
 };
 
 function shownParam(kind: ParamKind, value: string | readonly string[], locale: Locale): string | null {
-  if (kind === "list") return Array.isArray(value) ? value.join(t(locale, "common.listSeparator")) : null;
+  if (kind === "list" || kind === "clauses") return Array.isArray(value) ? value.join(t(locale, SEPARATOR[kind])) : null;
   if (typeof value !== "string") return null;
   return kind === "language" ? languageName(locale, { code: value }) : value;
 }
@@ -44,9 +46,14 @@ export function wordNotice(notice: Notice, locale: Locale): string {
   return known ? worded : notice.message;
 }
 
+/** A quoted Chinese or Japanese sentence keeps its own full stop, so the join or the stop after it goes. */
+const tidy = (text: string): string => text.replace(/。[。；]/g, "。");
+
 /** The text in the language of the window. */
 export const word = (said: Said, locale: Locale): string =>
-  said.notices.reduce((text, notice) => {
-    const shown = wordNotice(notice, locale);
-    return text.replaceAll(notice.message, () => shown);
-  }, said.text);
+  tidy(
+    said.notices.reduce((text, notice) => {
+      const shown = wordNotice(notice, locale);
+      return text.replaceAll(notice.message, () => shown);
+    }, said.text),
+  );

@@ -66,13 +66,14 @@ def _run(command: list[str], timeout_s: float) -> str:
         raise noticed(ProbeFailed, slow) from None
     text = out.decode("utf-8", errors="replace")
     if proc.returncode != 0:
+        name, code = Path(command[0]).name, str(proc.returncode)
         tail = " ".join(text.strip().splitlines()[-2:])[:300]
-        raise noticed(
-            ProbeFailed,
-            sentences.PROGRAM_EXITED(
-                program=Path(command[0]).name, code=str(proc.returncode), output=tail
-            ),
+        exited = (
+            sentences.PROGRAM_EXITED(program=name, code=code, output=tail)
+            if tail
+            else sentences.PROGRAM_EXITED_SILENT(program=name, code=code)
         )
+        raise noticed(ProbeFailed, exited)
     return text
 
 
@@ -162,13 +163,23 @@ def _all_ok(results: list[StageResult]) -> bool:
     return all(r.ok for r in results)
 
 
-def _names(results: list[StageResult]) -> str:
-    return "; ".join(f"{r.stage.upper()} ({r.runtime_id}): {r.detail}" for r in results if not r.ok)
+_STAGE_FAILED = {_ASR: sentences.ASR_STAGE_FAILED, _LLM: sentences.LLM_STAGE_FAILED}
+
+
+def _failed(result: StageResult) -> Notice:
+    return _STAGE_FAILED[result.stage](runtime=result.runtime_id, detail=result.detail)
+
+
+def _names(results: Sequence[StageResult]) -> list[str]:
+    return [_failed(r).message for r in results if not r.ok]
 
 
 def _notices(results: Sequence[StageResult]) -> tuple[Notice, ...]:
-    """The notices in the sentence `_names` makes of the failed results."""
-    return unique(n for r in results if not r.ok for n in r.detail_notices)
+    """The notices in the clauses `_names` makes of the failed results: every stage's own before
+    what the stages quote, because the window words the outer sentences first and two stages can
+    quote the same one."""
+    failed = [r for r in results if not r.ok]
+    return unique([*map(_failed, failed), *(n for r in failed for n in r.detail_notices)])
 
 
 def _inside(summary: Notice, results: Sequence[StageResult]) -> tuple[Notice, ...]:

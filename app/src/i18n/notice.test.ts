@@ -34,7 +34,7 @@ describe("every code a sender has", () => {
 
   it("uses only the parameter kinds the window can word", () => {
     for (const sent of Object.values(SENT)) {
-      for (const kind of Object.values(sent.params)) expect(["text", "list", "language"]).toContain(kind);
+      for (const kind of Object.values(sent.params)) expect(["text", "list", "clauses", "language"]).toContain(kind);
     }
   });
 

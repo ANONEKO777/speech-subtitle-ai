@@ -329,6 +329,10 @@
       "detail": "text"
     }
   },
+  "llm.keyUnsendable": {
+    "english": "the API key holds a space, a line break or another character that cannot be sent; enter the key again",
+    "params": {}
+  },
   "llm.noContent": {
     "english": "{url} did not return a chat completion: no choices[0].message.content string",
     "params": {
@@ -629,6 +633,13 @@
     "english": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
     "params": {}
   },
+  "selftest.asrFailed": {
+    "english": "ASR ({runtime}): {detail}",
+    "params": {
+      "runtime": "text",
+      "detail": "text"
+    }
+  },
   "selftest.asrNote": {
     "english": "transcribed one second of silence",
     "params": {}
@@ -645,39 +656,53 @@
       "output": "text"
     }
   },
+  "selftest.exitedSilent": {
+    "english": "{program} exited with code {code}: no output",
+    "params": {
+      "program": "text",
+      "code": "text"
+    }
+  },
   "selftest.failed": {
     "english": "Self-test failed: {failures}.",
     "params": {
-      "failures": "text"
+      "failures": "clauses"
     }
   },
   "selftest.fellBackPassed": {
     "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU self-test passed.",
     "params": {
-      "failures": "text"
+      "failures": "clauses"
     }
   },
   "selftest.fellBackUnusable": {
     "english": "The GPU backend failed: {failures}. The CPU backend is used instead. The CPU backend is not usable either: {cpuFailures}.",
     "params": {
-      "failures": "text",
-      "cpuFailures": "text"
+      "failures": "clauses",
+      "cpuFailures": "clauses"
     }
   },
   "selftest.gpuFellBack": {
     "english": "The GPU backend failed: {failures}. The CPU backend is used instead.",
     "params": {
-      "failures": "text"
+      "failures": "clauses"
     }
   },
   "selftest.llamaStarts": {
     "english": "llama-server starts",
     "params": {}
   },
+  "selftest.llmFailed": {
+    "english": "LLM ({runtime}): {detail}",
+    "params": {
+      "runtime": "text",
+      "detail": "text"
+    }
+  },
   "selftest.noCpuRuntime": {
     "english": "GPU failed and the CPU runtime is not installed. GPU: {failures}. Download {download} to have a CPU fallback.",
     "params": {
-      "failures": "text",
+      "failures": "clauses",
       "download": "list"
     }
   },
@@ -828,6 +853,16 @@
       "version": "text"
     }
   },
+  "updates.localBuild": {
+    "english": "built on this computer, so the app does not track its version; to get a newer version, run {script} again",
+    "params": {
+      "script": "text"
+    }
+  },
+  "updates.localBuildElsewhere": {
+    "english": "found on your PATH or in a Homebrew folder, not built by the app, so the app does not track its version",
+    "params": {}
+  },
   "updates.noRemote": {
     "english": "No remote registry is configured; compared with the registry shipped with this app.",
     "params": {}
@@ -858,6 +893,18 @@
     "params": {
       "url": "text",
       "error": "text"
+    }
+  },
+  "updates.runtimeCheckFailed": {
+    "english": "installed, but its last check failed; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
+    }
+  },
+  "updates.runtimeUnrecorded": {
+    "english": "installed, but its version was not recorded; re-download it to compare with registry version {version}",
+    "params": {
+      "version": "text"
     }
   },
   "video.gone": {
