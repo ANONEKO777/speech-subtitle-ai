@@ -71,10 +71,11 @@ def selftest(request: Request, ctx: Context) -> dict[str, Any]:
     """Run the active profile's ASR and LLM runtimes for a few seconds. When the GPU backend
     fails, the CPU backend is tried and the reason is saved for the pipeline and the page."""
     refuse_while_busy(request, "run the self-test")
-    active = resolve_active(ctx.settings.current, ctx.detect_hardware(), ctx.registry)
-    report = run_selftest(
-        active.selection.profile, ctx.registry, ctx.storage, ctx.selftest, ctx.probe
-    )
+    with ctx.selftest.run():
+        active = resolve_active(ctx.settings.current, ctx.detect_hardware(), ctx.registry)
+        report = run_selftest(
+            active.selection.profile, ctx.registry, ctx.storage, ctx.selftest, ctx.probe
+        )
     return asdict(report)
 
 
