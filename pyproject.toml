@@ -1,6 +1,6 @@
 [project]
 name = "video-subtitle-translator"
-version = "0.0.0"
+version = "0.1.0"
 description = "Turn English talk videos into English and Traditional Chinese (Taiwan) bilingual subtitles and a summary."
 readme = "README.md"
 requires-python = ">=3.11"
