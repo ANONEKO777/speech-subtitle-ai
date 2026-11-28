@@ -46,6 +46,10 @@ To make a release:
 
 A tag that does not equal the version stops the workflow before the build. To build again for the same tag, delete its draft release first. The release builds use no dependency cache, so a cache written by a pull request cannot reach a signed build.
 
+Before the draft, `check_release_files.py` verifies the `.sig` against `plugins.updater.pubkey` in `tauri.conf.json`, as the app's updater does, so a release signed with any other key stops there with both key ids named.
+
+Follow-up, not done yet: the signing key and its password are in the environment of the whole `Build and sign` step, so `uv sync`, PyInstaller, `npm ci` and every crate's `build.rs` run beside them. A tighter shape builds unsigned in one step and signs the finished installer with `tauri signer sign` in a second step that alone holds the secrets.
+
 ## Updates
 
 The app checks for updates only when the person presses 檢查更新 on the settings page. It never checks at start. The check reads `latest.json` from the address in `plugins.updater.endpoints` in `app/src-tauri/tauri.conf.json`, downloads the installer it names, and checks its signature against the `pubkey` in the same file before offering 安裝並重新啟動.
