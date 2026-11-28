@@ -219,3 +219,7 @@ Here the English came first and `zh-TW` is new text.
 | verify | 驗證 | verify | As in W2. |
 | job | 工作 | job | 匯出工作 for a burn-in export. |
 | a profile's id (gpu-24gb) | the profile's name (24 GB 顯示卡) | the id | `noticeWord.<id>`. English keeps the id the backend sent. |
+| cloud LLM | 雲端 LLM | cloud LLM | As the LLM page's source choice. |
+| glossary (sent to the LLM) | 術語表 | glossary | In the consent sentence: the list of names and terms the translation keeps. |
+| summary prompt | 摘要提示詞 | summary prompt | |
+| provider (of a cloud LLM) | 服務供應商 | provider | |
