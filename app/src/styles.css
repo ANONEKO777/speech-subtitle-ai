@@ -3016,16 +3016,28 @@ header:has(.settings) .field input {
   gap: 2px;
 }
 
+/* Four lines, then the notes scroll. Mixed scripts make lines taller than line-height, so no fixed height ends between two lines:
+   the bottom fades instead of slicing a line, and the bottom padding lets the last line scroll clear of the fade. The scrollbar column stays unfaded. */
 .update-banner-notes p,
 .update-notes {
+  --notes-fade: 1.4em;
   margin: 0;
-  max-height: calc(4 * 1.55em);
+  max-height: calc(4 * 1.55em + var(--notes-fade));
+  padding: 0 var(--space-2) var(--notes-fade) 0;
   overflow-y: auto;
   color: var(--text-muted);
   font-size: var(--text-sm);
   line-height: 1.55;
   white-space: pre-line;
   overflow-wrap: anywhere;
+  mask:
+    linear-gradient(#000, #000) right / 10px 100% no-repeat,
+    linear-gradient(to bottom, #000 calc(100% - var(--notes-fade)), transparent);
+}
+
+.update-banner-notes p::-webkit-scrollbar-thumb,
+.update-notes::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.32);
 }
 
 .update-banner-body > p {
