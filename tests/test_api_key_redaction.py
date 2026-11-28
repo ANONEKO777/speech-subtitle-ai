@@ -237,9 +237,8 @@ def _tested(monkeypatch: pytest.MonkeyPatch, key: str, answer: Exception) -> str
         raise answer
 
     monkeypatch.setattr(llm_check, "_get_json", refuse)
-    found = llm_check._probe(
-        LlmSource.CLOUD, "https://api.example.test/v1/models", key, "data", "id"
-    )  # pyright: ignore[reportPrivateUsage]
+    url = "https://api.example.test/v1/models"
+    found = llm_check._probe(LlmSource.CLOUD, url, key, "data", "id")  # pyright: ignore[reportPrivateUsage]
     assert not found.ok
     return found.detail + json.dumps(to_json(found.detail_notices))
 
