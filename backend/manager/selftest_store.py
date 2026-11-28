@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -107,7 +107,7 @@ class SelfTestStore:
             return self._runs > 0
 
     @contextmanager
-    def run(self) -> Iterator[None]:
+    def run(self) -> Generator[None]:
         with self._lock:
             self._runs += 1
         try:
