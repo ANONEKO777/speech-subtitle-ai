@@ -35,7 +35,7 @@ App 會用「更新簽章」確認下載到的更新檔真的是你發布的。�
    - `video-subtitle-translator-v2.key`：**私密金鑰**。絕對不能給別人。
    - `video-subtitle-translator-v2.key.pub`：**公開金鑰**。可以公開，第 4 步要用。
 
-檔名用 `-2026`，是為了不要蓋掉舊金鑰 `video-subtitle-translator.key`。
+檔名用 `-v2`，是為了不要蓋掉舊金鑰 `video-subtitle-translator.key`。
 
 ## 2. 備份（兩份，放在不同地方）
 
