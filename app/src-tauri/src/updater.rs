@@ -76,11 +76,11 @@ pub struct BuildInfo {
 /// Whether this build can update itself, and its version, so the window knows without going online.
 #[tauri::command]
 pub fn update_build_info<R: Runtime>(app: AppHandle<R>) -> BuildInfo {
-    build_info(app.package_info().version.to_string())
+    build_info(platform::Os::CURRENT, app.package_info().version.to_string())
 }
 
-fn build_info(current: String) -> BuildInfo {
-    BuildInfo { supported: platform::here::updates_supported(), current }
+fn build_info(os: platform::Os, current: String) -> BuildInfo {
+    BuildInfo { supported: platform::updates_supported(os), current }
 }
 
 #[tauri::command]
@@ -195,8 +195,10 @@ mod tests {
 
     #[test]
     fn the_build_info_names_the_version_and_only_windows_is_supported() {
-        let info = serde_json::to_value(build_info("0.2.0".into())).unwrap();
-        assert_eq!(info, serde_json::json!({ "supported": cfg!(windows), "current": "0.2.0" }));
+        let info = |os| serde_json::to_value(build_info(os, "0.2.0".into())).unwrap();
+        assert_eq!(info(platform::Os::Windows), serde_json::json!({ "supported": true, "current": "0.2.0" }));
+        assert_eq!(info(platform::Os::MacOs), serde_json::json!({ "supported": false, "current": "0.2.0" }));
+        assert_eq!(info(platform::Os::Other), serde_json::json!({ "supported": false, "current": "0.2.0" }));
     }
 
     #[test]
