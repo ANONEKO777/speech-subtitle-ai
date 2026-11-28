@@ -1,7 +1,8 @@
 import type { ComponentProps } from "react";
 import { SettingsPage } from "./SettingsPage";
 import { UpdateSection } from "./UpdateSection";
-import { type Work, useUpdates } from "./useUpdates";
+import { useUpdates } from "./useUpdates";
+import type { Work } from "./work";
 
 /** The settings section with its own update state and no check at start, for tests that render it alone. */
 export function UpdateSectionAlone({ work = null }: { work?: Work }) {

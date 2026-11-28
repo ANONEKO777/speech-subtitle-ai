@@ -135,7 +135,7 @@ export const notices = {
   "notice.shell.update.noSource": "這個版本沒有設定更新來源，無法檢查更新。",
   "notice.shell.update.notDownloaded": "更新檔還沒有下載好。",
   "notice.shell.update.notUpdateInfo": "更新來源回傳的不是更新資訊（網址可能已失效，或需要先登入）。請稍後再試，或到專案網頁重新下載安裝程式。",
-  "notice.shell.update.stalled": "更新檔下載到一半沒有再收到資料，已經放棄。請確認網路連線，再按一次「下載」。",
+  "notice.shell.update.stalled": "更新檔下載到一半沒有再收到資料，已經放棄。請確認網路連線。",
   "notice.shell.update.timeout": "更新伺服器沒有在 10 秒內回應。請稍後再試。",
   "notice.shell.update.unreachable": "連不上更新伺服器。請確認網路連線，稍後再試。",
   "notice.shell.update.unsupported": "這個平台還沒有自動更新。請到專案網頁下載新版安裝程式，直接取代現有的應用程式。",

@@ -49,7 +49,8 @@ import { useJob } from "./progress/useJob";
 import { fetchModelStates } from "./manage/api";
 import { SettingsPage } from "./settings/SettingsPage";
 import { UpdateBanner } from "./settings/UpdateBanner";
-import { START_DELAY_MS, useUpdates, workInProgress } from "./settings/useUpdates";
+import { START_DELAY_MS, useUpdates } from "./settings/useUpdates";
+import { fetchBackendWork, windowWork } from "./settings/work";
 import { useUiLanguageSync } from "./settings/useUiLanguageSync";
 import { SettingsBar } from "./settings/SettingsBar";
 import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
@@ -202,7 +203,8 @@ export function App() {
     setFirstRun("done");
   }, []);
   const batch = useBatch(backend);
-  const updates = useUpdates(workInProgress(screen.kind === "importing", batch), START_DELAY_MS);
+  const askWork = useCallback(() => (backend ? fetchBackendWork(backend) : Promise.resolve([])), [backend]);
+  const updates = useUpdates(windowWork(screen.kind === "importing", batch), START_DELAY_MS, backend ? askWork : null);
   const updateBanner = <UpdateBanner updates={updates} />;
   useEffect(() => {
     if (backend) performance.mark("backend-ready");

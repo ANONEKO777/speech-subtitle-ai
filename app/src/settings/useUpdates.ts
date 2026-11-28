@@ -1,19 +1,10 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import type { Batch } from "../batch/model";
 import { useT } from "../i18n/I18nProvider";
 import type { Said } from "../i18n/said";
 import { type Checked, reasonOf, updateBuildInfo, updateCheck, updateDownload, updateInstall } from "./update";
 import { type Available, type ThisBuild, type UpdatePrefs, UPDATES_KEY, offered, parsePrefs, planStart } from "./updatePrefs";
-
-/** Work that installing would cut off, because the installer stops the backend first. */
-export type Work = "job" | "batch" | null;
-
-export function workInProgress(importing: boolean, batch: Batch): Work {
-  if (importing) return "job";
-  const running = batch.items.some((i) => i.state === "running");
-  const waiting = !batch.paused && batch.items.some((i) => i.state === "queued");
-  return running || waiting ? "batch" : null;
-}
+import { readStored, writeStored } from "../storage";
+import { type BackendWork, type Work, holdingWork } from "./work";
 
 /** The one update process of the window. The banner and the settings section are two views of it. */
 export type Phase =
@@ -96,6 +87,7 @@ export interface Updates {
   readonly state: UpdateState;
   /** Null until the shell has answered. */
   readonly build: ThisBuild | null;
+  /** The work that holds the install now, from the window and the backend. */
   readonly work: Work;
   readonly check: () => Promise<void>;
   readonly download: () => Promise<Available | null>;
@@ -109,33 +101,52 @@ export interface Updates {
 
 /** How long after start the check waits, so it never competes with opening the window. */
 export const START_DELAY_MS = 5000;
+/** How often the backend is asked about its work while there is a version to install. */
+export const WORK_POLL_MS = 2000;
 
-const loadPrefs = (): UpdatePrefs => {
-  try {
-    return parsePrefs(localStorage.getItem(UPDATES_KEY));
-  } catch {
-    return parsePrefs(null);
-  }
-};
+export type AskBackend = () => Promise<readonly BackendWork[]>;
+
+/** Whether a view shows a button that could start the installer, so the backend's work matters. */
+const installable = (phase: Phase): boolean =>
+  phase.kind === "available" || phase.kind === "downloading" || phase.kind === "downloaded" || (phase.kind === "failed" && phase.update !== null);
+
 
 /**
  * `startDelayMs` null means no check at start, as on a page that only shows the settings. A failure
- * of the check at start is kept for the settings page and never shown anywhere else.
+ * of the check at start is kept for the settings page and never shown anywhere else. `windowWork`
+ * is the work the window follows itself; `ask` reads the rest from the backend, or is null when
+ * there is no backend to ask.
  */
-export function useUpdates(work: Work, startDelayMs: number | null = null): Updates {
+export function useUpdates(windowWork: Work, startDelayMs: number | null = null, ask: AskBackend | null = null): Updates {
   const { t } = useT();
-  const [state, dispatch] = useReducer(reduceUpdates, undefined, (): UpdateState => ({ phase: { kind: "idle" }, banner: false, prefs: loadPrefs() }));
+  const [state, dispatch] = useReducer(reduceUpdates, undefined, (): UpdateState => ({ phase: { kind: "idle" }, banner: false, prefs: parsePrefs(readStored(UPDATES_KEY)) }));
   const [build, setBuild] = useState<ThisBuild | null>(null);
-  const latest = useRef({ state, work, t });
-  latest.current = { state, work, t };
+  const [asked, setAsked] = useState<readonly BackendWork[]>([]);
+  const work = holdingWork(windowWork, asked);
+  const latest = useRef({ state, windowWork, work, asked, ask, t });
+  latest.current = { state, windowWork, work, asked, ask, t };
 
+  /** What the backend is doing now. A backend that does not answer is taken to be doing what it last said. */
+  const askNow = useCallback(async (): Promise<readonly BackendWork[]> => {
+    const { ask, asked } = latest.current;
+    if (!ask) return [];
+    const now = await ask().catch(() => asked);
+    setAsked((a) => (a.length === now.length && a.every((w, i) => w === now[i]) ? a : now));
+    return now;
+  }, []);
+
+  const watching = ask !== null && installable(state.phase);
   useEffect(() => {
-    try {
-      localStorage.setItem(UPDATES_KEY, JSON.stringify(state.prefs));
-    } catch {
-      // a store that cannot be written keeps the defaults for the next start
+    if (!watching) {
+      setAsked((a) => (a.length > 0 ? [] : a));
+      return;
     }
-  }, [state.prefs]);
+    void askNow();
+    const timer = window.setInterval(() => void askNow(), WORK_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [watching, askNow]);
+
+  useEffect(() => writeStored(UPDATES_KEY, JSON.stringify(state.prefs)), [state.prefs]);
 
   useEffect(() => {
     let alive = true;
@@ -174,17 +185,16 @@ export function useUpdates(work: Work, startDelayMs: number | null = null): Upda
     const { phase } = latest.current.state;
     const from = phase.kind === "available" || phase.kind === "failed" ? phase.update : null;
     if (!from) return null;
-    let update = from;
+    const update = from;
     dispatch({ type: "downloading", update });
     try {
       if (phase.kind !== "available" || !phase.staged) {
         const result = await updateCheck(t);
-        if (result.state !== "available") {
+        if (result.state !== "available" || result.version !== update.version) {
+          // only the version the person saw is installed: a newer one is shown with its notes first
           dispatch({ type: "checked", auto: false, result });
           return null;
         }
-        update = result;
-        dispatch({ type: "downloading", update });
       }
       await updateDownload();
       dispatch({ type: "downloaded", update });
@@ -195,16 +205,17 @@ export function useUpdates(work: Work, startDelayMs: number | null = null): Upda
     }
   }, [t]);
 
-  /** The one place that starts the installer, so no view can start it while work runs. */
+  /** The one place that starts the installer, so no view can start it while work runs. It asks the backend once more first. */
   const installNow = useCallback(async (update: Available) => {
     if (latest.current.work !== null) return;
+    if (latest.current.ask && holdingWork(latest.current.windowWork, await askNow()) !== null) return;
     dispatch({ type: "installing", update });
     try {
       await updateInstall();
     } catch (e) {
       dispatch({ type: "failed", reason: reasonOf(e), update });
     }
-  }, []);
+  }, [askNow]);
 
   const install = useCallback(async () => {
     const { phase } = latest.current.state;

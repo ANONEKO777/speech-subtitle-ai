@@ -21,6 +21,9 @@ export function parseChecked(raw: unknown, t: Translate = tZhTW): Checked {
 export const reasonOf = (e: unknown): Said | null =>
   typeof e === "string" || e instanceof Error || typeof asRecord(e)?.["message"] === "string" ? said(e) : null;
 
+/** Whether a download failed only because no data came for a while, so the same button can try again. */
+export const stalledDownload = (reason: Said | null): boolean => reason?.notices.some((n) => n.code === "shell.update.stalled") ?? false;
+
 /** Whether this build can update itself, and its version. Outside the shell, or from a shell without the command, nothing is supported. */
 export const updateBuildInfo = async (): Promise<{ supported: boolean; current: string }> => {
   try {

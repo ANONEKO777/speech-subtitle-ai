@@ -1,12 +1,10 @@
 import { Download, RefreshCw, RotateCw } from "lucide-react";
 import { useT } from "../i18n/I18nProvider";
-import type { Translate } from "../i18n";
 import type { Locale } from "../i18n/locale";
 import { word } from "../i18n/notice";
-import type { Updates, Work } from "./useUpdates";
-
-export const workReason = (work: Exclude<Work, null>, t: Translate): string =>
-  work === "job" ? t("autoUpdate.busy.job") : t("autoUpdate.busy.batch");
+import { stalledDownload } from "./update";
+import type { Updates } from "./useUpdates";
+import { workReason } from "./work";
 
 const when = (at: number, locale: Locale) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(at);
 
@@ -111,6 +109,17 @@ export function UpdateSection({ updates }: { updates: Updates }) {
           <p className="note bad" role="alert" data-testid="update-failed">
             {phase.reason ? word(phase.reason, locale) : t("errors.updateIncomplete")}
           </p>
+        )}
+        {phase.kind === "failed" && stalledDownload(phase.reason) && (
+          <p className="muted" data-testid="update-retry">
+            {t("autoUpdate.retry", { button: t("update.download") })}
+          </p>
+        )}
+        {phase.kind === "failed" && phase.update && (
+          <button type="button" className="primary" data-testid="update-download" onClick={() => void updates.download()}>
+            <Download className="icon" aria-hidden />
+            {t("update.download")}
+          </button>
         )}
       </div>
     </section>

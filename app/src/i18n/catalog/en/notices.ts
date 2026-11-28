@@ -138,7 +138,7 @@ export const notices = {
   "notice.shell.update.noSource": "This version has no update source set up, so it can't check for updates.",
   "notice.shell.update.notDownloaded": "The update hasn't finished downloading yet.",
   "notice.shell.update.notUpdateInfo": "The update source didn't return update information (the address may no longer work, or you may need to sign in first). Try again later, or download the installer again from the project page.",
-  "notice.shell.update.stalled": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection, then click \"Download update\" again.",
+  "notice.shell.update.stalled": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection.",
   "notice.shell.update.timeout": "The update server didn't respond within 10 seconds. Try again later.",
   "notice.shell.update.unreachable": "Can't reach the update server. Check your internet connection, then try again later.",
   "notice.shell.update.unsupported": "This platform doesn't have automatic updates yet. Download the new installer from the project page and replace the app you have.",

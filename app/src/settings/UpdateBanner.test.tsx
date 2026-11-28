@@ -7,7 +7,8 @@ import { UpdateBanner } from "./UpdateBanner";
 import { UpdateSection } from "./UpdateSection";
 import * as update from "./update";
 import { DAY_MS, UPDATES_KEY, parsePrefs } from "./updatePrefs";
-import { type Work, useUpdates } from "./useUpdates";
+import { type AskBackend, WORK_POLL_MS, useUpdates } from "./useUpdates";
+import type { BackendWork, Work } from "./work";
 
 vi.mock("./update", async (orig) => ({
   ...(await orig<typeof import("./update")>()),
@@ -33,8 +34,8 @@ afterEach(() => {
 });
 
 /** The window as the app builds it: one update state, the banner over the screen and the settings section. */
-function Window({ work = null, section = false }: { work?: Work; section?: boolean }) {
-  const updates = useUpdates(work, 0);
+function Window({ work = null, section = false, ask = null }: { work?: Work; section?: boolean; ask?: AskBackend | null }) {
+  const updates = useUpdates(work, 0, ask);
   return (
     <>
       <UpdateBanner updates={updates} />
@@ -48,7 +49,7 @@ const stored = () => parsePrefs(localStorage.getItem(UPDATES_KEY));
 const settle = async () => {
   for (let i = 0; i < 4; i++) await act(() => new Promise((r) => setTimeout(r, 5)));
 };
-const start = async (props: { work?: Work; section?: boolean } = {}) => {
+const start = async (props: { work?: Work; section?: boolean; ask?: AskBackend | null } = {}) => {
   const view = render(<Window {...props} />);
   await settle();
   return view;
@@ -164,6 +165,17 @@ describe("the banner", () => {
     expect(screen.getByTestId("update-banner").textContent).toContain("0.3.0");
   });
 
+  it("stays closed when a later check finds the skipped version again", async () => {
+    await start();
+    click("update-banner-skip");
+    cleanup();
+    localStorage.setItem(UPDATES_KEY, JSON.stringify({ ...stored(), lastCheckAt: 0 }));
+    await start();
+    expect(update.updateCheck).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId("update-banner")).toBeNull();
+    expect(stored().skipped).toBe("0.2.0");
+  });
+
   it("downloads and installs on one click", async () => {
     await start();
     click("update-banner-install");
@@ -181,11 +193,37 @@ describe("the banner", () => {
     expect(vi.mocked(update.updateCheck).mock.invocationCallOrder[1]).toBeLessThan(vi.mocked(update.updateDownload).mock.invocationCallOrder[0]!);
   });
 
+  it("installs only the version the person saw: a newer one found on the way is shown with its notes first", async () => {
+    (await start()).unmount();
+    await start();
+    vi.mocked(update.updateCheck).mockResolvedValue({ ...NEWER, version: "0.3.0", notes: "Subtitles in Korean." });
+    click("update-banner-install");
+    await waitFor(() => expect(screen.getByTestId("update-banner").textContent).toContain("有新版 0.3.0（目前 0.1.0）"));
+    expect(screen.getByTestId("update-banner-notes").textContent).toContain("Subtitles in Korean.");
+    expect(update.updateDownload).not.toHaveBeenCalled();
+    expect(update.updateInstall).not.toHaveBeenCalled();
+
+    click("update-banner-install");
+    await waitFor(() => expect(update.updateInstall).toHaveBeenCalledOnce());
+    expect(update.updateCheck).toHaveBeenCalledTimes(2);
+  });
+
+  it("names its own button when a download stalls", async () => {
+    const message = "The download stopped receiving data partway, so the app gave up on it. Check your internet connection.";
+    vi.mocked(update.updateDownload).mockRejectedValueOnce({ message, notices: [{ code: "shell.update.stalled", params: {}, message }] });
+    await start();
+    click("update-banner-install");
+    expect((await screen.findByTestId("update-banner-failed")).textContent).toBe("更新檔下載到一半沒有再收到資料，已經放棄。請確認網路連線。");
+    expect(screen.getByTestId("update-banner-retry").textContent).toBe("要再試一次，請按「下載並安裝」。");
+    expect(screen.getByTestId("update-banner-install").textContent).toBe("下載並安裝");
+  });
+
   it("shows why a download failed and offers it again", async () => {
     vi.mocked(update.updateDownload).mockRejectedValueOnce("下載的更新檔簽章不符，已放棄，不會安裝。");
     await start();
     click("update-banner-install");
     expect((await screen.findByTestId("update-banner-failed")).textContent).toContain("簽章不符");
+    expect(screen.queryByTestId("update-banner-retry")).toBeNull();
     expect(update.updateInstall).not.toHaveBeenCalled();
     click("update-banner-install");
     await waitFor(() => expect(update.updateInstall).toHaveBeenCalledOnce());
@@ -231,6 +269,44 @@ describe("never install while work runs", () => {
     await waitFor(() => expect(update.updateInstall).toHaveBeenCalledOnce());
   });
 
+  const HELD: readonly [BackendWork, string][] = [
+    ["job", "正在處理影片。請等處理完成再安裝，因為安裝會中斷處理。"],
+    ["export", "正在匯出燒入字幕的影片。請等匯出完成再安裝，因為安裝會中斷匯出。"],
+    ["download", "正在下載模型或執行環境。請等下載完成再安裝，因為安裝會中斷下載。"],
+    ["move", "正在搬移模型資料夾。請等搬移完成再安裝，因為安裝會中斷搬移。"],
+    ["selftest", "正在執行自檢。請等自檢完成再安裝，因為安裝會中斷自檢。"],
+  ];
+
+  it.each(HELD)("holds the install while the backend reports %s, with its reason", async (kind, reason) => {
+    await start({ ask: vi.fn<AskBackend>().mockResolvedValue([kind]) });
+    const button = screen.getByTestId<HTMLButtonElement>("update-banner-install");
+    expect(button.disabled).toBe(true);
+    expect(screen.getByTestId("update-banner-blocked").textContent).toBe(reason);
+    fireEvent.click(button);
+    await settle();
+    expect(update.updateDownload).not.toHaveBeenCalled();
+  });
+
+  it("asks the backend once more right before it installs", async () => {
+    const ask = vi.fn<AskBackend>().mockResolvedValueOnce([]).mockResolvedValue(["download"]);
+    await start({ ask });
+    expect(screen.getByTestId<HTMLButtonElement>("update-banner-install").disabled).toBe(false);
+    click("update-banner-install");
+    await waitFor(() => expect(screen.getByTestId("update-banner-blocked").textContent).toContain("正在下載模型或執行環境"));
+    expect(update.updateDownload).toHaveBeenCalledOnce();
+    expect(update.updateInstall).not.toHaveBeenCalled();
+    expect(screen.getByTestId<HTMLButtonElement>("update-banner-install-now").disabled).toBe(true);
+  });
+
+  it("takes a backend that does not answer to be doing what it last said", async () => {
+    const ask = vi.fn<AskBackend>().mockResolvedValueOnce(["move"]).mockRejectedValue(new Error("timed out"));
+    await start({ ask });
+    expect(screen.getByTestId("update-banner-blocked").textContent).toContain("正在搬移模型資料夾");
+    await act(() => new Promise((r) => setTimeout(r, WORK_POLL_MS + 100)));
+    expect(ask.mock.calls.length).toBeGreaterThan(1);
+    expect(screen.getByTestId("update-banner-blocked").textContent).toContain("正在搬移模型資料夾");
+  });
+
   it("holds the settings page's install button too", async () => {
     vi.mocked(update.updateCheck).mockResolvedValue({ state: "upToDate", current: "0.1.0" });
     const view = await start({ work: "batch", section: true });
@@ -264,6 +340,37 @@ describe("in English", () => {
     expect(screen.getByTestId("update-banner-blocked").textContent).toBe("The batch is running. Install when it's done or paused, because installing stops the processing.");
     expect(screen.getByTestId("update-at-start").textContent).toContain("Check for updates at startup");
     expect(screen.getByTestId("update-last-failed").textContent).toMatch(/^The last check at startup failed \(.+\): offline$/);
+    expect(document.body.textContent).not.toMatch(NOT_ENGLISH);
+  });
+
+  it.each([
+    ["export", "A video with burned-in subtitles is being exported. Install when it's done, because installing stops the export."],
+    ["download", "Models or runtimes are downloading. Install when the download is done, because installing stops it."],
+    ["move", "The models folder is being moved. Install when the move is done, because installing stops it."],
+    ["selftest", "The self-test is running. Install when it's done, because installing stops it."],
+  ] as const)("gives the reason for %s in English", async (kind, reason) => {
+    render(
+      <I18nProvider initial="en">
+        <Window ask={vi.fn<AskBackend>().mockResolvedValue([kind])} />
+      </I18nProvider>,
+    );
+    await settle();
+    expect(screen.getByTestId("update-banner-blocked").textContent).toBe(reason);
+  });
+
+  it("names the English buttons when a download stalls", async () => {
+    const message = "The download stopped receiving data partway, so the app gave up on it. Check your internet connection.";
+    vi.mocked(update.updateDownload).mockRejectedValueOnce({ message, notices: [{ code: "shell.update.stalled", params: {}, message }] });
+    render(
+      <I18nProvider initial="en">
+        <Window section />
+      </I18nProvider>,
+    );
+    await settle();
+    click("update-banner-install");
+    expect((await screen.findByTestId("update-banner-failed")).textContent).toBe(message);
+    expect(screen.getByTestId("update-banner-retry").textContent).toBe('To try again, click "Download and install".');
+    expect(screen.getByTestId("update-retry").textContent).toBe('To try again, click "Download update".');
     expect(document.body.textContent).not.toMatch(NOT_ENGLISH);
   });
 });

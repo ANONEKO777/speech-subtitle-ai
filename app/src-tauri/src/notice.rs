@@ -29,7 +29,7 @@ templates! {
     BACKEND_EXITED_EARLY: "shell.backend.exitedEarly", ["detail"], "The backend stopped before it was ready.\n{detail}";
     BACKEND_STOPPED: "shell.backend.stopped", [], "The backend stopped, and restarting it several times didn't help. Close the app and open it again.";
     UPDATE_UNSUPPORTED: "shell.update.unsupported", [], "This platform doesn't have automatic updates yet. Download the new installer from the project page and replace the app you have.";
-    UPDATE_STALLED: "shell.update.stalled", [], "The download stopped receiving data partway, so the app gave up on it. Check your internet connection, then click \"Download update\" again.";
+    UPDATE_STALLED: "shell.update.stalled", [], "The download stopped receiving data partway, so the app gave up on it. Check your internet connection.";
     UPDATE_NO_SOURCE: "shell.update.noSource", [], "This version has no update source set up, so it can't check for updates.";
     UPDATE_TIMEOUT: "shell.update.timeout", [], "The update server didn't respond within 10 seconds. Try again later.";
     UPDATE_UNREACHABLE: "shell.update.unreachable", [], "Can't reach the update server. Check your internet connection, then try again later.";

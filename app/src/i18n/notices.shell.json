@@ -44,7 +44,7 @@
     "params": {}
   },
   "shell.update.stalled": {
-    "english": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection, then click \"Download update\" again.",
+    "english": "The download stopped receiving data partway, so the app gave up on it. Check your internet connection.",
     "params": {}
   },
   "shell.update.timeout": {

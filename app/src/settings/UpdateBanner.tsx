@@ -1,8 +1,9 @@
 import { Download, RotateCw, Sparkles } from "lucide-react";
 import { useT } from "../i18n/I18nProvider";
 import { word } from "../i18n/notice";
-import { workReason } from "./UpdateSection";
 import { type Updates, bannerUpdate } from "./useUpdates";
+import { stalledDownload } from "./update";
+import { workReason } from "./work";
 
 /** The offer of a newer version that the check at start found. It installs nothing until a click. */
 export function UpdateBanner({ updates }: { updates: Updates }) {
@@ -40,6 +41,11 @@ export function UpdateBanner({ updates }: { updates: Updates }) {
         {phase.kind === "failed" && (
           <p className="note bad" role="alert" data-testid="update-banner-failed">
             {phase.reason ? word(phase.reason, locale) : t("errors.updateIncomplete")}
+          </p>
+        )}
+        {phase.kind === "failed" && stalledDownload(phase.reason) && (
+          <p className="muted" data-testid="update-banner-retry">
+            {t("autoUpdate.retry", { button: t("autoUpdate.banner.install") })}
           </p>
         )}
         {blocked && (offering || phase.kind === "downloaded") && (

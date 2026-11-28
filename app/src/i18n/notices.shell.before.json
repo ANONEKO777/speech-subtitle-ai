@@ -4,7 +4,7 @@
   "shell.backend.exitedEarly": "後端在就緒前就結束了。\n{detail}",
   "shell.backend.stopped": "後端已停止，重新啟動多次仍失敗。請關閉並重新開啟應用程式。",
   "shell.update.unsupported": "這個平台還沒有自動更新。請到專案網頁下載新版安裝程式，直接取代現有的應用程式。",
-  "shell.update.stalled": "更新檔下載到一半沒有再收到資料，已經放棄。請確認網路連線，再按一次「下載」。",
+  "shell.update.stalled": "更新檔下載到一半沒有再收到資料，已經放棄。請確認網路連線。",
   "shell.update.noSource": "這個版本沒有設定更新來源，無法檢查更新。",
   "shell.update.timeout": "更新伺服器沒有在 10 秒內回應。請稍後再試。",
   "shell.update.unreachable": "連不上更新伺服器。請確認網路連線，稍後再試。",
