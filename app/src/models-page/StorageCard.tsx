@@ -19,7 +19,7 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
   const [storage, setStorage] = useState<StorageView | null>(null);
   const [draft, setDraft] = useState("");
   const [step, setStep] = useState<Step>({ step: "view" });
-  const [warnings, setWarnings] = useState<readonly string[]>([]);
+  const [warnings, setWarnings] = useState<readonly Said[]>([]);
   const [error, setError] = useState<Said | null>(null);
   const [move, setMove] = useState<MoveStatus | null>(null);
 
@@ -153,8 +153,8 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
       )}
 
       {warnings.map((w) => (
-        <p key={w} className="note warn" role="status" data-testid="models-dir-warning">
-          {w}
+        <p key={w.text} className="note warn" role="status" data-testid="models-dir-warning">
+          {word(w, locale)}
         </p>
       ))}
       {error && (
@@ -172,11 +172,11 @@ export function StorageCard({ backend, onChanged }: { backend: Backend; onChange
             {move.state === "running" &&
               plural("storage.moving", move.filesTotal, { percent, filesDone: move.filesDone, done: bytes(move.bytesDone, locale), total: bytes(move.bytesTotal, locale) })}
             {move.state === "done" && plural("storage.moved", move.filesTotal, { size: bytes(move.bytesTotal, locale), target: move.target ?? "" })}
-            {move.state === "failed" && t("storage.moveFailed", { error: move.error ?? "" })}
+            {move.state === "failed" && t("storage.moveFailed", { error: move.error ? word(move.error, locale) : "" })}
           </p>
           {move.warnings.map((w) => (
-            <p key={w} className="note warn">
-              {w}
+            <p key={w.text} className="note warn">
+              {word(w, locale)}
             </p>
           ))}
         </div>

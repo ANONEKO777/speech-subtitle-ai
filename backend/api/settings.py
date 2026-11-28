@@ -9,12 +9,11 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from backend.api.deps import Context
 from backend.api.downloads import get_storage
 from backend.core import notices
-from backend.core.notices import noticed
+from backend.core.notices import CLOUD_CONSENT_TEXT, noticed, to_json
 from backend.llm.client import sendable
 from backend.manager.llm_check import test_connection
 from backend.manager.secrets import LLM_KEY, SecretError
 from backend.manager.settings import (
-    CLOUD_CONSENT_TEXT,
     DEFAULT_OLLAMA_URL,
     AppSettings,
     LlmSettings,
@@ -88,6 +87,7 @@ def view(ctx: Context) -> dict[str, Any]:
         "ui_language": current.ui_language.value,
         "cloud_consent_text": CLOUD_CONSENT_TEXT,
         "problem": ctx.settings.problem,
+        "problem_notices": to_json(ctx.settings.problem_notices),
         "storage": get_storage(ctx),
     }
 
@@ -112,12 +112,9 @@ def put_settings(body: SettingsBody, ctx: Context) -> dict[str, Any]:
         updated = AppSettings(current.profile, llm, registry_url or None, ui_language)
         key = body.llm.sendable_key() if body.llm else None
         if llm.source is LlmSource.CLOUD and not (key or (key is None and _key_saved(ctx))):
-            raise SettingsError("an API key is required for a cloud LLM")
+            raise noticed(SettingsError, notices.SETTINGS_KEY_REQUIRED())
         if _url_changed(current.llm, llm) and key is None:
-            raise SettingsError(
-                "the cloud address changed, so the saved API key is not sent to it; "
-                "enter the API key for the new address"
-            )
+            raise noticed(SettingsError, notices.SETTINGS_KEY_FOR_NEW_ADDRESS())
         if key is not None:
             if key:
                 ctx.secrets.set(LLM_KEY, key)

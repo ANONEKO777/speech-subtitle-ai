@@ -14,6 +14,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from backend.core.notices import (
+    ACTIVE_PROFILE_NEEDS,
+    DEPENDENT_NEEDS,
+    VERIFY_STOPPED,
+    Notice,
+    noticed,
+)
 from backend.manager.download import CHUNK, InstallState, Item, Plan
 from backend.manager.manifest import Manifest, Record
 from backend.manager.platforms import detect_platform
@@ -75,6 +82,7 @@ class Entry:
     dependents: tuple[Dependent, ...]
     blockers: tuple[str, ...]
     """Why a plain delete is refused. Empty means it may go."""
+    blockers_notices: tuple[Notice, ...]
     license: str
     license_url: str
     local_build: bool
@@ -143,13 +151,13 @@ class Inventory:
     def _runtime_dependents(self, asset_id: str) -> list[Runtime]:
         return [r for r in self.registry.runtimes.values() if asset_id in r.needs]
 
-    def blockers(self, asset_id: str, active: frozenset[str]) -> tuple[str, ...]:
-        found: list[str] = []
+    def blockers(self, asset_id: str, active: frozenset[str]) -> tuple[Notice, ...]:
+        found: list[Notice] = []
         if asset_id in active:
-            found.append("the active profile needs it")
+            found.append(ACTIVE_PROFILE_NEEDS())
         for dep in dependents_of(asset_id, self.registry):
             if self.is_installed(dep):
-                found.append(f"{dep} is installed and needs it")
+                found.append(DEPENDENT_NEEDS(asset=dep))
         return tuple(found)
 
     def entry(self, asset_id: str, active: frozenset[str], plan_state: InstallState) -> Entry:
@@ -164,6 +172,7 @@ class Inventory:
             for p in profiles_for(detect_platform())
             if asset_id in profile_assets(p.id, self.registry)
         )
+        blockers = self.blockers(asset_id, active)
         return Entry(
             id=asset_id,
             type=AssetType.MODEL if is_model else AssetType.RUNTIME,
@@ -184,7 +193,8 @@ class Inventory:
             dependents=tuple(
                 Dependent(d, self.is_installed(d)) for d in dependents_of(asset_id, self.registry)
             ),
-            blockers=self.blockers(asset_id, active),
+            blockers=tuple(b.message for b in blockers),
+            blockers_notices=blockers,
             license=found.license,
             license_url=found.license_url,
             local_build=isinstance(found, Runtime) and found.is_local_build,
@@ -244,7 +254,7 @@ class Inventory:
         with path.open("rb") as handle:
             while block := handle.read(CHUNK):
                 if should_stop():
-                    raise InterruptedError("verification stopped")
+                    raise noticed(InterruptedError, VERIFY_STOPPED())
                 digest.update(block)
         stat = path.stat()
         actual = digest.hexdigest()

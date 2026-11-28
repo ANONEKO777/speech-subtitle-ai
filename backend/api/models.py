@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 
-from backend.api.deps import Context, job_json, refusal, refuse_while_busy, unknown
+from backend.api.deps import Context, job_json, refusal, refuse_while_busy, refused, unknown
+from backend.core.notices import BEING_DOWNLOADED, BUSY_DELETE_MODEL
 from backend.manager.context import ManagerContext
 from backend.manager.download import InstallState, JobState
 from backend.manager.maintain import Refused, delete_asset
@@ -49,10 +50,10 @@ def remove_model(
 ) -> None:
     if model_id not in ctx.registry.models:
         raise unknown("model", model_id)
-    refuse_while_busy(request, "delete a model")
+    refuse_while_busy(request, BUSY_DELETE_MODEL)
     active = ctx.runner.active_job(model_id)
     if active and active.state is not JobState.QUEUED:
-        raise HTTPException(409, f"{model_id} is being downloaded; cancel the download first")
+        raise refused(409, BEING_DOWNLOADED(asset=model_id))
     try:
         delete_asset(ctx, model_id, force, reason)
     except Refused as exc:

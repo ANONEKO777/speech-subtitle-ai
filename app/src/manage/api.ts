@@ -13,7 +13,7 @@ import {
   parseUpdates,
 } from "./parse";
 import type { Asset, DownloadJob, Inventory, LlmSource, ProfileId } from "./types";
-import { type Said, said } from "../i18n/said";
+import { type Said, said, saidField, saidList } from "../i18n/said";
 
 const seg = encodeURIComponent;
 const post = (b: Backend, path: string, body?: unknown) =>
@@ -60,7 +60,7 @@ export async function updateAsset(b: Backend, id: string): Promise<DownloadJob> 
 
 export interface Repair {
   readonly action: string;
-  readonly reason: string;
+  readonly reason: Said;
   readonly job: DownloadJob | null;
 }
 
@@ -69,7 +69,7 @@ export async function repairAsset(b: Backend, id: string): Promise<Repair> {
   const job = asRecord(o?.["job"]);
   return {
     action: typeof o?.["action"] === "string" ? o["action"] : "",
-    reason: typeof o?.["reason"] === "string" ? o["reason"] : "",
+    reason: saidField(o ?? {}, "reason"),
     job: job ? parseJob(job) : null,
   };
 }
@@ -85,30 +85,25 @@ export async function deleteAsset(b: Backend, asset: Pick<Asset, "id" | "type">,
 /** Why a delete or another action was refused: the message, the blockers and whether force is offered. */
 export interface Refusal {
   readonly message: Said;
-  readonly blockers: readonly string[];
+  readonly blockers: readonly Said[];
   readonly canForce: boolean;
 }
 
 export function refusalOf(e: unknown): Refusal {
   if (!(e instanceof ApiError)) return { message: said(e), blockers: [], canForce: false };
   const d = asRecord(e.detail);
-  const blockers = Array.isArray(d?.["blockers"]) ? d["blockers"].filter((x): x is string => typeof x === "string") : [];
-  return { message: said(e), blockers, canForce: d?.["can_force"] === true };
+  return { message: said(e), blockers: d ? saidList(d, "blockers") : [], canForce: d?.["can_force"] === true };
 }
 
 export interface ProfileChange {
-  readonly warnings: readonly string[];
+  readonly warnings: readonly Said[];
   readonly profile: Awaited<ReturnType<typeof fetchProfile>>;
 }
 
 /** Switches the active profile; `null` follows the recommendation for the detected hardware. */
 export async function chooseProfile(b: Backend, profile: ProfileId | null): Promise<ProfileChange> {
   const body = await put(b, "/api/profile", { profile });
-  const warnings = asRecord(body)?.["warnings"];
-  return {
-    profile: parseProfileView(body),
-    warnings: Array.isArray(warnings) ? warnings.filter((w): w is string => typeof w === "string") : [],
-  };
+  return { profile: parseProfileView(body), warnings: saidList(asRecord(body) ?? {}, "warnings") };
 }
 
 export async function downloadProfileAssets(b: Backend): Promise<DownloadJob[]> {
@@ -133,12 +128,11 @@ export const saveLlm = async (b: Backend, llm: LlmBody) => parseSettings(await p
 export const testLlm = async (b: Backend, llm: LlmBody) => parseLlmTest(await post(b, "/api/llm/test", { llm }));
 
 export interface StorageChange {
-  readonly warnings: readonly string[];
+  readonly warnings: readonly Said[];
 }
 
 export async function setModelsDir(b: Backend, dir: string | null): Promise<StorageChange> {
-  const warnings = asRecord(await put(b, "/api/storage", { models_dir: dir }))?.["warnings"];
-  return { warnings: Array.isArray(warnings) ? warnings.filter((w): w is string => typeof w === "string") : [] };
+  return { warnings: saidList(asRecord(await put(b, "/api/storage", { models_dir: dir })) ?? {}, "warnings") };
 }
 
 export const startMove = async (b: Backend, target: string, source: string) =>

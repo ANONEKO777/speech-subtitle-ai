@@ -245,7 +245,7 @@ def test_a_missing_file_a_duplicate_and_an_unknown_language_are_reported(
     again = add(client, clip, tmp_path / "nope.mp4")
     assert again["added"] == []
     reasons = {Path(s["path"]).name: s["reason"] for s in again["skipped"]}
-    assert "already in the queue" in reasons["slow.mp4"]
+    assert "already in the batch" in reasons["slow.mp4"]
     assert "existing file" in reasons["nope.mp4"]
     bad_lang = client.post(
         "/api/queue/items", json={"items": [{"path": str(clip), "target_lang": "xx"}]}
@@ -384,7 +384,7 @@ def test_the_queue_file_keeps_items_order_settings_and_pause_across_a_restart(
     assert again.items()[1].options == options_for("ja")
     assert again.paused
     assert again.settings() == QueueSettings(OnDone.SLEEP, True)
-    with pytest.raises(QueueError, match="already in the queue"):
+    with pytest.raises(QueueError, match="already in the batch"):
         again.add("a.mp4", "1" * 16, options_for("ja"), 3.0, 3)
     again.add("a.mp4", "1" * 16, options_for("zh-TW"), 3.0, 3)
 
@@ -669,7 +669,9 @@ def test_a_file_without_a_media_extension_is_not_queued(client: Client, tmp_path
     text.write_text("x")
     body = add(client, text, video(tmp_path, "ok"))
     assert [Path(i["video_path"]).name for i in body["added"]] == ["ok.mp4"]
-    assert body["skipped"] == [{"path": str(text), "reason": "not a media file extension"}]
+    [skipped] = body["skipped"]
+    assert (skipped["path"], skipped["reason"]) == (str(text), "not a media file extension")
+    assert [n["code"] for n in skipped["reason_notices"]] == ["batch.notMedia"]
 
 
 def make_link(link: Path, target: Path) -> None:

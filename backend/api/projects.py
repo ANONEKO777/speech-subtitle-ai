@@ -7,13 +7,15 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.core import cue_failures
+from backend.api.deps import refused
+from backend.core import cue_failures, notices
 from backend.core.cue_edits import CueProblem
 from backend.core.jobs import JobBook
 from backend.core.languages import UnknownLanguage
 from backend.core.languages import get as get_language
 from backend.core.media import accepted_extensions, is_media
 from backend.core.model import Cue, Step, StepState
+from backend.core.notices import UNKNOWN_PROJECT, noticed
 from backend.core.projects import (
     MEDIA_TYPES,
     BadCues,
@@ -106,8 +108,9 @@ def project_json(info: ProjectInfo, jobs: JobBook) -> dict[str, Any]:
 def _known(store: ProjectStore, pid: str) -> ProjectInfo:
     try:
         return store.info(pid)
-    except UnknownProject as exc:
-        raise HTTPException(404, f"unknown project {pid!r}") from exc
+    except UnknownProject:
+        said = UNKNOWN_PROJECT(id=repr(pid))
+        raise HTTPException(404, said.message) from noticed(ValueError, said)
 
 
 def _bad_cues(message: str, problems: Sequence[CueProblem]) -> HTTPException:
@@ -120,15 +123,12 @@ def _bad_cues(message: str, problems: Sequence[CueProblem]) -> HTTPException:
 def create_project(body: NewProject, request: Request, response: Response) -> dict[str, Any]:
     video = Path(body.video_path)
     if not video.is_absolute() or not video.is_file():
-        raise HTTPException(
-            422, f"video_path must be the absolute path of an existing file: {video}"
-        )
+        raise refused(422, notices.PROJECT_NOT_A_FILE(path=str(video)))
     if not is_media(video):
-        raise HTTPException(
-            422,
-            f"not a media file extension: {video.suffix or video.name}; "
-            f"accepted: {accepted_extensions()}",
+        said = notices.PROJECT_NOT_MEDIA(
+            extension=video.suffix or video.name, accepted=accepted_extensions()
         )
+        raise refused(422, said)
     info, created = store_of(request).create(video)
     response.status_code = 201 if created else 200
     return project_json(info, jobs_of(request))
@@ -181,7 +181,7 @@ def put_subtitles(
         raise _bad_cues("some cues are not valid", problems)
     with jobs.exclusive(pid) as busy:
         if busy:
-            raise HTTPException(409, f"job {busy} is using this project")
+            raise refused(409, notices.CUES_JOB_USING(job=busy))
         try:
             store.save_cues(pid, cues, target_lang)
         except NotReady as exc:

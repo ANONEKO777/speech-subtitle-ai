@@ -32,7 +32,7 @@ export interface Asset {
   readonly inActiveProfile: boolean;
   readonly dependents: readonly Dependent[];
   /** Why a plain delete is refused. */
-  readonly blockers: readonly string[];
+  readonly blockers: readonly Said[];
   readonly license: string;
   readonly licenseUrl: string;
   /** Built on this machine by a script, so there is nothing to download (`sizeBytes` is 0). */
@@ -162,7 +162,7 @@ export interface SettingsView {
   readonly uiLanguage: UiLanguage;
   readonly llm: LlmSaved;
   readonly consentText: string;
-  readonly problem: string | null;
+  readonly problem: Said | null;
   readonly storage: StorageView;
 }
 
@@ -204,6 +204,6 @@ export interface MoveStatus {
   readonly filesDone: number;
   readonly bytesTotal: number;
   readonly bytesDone: number;
-  readonly error: string | null;
-  readonly warnings: readonly string[];
+  readonly error: Said | null;
+  readonly warnings: readonly Said[];
 }

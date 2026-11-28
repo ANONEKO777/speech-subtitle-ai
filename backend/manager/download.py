@@ -492,10 +492,6 @@ def os_error_said(exc: Exception) -> tuple[str, tuple[Notice, ...]]:
     return text, notices_of(exc, text)
 
 
-def readable_os_error(exc: Exception) -> str:
-    return os_error_said(exc)[0]
-
-
 def _disk_failure(exc: OSError) -> DownloadError:
     if is_locked(exc):
         text, found = os_error_said(exc)

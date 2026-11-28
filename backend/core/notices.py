@@ -22,10 +22,11 @@ from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol, TypeVar, cast
 
-ParamKind = Literal["text", "list", "clauses", "language"]
+ParamKind = Literal["text", "list", "language", "clauses", "word"]
 """`text` is shown as it is. A `list` is joined with the separator of the language that shows it,
-and `clauses`, items that hold their own punctuation, with the stronger one (`; ` in English).
-A `language` travels as its code, and the window names it."""
+and `clauses`, a list of short sentences, with the stronger one (`; ` in English). A `language`
+travels as its code, and the window names it. A `word` is one of a fixed set of English words, such
+as a batch item's state, that the window words from its catalog (`noticeWord.<word>`)."""
 
 ParamValue = str | list[str]
 
@@ -63,7 +64,7 @@ class Template:
                 sent[name], shown[name] = language.code, language.name
             elif kind in ("list", "clauses"):
                 items = list(cast("Sequence[str]", value))
-                sent[name], shown[name] = items, (", " if kind == "list" else "; ").join(items)
+                sent[name], shown[name] = items, ("; " if kind == "clauses" else ", ").join(items)
             else:
                 sent[name] = shown[name] = str(value)
         return Notice(self.code, sent, self.english.format_map(shown))
@@ -709,6 +710,325 @@ MIXED_NOT_INSTALLED = _template(
 )
 SAVED_KEY_UNREADABLE = _template(
     "resolve.keyUnreadable", "cannot read the saved API key: {error}", error="text"
+)
+
+# W4b part 2. Each group is in its own block, so the part 1 fix round and this one merge cleanly.
+
+# The batch (`core/queue_runner.py`, `core/queue_store.py`, `api/queue.py`): a file that was not
+# added, and a command the item's state refuses. The window calls the queue a batch.
+BATCH_NOT_A_FOLDER = _template("batch.notAFolder", "not a folder")
+BATCH_FOLDER_SLOW = _template(
+    "batch.folderSlow", "the folder did not answer within {seconds} s", seconds="text"
+)
+BATCH_NOT_A_FILE = _template("batch.notAFile", "not an existing file with an absolute path")
+BATCH_NOT_MEDIA = _template("batch.notMedia", "not a media file extension")
+BATCH_ALREADY_IN = _template(
+    "batch.alreadyIn", "already in the batch as {item} ({state})", item="text", state="word"
+)
+BATCH_NOTHING_GIVEN = _template("batch.nothingGiven", "give at least one item or folder")
+BATCH_BAD_ORDER = _template("batch.badOrder", "the order must list each known item once")
+BATCH_CANNOT_PAUSE = _template(
+    "batch.cannotPause", "cannot pause an item that is {state}", state="word"
+)
+BATCH_CANNOT_RESUME = _template(
+    "batch.cannotResume", "cannot resume an item that is {state}", state="word"
+)
+BATCH_CANNOT_CANCEL = _template(
+    "batch.cannotCancel", "cannot cancel an item that is {state}", state="word"
+)
+BATCH_CANNOT_RETRY = _template(
+    "batch.cannotRetry", "cannot retry an item that is {state}", state="word"
+)
+BATCH_REMOVE_FINISHED_ONLY = _template(
+    "batch.removeFinishedOnly", "only a finished item can be removed; cancel it first"
+)
+
+
+# Managing models and runtimes (`manager/maintain.py`, `manager/inventory.py`, `api/deps.py`,
+# `api/models.py`, `api/runtimes.py`, `api/inventory.py`): a delete or repair that is refused, what
+# still needs an item, and what a repair found.
+def _busy(code: str, action: str) -> Template:
+    return _template(f"manage.busy.{code}", "a job is running; wait for it before you " + action)
+
+
+BUSY_REPAIR = _busy("repair", "repair an asset")
+BUSY_REDOWNLOAD = _busy("redownload", "download an asset again")
+BUSY_UPDATE = _busy("update", "update an asset")
+BUSY_MOVE = _busy("move", "move the models")
+BUSY_DELETE_MODEL = _busy("deleteModel", "delete a model")
+BUSY_DELETE_RUNTIME = _busy("deleteRuntime", "delete a runtime")
+BUSY_SELFTEST = _busy("selftest", "run the self-test")
+BEING_DOWNLOADED = _template(
+    "manage.beingDownloaded",
+    "{asset} is being downloaded; cancel the download first",
+    asset="text",
+)
+BEING_INSTALLED = _template(
+    "manage.beingInstalled", "{asset} is being installed; cancel the install first", asset="text"
+)
+STILL_NEEDED = _template(
+    "manage.stillNeeded", "{asset} is still needed: {blockers}", asset="text", blockers="clauses"
+)
+ACTIVE_PROFILE_NEEDS = _template("manage.activeProfileNeeds", "the active profile needs it")
+DEPENDENT_NEEDS = _template(
+    "manage.dependentNeeds", "{asset} is installed and needs it", asset="text"
+)
+FORCE_NEEDS_REASON = _template(
+    "manage.forceNeedsReason",
+    "forcing the delete of {asset} needs a reason of at least {characters} characters",
+    asset="text",
+    characters="text",
+)
+CANNOT_DELETE = _template(
+    "manage.cannotDelete", "cannot delete {asset}: {error}", asset="text", error="text"
+)
+NOT_INSTALLED = _template("manage.notInstalled", "{asset} is not installed", asset="text")
+ADD_ON = _template(
+    "manage.addOn",
+    "{asset} is an add-on and installs with the runtime that needs it",
+    asset="text",
+)
+REPAIR_FILE_MISSING = _template("manage.repair.fileMissing", "the file is missing")
+REPAIR_SHA_MATCHES = _template("manage.repair.shaMatches", "the SHA256 matches the registry")
+REPAIR_SHA_DIFFERS = _template(
+    "manage.repair.shaDiffers",
+    "the SHA256 is {actual}..., the registry has {expected}...",
+    actual="text",
+    expected="text",
+)
+REPAIR_RUNTIME_CHECKED = _template(
+    "manage.repair.runtimeChecked",
+    "installed; the archive SHA256 was checked when it was downloaded. "
+    "Use redownload to fetch it again.",
+)
+REPAIR_INCOMPLETE = _template("manage.repair.incomplete", "the install is incomplete")
+
+# The LLM page (`manager/llm_check.py`, `manager/settings.py`, `manager/secrets.py`): the result of
+# a connection test, and why the settings were not saved or not used.
+LLM_TEST_CONNECTED = _template("llmTest.connected", "connected")
+LLM_TEST_COULD_NOT_USE = _template(
+    "llmTest.couldNotUse", "could not use {url}: {why}", url="text", why="text"
+)
+LLM_TEST_REFUSED = _template(
+    "llmTest.refused", "connection refused, nothing is listening at that address"
+)
+LLM_TEST_TIMED_OUT = _template("llmTest.timedOut", "no answer within {seconds} s", seconds="text")
+LLM_TEST_HOST_NOT_FOUND = _template("llmTest.hostNotFound", "the host name was not found")
+LLM_TEST_CANNOT_CONNECT = _template(
+    "llmTest.cannotConnect", "cannot connect ({reason})", reason="text"
+)
+LLM_TEST_REDIRECTED = _template(
+    "llmTest.redirected",
+    "it redirected to {location}; redirects are not followed",
+    location="text",
+)
+LLM_TEST_KEY_REJECTED = _template(
+    "llmTest.keyRejected", "the server rejected the API key (HTTP {status})", status="text"
+)
+LLM_TEST_NOT_JSON = _template(
+    "llmTest.notJson", "the answer is not JSON, so this is not that kind of server"
+)
+LLM_TEST_MODEL_MISSING = _template(
+    "llmTest.modelMissing",
+    "connected to {url}, but model {model} is not installed there",
+    url="text",
+    model="text",
+)
+LLM_TEST_NO_KEY = _template(
+    "llmTest.noKey", "no API key to test with: enter the key for this address"
+)
+LLM_TEST_NOT_INSTALLED = _template(
+    "llmTest.notInstalled", "not installed: {missing}", missing="list"
+)
+LLM_TEST_BUILTIN_READY = _template(
+    "llmTest.builtinReady", "llama-server and the model are installed"
+)
+SETTINGS_URL_PARTS = _template(
+    "settings.urlParts",
+    "{field} must not hold a user name, password, query or fragment",
+    field="word",
+)
+SETTINGS_FILE_NOT_USED = _template(
+    "settings.fileNotUsed", "{file} was not used: {error}", file="text", error="text"
+)
+SECRETS_NEED_DPAPI = _template("secrets.needDpapi", "storing the API key needs Windows DPAPI")
+SECRETS_DPAPI_FAILED = _template(
+    "secrets.dpapiFailed", "Windows DPAPI failed (error {code})", code="text"
+)
+
+# The LLM settings a save or a connection test refuses (`api/settings.py`, `manager/settings.py`).
+# The LLM page checks the same things before it sends, so most reach it only past that check. A
+# hand-edited settings.json trips the same checks, and `settings.fileNotUsed` quotes them.
+CLOUD_CONSENT_TEXT = (
+    "A cloud LLM receives your transcript text, glossary and the summary prompt over the "
+    "internet. The content of your video leaves this machine and is handled under the "
+    "provider's terms. Local models never send it anywhere."
+)
+SETTINGS_URL_NOT_WEB = _template(
+    "settings.urlNotWeb", "{field} must be an http or https URL with a host", field="word"
+)
+SETTINGS_URL_NOT_HTTPS = _template(
+    "settings.urlNotHttps", "{field} must be an https URL with a host", field="word"
+)
+SETTINGS_CLOUD_NEEDS_HTTPS = _template(
+    "settings.cloudNeedsHttps", "cloud_url must use https unless it points at this machine"
+)
+SETTINGS_OLLAMA_MODEL_MISSING = _template(
+    "settings.ollamaModelMissing", "ollama_model is required when the source is ollama"
+)
+SETTINGS_CLOUD_FIELDS_MISSING = _template(
+    "settings.cloudFieldsMissing", "cloud_url and cloud_model are required for a cloud LLM"
+)
+SETTINGS_CLOUD_CONSENT = _template(
+    "settings.cloudConsent", "cloud_consent must be true to use a cloud LLM. " + CLOUD_CONSENT_TEXT
+)
+SETTINGS_KEY_REQUIRED = _template("settings.keyRequired", "an API key is required for a cloud LLM")
+SETTINGS_KEY_FOR_NEW_ADDRESS = _template(
+    "settings.keyForNewAddress",
+    "the cloud address changed, so the saved API key is not sent to it; "
+    "enter the API key for the new address",
+)
+
+# The models folder (`api/downloads.py`, `manager/storage.py`, `manager/storage_move.py`): models
+# left behind by a change of folder, a move that is refused, and what a move could not finish.
+STORAGE_UNMOVED = _template(
+    "storage.unmoved",
+    "{count} installed model(s), {size} GiB, stay in {old} and are not moved. The app now looks "
+    "for models in {new}, so they show as not installed there. To move them, set the folder "
+    'back, then choose "Move existing models and switch".',
+    count="text",
+    size="text",
+    old="text",
+    new="text",
+)
+STORAGE_NOT_ABSOLUTE = _template(
+    "storage.notAbsolute", "models_dir must be an absolute path or null"
+)
+MOVE_NOT_ABSOLUTE = _template("move.notAbsolute", "target must be an absolute path")
+MOVE_SAME_FOLDER = _template("move.sameFolder", "source and target are the same folder")
+MOVE_NESTED = _template("move.nested", "source and target must not contain each other")
+MOVE_NO_MODELS = _template(
+    "move.noModels", "no installed models were found in {folder}", folder="text"
+)
+MOVE_CLASH = _template(
+    "move.clash",
+    "{target} already holds {models} with other content; nothing was moved",
+    target="text",
+    models="list",
+)
+MOVE_DOWNLOAD_RUNNING = _template(
+    "move.downloadRunning", "a download is running; wait for it or cancel it first"
+)
+MOVE_ALREADY_RUNNING = _template("move.alreadyRunning", "a move is already running")
+MOVE_OTHER_CONTENT = _template(
+    "move.otherContent",
+    "{dest} holds other content than {path}; left alone",
+    dest="text",
+    path="text",
+)
+MOVE_WRONG_SIZE = _template(
+    "move.wrongSize", "{dest} has the wrong size after the move", dest="text"
+)
+MOVE_COULD_NOT_REMOVE = _template(
+    "move.couldNotRemove", "could not remove {path}: {error}", path="text", error="text"
+)
+
+# A profile that does not fit this computer (`manager/switch.py`). `profile` is its id, which the
+# window names (`noticeWord.<id>`).
+_FALLS_BACK = "The self-test will fall back to the CPU if the GPU cannot run it."
+SWITCH_LOW_MEMORY = _template(
+    "switch.lowMemory",
+    "This machine has {have} MiB of memory; {profile} needs {need} MiB. " + _FALLS_BACK,
+    have="text",
+    profile="word",
+    need="text",
+)
+SWITCH_UNKNOWN_MEMORY = _template(
+    "switch.unknownMemory",
+    "This machine's memory is unknown; {profile} needs {need} MiB. " + _FALLS_BACK,
+    profile="word",
+    need="text",
+)
+SWITCH_LOW_VRAM = _template(
+    "switch.lowVram",
+    "This machine has {have} MiB; {profile} needs {need} MiB of VRAM. " + _FALLS_BACK,
+    have="text",
+    profile="word",
+    need="text",
+)
+SWITCH_NO_GPU = _template(
+    "switch.noGpu",
+    "This machine has no NVIDIA GPU; {profile} needs {need} MiB of VRAM. " + _FALLS_BACK,
+    profile="word",
+    need="text",
+)
+
+# The player (`api/player.py`, `core/render.py`, `api/jobs.py`, `api/projects.py`): a still, a
+# thumbnail or a burn-in export that failed or was refused. `output` is what ffmpeg said.
+PLAYER_THUMBNAIL_FAILED = _template(
+    "player.thumbnailFailed", "thumbnail of {video} failed: {output}", video="text", output="text"
+)
+PLAYER_STILL_FAILED = _template(
+    "player.stillFailed", "still of {video} failed: {output}", video="text", output="text"
+)
+PLAYER_BURN_FAILED = _template("player.burnFailed", "ffmpeg failed: {output}", output="text")
+PLAYER_BURN_BUSY = _template("player.burnBusy", "another burn-in export is running")
+PLAYER_FOLDER_UNUSABLE = _template(
+    "player.folderUnusable", "cannot use the folder {folder}: {error}", folder="text", error="text"
+)
+PLAYER_DIR_NOT_ABSOLUTE = _template(
+    "player.dirNotAbsolute", "dir must be an absolute path: {path}", path="text"
+)
+PLAYER_NOT_PICKED = _template(
+    "player.notPicked", "{folder} is not a folder picked in the app; pick it again", folder="text"
+)
+PLAYER_VIDEO_GONE = _template(
+    "player.videoGone", "the video is not at {path} any more", path="text"
+)
+PLAYER_PAST_END = _template("player.pastEnd", "start_s is past the end of the video")
+UNKNOWN_PROJECT = _template("player.unknownProject", "unknown project {id}", id="text")
+UNKNOWN_EXPORT = _template("player.unknownExport", "unknown export {id}", id="text")
+
+# A project's subtitles and the cue editor (`core/projects.py`, `api/projects.py`): what is not
+# there yet, a save that is refused, and a file that cannot become a project.
+CUES_NO_SUBTITLES = _template(
+    "cues.noSubtitles", "no subtitles yet: the segment step has not finished"
+)
+CUES_NO_TRANSLATION = _template(
+    "cues.noTranslation",
+    "no {lang} subtitles yet: the translate step has not finished",
+    lang="language",
+)
+CUES_NOTHING_TO_CORRECT = _template(
+    "cues.nothingToCorrect", "nothing to correct yet: the translate step has not finished"
+)
+CUES_WRONG_IDS = _template("cues.wrongIds", "the cues must have exactly the ids the project has")
+CUES_JOB_USING = _template("cues.jobUsing", "job {job} is using this project", job="text")
+PROJECT_NOT_A_FILE = _template(
+    "project.notAFile",
+    "video_path must be the absolute path of an existing file: {path}",
+    path="text",
+)
+PROJECT_NOT_MEDIA = _template(
+    "project.notMedia",
+    "not a media file extension: {extension}; accepted: {accepted}",
+    extension="text",
+    accepted="text",
+)
+
+# Found by the guard once it read the files above: a verify or an update the item refuses, a
+# verify that was stopped, and a models folder setting that cannot be read.
+VERIFY_RUNTIME = _template(
+    "manage.verifyRuntime",
+    "{asset} is a runtime; its archive was checked when it was downloaded",
+    asset="text",
+)
+NOTHING_TO_UPDATE = _template(
+    "manage.nothingToUpdate", "nothing to update for {asset}: {reason}", asset="text", reason="text"
+)
+VERIFY_STOPPED = _template("manage.verifyStopped", "verification stopped")
+STORAGE_CANNOT_READ = _template(
+    "storage.cannotRead", "cannot read {path}: {error}", path="text", error="text"
 )
 
 _NOTICE = "_notice"

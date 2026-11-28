@@ -23,7 +23,7 @@ vi.mock("../manage/api", async (orig) => ({
   fetchSettings: () => (typeof mocks.settings === "function" ? mocks.settings() : Promise.resolve(mocks.settings)),
   fetchMove: () => Promise.resolve(mocks.move),
   verifyAsset: () => Promise.resolve({}),
-  repairAsset: () => Promise.resolve({ action: "redownload", reason: "SHA256 mismatch", job: null }),
+  repairAsset: () => Promise.resolve({ action: "redownload", reason: { text: "SHA256 mismatch", notices: [] }, job: null }),
   redownload: () => new Promise(() => undefined),
   chooseProfile: () => Promise.resolve({ profile: mocks.profile, warnings: [] }),
   downloadProfileAssets: () => Promise.resolve([]),

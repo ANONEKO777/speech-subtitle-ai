@@ -82,6 +82,91 @@
       "file": "text"
     }
   },
+  "batch.alreadyIn": {
+    "english": "already in the batch as {item} ({state})",
+    "params": {
+      "item": "text",
+      "state": "word"
+    }
+  },
+  "batch.badOrder": {
+    "english": "the order must list each known item once",
+    "params": {}
+  },
+  "batch.cannotCancel": {
+    "english": "cannot cancel an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotPause": {
+    "english": "cannot pause an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotResume": {
+    "english": "cannot resume an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.cannotRetry": {
+    "english": "cannot retry an item that is {state}",
+    "params": {
+      "state": "word"
+    }
+  },
+  "batch.folderSlow": {
+    "english": "the folder did not answer within {seconds} s",
+    "params": {
+      "seconds": "text"
+    }
+  },
+  "batch.notAFile": {
+    "english": "not an existing file with an absolute path",
+    "params": {}
+  },
+  "batch.notAFolder": {
+    "english": "not a folder",
+    "params": {}
+  },
+  "batch.notMedia": {
+    "english": "not a media file extension",
+    "params": {}
+  },
+  "batch.nothingGiven": {
+    "english": "give at least one item or folder",
+    "params": {}
+  },
+  "batch.removeFinishedOnly": {
+    "english": "only a finished item can be removed; cancel it first",
+    "params": {}
+  },
+  "cues.jobUsing": {
+    "english": "job {job} is using this project",
+    "params": {
+      "job": "text"
+    }
+  },
+  "cues.noSubtitles": {
+    "english": "no subtitles yet: the segment step has not finished",
+    "params": {}
+  },
+  "cues.noTranslation": {
+    "english": "no {lang} subtitles yet: the translate step has not finished",
+    "params": {
+      "lang": "language"
+    }
+  },
+  "cues.nothingToCorrect": {
+    "english": "nothing to correct yet: the translate step has not finished",
+    "params": {}
+  },
+  "cues.wrongIds": {
+    "english": "the cues must have exactly the ids the project has",
+    "params": {}
+  },
   "download.cutShort": {
     "english": "connection closed before the whole file arrived",
     "params": {}
@@ -367,6 +452,250 @@
       "reason": "text"
     }
   },
+  "llmTest.builtinReady": {
+    "english": "llama-server and the model are installed",
+    "params": {}
+  },
+  "llmTest.cannotConnect": {
+    "english": "cannot connect ({reason})",
+    "params": {
+      "reason": "text"
+    }
+  },
+  "llmTest.connected": {
+    "english": "connected",
+    "params": {}
+  },
+  "llmTest.couldNotUse": {
+    "english": "could not use {url}: {why}",
+    "params": {
+      "url": "text",
+      "why": "text"
+    }
+  },
+  "llmTest.hostNotFound": {
+    "english": "the host name was not found",
+    "params": {}
+  },
+  "llmTest.keyRejected": {
+    "english": "the server rejected the API key (HTTP {status})",
+    "params": {
+      "status": "text"
+    }
+  },
+  "llmTest.modelMissing": {
+    "english": "connected to {url}, but model {model} is not installed there",
+    "params": {
+      "url": "text",
+      "model": "text"
+    }
+  },
+  "llmTest.noKey": {
+    "english": "no API key to test with: enter the key for this address",
+    "params": {}
+  },
+  "llmTest.notInstalled": {
+    "english": "not installed: {missing}",
+    "params": {
+      "missing": "list"
+    }
+  },
+  "llmTest.notJson": {
+    "english": "the answer is not JSON, so this is not that kind of server",
+    "params": {}
+  },
+  "llmTest.redirected": {
+    "english": "it redirected to {location}; redirects are not followed",
+    "params": {
+      "location": "text"
+    }
+  },
+  "llmTest.refused": {
+    "english": "connection refused, nothing is listening at that address",
+    "params": {}
+  },
+  "llmTest.timedOut": {
+    "english": "no answer within {seconds} s",
+    "params": {
+      "seconds": "text"
+    }
+  },
+  "manage.activeProfileNeeds": {
+    "english": "the active profile needs it",
+    "params": {}
+  },
+  "manage.addOn": {
+    "english": "{asset} is an add-on and installs with the runtime that needs it",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.beingDownloaded": {
+    "english": "{asset} is being downloaded; cancel the download first",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.beingInstalled": {
+    "english": "{asset} is being installed; cancel the install first",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.busy.deleteModel": {
+    "english": "a job is running; wait for it before you delete a model",
+    "params": {}
+  },
+  "manage.busy.deleteRuntime": {
+    "english": "a job is running; wait for it before you delete a runtime",
+    "params": {}
+  },
+  "manage.busy.move": {
+    "english": "a job is running; wait for it before you move the models",
+    "params": {}
+  },
+  "manage.busy.redownload": {
+    "english": "a job is running; wait for it before you download an asset again",
+    "params": {}
+  },
+  "manage.busy.repair": {
+    "english": "a job is running; wait for it before you repair an asset",
+    "params": {}
+  },
+  "manage.busy.selftest": {
+    "english": "a job is running; wait for it before you run the self-test",
+    "params": {}
+  },
+  "manage.busy.update": {
+    "english": "a job is running; wait for it before you update an asset",
+    "params": {}
+  },
+  "manage.cannotDelete": {
+    "english": "cannot delete {asset}: {error}",
+    "params": {
+      "asset": "text",
+      "error": "text"
+    }
+  },
+  "manage.dependentNeeds": {
+    "english": "{asset} is installed and needs it",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.forceNeedsReason": {
+    "english": "forcing the delete of {asset} needs a reason of at least {characters} characters",
+    "params": {
+      "asset": "text",
+      "characters": "text"
+    }
+  },
+  "manage.notInstalled": {
+    "english": "{asset} is not installed",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.nothingToUpdate": {
+    "english": "nothing to update for {asset}: {reason}",
+    "params": {
+      "asset": "text",
+      "reason": "text"
+    }
+  },
+  "manage.repair.fileMissing": {
+    "english": "the file is missing",
+    "params": {}
+  },
+  "manage.repair.incomplete": {
+    "english": "the install is incomplete",
+    "params": {}
+  },
+  "manage.repair.runtimeChecked": {
+    "english": "installed; the archive SHA256 was checked when it was downloaded. Use redownload to fetch it again.",
+    "params": {}
+  },
+  "manage.repair.shaDiffers": {
+    "english": "the SHA256 is {actual}..., the registry has {expected}...",
+    "params": {
+      "actual": "text",
+      "expected": "text"
+    }
+  },
+  "manage.repair.shaMatches": {
+    "english": "the SHA256 matches the registry",
+    "params": {}
+  },
+  "manage.stillNeeded": {
+    "english": "{asset} is still needed: {blockers}",
+    "params": {
+      "asset": "text",
+      "blockers": "clauses"
+    }
+  },
+  "manage.verifyRuntime": {
+    "english": "{asset} is a runtime; its archive was checked when it was downloaded",
+    "params": {
+      "asset": "text"
+    }
+  },
+  "manage.verifyStopped": {
+    "english": "verification stopped",
+    "params": {}
+  },
+  "move.alreadyRunning": {
+    "english": "a move is already running",
+    "params": {}
+  },
+  "move.clash": {
+    "english": "{target} already holds {models} with other content; nothing was moved",
+    "params": {
+      "target": "text",
+      "models": "list"
+    }
+  },
+  "move.couldNotRemove": {
+    "english": "could not remove {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
+    }
+  },
+  "move.downloadRunning": {
+    "english": "a download is running; wait for it or cancel it first",
+    "params": {}
+  },
+  "move.nested": {
+    "english": "source and target must not contain each other",
+    "params": {}
+  },
+  "move.noModels": {
+    "english": "no installed models were found in {folder}",
+    "params": {
+      "folder": "text"
+    }
+  },
+  "move.notAbsolute": {
+    "english": "target must be an absolute path",
+    "params": {}
+  },
+  "move.otherContent": {
+    "english": "{dest} holds other content than {path}; left alone",
+    "params": {
+      "dest": "text",
+      "path": "text"
+    }
+  },
+  "move.sameFolder": {
+    "english": "source and target are the same folder",
+    "params": {}
+  },
+  "move.wrongSize": {
+    "english": "{dest} has the wrong size after the move",
+    "params": {
+      "dest": "text"
+    }
+  },
   "pipeline.noSpeech": {
     "english": "the ASR engine found no speech in this audio",
     "params": {}
@@ -376,6 +705,71 @@
     "params": {
       "system": "text",
       "machine": "text"
+    }
+  },
+  "player.burnBusy": {
+    "english": "another burn-in export is running",
+    "params": {}
+  },
+  "player.burnFailed": {
+    "english": "ffmpeg failed: {output}",
+    "params": {
+      "output": "text"
+    }
+  },
+  "player.dirNotAbsolute": {
+    "english": "dir must be an absolute path: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "player.folderUnusable": {
+    "english": "cannot use the folder {folder}: {error}",
+    "params": {
+      "folder": "text",
+      "error": "text"
+    }
+  },
+  "player.notPicked": {
+    "english": "{folder} is not a folder picked in the app; pick it again",
+    "params": {
+      "folder": "text"
+    }
+  },
+  "player.pastEnd": {
+    "english": "start_s is past the end of the video",
+    "params": {}
+  },
+  "player.stillFailed": {
+    "english": "still of {video} failed: {output}",
+    "params": {
+      "video": "text",
+      "output": "text"
+    }
+  },
+  "player.thumbnailFailed": {
+    "english": "thumbnail of {video} failed: {output}",
+    "params": {
+      "video": "text",
+      "output": "text"
+    }
+  },
+  "player.unknownExport": {
+    "english": "unknown export {id}",
+    "params": {
+      "id": "text"
+    }
+  },
+  "player.unknownProject": {
+    "english": "unknown project {id}",
+    "params": {
+      "id": "text"
+    }
+  },
+  "player.videoGone": {
+    "english": "the video is not at {path} any more",
+    "params": {
+      "path": "text"
     }
   },
   "profile.asr": {
@@ -526,6 +920,19 @@
       "seconds": "text"
     }
   },
+  "project.notAFile": {
+    "english": "video_path must be the absolute path of an existing file: {path}",
+    "params": {
+      "path": "text"
+    }
+  },
+  "project.notMedia": {
+    "english": "not a media file extension: {extension}; accepted: {accepted}",
+    "params": {
+      "extension": "text",
+      "accepted": "text"
+    }
+  },
   "queue.crashed": {
     "english": "the batch crashed",
     "params": {}
@@ -631,6 +1038,16 @@
   },
   "secrets.cloudKeyUnavailable": {
     "english": "This version can't save a cloud API key on a Mac yet. Use the local model (the default) or Ollama instead. Saving cloud keys will come later.",
+    "params": {}
+  },
+  "secrets.dpapiFailed": {
+    "english": "Windows DPAPI failed (error {code})",
+    "params": {
+      "code": "text"
+    }
+  },
+  "secrets.needDpapi": {
+    "english": "storing the API key needs Windows DPAPI",
     "params": {}
   },
   "selftest.asrFailed": {
@@ -758,6 +1175,75 @@
       "path": "text"
     }
   },
+  "settings.cloudConsent": {
+    "english": "cloud_consent must be true to use a cloud LLM. A cloud LLM receives your transcript text, glossary and the summary prompt over the internet. The content of your video leaves this machine and is handled under the provider's terms. Local models never send it anywhere.",
+    "params": {}
+  },
+  "settings.cloudFieldsMissing": {
+    "english": "cloud_url and cloud_model are required for a cloud LLM",
+    "params": {}
+  },
+  "settings.cloudNeedsHttps": {
+    "english": "cloud_url must use https unless it points at this machine",
+    "params": {}
+  },
+  "settings.fileNotUsed": {
+    "english": "{file} was not used: {error}",
+    "params": {
+      "file": "text",
+      "error": "text"
+    }
+  },
+  "settings.keyForNewAddress": {
+    "english": "the cloud address changed, so the saved API key is not sent to it; enter the API key for the new address",
+    "params": {}
+  },
+  "settings.keyRequired": {
+    "english": "an API key is required for a cloud LLM",
+    "params": {}
+  },
+  "settings.ollamaModelMissing": {
+    "english": "ollama_model is required when the source is ollama",
+    "params": {}
+  },
+  "settings.urlNotHttps": {
+    "english": "{field} must be an https URL with a host",
+    "params": {
+      "field": "word"
+    }
+  },
+  "settings.urlNotWeb": {
+    "english": "{field} must be an http or https URL with a host",
+    "params": {
+      "field": "word"
+    }
+  },
+  "settings.urlParts": {
+    "english": "{field} must not hold a user name, password, query or fragment",
+    "params": {
+      "field": "word"
+    }
+  },
+  "storage.cannotRead": {
+    "english": "cannot read {path}: {error}",
+    "params": {
+      "path": "text",
+      "error": "text"
+    }
+  },
+  "storage.notAbsolute": {
+    "english": "models_dir must be an absolute path or null",
+    "params": {}
+  },
+  "storage.unmoved": {
+    "english": "{count} installed model(s), {size} GiB, stay in {old} and are not moved. The app now looks for models in {new}, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\".",
+    "params": {
+      "count": "text",
+      "size": "text",
+      "old": "text",
+      "new": "text"
+    }
+  },
   "summary.noPart": {
     "english": "no part of the talk could be summarised",
     "params": {}
@@ -780,6 +1266,36 @@
       "tokens": "text",
       "limit": "text",
       "context": "text"
+    }
+  },
+  "switch.lowMemory": {
+    "english": "This machine has {have} MiB of memory; {profile} needs {need} MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "have": "text",
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.lowVram": {
+    "english": "This machine has {have} MiB; {profile} needs {need} MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "have": "text",
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.noGpu": {
+    "english": "This machine has no NVIDIA GPU; {profile} needs {need} MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "profile": "word",
+      "need": "text"
+    }
+  },
+  "switch.unknownMemory": {
+    "english": "This machine's memory is unknown; {profile} needs {need} MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "params": {
+      "profile": "word",
+      "need": "text"
     }
   },
   "translate.cannotResume": {

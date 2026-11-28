@@ -29,7 +29,12 @@ from backend.core.model import Cue
 from backend.core.notices import (
     NO_H264_MACOS,
     NO_H264_WINDOWS,
+    PLAYER_BURN_BUSY,
+    PLAYER_BURN_FAILED,
+    PLAYER_STILL_FAILED,
+    PLAYER_THUMBNAIL_FAILED,
     Notice,
+    Template,
     noticed,
     notices_of,
 )
@@ -157,7 +162,7 @@ def _ass_file(
     write_text_file(folder / "sub.ass", text)
 
 
-def _run(command: list[str], cwd: Path | None, what: str) -> None:
+def _run(command: list[str], cwd: Path | None, failed: Template, video: Path) -> None:
     proc = subprocess.run(  # noqa: S603
         command,
         cwd=cwd,
@@ -171,7 +176,8 @@ def _run(command: list[str], cwd: Path | None, what: str) -> None:
         check=False,
     )
     if proc.returncode != 0:
-        raise AudioError(f"{what} failed: {proc.stderr.strip()[-400:]}")
+        said = failed(video=video.name, output=proc.stderr.strip()[-400:])
+        raise noticed(AudioError, said)
 
 
 def thumbnail(video: Path, at_s: float, out: Path) -> None:
@@ -198,7 +204,8 @@ def thumbnail(video: Path, at_s: float, out: Path) -> None:
                 str(partial),
             ],
             None,
-            f"thumbnail of {video.name}",
+            PLAYER_THUMBNAIL_FAILED,
+            video,
         )
         os.replace(partial, out)
     finally:
@@ -235,7 +242,7 @@ def still(
             command += ["-vf", "ass=sub.ass"]
         partial = out.with_name(f".{out.stem}.{uuid.uuid4().hex}.tmp.png")
         try:
-            _run([*command, str(partial)], folder, f"still of {video.name}")
+            _run([*command, str(partial)], folder, PLAYER_STILL_FAILED, video)
             os.replace(partial, out)
         finally:
             partial.unlink(missing_ok=True)
@@ -362,7 +369,7 @@ class BurnBook:
         runs. The caller has chosen a free `out` name."""
         with self._lock:
             if any(j.state == "running" for j in self._jobs.values()):
-                raise BurnBusy("another burn-in export is running")
+                raise noticed(BurnBusy, PLAYER_BURN_BUSY())
             job = BurnJob(uuid.uuid4().hex[:12], out, started=time.monotonic())
             self._jobs[job.id] = job
             for old in [j for j in self._jobs.values() if j.state != "running"][:-20]:
@@ -505,7 +512,8 @@ class BurnBook:
                 return
             if code != 0:
                 errors.seek(0)
-                raise AudioError(f"ffmpeg failed: {errors.read().strip()[-400:]}")
+                said = PLAYER_BURN_FAILED(output=errors.read().strip()[-400:])
+                raise noticed(AudioError, said)
 
     @staticmethod
     def _kill_on_cancel(job: BurnJob, proc: subprocess.Popen[str]) -> None:

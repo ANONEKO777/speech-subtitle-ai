@@ -1,4 +1,5 @@
 import { type Backend, asRecord, call } from "../api/client";
+import { type Said, saidField } from "../i18n/said";
 import type { SourceLang } from "../api/sourceLang";
 import type { BatchSettings, Snapshot } from "./model";
 import { parseSettings, parseSnapshot } from "./model";
@@ -17,7 +18,7 @@ export interface AddEntry {
 
 export interface Skipped {
   readonly path: string;
-  readonly reason: string;
+  readonly reason: Said;
 }
 
 export async function addToQueue(b: Backend, entries: readonly AddEntry[]): Promise<{ added: number; skipped: Skipped[] }> {
@@ -29,7 +30,7 @@ export async function addToQueue(b: Backend, entries: readonly AddEntry[]): Prom
   const body = asRecord(await call(b, "/api/queue/items", { method: "POST", body: JSON.stringify({ items, folders }) }));
   const skipped = (Array.isArray(body?.["skipped"]) ? (body["skipped"] as unknown[]) : []).flatMap((s): Skipped[] => {
     const o = asRecord(s);
-    return typeof o?.["path"] === "string" ? [{ path: o["path"], reason: String(o["reason"] ?? "") }] : [];
+    return typeof o?.["path"] === "string" ? [{ path: o["path"], reason: saidField(o, "reason") }] : [];
   });
   return { added: Array.isArray(body?.["added"]) ? body["added"].length : 0, skipped };
 }

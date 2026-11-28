@@ -13,13 +13,14 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.api.deps import refused
 from backend.api.projects import store_of
-from backend.core import render
+from backend.core import notices, render
 from backend.core.audio import AudioError, probe_duration_s
 from backend.core.fonts import FontMissing, burn_font, target_font
 from backend.core.languages import Language, UnknownLanguage, get
 from backend.core.model import Cue
-from backend.core.notices import to_json
+from backend.core.notices import noticed, to_json
 from backend.core.playback import MAX_OFFSET_MS, Playback, with_changes
 from backend.core.projects import NotReady, ProjectStore, UnknownProject
 from backend.core.render import BurnBook, BurnBusy, SubtitleLook
@@ -72,8 +73,9 @@ def _known(request: Request, pid: str) -> tuple[ProjectStore, Path]:
     store = store_of(request)
     try:
         return store, Path(store.info(pid).project.video_path)
-    except UnknownProject as exc:
-        raise HTTPException(404, f"unknown project {pid!r}") from exc
+    except UnknownProject:
+        said = notices.UNKNOWN_PROJECT(id=repr(pid))
+        raise HTTPException(404, said.message) from noticed(ValueError, said)
 
 
 def _playback_json(state: Playback) -> dict[str, Any]:
@@ -107,11 +109,12 @@ def _out_dir(request: Request, given: str | None, leaf: str) -> Path:
         try:
             folder.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            raise HTTPException(422, f"cannot use the folder {folder}: {exc}") from exc
+            said = notices.PLAYER_FOLDER_UNUSABLE(folder=str(folder), error=str(exc))
+            raise HTTPException(422, said.message) from noticed(ValueError, said)
         return folder
     folder = Path(given)
     if not folder.is_absolute():
-        raise HTTPException(422, f"dir must be an absolute path: {given}")
+        raise refused(422, notices.PLAYER_DIR_NOT_ABSOLUTE(path=given))
     try:
         real = folder.resolve(strict=True)
         allowed = [
@@ -120,9 +123,10 @@ def _out_dir(request: Request, given: str | None, leaf: str) -> Path:
             *(p.resolve() for p in picked_folders(user_data)),
         ]
     except OSError as exc:
-        raise HTTPException(422, f"cannot use the folder {folder}: {exc}") from exc
+        said = notices.PLAYER_FOLDER_UNUSABLE(folder=str(folder), error=str(exc))
+        raise HTTPException(422, said.message) from noticed(ValueError, said)
     if not real.is_dir() or not any(_inside(real, root) for root in allowed):
-        raise HTTPException(422, f"{folder} is not a folder picked in the app; pick it again")
+        raise refused(422, notices.PLAYER_NOT_PICKED(folder=str(folder)))
     return real
 
 
@@ -137,7 +141,7 @@ def _free(folder: Path, stem: str, suffix: str) -> Path:
 
 def _video(path: Path) -> Path:
     if not path.is_file():
-        raise HTTPException(409, f"the video is not at {path} any more")
+        raise refused(409, notices.PLAYER_VIDEO_GONE(path=str(path)))
     return path
 
 
@@ -271,7 +275,7 @@ def start_burn(pid: str, body: BurnBody, request: Request) -> dict[str, Any]:
     total = probe_duration_s(source) or store.length_s(pid)
     duration = body.duration_s or (total - body.start_s)
     if duration <= 0 or (total and body.start_s >= total):
-        raise HTTPException(422, "start_s is past the end of the video")
+        raise refused(422, notices.PLAYER_PAST_END())
     folder = _out_dir(request, body.dir, "exports")
     clip = f".{int(body.start_s)}s-{int(duration)}s" if body.duration_s else ""
     out = _free(folder, f"{video.stem}{clip}.{code}.burned", ".mp4")
@@ -295,12 +299,12 @@ def start_burn(pid: str, body: BurnBody, request: Request) -> dict[str, Any]:
 def get_burn(job_id: str, request: Request) -> dict[str, Any]:
     job = _burns(request).get(job_id)
     if job is None:
-        raise HTTPException(404, f"unknown export {job_id!r}")
+        raise refused(404, notices.UNKNOWN_EXPORT(id=repr(job_id)))
     return _burn_json(job)
 
 
 @router.post("/burns/{job_id}/cancel")
 def cancel_burn(job_id: str, request: Request) -> dict[str, Any]:
     if not _burns(request).cancel(job_id):
-        raise HTTPException(404, f"unknown export {job_id!r}")
+        raise refused(404, notices.UNKNOWN_EXPORT(id=repr(job_id)))
     return {"ok": True}

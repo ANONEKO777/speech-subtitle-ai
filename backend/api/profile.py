@@ -111,7 +111,9 @@ def put_profile(body: ProfileBody, ctx: Context) -> dict[str, Any]:
     ctx.selftest.clear()
     result = view(ctx)
     chosen = current(ctx).selection.profile
-    result["warnings"] = warnings_for(ctx, chosen)
+    warnings = warnings_for(ctx, chosen)
+    result["warnings"] = [one.message for one in warnings]
+    result["warnings_notices"] = to_json(warnings)
     result["download"] = "/api/profile/download" if result_missing(result) else None
     return result
 

@@ -10,6 +10,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
+from backend.core import notices
+from backend.core.notices import noticed
 from backend.manager.registry import Model, Runtime
 
 USER_DATA_ENV = "VST_USER_DATA"
@@ -54,7 +56,7 @@ def parse_config(raw: object) -> StorageConfig:
     models_dir = data.get("models_dir")
     if models_dir is not None:
         if not isinstance(models_dir, str) or not Path(models_dir).is_absolute():
-            raise StorageError("models_dir must be an absolute path or null")
+            raise noticed(StorageError, notices.STORAGE_NOT_ABSOLUTE())
     mirrors = data.get("mirrors", {})
     if not isinstance(mirrors, dict):
         raise StorageError("mirrors must map an origin prefix to a replacement prefix")
@@ -129,4 +131,5 @@ class Storage:
         try:
             return parse_config(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError) as exc:
-            raise StorageError(f"cannot read {path}: {exc}") from exc
+            said = notices.STORAGE_CANNOT_READ(path=str(path), error=str(exc))
+            raise noticed(StorageError, said) from exc

@@ -7,6 +7,8 @@ import { macView, windowsView } from "../manage/screens.fixture";
 import type { ProfileView } from "../manage/types";
 import { HardwareSection, selfTestText } from "./HardwareSection";
 import { plainText } from "../i18n/said";
+import { chooseProfile } from "../manage/api";
+import fixture from "../i18n/notices.w4b2.fixture.json";
 
 const mocks = vi.hoisted(() => ({ view: null as ProfileView | null }));
 
@@ -109,5 +111,18 @@ describe("HardwareSection and the program a Mac builds for itself", () => {
     expect(list).toContain("whispercpp-b5454-macos-metal（執行檔，在這台 Mac 上自行建置（scripts/mac/build_whisper_cli.sh，步驟見 docs/MACOS.md））");
     expect(list).not.toContain("0 B");
     expect(screen.queryByTestId("switch-download")).toBeNull();
+  });
+});
+
+describe("HardwareSection after a switch the machine is short for", () => {
+  it("words the backend's warning in the language of the window", async () => {
+    const { text, notices, zh } = fixture["switch.lowVram"];
+    mocks.view = windowsView();
+    vi.mocked(chooseProfile).mockResolvedValueOnce({ profile: mocks.view, warnings: [{ text, notices }] });
+    render(<HardwareSection backend={backend} downloads={downloads} onOpenLlm={() => undefined} />);
+    await waitFor(() => screen.getByTestId("profile-use-gpu-8gb"));
+    fireEvent.click(screen.getByTestId("profile-use-gpu-8gb"));
+    await waitFor(() => screen.getByTestId("switch-warning"));
+    expect(screen.getByTestId("switch-warning").textContent).toBe(zh);
   });
 });

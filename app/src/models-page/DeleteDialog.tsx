@@ -61,7 +61,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
             <p>{confirmText(asset, t, locale)}</p>
             {asset.blockers.length > 0 && (
               <p className="note warn" data-testid="delete-prewarn">
-                {t("delete.warn", { blockers: asset.blockers.join(t("models.blockerSeparator")) })}
+                {t("delete.warn", { blockers: asset.blockers.map((b) => word(b, locale)).join(t("models.blockerSeparator")) })}
               </p>
             )}
           </>
@@ -75,7 +75,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
             {state.refusal.blockers.length > 0 && (
               <ul className="blockers" data-testid="delete-blockers">
                 {state.refusal.blockers.map((b) => (
-                  <li key={b}>{b}</li>
+                  <li key={b.text}>{word(b, locale)}</li>
                 ))}
               </ul>
             )}
@@ -93,7 +93,7 @@ export function DeleteDialog({ backend, asset, onClose, onDeleted }: Props) {
             {state.refusal.blockers.length > 0 && (
               <ul className="blockers">
                 {state.refusal.blockers.map((b) => (
-                  <li key={b}>{b}</li>
+                  <li key={b.text}>{word(b, locale)}</li>
                 ))}
               </ul>
             )}

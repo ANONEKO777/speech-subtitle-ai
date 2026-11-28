@@ -6,7 +6,7 @@ reports its id in `job_id` while it runs.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Any
@@ -15,9 +15,18 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.api.deps import refused
 from backend.api.jobs import JobBody, event_stream
 from backend.core.jobs import JobOptions
 from backend.core.languages import get as get_language
+from backend.core.notices import (
+    BATCH_NOT_A_FOLDER,
+    BATCH_NOTHING_GIVEN,
+    BATCH_REMOVE_FINISHED_ONLY,
+    Notice,
+    notices_of,
+    to_json,
+)
 from backend.core.queue_runner import QueueRunner, scan_folder
 from backend.core.queue_store import OnDone, QueueError, QueueSettings
 from backend.core.source_langs import get_source
@@ -123,30 +132,38 @@ def add_items(body: AddBody, request: Request) -> dict[str, Any]:
     """Queue the files and the videos found in the folders. Every path that was not queued comes
     back under `skipped` with the reason, and the rest is queued."""
     if not body.items and not body.folders:
-        raise HTTPException(422, "give at least one item or folder")
+        raise refused(422, BATCH_NOTHING_GIVEN())
     base: JobOptions = body.options.options()
     entries: list[tuple[Path, JobOptions]] = []
-    skipped: list[dict[str, str]] = []
+    skipped: list[dict[str, Any]] = []
     for entry in body.items:
         entries.extend((Path(entry.path), options) for options in _with_langs(base, entry, body))
     for folder in body.folders:
         try:
             found = scan_folder(Path(folder.path), folder.recursive)
         except NotADirectoryError:
-            skipped.append({"path": folder.path, "reason": "not a folder"})
+            skipped.append(_skipped(folder.path, *_said(BATCH_NOT_A_FOLDER())))
             continue
         except (OSError, QueueError) as exc:
-            skipped.append({"path": folder.path, "reason": str(exc)})
+            skipped.append(_skipped(folder.path, str(exc), notices_of(exc)))
             continue
         per_target = _with_langs(base, folder, body)
         entries.extend((video, options) for video in found for options in per_target)
     queue = queue_of(request)
     added = queue.add(entries)
-    skipped.extend({"path": p, "reason": r} for p, r in added.skipped)
+    skipped.extend(_skipped(*one) for one in added.skipped)
     return {
         "added": queue.describe_items([i.id for i in added.items]),
         "skipped": skipped,
     }
+
+
+def _said(notice: Notice) -> tuple[str, tuple[Notice, ...]]:
+    return notice.message, (notice,)
+
+
+def _skipped(path: str, reason: str, notices: Sequence[Notice]) -> dict[str, Any]:
+    return {"path": path, "reason": reason, "reason_notices": to_json(notices)}
 
 
 def _with_langs(options: JobOptions, entry: QueuePath, body: AddBody) -> list[JobOptions]:
@@ -229,7 +246,7 @@ def remove_item(item_id: str, request: Request) -> dict[str, Any]:
         raise HTTPException(404, f"unknown queue item {item_id!r}")
     removed = queue.remove([item_id])
     if not removed:
-        raise HTTPException(409, "only a finished item can be removed; cancel it first")
+        raise refused(409, BATCH_REMOVE_FINISHED_ONLY())
     return {"removed": removed}
 
 

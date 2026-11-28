@@ -264,7 +264,7 @@ export function AddDialog({ backend, languages, initial, onClose, onAdded }: Pro
               <li key={s.path}>
                 <b>{baseName(s.path)}</b>
                 {t("batch.skippedSep")}
-                {s.reason}
+                {word(s.reason, locale)}
               </li>
             ))}
           </ul>

@@ -22,13 +22,13 @@ import type { Asset, DownloadJob, Inventory, UpdateReport } from "../manage/type
 import { DeleteDialog } from "./DeleteDialog";
 import { type RowAction, rowActions, shaText, stateText } from "./rules";
 import type { Locale } from "../i18n/locale";
-import { type Said, plainText, said, word } from "../i18n/notice";
+import { type Said, backendWord, plainText, said, word } from "../i18n/notice";
 
 /** What a row action left to say. Kept as data and worded at render, so a language switch re-words it. */
 type Note =
   | { readonly kind: "verified"; readonly ok: boolean }
-  | { readonly kind: "repaired"; readonly action: string; readonly reason: string }
-  | { readonly kind: "refused"; readonly message: Said; readonly blockers: readonly string[] };
+  | { readonly kind: "repaired"; readonly action: string; readonly reason: Said }
+  | { readonly kind: "refused"; readonly message: Said; readonly blockers: readonly Said[] };
 
 type Working = Exclude<RowAction, "delete">;
 
@@ -38,10 +38,12 @@ function noteText(note: Note, t: Translate, locale: Locale): string {
   switch (note.kind) {
     case "verified":
       return note.ok ? t("models.verify.ok") : t("models.verify.bad", { repair: t("models.action.repair") });
-    case "repaired":
-      return note.reason ? t("models.repaired.reason", { action: note.action, reason: note.reason }) : t("models.repaired", { action: note.action });
+    case "repaired": {
+      const action = backendWord(note.action, locale);
+      return note.reason.text ? t("models.repaired.reason", { action, reason: word(note.reason, locale) }) : t("models.repaired", { action });
+    }
     case "refused":
-      return [word(note.message, locale), ...note.blockers].join(t("models.blockerSeparator"));
+      return [note.message, ...note.blockers].map((one) => word(one, locale)).join(t("models.blockerSeparator"));
   }
 }
 

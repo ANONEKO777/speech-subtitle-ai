@@ -230,6 +230,62 @@ def test_the_connection_test_shows_no_spelling_of_the_key(monkeypatch: pytest.Mo
         assert echoed not in found.detail and "***" in found.detail
 
 
+def _tested(monkeypatch: pytest.MonkeyPatch, key: str, answer: Exception) -> str:
+    """Everything the LLM page can get from a failed connection test: its text and its notices."""
+
+    def refuse(_url: str, _key: str | None) -> object:
+        raise answer
+
+    monkeypatch.setattr(llm_check, "_get_json", refuse)
+    url = "https://api.example.test/v1/models"
+    found = llm_check._probe(LlmSource.CLOUD, url, key, "data", "id")  # pyright: ignore[reportPrivateUsage]
+    assert not found.ok
+    return found.detail + json.dumps(to_json(found.detail_notices))
+
+
+def _moved(to: str) -> Exception:
+    headers = Message()
+    headers["Location"] = to
+    return urllib.error.HTTPError(
+        "https://api.example.test/v1/models", 302, "Found", headers, io.BytesIO()
+    )
+
+
+@pytest.mark.parametrize("length", [500, 10000])
+def test_the_connection_test_hides_a_long_key_from_every_notice(
+    monkeypatch: pytest.MonkeyPatch, length: int
+) -> None:
+    key = "sk" + _long_key(length - 2)
+    answers = [
+        _moved(f"https://other.example.test/?key={urllib.parse.quote(key, safe='')}"),
+        urllib.error.HTTPError("u", 500, f"bad key {key}", Message(), io.BytesIO()),
+        urllib.error.URLError(OSError(f"proxy said {key}")),
+        OSError(f"socket said {key}"),
+    ]
+    for answer in answers:
+        shown = _tested(monkeypatch, key, answer)
+
+        _no_piece_of(key, shown)
+        assert "***" in shown
+
+
+@pytest.mark.parametrize("kept", [8, 20, len(KEY) - 1])
+def test_the_connection_test_hides_a_key_the_server_cut_off(
+    monkeypatch: pytest.MonkeyPatch, kept: int
+) -> None:
+    cut = KEY[:kept]
+    answers = [
+        _moved(f"https://other.example.test/?key={cut}"),
+        urllib.error.HTTPError("u", 500, f"bad key {cut}", Message(), io.BytesIO()),
+        urllib.error.URLError(OSError(f"proxy said {cut}")),
+    ]
+    for answer in answers:
+        shown = _tested(monkeypatch, KEY, answer)
+
+        assert cut not in shown and KEY[:8] not in shown, shown
+        assert "***" in shown
+
+
 @pytest.mark.parametrize("route", ["/api/settings", "/api/llm/test"])
 def test_a_key_no_header_can_carry_is_refused_when_saved_or_tested(rig: Rig, route: str) -> None:
     llm = {

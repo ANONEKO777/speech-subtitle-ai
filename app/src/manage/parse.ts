@@ -23,7 +23,7 @@ import type {
   UpdateReport,
 } from "./types";
 import { PROFILE_IDS } from "./types";
-import { saidField } from "../i18n/said";
+import { saidField, saidList, saidOrNull } from "../i18n/said";
 
 type Rec = Record<string, unknown>;
 
@@ -63,7 +63,7 @@ export function parseAsset(raw: unknown): Asset {
     usedByProfiles: strings(o["used_by_profiles"]),
     inActiveProfile: bool(o, "in_active_profile"),
     dependents: list(o["dependents"]).map((d) => ({ id: str(rec(d), "id"), installed: bool(rec(d), "installed") })),
-    blockers: strings(o["blockers"]),
+    blockers: saidList(o, "blockers"),
     license: str(o, "license"),
     licenseUrl: str(o, "license_url"),
     localBuild: bool(o, "local_build"),
@@ -197,7 +197,7 @@ export function parseSettings(raw: unknown): SettingsView {
     uiLanguage: isUiLanguage(o["ui_language"]) ? o["ui_language"] : DEFAULT_UI_LANGUAGE,
     llm,
     consentText: str(o, "cloud_consent_text"),
-    problem: strOrNull(o, "problem"),
+    problem: saidOrNull(o, "problem"),
     storage: { userData: str(s, "user_data"), modelsDir: str(s, "models_dir"), customModelsDir: strOrNull(s, "custom_models_dir") },
   };
 }
@@ -248,8 +248,8 @@ export const parseMove = (raw: unknown): MoveStatus => {
     filesDone: num(o, "files_done"),
     bytesTotal: num(o, "bytes_total"),
     bytesDone: num(o, "bytes_done"),
-    error: strOrNull(o, "error"),
-    warnings: strings(o["warnings"]),
+    error: saidOrNull(o, "error"),
+    warnings: saidList(o, "warnings"),
   };
 };
 

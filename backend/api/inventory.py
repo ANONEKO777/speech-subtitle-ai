@@ -7,7 +7,17 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
 
-from backend.api.deps import Context, job_json, refusal, refuse_while_busy, unknown
+from backend.api.deps import Context, job_json, refusal, refuse_while_busy, refused, unknown
+from backend.core.notices import (
+    BUSY_MOVE,
+    BUSY_REDOWNLOAD,
+    BUSY_REPAIR,
+    BUSY_UPDATE,
+    NOT_INSTALLED,
+    NOTHING_TO_UPDATE,
+    VERIFY_RUNTIME,
+    to_json,
+)
 from backend.manager.active import resolve_active
 from backend.manager.inventory import Entry
 from backend.manager.licenses import license_entries
@@ -73,11 +83,9 @@ def verify(asset_id: str, ctx: Context) -> dict[str, Any]:
     _known(ctx, asset_id)
     found = ctx.registry.models.get(asset_id)
     if not isinstance(found, Model):
-        raise HTTPException(
-            400, f"{asset_id} is a runtime; its archive was checked when it was downloaded"
-        )
+        raise refused(400, VERIFY_RUNTIME(asset=asset_id))
     if not ctx.storage.model_file(found).is_file():
-        raise HTTPException(409, f"{asset_id} is not installed")
+        raise refused(409, NOT_INSTALLED(asset=asset_id))
     ctx.inventory.verify_model(found)
     return _one(ctx, asset_id)
 
@@ -86,14 +94,15 @@ def verify(asset_id: str, ctx: Context) -> dict[str, Any]:
 def repair_asset(asset_id: str, request: Request, ctx: Context) -> dict[str, Any]:
     """Check the asset, and fetch it again if it is missing, partial or its SHA256 is wrong."""
     _known(ctx, asset_id)
-    refuse_while_busy(request, "repair an asset")
+    refuse_while_busy(request, BUSY_REPAIR)
     try:
         result = repair(ctx, asset_id)
     except Refused as exc:
         raise refusal(exc) from exc
     return {
         "action": result.action,
-        "reason": result.reason,
+        "reason": result.reason.message,
+        "reason_notices": to_json([result.reason]),
         "job": job_json(result.job) if result.job else None,
         "asset": _one(ctx, asset_id),
     }
@@ -102,7 +111,7 @@ def repair_asset(asset_id: str, request: Request, ctx: Context) -> dict[str, Any
 @router.post("/inventory/{asset_id}/redownload")
 def redownload_asset(asset_id: str, request: Request, ctx: Context) -> dict[str, Any]:
     _known(ctx, asset_id)
-    refuse_while_busy(request, "download an asset again")
+    refuse_while_busy(request, BUSY_REDOWNLOAD)
     try:
         return job_json(redownload(ctx, asset_id))
     except ValueError as exc:
@@ -122,14 +131,15 @@ def updates(ctx: Context) -> dict[str, Any]:
 def update_asset(asset_id: str, request: Request, ctx: Context) -> dict[str, Any]:
     """Fetch the registry version again, only when the installed one differs from it."""
     _known(ctx, asset_id)
-    refuse_while_busy(request, "update an asset")
+    refuse_while_busy(request, BUSY_UPDATE)
     try:
         report = check_updates(ctx.inventory, ctx.settings.current.registry_url, ctx.fetch_remote)
     except UpdateError as exc:
         raise HTTPException(502, {"message": str(exc), "url": exc.url}) from exc
     item = next(i for i in report.items if i.id == asset_id)
     if item.status is not UpdateStatus.UPDATE_AVAILABLE or not item.installable:
-        raise HTTPException(409, f"nothing to update for {asset_id}: {item.message}")
+        said = NOTHING_TO_UPDATE(asset=asset_id, reason=item.message)
+        raise refused(409, said, *item.message_notices)
     return job_json(redownload(ctx, asset_id))
 
 
@@ -146,7 +156,7 @@ def move_status(ctx: Context) -> dict[str, Any]:
 @router.post("/storage/move", status_code=202)
 def move_models(body: MoveBody, request: Request, ctx: Context) -> dict[str, Any]:
     """Move the installed models. This is the only call that moves model files."""
-    refuse_while_busy(request, "move the models")
+    refuse_while_busy(request, BUSY_MOVE)
     source = Path(body.source) if body.source else ctx.storage.models_root
     try:
         return asdict(ctx.mover.start(source, Path(body.target)))

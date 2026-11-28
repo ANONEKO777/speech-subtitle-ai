@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from backend.api.deps import Context, job_json
 from backend.api.models import model_entry
 from backend.api.runtimes import runtime_entry
+from backend.core import notices
+from backend.core.notices import Notice, to_json
 from backend.manager import profiles
 from backend.manager.context import ManagerContext
 from backend.manager.storage import StorageError, parse_config
@@ -82,22 +84,26 @@ def put_storage(body: StorageBody, ctx: Context) -> dict[str, Any]:
     old_root = ctx.storage.models_root
     ctx.storage.update(config)
     result = get_storage(ctx)
-    result["warnings"] = _unmoved_warning(ctx, old_root)
+    warnings = _unmoved_warning(ctx, old_root)
+    result["warnings"] = [one.message for one in warnings]
+    result["warnings_notices"] = to_json(warnings)
     return result
 
 
-def _unmoved_warning(ctx: ManagerContext, old_root: Path) -> list[str]:
+def _unmoved_warning(ctx: ManagerContext, old_root: Path) -> list[Notice]:
     if old_root == ctx.storage.models_root:
         return []
     left = installed_models(ctx.registry, old_root)
     if not left:
         return []
     size = sum(s for _m, _p, s in left)
-    return [
-        f"{len(left)} installed model(s), {size / (1 << 30):.1f} GiB, stay in {old_root} and are "
-        f"not moved. The app now looks for models in {ctx.storage.models_root}, so they show as "
-        "not installed there. Use POST /api/storage/move to move them, or set the folder back."
-    ]
+    said = notices.STORAGE_UNMOVED(
+        count=str(len(left)),
+        size=f"{size / (1 << 30):.1f}",
+        old=str(old_root),
+        new=str(ctx.storage.models_root),
+    )
+    return [said]
 
 
 def _text(path: Path | None) -> str | None:

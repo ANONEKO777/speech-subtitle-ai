@@ -56,3 +56,14 @@ export const saidField = (o: Readonly<Record<string, unknown>>, key: string): Sa
   text: typeof o[key] === "string" ? o[key] : "",
   notices: parseNotices(o[`${key}_notices`]),
 });
+
+/** A list of texts and the notices inside them, as in `warnings` and `warnings_notices`. Each notice replaces only its own sentence, so one list serves every text. */
+export const saidList = (o: Readonly<Record<string, unknown>>, key: string): Said[] => {
+  const notices = parseNotices(o[`${key}_notices`]);
+  const texts = Array.isArray(o[key]) ? (o[key] as unknown[]) : [];
+  return texts.flatMap((text) => (typeof text === "string" ? [{ text, notices }] : []));
+};
+
+/** A text field that may be null, as in `problem` and `problem_notices`. */
+export const saidOrNull = (o: Readonly<Record<string, unknown>>, key: string): Said | null =>
+  typeof o[key] === "string" && o[key] !== "" ? saidField(o, key) : null;

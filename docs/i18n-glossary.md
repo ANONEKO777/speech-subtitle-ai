@@ -202,3 +202,24 @@ Here the English came first and `zh-TW` is new text.
 | locked by another program | 被其他程式鎖定 | locked by another program | |
 | File Explorer | 檔案總管 | File Explorer | Microsoft's name. |
 | command window | 命令列視窗 | command window | |
+
+## W4b part 2: the remaining backend and shell messages
+
+| Term | zh-TW | en | Notes |
+|---|---|---|---|
+| queued, running, paused, done, failed, cancelled (a batch item) | 等待中, 處理中, 已暫停, 完成, 失敗, 已取消 | queued, running, paused, done, failed, cancelled | `noticeWord.*`, as the batch list labels a state. |
+| API key | API 金鑰 | API key | |
+| registry URL | 遠端清單網址 | registry_url | The backend sends the setting's name; the window names it. |
+| absolute path | 完整路徑 | absolute path | Said with an example: 例如 E:\vst-models. |
+| move (models) | 搬移 | move | As the storage card's button: 搬移現有模型並切換. |
+| VRAM | 顯示卡記憶體 | VRAM | |
+| self-test | 自檢 | self-test | As in W2. |
+| segment step | 斷句步驟 | segment step | As the progress screen names the step. |
+| burn in (an export) | 燒入 | burn-in | As the menus say. |
+| verify | 驗證 | verify | As in W2. |
+| job | 工作 | job | 匯出工作 for a burn-in export. |
+| a profile's id (gpu-24gb) | the profile's name (24 GB 顯示卡) | the id | `noticeWord.<id>`. English keeps the id the backend sent. |
+| cloud LLM | 雲端 LLM | cloud LLM | As the LLM page's source choice. |
+| glossary (sent to the LLM) | 術語表 | glossary | In the consent sentence: the list of names and terms the translation keeps. |
+| summary prompt | 摘要提示詞 | summary prompt | |
+| provider (of a cloud LLM) | 服務供應商 | provider | |

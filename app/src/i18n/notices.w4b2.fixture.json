@@ -1,0 +1,1403 @@
+{
+  "batch.notAFolder": {
+    "before": "not a folder",
+    "text": "not a folder",
+    "notices": [
+      {
+        "code": "batch.notAFolder",
+        "params": {},
+        "message": "not a folder"
+      }
+    ],
+    "zh": "不是資料夾"
+  },
+  "batch.notAFile": {
+    "before": "not an existing file with an absolute path",
+    "text": "not an existing file with an absolute path",
+    "notices": [
+      {
+        "code": "batch.notAFile",
+        "params": {},
+        "message": "not an existing file with an absolute path"
+      }
+    ],
+    "zh": "檔案不存在，或不是完整路徑"
+  },
+  "batch.notMedia": {
+    "before": "not a media file extension",
+    "text": "not a media file extension",
+    "notices": [
+      {
+        "code": "batch.notMedia",
+        "params": {},
+        "message": "not a media file extension"
+      }
+    ],
+    "zh": "副檔名不是影片或音訊格式"
+  },
+  "batch.folderSlow": {
+    "before": "the folder did not answer within 0.05 s",
+    "text": "the folder did not answer within 0.05 s",
+    "notices": [
+      {
+        "code": "batch.folderSlow",
+        "params": {
+          "seconds": "0.05"
+        },
+        "message": "the folder did not answer within 0.05 s"
+      }
+    ],
+    "zh": "這個資料夾超過 0.05 秒沒有回應"
+  },
+  "batch.alreadyIn": {
+    "before": "already in the queue as <item> (queued)",
+    "text": "already in the batch as <item> (queued)",
+    "notices": [
+      {
+        "code": "batch.alreadyIn",
+        "params": {
+          "item": "<item>",
+          "state": "queued"
+        },
+        "message": "already in the batch as <item> (queued)"
+      }
+    ],
+    "zh": "已經在佇列中（項目 <item>，等待中）"
+  },
+  "batch.nothingGiven": {
+    "before": "give at least one item or folder",
+    "text": "give at least one item or folder",
+    "notices": [
+      {
+        "code": "batch.nothingGiven",
+        "params": {},
+        "message": "give at least one item or folder"
+      }
+    ],
+    "zh": "請至少加入一個檔案或資料夾"
+  },
+  "batch.badOrder": {
+    "before": "the order must list each known item once",
+    "text": "the order must list each known item once",
+    "notices": [
+      {
+        "code": "batch.badOrder",
+        "params": {},
+        "message": "the order must list each known item once"
+      }
+    ],
+    "zh": "新的排列順序要包含佇列中的每個項目，而且每個只能出現一次"
+  },
+  "batch.cannotResume": {
+    "before": "cannot resume an item that is queued",
+    "text": "cannot resume an item that is queued",
+    "notices": [
+      {
+        "code": "batch.cannotResume",
+        "params": {
+          "state": "queued"
+        },
+        "message": "cannot resume an item that is queued"
+      }
+    ],
+    "zh": "無法繼續狀態為「等待中」的項目"
+  },
+  "batch.cannotRetry": {
+    "before": "cannot retry an item that is queued",
+    "text": "cannot retry an item that is queued",
+    "notices": [
+      {
+        "code": "batch.cannotRetry",
+        "params": {
+          "state": "queued"
+        },
+        "message": "cannot retry an item that is queued"
+      }
+    ],
+    "zh": "無法重試狀態為「等待中」的項目"
+  },
+  "batch.removeFinishedOnly": {
+    "before": "only a finished item can be removed; cancel it first",
+    "text": "only a finished item can be removed; cancel it first",
+    "notices": [
+      {
+        "code": "batch.removeFinishedOnly",
+        "params": {},
+        "message": "only a finished item can be removed; cancel it first"
+      }
+    ],
+    "zh": "只能移除已結束的項目，請先取消它"
+  },
+  "batch.cannotPause": {
+    "before": "cannot pause an item that is paused",
+    "text": "cannot pause an item that is paused",
+    "notices": [
+      {
+        "code": "batch.cannotPause",
+        "params": {
+          "state": "paused"
+        },
+        "message": "cannot pause an item that is paused"
+      }
+    ],
+    "zh": "無法暫停狀態為「已暫停」的項目"
+  },
+  "batch.cannotCancel": {
+    "before": "cannot cancel an item that is cancelled",
+    "text": "cannot cancel an item that is cancelled",
+    "notices": [
+      {
+        "code": "batch.cannotCancel",
+        "params": {
+          "state": "cancelled"
+        },
+        "message": "cannot cancel an item that is cancelled"
+      }
+    ],
+    "zh": "無法取消狀態為「已取消」的項目"
+  },
+  "player.unknownProject": {
+    "before": "unknown project 'nope'",
+    "text": "unknown project 'nope'",
+    "notices": [
+      {
+        "code": "player.unknownProject",
+        "params": {
+          "id": "'nope'"
+        },
+        "message": "unknown project 'nope'"
+      }
+    ],
+    "zh": "找不到這個專案（'nope'）"
+  },
+  "player.unknownExport": {
+    "before": "unknown export 'nope'",
+    "text": "unknown export 'nope'",
+    "notices": [
+      {
+        "code": "player.unknownExport",
+        "params": {
+          "id": "'nope'"
+        },
+        "message": "unknown export 'nope'"
+      }
+    ],
+    "zh": "找不到這個匯出工作（'nope'）"
+  },
+  "cues.noSubtitles": {
+    "before": "no subtitles yet: the segment step has not finished",
+    "text": "no subtitles yet: the segment step has not finished",
+    "notices": [
+      {
+        "code": "cues.noSubtitles",
+        "params": {},
+        "message": "no subtitles yet: the segment step has not finished"
+      }
+    ],
+    "zh": "還沒有字幕：斷句步驟還沒完成"
+  },
+  "cues.noTranslation": {
+    "before": "no zh-TW subtitles yet: the translate step has not finished",
+    "text": "no Traditional Chinese (Taiwan) subtitles yet: the translate step has not finished",
+    "notices": [
+      {
+        "code": "cues.noTranslation",
+        "params": {
+          "lang": "zh-TW"
+        },
+        "message": "no Traditional Chinese (Taiwan) subtitles yet: the translate step has not finished"
+      }
+    ],
+    "zh": "還沒有繁體中文字幕：翻譯步驟還沒完成"
+  },
+  "cues.nothingToCorrect": {
+    "before": "nothing to correct yet: the translate step has not finished",
+    "text": "nothing to correct yet: the translate step has not finished",
+    "notices": [
+      {
+        "code": "cues.nothingToCorrect",
+        "params": {},
+        "message": "nothing to correct yet: the translate step has not finished"
+      }
+    ],
+    "zh": "還沒有可以修改的字幕：翻譯步驟還沒完成"
+  },
+  "cues.wrongIds": {
+    "before": "the cues must have exactly the ids the project has",
+    "text": "the cues must have exactly the ids the project has",
+    "notices": [
+      {
+        "code": "cues.wrongIds",
+        "params": {},
+        "message": "the cues must have exactly the ids the project has"
+      }
+    ],
+    "zh": "送出的字幕和專案裡的字幕對不上，請重新開啟這個專案再改一次"
+  },
+  "cues.jobUsing": {
+    "before": "job j1 is using this project",
+    "text": "job j1 is using this project",
+    "notices": [
+      {
+        "code": "cues.jobUsing",
+        "params": {
+          "job": "j1"
+        },
+        "message": "job j1 is using this project"
+      }
+    ],
+    "zh": "工作 j1 正在使用這個專案"
+  },
+  "project.notAFile": {
+    "before": "video_path must be the absolute path of an existing file: a.mp4",
+    "text": "video_path must be the absolute path of an existing file: a.mp4",
+    "notices": [
+      {
+        "code": "project.notAFile",
+        "params": {
+          "path": "a.mp4"
+        },
+        "message": "video_path must be the absolute path of an existing file: a.mp4"
+      }
+    ],
+    "zh": "找不到這個檔案，請用完整路徑選擇一個存在的檔案：a.mp4"
+  },
+  "project.notMedia": {
+    "before": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv",
+    "text": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv",
+    "notices": [
+      {
+        "code": "project.notMedia",
+        "params": {
+          "extension": ".txt",
+          "accepted": ".3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+        },
+        "message": "not a media file extension: .txt; accepted: .3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+      }
+    ],
+    "zh": ".txt 不是影片或音訊檔的副檔名。可以使用：.3gp .aac .aif .aiff .avi .flac .flv .m2ts .m4a .m4v .mkv .mov .mp3 .mp4 .mpeg .mpg .mts .ogg .ogv .opus .ts .wav .webm .wma .wmv"
+  },
+  "player.dirNotAbsolute": {
+    "before": "dir must be an absolute path: relative",
+    "text": "dir must be an absolute path: relative",
+    "notices": [
+      {
+        "code": "player.dirNotAbsolute",
+        "params": {
+          "path": "relative"
+        },
+        "message": "dir must be an absolute path: relative"
+      }
+    ],
+    "zh": "資料夾必須是完整路徑：relative"
+  },
+  "player.notPicked": {
+    "before": "<tmp>/elsewhere is not a folder picked in the app; pick it again",
+    "text": "<tmp>/elsewhere is not a folder picked in the app; pick it again",
+    "notices": [
+      {
+        "code": "player.notPicked",
+        "params": {
+          "folder": "<tmp>/elsewhere"
+        },
+        "message": "<tmp>/elsewhere is not a folder picked in the app; pick it again"
+      }
+    ],
+    "zh": "<tmp>/elsewhere 不是在 App 裡選過的資料夾，請重新選擇"
+  },
+  "player.folderUnusable": {
+    "before": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error",
+    "text": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error",
+    "notices": [
+      {
+        "code": "player.folderUnusable",
+        "params": {
+          "folder": "<tmp>/elsewhere",
+          "error": "[Errno 5] I/O error"
+        },
+        "message": "cannot use the folder <tmp>/elsewhere: [Errno 5] I/O error"
+      }
+    ],
+    "zh": "無法使用資料夾 <tmp>/elsewhere：[Errno 5] I/O error"
+  },
+  "player.pastEnd": {
+    "before": "start_s is past the end of the video",
+    "text": "start_s is past the end of the video",
+    "notices": [
+      {
+        "code": "player.pastEnd",
+        "params": {},
+        "message": "start_s is past the end of the video"
+      }
+    ],
+    "zh": "開始時間超過了影片的長度"
+  },
+  "player.burnBusy": {
+    "before": "another burn-in export is running",
+    "text": "another burn-in export is running",
+    "notices": [
+      {
+        "code": "player.burnBusy",
+        "params": {},
+        "message": "another burn-in export is running"
+      }
+    ],
+    "zh": "已經有一個燒入字幕的匯出正在進行，請等它完成再試一次"
+  },
+  "player.thumbnailFailed": {
+    "before": "thumbnail of talk.mp4 failed: <ffmpeg>",
+    "text": "thumbnail of talk.mp4 failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.thumbnailFailed",
+        "params": {
+          "video": "talk.mp4",
+          "output": "<ffmpeg>"
+        },
+        "message": "thumbnail of talk.mp4 failed: <ffmpeg>"
+      }
+    ],
+    "zh": "無法產生 talk.mp4 的縮圖：<ffmpeg>"
+  },
+  "player.stillFailed": {
+    "before": "still of talk.mp4 failed: <ffmpeg>",
+    "text": "still of talk.mp4 failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.stillFailed",
+        "params": {
+          "video": "talk.mp4",
+          "output": "<ffmpeg>"
+        },
+        "message": "still of talk.mp4 failed: <ffmpeg>"
+      }
+    ],
+    "zh": "無法擷取 talk.mp4 的畫面：<ffmpeg>"
+  },
+  "player.burnFailed": {
+    "before": "ffmpeg failed: <ffmpeg>",
+    "text": "ffmpeg failed: <ffmpeg>",
+    "notices": [
+      {
+        "code": "player.burnFailed",
+        "params": {
+          "output": "<ffmpeg>"
+        },
+        "message": "ffmpeg failed: <ffmpeg>"
+      }
+    ],
+    "zh": "ffmpeg 執行失敗：<ffmpeg>"
+  },
+  "player.videoGone": {
+    "before": "the video is not at <tmp>/talk.mp4 any more",
+    "text": "the video is not at <tmp>/talk.mp4 any more",
+    "notices": [
+      {
+        "code": "player.videoGone",
+        "params": {
+          "path": "<tmp>/talk.mp4"
+        },
+        "message": "the video is not at <tmp>/talk.mp4 any more"
+      }
+    ],
+    "zh": "影片已經不在 <tmp>/talk.mp4 了"
+  },
+  "manage.busy.repair": {
+    "before": "a job is running; wait for it before you repair an asset",
+    "text": "a job is running; wait for it before you repair an asset",
+    "notices": [
+      {
+        "code": "manage.busy.repair",
+        "params": {},
+        "message": "a job is running; wait for it before you repair an asset"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再修復"
+  },
+  "manage.busy.redownload": {
+    "before": "a job is running; wait for it before you download an asset again",
+    "text": "a job is running; wait for it before you download an asset again",
+    "notices": [
+      {
+        "code": "manage.busy.redownload",
+        "params": {},
+        "message": "a job is running; wait for it before you download an asset again"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再重新下載"
+  },
+  "manage.busy.update": {
+    "before": "a job is running; wait for it before you update an asset",
+    "text": "a job is running; wait for it before you update an asset",
+    "notices": [
+      {
+        "code": "manage.busy.update",
+        "params": {},
+        "message": "a job is running; wait for it before you update an asset"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再更新"
+  },
+  "manage.busy.move": {
+    "before": "a job is running; wait for it before you move the models",
+    "text": "a job is running; wait for it before you move the models",
+    "notices": [
+      {
+        "code": "manage.busy.move",
+        "params": {},
+        "message": "a job is running; wait for it before you move the models"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再搬移模型"
+  },
+  "manage.busy.deleteModel": {
+    "before": "a job is running; wait for it before you delete a model",
+    "text": "a job is running; wait for it before you delete a model",
+    "notices": [
+      {
+        "code": "manage.busy.deleteModel",
+        "params": {},
+        "message": "a job is running; wait for it before you delete a model"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再刪除模型"
+  },
+  "manage.busy.deleteRuntime": {
+    "before": "a job is running; wait for it before you delete a runtime",
+    "text": "a job is running; wait for it before you delete a runtime",
+    "notices": [
+      {
+        "code": "manage.busy.deleteRuntime",
+        "params": {},
+        "message": "a job is running; wait for it before you delete a runtime"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再刪除執行檔"
+  },
+  "manage.busy.selftest": {
+    "before": "a job is running; wait for it before you run the self-test",
+    "text": "a job is running; wait for it before you run the self-test",
+    "notices": [
+      {
+        "code": "manage.busy.selftest",
+        "params": {},
+        "message": "a job is running; wait for it before you run the self-test"
+      }
+    ],
+    "zh": "有影片正在處理，請等它完成後再執行自檢"
+  },
+  "manage.beingDownloaded": {
+    "before": "whisper-large-v3-turbo is being downloaded; cancel the download first",
+    "text": "whisper-large-v3-turbo is being downloaded; cancel the download first",
+    "notices": [
+      {
+        "code": "manage.beingDownloaded",
+        "params": {
+          "asset": "whisper-large-v3-turbo"
+        },
+        "message": "whisper-large-v3-turbo is being downloaded; cancel the download first"
+      }
+    ],
+    "zh": "whisper-large-v3-turbo 正在下載，請先取消下載"
+  },
+  "manage.beingInstalled": {
+    "before": "<runtime> is being installed; cancel the install first",
+    "text": "<runtime> is being installed; cancel the install first",
+    "notices": [
+      {
+        "code": "manage.beingInstalled",
+        "params": {
+          "asset": "<runtime>"
+        },
+        "message": "<runtime> is being installed; cancel the install first"
+      }
+    ],
+    "zh": "<runtime> 正在安裝，請先取消安裝"
+  },
+  "manage.notInstalled": {
+    "before": "whisper-large-v3-turbo is not installed",
+    "text": "whisper-large-v3-turbo is not installed",
+    "notices": [
+      {
+        "code": "manage.notInstalled",
+        "params": {
+          "asset": "whisper-large-v3-turbo"
+        },
+        "message": "whisper-large-v3-turbo is not installed"
+      }
+    ],
+    "zh": "whisper-large-v3-turbo 尚未安裝"
+  },
+  "manage.repair.fileMissing": {
+    "before": "the file is missing",
+    "text": "the file is missing",
+    "notices": [
+      {
+        "code": "manage.repair.fileMissing",
+        "params": {},
+        "message": "the file is missing"
+      }
+    ],
+    "zh": "檔案不見了"
+  },
+  "manage.repair.incomplete": {
+    "before": "the install is incomplete",
+    "text": "the install is incomplete",
+    "notices": [
+      {
+        "code": "manage.repair.incomplete",
+        "params": {},
+        "message": "the install is incomplete"
+      }
+    ],
+    "zh": "安裝不完整"
+  },
+  "manage.repair.shaMatches": {
+    "before": "the SHA256 matches the registry",
+    "text": "the SHA256 matches the registry",
+    "notices": [
+      {
+        "code": "manage.repair.shaMatches",
+        "params": {},
+        "message": "the SHA256 matches the registry"
+      }
+    ],
+    "zh": "SHA256 和清單上的一致"
+  },
+  "manage.repair.runtimeChecked": {
+    "before": "installed; the archive SHA256 was checked when it was downloaded. Use redownload to fetch it again.",
+    "text": "installed; the archive SHA256 was checked when it was downloaded. Use redownload to fetch it again.",
+    "notices": [
+      {
+        "code": "manage.repair.runtimeChecked",
+        "params": {},
+        "message": "installed; the archive SHA256 was checked when it was downloaded. Use redownload to fetch it again."
+      }
+    ],
+    "zh": "已安裝。壓縮檔的 SHA256 在下載時已經檢查過。如果要重新取得，請按「重新下載」。"
+  },
+  "manage.addOn": {
+    "before": "cudart-llama-b12068-win-cuda12.4 is an add-on and installs with the runtime that needs it",
+    "text": "cudart-llama-b12068-win-cuda12.4 is an add-on and installs with the runtime that needs it",
+    "notices": [
+      {
+        "code": "manage.addOn",
+        "params": {
+          "asset": "cudart-llama-b12068-win-cuda12.4"
+        },
+        "message": "cudart-llama-b12068-win-cuda12.4 is an add-on and installs with the runtime that needs it"
+      }
+    ],
+    "zh": "cudart-llama-b12068-win-cuda12.4 是附加元件，會跟著需要它的執行檔一起安裝"
+  },
+  "manage.stillNeeded": {
+    "before": "whisper-large-v3-turbo is still needed: the active profile needs it",
+    "text": "whisper-large-v3-turbo is still needed: the active profile needs it",
+    "notices": [
+      {
+        "code": "manage.stillNeeded",
+        "params": {
+          "asset": "whisper-large-v3-turbo",
+          "blockers": [
+            "the active profile needs it"
+          ]
+        },
+        "message": "whisper-large-v3-turbo is still needed: the active profile needs it"
+      },
+      {
+        "code": "manage.activeProfileNeeds",
+        "params": {},
+        "message": "the active profile needs it"
+      }
+    ],
+    "zh": "whisper-large-v3-turbo 還有其他地方需要用到：目前使用的設定檔需要它"
+  },
+  "manage.activeProfileNeeds": {
+    "before": "the active profile needs it",
+    "text": "the active profile needs it",
+    "notices": [
+      {
+        "code": "manage.activeProfileNeeds",
+        "params": {},
+        "message": "the active profile needs it"
+      }
+    ],
+    "zh": "目前使用的設定檔需要它"
+  },
+  "manage.forceNeedsReason": {
+    "before": "forcing the delete of whisper-large-v3-turbo needs a reason of at least 8 characters",
+    "text": "forcing the delete of whisper-large-v3-turbo needs a reason of at least 8 characters",
+    "notices": [
+      {
+        "code": "manage.forceNeedsReason",
+        "params": {
+          "asset": "whisper-large-v3-turbo",
+          "characters": "8"
+        },
+        "message": "forcing the delete of whisper-large-v3-turbo needs a reason of at least 8 characters"
+      }
+    ],
+    "zh": "要強制刪除 whisper-large-v3-turbo，請填寫至少 8 個字的原因"
+  },
+  "manage.repair.shaDiffers": {
+    "before": "the SHA256 is c81ca5eda594..., the registry has 0f75c21f6a75...",
+    "text": "the SHA256 is c81ca5eda594..., the registry has 0f75c21f6a75...",
+    "notices": [
+      {
+        "code": "manage.repair.shaDiffers",
+        "params": {
+          "actual": "c81ca5eda594",
+          "expected": "0f75c21f6a75"
+        },
+        "message": "the SHA256 is c81ca5eda594..., the registry has 0f75c21f6a75..."
+      }
+    ],
+    "zh": "SHA256 是 c81ca5eda594...，清單上的是 0f75c21f6a75..."
+  },
+  "manage.dependentNeeds": {
+    "before": "qwen3-asr-1.7b-q8_0 is installed and needs it",
+    "text": "qwen3-asr-1.7b-q8_0 is installed and needs it",
+    "notices": [
+      {
+        "code": "manage.dependentNeeds",
+        "params": {
+          "asset": "qwen3-asr-1.7b-q8_0"
+        },
+        "message": "qwen3-asr-1.7b-q8_0 is installed and needs it"
+      }
+    ],
+    "zh": "已安裝的 qwen3-asr-1.7b-q8_0 需要它"
+  },
+  "manage.cannotDelete": {
+    "before": "cannot delete qwen3-asr-1.7b-q8_0: C:/m/a.bin is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "text": "cannot delete qwen3-asr-1.7b-q8_0: C:/m/a.bin is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again.",
+    "notices": [
+      {
+        "code": "manage.cannotDelete",
+        "params": {
+          "asset": "qwen3-asr-1.7b-q8_0",
+          "error": "C:/m/a.bin is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+        },
+        "message": "cannot delete qwen3-asr-1.7b-q8_0: C:/m/a.bin is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+      },
+      {
+        "code": "download.locked",
+        "params": {
+          "path": "C:/m/a.bin"
+        },
+        "message": "C:/m/a.bin is locked by another program. Close the program that holds it, such as a running transcription or LLM server, a command window or a File Explorer window open in that folder, then try again."
+      }
+    ],
+    "zh": "無法刪除 qwen3-asr-1.7b-q8_0：C:/m/a.bin 正被其他程式鎖定。請關閉占用它的程式（例如正在執行的語音辨識或 LLM 伺服器、命令列視窗，或開著那個資料夾的檔案總管視窗），然後再試一次。"
+  },
+  "manage.stillNeeded.two": {
+    "before": "silero-vad-ggml-v6.2.0 is still needed: the active profile needs it; qwen3-asr-1.7b-q8_0 is installed and needs it",
+    "text": "silero-vad-ggml-v6.2.0 is still needed: the active profile needs it; qwen3-asr-1.7b-q8_0 is installed and needs it",
+    "notices": [
+      {
+        "code": "manage.stillNeeded",
+        "params": {
+          "asset": "silero-vad-ggml-v6.2.0",
+          "blockers": [
+            "the active profile needs it",
+            "qwen3-asr-1.7b-q8_0 is installed and needs it"
+          ]
+        },
+        "message": "silero-vad-ggml-v6.2.0 is still needed: the active profile needs it; qwen3-asr-1.7b-q8_0 is installed and needs it"
+      },
+      {
+        "code": "manage.activeProfileNeeds",
+        "params": {},
+        "message": "the active profile needs it"
+      },
+      {
+        "code": "manage.dependentNeeds",
+        "params": {
+          "asset": "qwen3-asr-1.7b-q8_0"
+        },
+        "message": "qwen3-asr-1.7b-q8_0 is installed and needs it"
+      }
+    ],
+    "zh": "silero-vad-ggml-v6.2.0 還有其他地方需要用到：目前使用的設定檔需要它；已安裝的 qwen3-asr-1.7b-q8_0 需要它"
+  },
+  "llmTest.refused": {
+    "before": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address",
+    "text": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "connection refused, nothing is listening at that address"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: connection refused, nothing is listening at that address"
+      },
+      {
+        "code": "llmTest.refused",
+        "params": {},
+        "message": "connection refused, nothing is listening at that address"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：連線被拒絕，這個位址沒有服務在執行"
+  },
+  "llmTest.timedOut": {
+    "before": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s",
+    "text": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "no answer within 5 s"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: no answer within 5 s"
+      },
+      {
+        "code": "llmTest.timedOut",
+        "params": {
+          "seconds": "5"
+        },
+        "message": "no answer within 5 s"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：5 秒內沒有回應"
+  },
+  "llmTest.hostNotFound": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the host name was not found",
+    "text": "could not use http://127.0.0.1:9/api/tags: the host name was not found",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the host name was not found"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the host name was not found"
+      },
+      {
+        "code": "llmTest.hostNotFound",
+        "params": {},
+        "message": "the host name was not found"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：找不到這個主機名稱"
+  },
+  "llmTest.cannotConnect": {
+    "before": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)",
+    "text": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "cannot connect (network is down)"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: cannot connect (network is down)"
+      },
+      {
+        "code": "llmTest.cannotConnect",
+        "params": {
+          "reason": "network is down"
+        },
+        "message": "cannot connect (network is down)"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：無法連線（network is down）"
+  },
+  "llmTest.redirected": {
+    "before": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "text": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "it redirected to 'https://elsewhere.test/'; redirects are not followed"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: it redirected to 'https://elsewhere.test/'; redirects are not followed"
+      },
+      {
+        "code": "llmTest.redirected",
+        "params": {
+          "location": "'https://elsewhere.test/'"
+        },
+        "message": "it redirected to 'https://elsewhere.test/'; redirects are not followed"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：它要求轉址到 'https://elsewhere.test/'，App 不會跟著轉址"
+  },
+  "llmTest.keyRejected": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)",
+    "text": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the server rejected the API key (HTTP 401)"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the server rejected the API key (HTTP 401)"
+      },
+      {
+        "code": "llmTest.keyRejected",
+        "params": {
+          "status": "401"
+        },
+        "message": "the server rejected the API key (HTTP 401)"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：伺服器拒絕了這把 API 金鑰（HTTP 401）"
+  },
+  "llmTest.couldNotUse": {
+    "before": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error",
+    "text": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "HTTP 500 Server Error"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: HTTP 500 Server Error"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：HTTP 500 Server Error"
+  },
+  "llmTest.notJson": {
+    "before": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server",
+    "text": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server",
+    "notices": [
+      {
+        "code": "llmTest.couldNotUse",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "why": "the answer is not JSON, so this is not that kind of server"
+        },
+        "message": "could not use http://127.0.0.1:9/api/tags: the answer is not JSON, so this is not that kind of server"
+      },
+      {
+        "code": "llmTest.notJson",
+        "params": {},
+        "message": "the answer is not JSON, so this is not that kind of server"
+      }
+    ],
+    "zh": "無法使用 http://127.0.0.1:9/api/tags：回應的內容不是 JSON，這個位址應該不是這種服務"
+  },
+  "llmTest.modelMissing": {
+    "before": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there",
+    "text": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there",
+    "notices": [
+      {
+        "code": "llmTest.modelMissing",
+        "params": {
+          "url": "http://127.0.0.1:9/api/tags",
+          "model": "'qwen3:8b'"
+        },
+        "message": "connected to http://127.0.0.1:9/api/tags, but model 'qwen3:8b' is not installed there"
+      }
+    ],
+    "zh": "已連線到 http://127.0.0.1:9/api/tags，但那裡沒有安裝模型 'qwen3:8b'"
+  },
+  "llmTest.connected": {
+    "before": "connected",
+    "text": "connected",
+    "notices": [
+      {
+        "code": "llmTest.connected",
+        "params": {},
+        "message": "connected"
+      }
+    ],
+    "zh": "已連線"
+  },
+  "llmTest.noKey": {
+    "before": "no API key to test with: enter the key for this address",
+    "text": "no API key to test with: enter the key for this address",
+    "notices": [
+      {
+        "code": "llmTest.noKey",
+        "params": {},
+        "message": "no API key to test with: enter the key for this address"
+      }
+    ],
+    "zh": "沒有可以用來測試的 API 金鑰，請輸入這個網址的金鑰"
+  },
+  "llmTest.notInstalled": {
+    "before": "not installed: llama-server, qwen3-8b-q4_k_m",
+    "text": "not installed: llama-server, qwen3-8b-q4_k_m",
+    "notices": [
+      {
+        "code": "llmTest.notInstalled",
+        "params": {
+          "missing": [
+            "llama-server",
+            "qwen3-8b-q4_k_m"
+          ]
+        },
+        "message": "not installed: llama-server, qwen3-8b-q4_k_m"
+      }
+    ],
+    "zh": "尚未安裝：llama-server、qwen3-8b-q4_k_m"
+  },
+  "llmTest.builtinReady": {
+    "before": "llama-server and the model are installed",
+    "text": "llama-server and the model are installed",
+    "notices": [
+      {
+        "code": "llmTest.builtinReady",
+        "params": {},
+        "message": "llama-server and the model are installed"
+      }
+    ],
+    "zh": "llama-server 和模型都已安裝"
+  },
+  "settings.urlParts": {
+    "before": "registry_url must not hold a user name, password, query or fragment",
+    "text": "registry_url must not hold a user name, password, query or fragment",
+    "notices": [
+      {
+        "code": "settings.urlParts",
+        "params": {
+          "field": "registry_url"
+        },
+        "message": "registry_url must not hold a user name, password, query or fragment"
+      }
+    ],
+    "zh": "遠端清單網址不能包含使用者名稱、密碼、查詢字串或 # 後面的片段"
+  },
+  "settings.fileNotUsed": {
+    "before": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "text": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "notices": [
+      {
+        "code": "settings.fileNotUsed",
+        "params": {
+          "file": "<user>/settings.json",
+          "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+        },
+        "message": "<user>/settings.json was not used: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+      }
+    ],
+    "zh": "<user>/settings.json 沒有被採用：Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  "secrets.needDpapi": {
+    "before": "storing the API key needs Windows DPAPI",
+    "text": "storing the API key needs Windows DPAPI",
+    "notices": [
+      {
+        "code": "secrets.needDpapi",
+        "params": {},
+        "message": "storing the API key needs Windows DPAPI"
+      }
+    ],
+    "zh": "儲存 API 金鑰需要 Windows 的 DPAPI"
+  },
+  "secrets.dpapiFailed": {
+    "before": "Windows DPAPI failed (error 13)",
+    "text": "Windows DPAPI failed (error 13)",
+    "notices": [
+      {
+        "code": "secrets.dpapiFailed",
+        "params": {
+          "code": "13"
+        },
+        "message": "Windows DPAPI failed (error 13)"
+      }
+    ],
+    "zh": "Windows DPAPI 執行失敗（錯誤代碼 13）"
+  },
+  "settings.urlNotWeb": {
+    "before": "ollama_url must be an http or https URL with a host",
+    "text": "ollama_url must be an http or https URL with a host",
+    "notices": [
+      {
+        "code": "settings.urlNotWeb",
+        "params": {
+          "field": "ollama_url"
+        },
+        "message": "ollama_url must be an http or https URL with a host"
+      }
+    ],
+    "zh": "Ollama 網址格式不正確：要以 http:// 或 https:// 開頭，並包含主機名稱"
+  },
+  "settings.urlNotHttps": {
+    "before": "registry_url must be an https URL with a host",
+    "text": "registry_url must be an https URL with a host",
+    "notices": [
+      {
+        "code": "settings.urlNotHttps",
+        "params": {
+          "field": "registry_url"
+        },
+        "message": "registry_url must be an https URL with a host"
+      }
+    ],
+    "zh": "遠端清單網址格式不正確：要以 https:// 開頭，並包含主機名稱"
+  },
+  "settings.cloudNeedsHttps": {
+    "before": "cloud_url must use https unless it points at this machine",
+    "text": "cloud_url must use https unless it points at this machine",
+    "notices": [
+      {
+        "code": "settings.cloudNeedsHttps",
+        "params": {},
+        "message": "cloud_url must use https unless it points at this machine"
+      }
+    ],
+    "zh": "雲端服務網址必須使用 https（本機位址除外）"
+  },
+  "settings.ollamaModelMissing": {
+    "before": "ollama_model is required when the source is ollama",
+    "text": "ollama_model is required when the source is ollama",
+    "notices": [
+      {
+        "code": "settings.ollamaModelMissing",
+        "params": {},
+        "message": "ollama_model is required when the source is ollama"
+      }
+    ],
+    "zh": "請輸入 Ollama 的模型名稱，例如 qwen3:8b"
+  },
+  "settings.cloudFieldsMissing": {
+    "before": "cloud_url and cloud_model are required for a cloud LLM",
+    "text": "cloud_url and cloud_model are required for a cloud LLM",
+    "notices": [
+      {
+        "code": "settings.cloudFieldsMissing",
+        "params": {},
+        "message": "cloud_url and cloud_model are required for a cloud LLM"
+      }
+    ],
+    "zh": "使用雲端 LLM 時，請輸入雲端服務網址和模型名稱"
+  },
+  "settings.cloudConsent": {
+    "before": "cloud_consent must be true to use a cloud LLM. A cloud LLM receives your transcript text, glossary and the summary prompt over the internet. The content of your video leaves this machine and is handled under the provider's terms. Local models never send it anywhere.",
+    "text": "cloud_consent must be true to use a cloud LLM. A cloud LLM receives your transcript text, glossary and the summary prompt over the internet. The content of your video leaves this machine and is handled under the provider's terms. Local models never send it anywhere.",
+    "notices": [
+      {
+        "code": "settings.cloudConsent",
+        "params": {},
+        "message": "cloud_consent must be true to use a cloud LLM. A cloud LLM receives your transcript text, glossary and the summary prompt over the internet. The content of your video leaves this machine and is handled under the provider's terms. Local models never send it anywhere."
+      }
+    ],
+    "zh": "要先勾選同意，才能使用雲端 LLM。雲端 LLM 會透過網路收到你的逐字稿、術語表和摘要提示詞。影片的內容會離開這台電腦，並依照服務供應商的條款處理。本機模型不會把內容傳送到任何地方。"
+  },
+  "settings.keyRequired": {
+    "before": "an API key is required for a cloud LLM",
+    "text": "an API key is required for a cloud LLM",
+    "notices": [
+      {
+        "code": "settings.keyRequired",
+        "params": {},
+        "message": "an API key is required for a cloud LLM"
+      }
+    ],
+    "zh": "使用雲端 LLM 需要 API 金鑰，請輸入 API 金鑰"
+  },
+  "settings.keyForNewAddress": {
+    "before": "the cloud address changed, so the saved API key is not sent to it; enter the API key for the new address",
+    "text": "the cloud address changed, so the saved API key is not sent to it; enter the API key for the new address",
+    "notices": [
+      {
+        "code": "settings.keyForNewAddress",
+        "params": {},
+        "message": "the cloud address changed, so the saved API key is not sent to it; enter the API key for the new address"
+      }
+    ],
+    "zh": "網址已變更，已儲存的 API 金鑰不會送到新網址，請輸入新網址的 API 金鑰"
+  },
+  "storage.unmoved": {
+    "before": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. Use POST /api/storage/move to move them, or set the folder back.",
+    "text": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\".",
+    "notices": [
+      {
+        "code": "storage.unmoved",
+        "params": {
+          "count": "1",
+          "size": "0.0",
+          "old": "<tmp>/data/models",
+          "new": "<tmp>/elsewhere"
+        },
+        "message": "1 installed model(s), 0.0 GiB, stay in <tmp>/data/models and are not moved. The app now looks for models in <tmp>/elsewhere, so they show as not installed there. To move them, set the folder back, then choose \"Move existing models and switch\"."
+      }
+    ],
+    "zh": "有 1 個已安裝的模型（共 0.0 GiB）留在 <tmp>/data/models，沒有搬過去。App 現在會到 <tmp>/elsewhere 找模型，所以這些模型在那裡會顯示為未安裝。如果要搬過去，請先把資料夾改回原本的位置，再選「搬移現有模型並切換」。"
+  },
+  "storage.notAbsolute": {
+    "before": "models_dir must be an absolute path or null",
+    "text": "models_dir must be an absolute path or null",
+    "notices": [
+      {
+        "code": "storage.notAbsolute",
+        "params": {},
+        "message": "models_dir must be an absolute path or null"
+      }
+    ],
+    "zh": "模型資料夾必須是完整路徑，例如 E:\\vst-models"
+  },
+  "move.notAbsolute": {
+    "before": "target must be an absolute path",
+    "text": "target must be an absolute path",
+    "notices": [
+      {
+        "code": "move.notAbsolute",
+        "params": {},
+        "message": "target must be an absolute path"
+      }
+    ],
+    "zh": "新的資料夾必須是完整路徑，例如 E:\\vst-models"
+  },
+  "move.sameFolder": {
+    "before": "source and target are the same folder",
+    "text": "source and target are the same folder",
+    "notices": [
+      {
+        "code": "move.sameFolder",
+        "params": {},
+        "message": "source and target are the same folder"
+      }
+    ],
+    "zh": "新的資料夾和原本的資料夾是同一個"
+  },
+  "move.nested": {
+    "before": "source and target must not contain each other",
+    "text": "source and target must not contain each other",
+    "notices": [
+      {
+        "code": "move.nested",
+        "params": {},
+        "message": "source and target must not contain each other"
+      }
+    ],
+    "zh": "新的資料夾和原本的資料夾不能互相包含，請選另一個資料夾"
+  },
+  "move.noModels": {
+    "before": "no installed models were found in <tmp>/empty",
+    "text": "no installed models were found in <tmp>/empty",
+    "notices": [
+      {
+        "code": "move.noModels",
+        "params": {
+          "folder": "<tmp>/empty"
+        },
+        "message": "no installed models were found in <tmp>/empty"
+      }
+    ],
+    "zh": "在 <tmp>/empty 裡找不到已安裝的模型"
+  },
+  "move.clash": {
+    "before": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved",
+    "text": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved",
+    "notices": [
+      {
+        "code": "move.clash",
+        "params": {
+          "target": "<tmp>/other",
+          "models": [
+            "silero-vad-ggml-v6.2.0"
+          ]
+        },
+        "message": "<tmp>/other already holds silero-vad-ggml-v6.2.0 with other content; nothing was moved"
+      }
+    ],
+    "zh": "<tmp>/other 裡已經有內容不同的 silero-vad-ggml-v6.2.0，所以什麼都沒有搬。請選另一個資料夾"
+  },
+  "move.downloadRunning": {
+    "before": "a download is running; wait for it or cancel it first",
+    "text": "a download is running; wait for it or cancel it first",
+    "notices": [
+      {
+        "code": "move.downloadRunning",
+        "params": {},
+        "message": "a download is running; wait for it or cancel it first"
+      }
+    ],
+    "zh": "正在下載，請等下載完成或先取消下載"
+  },
+  "move.alreadyRunning": {
+    "before": "a move is already running",
+    "text": "a move is already running",
+    "notices": [
+      {
+        "code": "move.alreadyRunning",
+        "params": {},
+        "message": "a move is already running"
+      }
+    ],
+    "zh": "已經在搬移了"
+  },
+  "move.otherContent": {
+    "before": "MoveError: <tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone",
+    "text": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone",
+    "notices": [
+      {
+        "code": "move.otherContent",
+        "params": {
+          "dest": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin",
+          "path": "<tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin"
+        },
+        "message": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin holds other content than <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin; left alone"
+      }
+    ],
+    "zh": "<tmp>/same/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 的內容和 <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 不同，沒有動它"
+  },
+  "move.wrongSize": {
+    "before": "OSError: <tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move",
+    "text": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move",
+    "notices": [
+      {
+        "code": "move.wrongSize",
+        "params": {
+          "dest": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin"
+        },
+        "message": "<tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin has the wrong size after the move"
+      }
+    ],
+    "zh": "搬移後 <tmp>/short/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin 的大小不對"
+  },
+  "move.couldNotRemove": {
+    "before": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error",
+    "text": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error",
+    "notices": [
+      {
+        "code": "move.couldNotRemove",
+        "params": {
+          "path": "<tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin",
+          "error": "OSError: [Errno 5] I/O error"
+        },
+        "message": "could not remove <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin: OSError: [Errno 5] I/O error"
+      }
+    ],
+    "zh": "無法刪除 <tmp>/data/models/silero-vad-ggml-v6.2.0/ggml-silero-v6.2.0.bin：OSError: [Errno 5] I/O error"
+  },
+  "switch.lowVram": {
+    "before": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.lowVram",
+        "params": {
+          "have": "8192",
+          "profile": "gpu-24gb",
+          "need": "16000"
+        },
+        "message": "This machine has 8192 MiB; gpu-24gb needs 16000 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦的顯示卡記憶體是 8192 MiB，「24 GB 顯示卡」需要 16000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "switch.noGpu": {
+    "before": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.noGpu",
+        "params": {
+          "profile": "gpu-8gb",
+          "need": "7168"
+        },
+        "message": "This machine has no NVIDIA GPU; gpu-8gb needs 7168 MiB of VRAM. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦沒有 NVIDIA 顯示卡，「8 GB 顯示卡」需要 7168 MiB 的顯示卡記憶體。自檢會改用 CPU。"
+  },
+  "switch.lowMemory": {
+    "before": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.lowMemory",
+        "params": {
+          "have": "16384",
+          "profile": "metal-32gb",
+          "need": "32000"
+        },
+        "message": "This machine has 16384 MiB of memory; metal-32gb needs 32000 MiB. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "這台電腦的記憶體是 16384 MiB，「Apple 晶片 32 GB 以上」需要 32000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "switch.unknownMemory": {
+    "before": "This machine has unknown memory of memory; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "text": "This machine's memory is unknown; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it.",
+    "notices": [
+      {
+        "code": "switch.unknownMemory",
+        "params": {
+          "profile": "metal-16gb",
+          "need": "15000"
+        },
+        "message": "This machine's memory is unknown; metal-16gb needs 15000 MiB. The self-test will fall back to the CPU if the GPU cannot run it."
+      }
+    ],
+    "zh": "無法得知這台電腦的記憶體大小，「Apple 晶片 16 GB」需要 15000 MiB。如果顯示卡跑不動，自檢會改用 CPU。"
+  },
+  "manage.verifyRuntime": {
+    "before": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded",
+    "text": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded",
+    "notices": [
+      {
+        "code": "manage.verifyRuntime",
+        "params": {
+          "asset": "whispercpp-b5454-win-cuda12.4"
+        },
+        "message": "whispercpp-b5454-win-cuda12.4 is a runtime; its archive was checked when it was downloaded"
+      }
+    ],
+    "zh": "whispercpp-b5454-win-cuda12.4 是執行環境，它的壓縮檔在下載時就已經檢查過了"
+  },
+  "manage.nothingToUpdate": {
+    "before": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "text": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured",
+    "notices": [
+      {
+        "code": "manage.nothingToUpdate",
+        "params": {
+          "asset": "whisper-large-v3-turbo",
+          "reason": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+        },
+        "message": "nothing to update for whisper-large-v3-turbo: registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+      },
+      {
+        "code": "updates.itemNoRemote",
+        "params": {
+          "version": "5359861c739e955e79d9a303bcbc70fb988958b1"
+        },
+        "message": "registry version 5359861c739e955e79d9a303bcbc70fb988958b1 installed, no remote configured"
+      }
+    ],
+    "zh": "whisper-large-v3-turbo 沒有可以更新的版本：已安裝登錄版本 5359861c739e955e79d9a303bcbc70fb988958b1，沒有設定遠端清單"
+  },
+  "manage.verifyStopped": {
+    "before": "verification stopped",
+    "text": "verification stopped",
+    "notices": [
+      {
+        "code": "manage.verifyStopped",
+        "params": {},
+        "message": "verification stopped"
+      }
+    ],
+    "zh": "已停止驗證"
+  },
+  "storage.cannotRead": {
+    "before": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null",
+    "text": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null",
+    "notices": [
+      {
+        "code": "storage.cannotRead",
+        "params": {
+          "path": "<tmp>/settings/storage.json",
+          "error": "models_dir must be an absolute path or null"
+        },
+        "message": "cannot read <tmp>/settings/storage.json: models_dir must be an absolute path or null"
+      },
+      {
+        "code": "storage.notAbsolute",
+        "params": {},
+        "message": "models_dir must be an absolute path or null"
+      }
+    ],
+    "zh": "無法讀取 <tmp>/settings/storage.json：模型資料夾必須是完整路徑，例如 E:\\vst-models"
+  }
+}

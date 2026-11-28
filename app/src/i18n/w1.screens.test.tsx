@@ -186,7 +186,7 @@ const llmView = (over: Partial<SettingsView["llm"]> = {}, problem: string | null
   uiLanguage: "zh-TW",
   llm: { source: "builtin", ollamaUrl: "http://127.0.0.1:11434", ollamaModel: "", cloudUrl: "", cloudModel: "", cloudConsent: false, apiKeySet: false, ...over },
   consentText: "",
-  problem,
+  problem: problem === null ? null : plainText(problem),
   storage: { userData: "C:/u", modelsDir: "C:/m", runtimesDir: "C:/r", defaultModelsDir: "C:/m", usingDefault: true } as unknown as SettingsView["storage"],
 });
 
@@ -202,7 +202,7 @@ const wrap = (locale: Locale, node: ReactNode) => <I18nProvider initial={locale}
 const SCREENS: Record<string, Screen> = {
   "hardware on a PC: switching, downloading and the self-test": async (shot, locale) => {
     mocks.profile = windowsView();
-    mocks.change = { profile: withActive(windowsView(), "cpu"), warnings: ["Low disk space"] };
+    mocks.change = { profile: withActive(windowsView(), "cpu"), warnings: [plainText("Low disk space")] };
     mocks.jobs = [job];
     mocks.selfTests = [
       run({ stages: [stage("asr", true), stage("llm", false)], fallback: { reason: plainText("CUDA failed to start") } }),

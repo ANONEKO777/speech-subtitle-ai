@@ -13,11 +13,9 @@ import backend from "./notices.backend.json";
 import shell from "./notices.shell.json";
 
 export type { Notice, Said } from "./said";
-export { parseNotices, plainText, said, saidField } from "./said";
+export { parseNotices, plainText, said, saidField, saidList, saidOrNull } from "./said";
 
-type ParamKind = "text" | "list" | "clauses" | "language";
-
-const SEPARATOR = { list: "common.listSeparator", clauses: "common.clauseSeparator" } as const;
+type ParamKind = "text" | "list" | "language" | "clauses" | "word";
 
 /** Every code a sender has, with the kind of each parameter. */
 export const SENT: Readonly<Record<string, { readonly english: string; readonly params: Readonly<Record<string, string>> }>> = {
@@ -25,10 +23,20 @@ export const SENT: Readonly<Record<string, { readonly english: string; readonly 
   ...shell,
 };
 
+const SEPARATOR = { list: "common.listSeparator", clauses: "common.clauseSeparator" } as const;
+
 function shownParam(kind: ParamKind, value: string | readonly string[], locale: Locale): string | null {
   if (kind === "list" || kind === "clauses") return Array.isArray(value) ? value.join(t(locale, SEPARATOR[kind])) : null;
   if (typeof value !== "string") return null;
-  return kind === "language" ? languageName(locale, { code: value }) : value;
+  if (kind === "language") return languageName(locale, { code: value });
+  if (kind !== "word") return value;
+  return Object.hasOwn(CATALOGS[locale], `noticeWord.${value}`) ? backendWord(value, locale) : null;
+}
+
+/** One of the backend's fixed English words (a `word` parameter, a repair's action) in the language of the window, or as it came. */
+export function backendWord(value: string, locale: Locale): string {
+  const key = `noticeWord.${value}`;
+  return Object.hasOwn(CATALOGS[locale], key) ? CATALOGS[locale][key as Key] : value;
 }
 
 /** The catalog's sentence for `notice`, or its English `message` when the code or a parameter is unknown. */

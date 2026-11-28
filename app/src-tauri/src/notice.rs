@@ -39,6 +39,14 @@ templates! {
     UPDATE_BAD_URL: "shell.update.badUrl", [], "VST_UPDATE_URL isn't a valid address.";
     UPDATE_CHECK_FIRST: "shell.update.checkFirst", [], "Check for updates first.";
     UPDATE_NOT_DOWNLOADED: "shell.update.notDownloaded", [], "The update hasn't finished downloading yet.";
+    FILE_UNREADABLE: "shell.file.unreadable", ["path", "error"], "cannot read {path}: {error}";
+    FILE_NOT_MEDIA: "shell.file.notMedia", ["path"], "{path} is not a video or audio file";
+    FILE_BAD_NAME: "shell.file.badName", ["name"], "{name} is not a file name";
+    FILE_UNWRITABLE: "shell.file.unwritable", ["path", "error"], "cannot write {path}: {error}";
+    FOLDER_NOT_OURS: "shell.folder.notOurs", ["path"], "{path} is not in a folder this app writes to";
+    FOLDER_MISSING: "shell.folder.missing", ["path"], "{path} does not exist";
+    LINK_NOT_PLAIN: "shell.link.notPlain", ["address"], "{address} is not a plain https address in its canonical form";
+    LINK_HOST_NOT_ALLOWED: "shell.link.hostNotAllowed", ["host"], "{host} is not a host this app opens links to";
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

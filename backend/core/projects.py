@@ -16,10 +16,11 @@ from dataclasses import astuple, dataclass, replace
 from pathlib import Path
 from typing import Literal
 
-from backend.core import cue_edits
+from backend.core import cue_edits, notices
 from backend.core.cue_edits import CueProblem
 from backend.core.languages import ENGLISH, LANGUAGES, get
 from backend.core.model import Cue, FormatError, Project, Step, StepStatus
+from backend.core.notices import noticed
 from backend.core.pipeline import PROJECT_JSON, File, save_edited_cues
 from backend.core.playback import Playback, read_playback, shift_cues, write_playback
 from backend.core.source_langs import SOURCES, get_source
@@ -137,7 +138,7 @@ class ProjectStore:
             return parse_subs(read_text_file(info.folder / lang.files.subs))
         if self._done(info, Step.SEGMENT, lang.code):
             return parse_subs(read_text_file(info.folder / self._source_subs(info)))
-        raise NotReady("no subtitles yet: the segment step has not finished")
+        raise noticed(NotReady, notices.CUES_NO_SUBTITLES())
 
     def subtitles(
         self, pid: str, lang: RenderLang, fmt: SubFormat, target: str | None = None
@@ -147,7 +148,7 @@ class ProjectStore:
         info = self.info(pid)
         code = get(target or info.project.active_lang).code
         if lang != "en" and not self._done(info, Step.TRANSLATE, code):
-            raise NotReady(f"no {code} subtitles yet: the translate step has not finished")
+            raise noticed(NotReady, notices.CUES_NO_TRANSLATION(lang=get(code)))
         if fmt == "ass" and lang != "bilingual":
             raise ValueError("ass is only available as bilingual")
         cues = self.cues(pid, code)
@@ -185,10 +186,10 @@ class ProjectStore:
         info = self.info(pid)
         lang = get(target or info.project.active_lang)
         if not self._done(info, Step.TRANSLATE, lang.code):
-            raise NotReady("nothing to correct yet: the translate step has not finished")
+            raise noticed(NotReady, notices.CUES_NOTHING_TO_CORRECT())
         current = [c.id for c in self.cues(pid, lang.code)]
         if sorted(c.id for c in cues) != sorted(current):
-            raise BadCues("the cues must have exactly the ids the project has")
+            raise noticed(BadCues, notices.CUES_WRONG_IDS())
         langs = {c.id: c.lang for c in self.cues(pid, lang.code)}
         cues = [replace(c, lang=langs[c.id]) for c in cues]
         problems = cue_edits.check(self.cues(pid, lang.code), cues)

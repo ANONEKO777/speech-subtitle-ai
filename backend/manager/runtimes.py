@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from backend.core.audio import HOMEBREW_DIRS
-from backend.core.notices import LOCAL_BUILD, Notice, noticed
+from backend.core.notices import ADD_ON, LOCAL_BUILD, Notice, noticed
 from backend.manager.download import Item, Plan, old_of, part_of, recover_swap, staging_of
 from backend.manager.registry import Registry, Runtime
 from backend.manager.storage import Storage
@@ -67,9 +67,7 @@ def runtime_bundle(runtime_id: str, registry: Registry, storage: Storage) -> tup
     if runtime.is_local_build:
         raise noticed(NotInstallable, local_build_notice(runtime, storage))
     if runtime.executable is None:
-        raise NotInstallable(
-            f"{runtime_id} is an add-on and installs with the runtime that needs it"
-        )
+        raise noticed(NotInstallable, ADD_ON(asset=runtime_id))
     return (runtime, *(registry.runtimes[need] for need in runtime.needs))
 
 

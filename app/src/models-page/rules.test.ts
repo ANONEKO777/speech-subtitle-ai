@@ -73,7 +73,7 @@ describe("row actions", () => {
 });
 
 describe("delete flow", () => {
-  const refusal = { message: plainText("needed"), blockers: ["the active profile needs it"], canForce: true };
+  const refusal = { message: plainText("needed"), blockers: [plainText("the active profile needs it")], canForce: true };
 
   it("shows the blockers and lets the person force with a reason", () => {
     let s = reduceDelete({ step: "confirm" }, { type: "refused", refusal });
@@ -88,7 +88,7 @@ describe("delete flow", () => {
   it("offers no force when the backend does not", () => {
     const locked = { message: plainText("C:/m/a.bin is in use. Close the program that holds it."), blockers: [], canForce: false };
     expect(reduceDelete({ step: "confirm" }, { type: "refused", refusal: locked })).toEqual({ step: "failed", message: locked.message });
-    const noForce = { message: plainText("x"), blockers: ["b"], canForce: false };
+    const noForce = { message: plainText("x"), blockers: [plainText("b")], canForce: false };
     const s = reduceDelete({ step: "confirm" }, { type: "refused", refusal: noForce });
     expect(reduceDelete(s, { type: "wantForce" })).toBe(s);
   });
