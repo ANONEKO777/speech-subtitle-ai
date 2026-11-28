@@ -377,7 +377,7 @@ const SCREENS: Record<string, Screen> = {
     shot("repaired, with a reason", container);
     mocks.repair = { action: "none", reason: { text: "", notices: [] }, job: null };
     click("act-qwen3-8b-q4_k_m-repair");
-    await waitFor(() => expect(screen.getByTestId("inv-qwen3-8b-q4_k_m-note").textContent).toContain(locale === "en" ? "none" : "不需要"));
+    await waitFor(() => expect(screen.getByTestId("inv-qwen3-8b-q4_k_m-note").textContent).toContain(locale === "en" ? "nothing to do" : "不需要"));
     shot("repaired, no reason", container);
     mocks.action = "refuse";
     click("act-qwen3-8b-q4_k_m-redownload");
