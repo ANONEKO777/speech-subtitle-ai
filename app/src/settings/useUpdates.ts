@@ -110,7 +110,6 @@ export type AskBackend = () => Promise<readonly BackendWork[]>;
 const installable = (phase: Phase): boolean =>
   phase.kind === "available" || phase.kind === "downloading" || phase.kind === "downloaded" || (phase.kind === "failed" && phase.update !== null);
 
-
 /**
  * `startDelayMs` null means no check at start, as on a page that only shows the settings. A failure
  * of the check at start is kept for the settings page and never shown anywhere else. `windowWork`
@@ -183,15 +182,14 @@ export function useUpdates(windowWork: Work, startDelayMs: number | null = null,
 
   const download = useCallback(async (): Promise<Available | null> => {
     const { phase } = latest.current.state;
-    const from = phase.kind === "available" || phase.kind === "failed" ? phase.update : null;
-    if (!from) return null;
-    const update = from;
+    const update = phase.kind === "available" || phase.kind === "failed" ? phase.update : null;
+    if (!update) return null;
     dispatch({ type: "downloading", update });
     try {
       if (phase.kind !== "available" || !phase.staged) {
         const result = await updateCheck(t);
         if (result.state !== "available" || result.version !== update.version) {
-          // only the version the person saw is installed: a newer one is shown with its notes first
+          // Only the version the person saw installs. A newer one is shown with its notes, and waits for a click.
           dispatch({ type: "checked", auto: false, result });
           return null;
         }
