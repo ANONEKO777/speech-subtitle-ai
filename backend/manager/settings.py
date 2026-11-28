@@ -17,7 +17,13 @@ from typing import cast
 from urllib.parse import urlsplit
 
 from backend.core.notices import (
+    SETTINGS_CLOUD_CONSENT,
+    SETTINGS_CLOUD_FIELDS_MISSING,
+    SETTINGS_CLOUD_NEEDS_HTTPS,
     SETTINGS_FILE_NOT_USED,
+    SETTINGS_OLLAMA_MODEL_MISSING,
+    SETTINGS_URL_NOT_HTTPS,
+    SETTINGS_URL_NOT_WEB,
     SETTINGS_URL_PARTS,
     Notice,
     noticed,
@@ -31,11 +37,6 @@ SETTINGS_FILE = "settings.json"
 SCHEMA_VERSION = 1
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 LOOPBACK = frozenset({"127.0.0.1", "localhost", "::1"})
-CLOUD_CONSENT_TEXT = (
-    "A cloud LLM receives your transcript text, glossary and the summary prompt over the "
-    "internet. The content of your video leaves this machine and is handled under the "
-    "provider's terms. Local models never send it anywhere."
-)
 
 
 class SettingsError(ValueError):
@@ -66,7 +67,8 @@ def clean_url(value: str, what: str, *, https_only: bool = False) -> str:
     parts = urlsplit(value.strip())
     schemes = ("https",) if https_only else ("http", "https")
     if parts.scheme not in schemes or not parts.hostname:
-        raise SettingsError(f"{what} must be an {' or '.join(schemes)} URL with a host")
+        sentence = SETTINGS_URL_NOT_HTTPS if https_only else SETTINGS_URL_NOT_WEB
+        raise noticed(SettingsError, sentence(field=what))
     if parts.username or parts.password or parts.query or parts.fragment:
         raise noticed(SettingsError, SETTINGS_URL_PARTS(field=what))
     return value.strip().rstrip("/")
@@ -86,17 +88,15 @@ class LlmSettings:
         if self.cloud_url:
             url = clean_url(self.cloud_url, "cloud_url")
             if not url.startswith("https://") and urlsplit(url).hostname not in LOOPBACK:
-                raise SettingsError("cloud_url must use https unless it points at this machine")
+                raise noticed(SettingsError, SETTINGS_CLOUD_NEEDS_HTTPS())
             object.__setattr__(self, "cloud_url", url)
         if self.source is LlmSource.OLLAMA and not self.ollama_model.strip():
-            raise SettingsError("ollama_model is required when the source is ollama")
+            raise noticed(SettingsError, SETTINGS_OLLAMA_MODEL_MISSING())
         if self.source is LlmSource.CLOUD:
             if not self.cloud_url or not self.cloud_model.strip():
-                raise SettingsError("cloud_url and cloud_model are required for a cloud LLM")
+                raise noticed(SettingsError, SETTINGS_CLOUD_FIELDS_MISSING())
             if not self.cloud_consent:
-                raise SettingsError(
-                    "cloud_consent must be true to use a cloud LLM. " + CLOUD_CONSENT_TEXT
-                )
+                raise noticed(SettingsError, SETTINGS_CLOUD_CONSENT())
 
 
 @dataclass(frozen=True, slots=True)

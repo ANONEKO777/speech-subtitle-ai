@@ -856,6 +856,39 @@ SECRETS_DPAPI_FAILED = _template(
     "secrets.dpapiFailed", "Windows DPAPI failed (error {code})", code="text"
 )
 
+# The LLM settings a save or a connection test refuses (`api/settings.py`, `manager/settings.py`).
+# The LLM page checks the same things before it sends, so most reach it only past that check. A
+# hand-edited settings.json trips the same checks, and `settings.fileNotUsed` quotes them.
+CLOUD_CONSENT_TEXT = (
+    "A cloud LLM receives your transcript text, glossary and the summary prompt over the "
+    "internet. The content of your video leaves this machine and is handled under the "
+    "provider's terms. Local models never send it anywhere."
+)
+SETTINGS_URL_NOT_WEB = _template(
+    "settings.urlNotWeb", "{field} must be an http or https URL with a host", field="word"
+)
+SETTINGS_URL_NOT_HTTPS = _template(
+    "settings.urlNotHttps", "{field} must be an https URL with a host", field="word"
+)
+SETTINGS_CLOUD_NEEDS_HTTPS = _template(
+    "settings.cloudNeedsHttps", "cloud_url must use https unless it points at this machine"
+)
+SETTINGS_OLLAMA_MODEL_MISSING = _template(
+    "settings.ollamaModelMissing", "ollama_model is required when the source is ollama"
+)
+SETTINGS_CLOUD_FIELDS_MISSING = _template(
+    "settings.cloudFieldsMissing", "cloud_url and cloud_model are required for a cloud LLM"
+)
+SETTINGS_CLOUD_CONSENT = _template(
+    "settings.cloudConsent", "cloud_consent must be true to use a cloud LLM. " + CLOUD_CONSENT_TEXT
+)
+SETTINGS_KEY_REQUIRED = _template("settings.keyRequired", "an API key is required for a cloud LLM")
+SETTINGS_KEY_FOR_NEW_ADDRESS = _template(
+    "settings.keyForNewAddress",
+    "the cloud address changed, so the saved API key is not sent to it; "
+    "enter the API key for the new address",
+)
+
 # The models folder (`api/downloads.py`, `manager/storage.py`, `manager/storage_move.py`): models
 # left behind by a change of folder, a move that is refused, and what a move could not finish.
 STORAGE_UNMOVED = _template(

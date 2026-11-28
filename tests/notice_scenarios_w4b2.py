@@ -257,6 +257,37 @@ def _llm_page(found: dict[str, Entry], rig: Rig) -> None:
     )
     for name, failure in {"secrets.needDpapi": "needs", "secrets.dpapiFailed": "failed"}.items():
         found[name] = _secret_failure(failure)
+    _settings_refusals(found, rig)
+
+
+def _settings_refusals(found: dict[str, Entry], rig: Rig) -> None:
+    """What saving the LLM page refuses, past the page's own checks."""
+    cloud = {
+        "source": "cloud",
+        "cloud_url": "https://api.example.test/v1",
+        "cloud_model": "m",
+        "cloud_consent": True,
+    }
+    saves: dict[str, dict[str, object]] = {
+        "settings.urlNotWeb": {
+            "llm": {"source": "ollama", "ollama_url": "ftp://127.0.0.1", "ollama_model": "m"}
+        },
+        "settings.urlNotHttps": {"registry_url": "http://example.test/registry.json"},
+        "settings.cloudNeedsHttps": {
+            "llm": {**cloud, "cloud_url": "http://api.example.test/v1", "api_key": "k"}
+        },
+        "settings.ollamaModelMissing": {"llm": {"source": "ollama", "ollama_model": " "}},
+        "settings.cloudFieldsMissing": {"llm": {**cloud, "cloud_model": ""}},
+        "settings.cloudConsent": {"llm": {**cloud, "cloud_consent": False, "api_key": "k"}},
+        "settings.keyRequired": {"llm": cloud},
+    }
+    for name, body in saves.items():
+        found[name] = _reply(rig.client.put("/api/settings", json=body))
+    assert rig.client.put("/api/settings", json={"llm": {**cloud, "api_key": "k"}}).is_success
+    other = {**cloud, "cloud_url": "https://other.example.test/v1"}
+    found["settings.keyForNewAddress"] = _reply(
+        rig.client.put("/api/settings", json={"llm": other})
+    )
 
 
 def _secret_failure(failure: str) -> Entry:

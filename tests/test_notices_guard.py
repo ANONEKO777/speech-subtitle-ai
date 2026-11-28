@@ -9,8 +9,7 @@ in `NOT_SHOWN` with the reason.
 It looks at those places only, because two of the files are mostly prompts for the model. It does
 not see a sentence handed to a call that is not in `SHOWN_CALLS` (the batch's list of skipped
 files, the retry note of a download), one in a `ValueError`, one of a single word, or one in a
-file outside `GUARDED`. `api/settings.py` and `manager/settings.py` are outside it until the
-settings checks of `pr/P61-i18n-w4b` are merged: their save errors still have no code.
+file outside `GUARDED`.
 """
 
 from __future__ import annotations
@@ -33,6 +32,7 @@ GUARDED = (
     "api/projects.py",
     "api/queue.py",
     "api/runtimes.py",
+    "api/settings.py",
     "core/audio.py",
     "core/cue_edits.py",
     "core/pipeline.py",
@@ -60,6 +60,7 @@ GUARDED = (
     "manager/resolve.py",
     "manager/secrets.py",
     "manager/selftest.py",
+    "manager/settings.py",
     "manager/storage.py",
     "manager/storage_move.py",
     "manager/switch.py",
@@ -134,6 +135,36 @@ NOT_SHOWN: tuple[tuple[str, str, str], ...] = (
         "manager/storage.py",
         "bad mirror",
         "a hand-edited storage.json: storage.cannotRead quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "{} must be an object",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "{}: unexpected keys",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "{} must be a string",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "unsupported schema_version",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "cloud_consent must be true or false",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
+    ),
+    (
+        "manager/settings.py",
+        "registry_url must be a string or null",
+        "a hand-edited settings.json: settings.fileNotUsed quotes it",
     ),
 )
 

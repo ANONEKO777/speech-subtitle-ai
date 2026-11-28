@@ -1175,11 +1175,47 @@
       "path": "text"
     }
   },
+  "settings.cloudConsent": {
+    "english": "cloud_consent must be true to use a cloud LLM. A cloud LLM receives your transcript text, glossary and the summary prompt over the internet. The content of your video leaves this machine and is handled under the provider's terms. Local models never send it anywhere.",
+    "params": {}
+  },
+  "settings.cloudFieldsMissing": {
+    "english": "cloud_url and cloud_model are required for a cloud LLM",
+    "params": {}
+  },
+  "settings.cloudNeedsHttps": {
+    "english": "cloud_url must use https unless it points at this machine",
+    "params": {}
+  },
   "settings.fileNotUsed": {
     "english": "{file} was not used: {error}",
     "params": {
       "file": "text",
       "error": "text"
+    }
+  },
+  "settings.keyForNewAddress": {
+    "english": "the cloud address changed, so the saved API key is not sent to it; enter the API key for the new address",
+    "params": {}
+  },
+  "settings.keyRequired": {
+    "english": "an API key is required for a cloud LLM",
+    "params": {}
+  },
+  "settings.ollamaModelMissing": {
+    "english": "ollama_model is required when the source is ollama",
+    "params": {}
+  },
+  "settings.urlNotHttps": {
+    "english": "{field} must be an https URL with a host",
+    "params": {
+      "field": "word"
+    }
+  },
+  "settings.urlNotWeb": {
+    "english": "{field} must be an http or https URL with a host",
+    "params": {
+      "field": "word"
     }
   },
   "settings.urlParts": {
