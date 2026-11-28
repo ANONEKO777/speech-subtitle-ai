@@ -3,7 +3,7 @@ import type { update as en } from "../en/update";
 
 export const update = {
   "update.title": "更新の確認",
-  "update.hint": "ボタンを押したときだけオンラインで確認します。更新してもモデルや設定が再ダウンロードされることはありません。",
+  "update.hint": "ボタンを押すとすぐに確認します。更新してもモデルや設定が再ダウンロードされることはありません。",
   "update.check": "更新を確認",
   "update.checking": "更新を確認しています…",
   "update.upToDate": "最新版です。",

@@ -2,7 +2,7 @@ import type { update as en } from "../en/update";
 
 export const update = {
   "update.title": "檢查更新",
-  "update.hint": "只在你按下按鈕時才連線檢查。模型與設定不會因為更新而重新下載。",
+  "update.hint": "按下按鈕就會立刻檢查。模型與設定不會因為更新而重新下載。",
   "update.check": "檢查更新",
   "update.checking": "正在檢查更新…",
   "update.upToDate": "已是最新版。",

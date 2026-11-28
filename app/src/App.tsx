@@ -48,12 +48,16 @@ import type { EditsReport } from "./progress/job";
 import { useJob } from "./progress/useJob";
 import { fetchModelStates } from "./manage/api";
 import { SettingsPage } from "./settings/SettingsPage";
+import { UpdateBanner } from "./settings/UpdateBanner";
+import { START_DELAY_MS, useUpdates } from "./settings/useUpdates";
+import { fetchBackendWork, windowWork } from "./settings/work";
 import { useUiLanguageSync } from "./settings/useUiLanguageSync";
 import { SettingsBar } from "./settings/SettingsBar";
 import { SKIPPED_KEY, needsWizard } from "./wizard/firstRun";
 import { Wizard } from "./wizard/Wizard";
 import { LinkedText } from "./manage/LinkedText";
 import { KEY, parseSettings } from "./settings/settings";
+import { readStored, writeStored } from "./storage";
 
 /** Why the window went home. `processing` is a job that failed, and a null `reason` is its lost connection. */
 interface ImportError {
@@ -155,8 +159,8 @@ export function App() {
   const { t, plural, locale } = texts;
   const [status, setStatus] = useState<BackendStatus>({ kind: "starting" });
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
-  const [settings, setSettings] = useState(() => parseSettings(localStorage.getItem(KEY)));
-  const [queue, setQueue] = useState(() => parseQueue(localStorage.getItem(QUEUE_KEY)));
+  const [settings, setSettings] = useState(() => parseSettings(readStored(KEY)));
+  const [queue, setQueue] = useState(() => parseQueue(readStored(QUEUE_KEY)));
   const [library, setLibrary] = useState<readonly LibraryItem[]>([]);
   const [languageNames, setLanguageNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [dropping, setDropping] = useState(false);
@@ -178,8 +182,8 @@ export function App() {
     return () => stop?.();
   }, []);
 
-  useEffect(() => localStorage.setItem(KEY, JSON.stringify(settings)), [settings]);
-  useEffect(() => localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)), [queue]);
+  useEffect(() => writeStored(KEY, JSON.stringify(settings)), [settings]);
+  useEffect(() => writeStored(QUEUE_KEY, JSON.stringify(queue)), [queue]);
 
   const backend = status.kind === "ready" ? status.backend : null;
   useUiLanguageSync(backend);
@@ -187,7 +191,7 @@ export function App() {
     if (!backend) return;
     let alive = true;
     fetchModelStates(backend).then(
-      (models) => alive && setFirstRun(needsWizard(models, localStorage.getItem(SKIPPED_KEY) === "1") ? "wizard" : "done"),
+      (models) => alive && setFirstRun(needsWizard(models, readStored(SKIPPED_KEY) === "1") ? "wizard" : "done"),
       () => alive && setFirstRun("done"),
     );
     return () => {
@@ -195,10 +199,13 @@ export function App() {
     };
   }, [backend]);
   const leaveWizard = useCallback((how: "finished" | "skipped") => {
-    if (how === "skipped") localStorage.setItem(SKIPPED_KEY, "1");
+    if (how === "skipped") writeStored(SKIPPED_KEY, "1");
     setFirstRun("done");
   }, []);
   const batch = useBatch(backend);
+  const askWork = useCallback(() => (backend ? fetchBackendWork(backend) : Promise.resolve([])), [backend]);
+  const updates = useUpdates(windowWork(screen.kind === "importing", batch), START_DELAY_MS, backend ? askWork : null);
+  const updateBanner = <UpdateBanner updates={updates} />;
   useEffect(() => {
     if (backend) performance.mark("backend-ready");
   }, [backend]);
@@ -416,6 +423,7 @@ export function App() {
     return (
       <div className="app wizard-app">
         <main>
+          {updateBanner}
           <Wizard backend={backend} onExit={leaveWizard} />
         </main>
       </div>
@@ -509,6 +517,7 @@ export function App() {
         />
       </div>
       <main>
+        {updateBanner}
         {status.kind === "starting" && (
           <div className="empty" data-testid="starting">
             <LoaderCircle className="spin" aria-hidden />
@@ -526,7 +535,7 @@ export function App() {
             <p>{t("app.checkingModels")}</p>
           </div>
         )}
-        {backend && screen.kind === "settings" && <SettingsPage backend={backend} />}
+        {backend && screen.kind === "settings" && <SettingsPage backend={backend} updates={updates} />}
         {screen.kind === "idle" && !screen.error && backend && firstRun === "done" && (
           <div className="home">
             <div className="empty" data-testid="ready">

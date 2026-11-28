@@ -11,6 +11,7 @@ import { LanguageSection } from "./LanguageSection";
 import { LicensesSection } from "./LicensesSection";
 import { LlmSection } from "./LlmSection";
 import { UpdateSection } from "./UpdateSection";
+import type { Updates } from "./useUpdates";
 
 export type Section = "models" | "hardware" | "llm" | "licenses" | "update" | "language";
 
@@ -25,7 +26,7 @@ const SECTIONS: readonly NavItem[] = [
   { id: "language", key: "language.nav", icon: Languages },
 ];
 
-export function SettingsPage({ backend, initial = "models" }: { backend: Backend; initial?: Section }) {
+export function SettingsPage({ backend, updates, initial = "models" }: { backend: Backend; updates: Updates; initial?: Section }) {
   const { t } = useT();
   const [section, setSection] = useState<Section>(initial);
   const [folderKey, setFolderKey] = useState(0);
@@ -61,7 +62,7 @@ export function SettingsPage({ backend, initial = "models" }: { backend: Backend
         {section === "hardware" && <HardwareSection backend={backend} downloads={downloads} onOpenLlm={() => setSection("llm")} />}
         {section === "llm" && <LlmSection backend={backend} />}
         {section === "licenses" && <LicensesSection backend={backend} />}
-        {section === "update" && <UpdateSection />}
+        {section === "update" && <UpdateSection updates={updates} />}
         {section === "language" && <LanguageSection backend={backend} />}
       </div>
     </div>

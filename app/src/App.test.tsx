@@ -6,6 +6,7 @@ import { tZhTW } from "./i18n";
 
 const backend = { port: 1, token: "t" };
 let batch: Batch = EMPTY_BATCH;
+let models: { kind: string; state: string }[] = [];
 
 vi.mock("@tauri-apps/api/core", () => ({ convertFileSrc: (p: string) => p, invoke: () => Promise.resolve(null) }));
 vi.mock("./api/backend", () => ({
@@ -23,7 +24,7 @@ vi.mock("./api/backend", () => ({
 }));
 vi.mock("./batch/useBatch", () => ({ useBatch: () => batch }));
 vi.mock("./batch/notify", () => ({ notifyWindows: () => Promise.resolve() }));
-vi.mock("./manage/api", async (orig) => ({ ...(await orig<typeof import("./manage/api")>()), fetchModelStates: () => Promise.resolve([]) }));
+vi.mock("./manage/api", async (orig) => ({ ...(await orig<typeof import("./manage/api")>()), fetchModelStates: () => Promise.resolve(models) }));
 vi.mock("./summary/useSummary", () => ({ useSummary: () => null }));
 import { App } from "./App";
 
@@ -72,6 +73,7 @@ beforeEach(() => {
   localStorage.clear();
   localStorage.setItem("vst.wizard.skipped", "1");
   batch = EMPTY_BATCH;
+  models = [];
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string, init?: RequestInit) =>
@@ -87,6 +89,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const item = (over: Partial<BatchItem>): BatchItem => ({
@@ -153,5 +156,26 @@ describe("adding a subtitle language to the open project", () => {
   it("is not blocked by a job of this video that has not started", async () => {
     batch = { ...EMPTY_BATCH, loaded: true, items: [item({ state: "queued", step: null })] };
     expect(((await openProject()) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
+describe("a window whose storage throws", () => {
+  it("still opens, plays a project and changes the volume", async () => {
+    models = [
+      { kind: "asr", state: "installed" },
+      { kind: "llm", state: "installed" },
+    ];
+    const blocked = () => {
+      throw new DOMException("The operation is insecure.", "SecurityError");
+    };
+    const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(blocked);
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(blocked);
+    await openProject();
+    const video = document.querySelector("video");
+    expect(video).toBeTruthy();
+    fireEvent.volumeChange(video!);
+    expect(read).toHaveBeenCalled();
+    expect(write).toHaveBeenCalled();
+    expect(screen.getByTestId("add-target")).toBeTruthy();
   });
 });

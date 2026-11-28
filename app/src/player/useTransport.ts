@@ -3,6 +3,7 @@ import type { Backend } from "../api/client";
 import { fetchFrameRate, putPlayback } from "../api/library";
 import { useT } from "../i18n/I18nProvider";
 import { watchAudioClock } from "./audioClock";
+import { readStored, writeStored } from "../storage";
 import { PREFS_KEY, parsePrefs } from "./prefs";
 import { type Loop, NO_LOOP, cycleLoop, loopTarget, playClock, resumeAt, stepFrame, stepOrigin, stepSpeed } from "./transport";
 
@@ -24,7 +25,7 @@ interface Options {
 /** The state and the actions of the video element: play, seek, volume, speed, frame step, A-B loop, and remembering where the person stopped. Each action returns the line the on-screen display shows. */
 export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Options) {
   const { t } = useT();
-  const prefs = useRef(parsePrefs(localStorage.getItem(PREFS_KEY)));
+  const prefs = useRef(parsePrefs(readStored(PREFS_KEY)));
   const [paused, setPaused] = useState(true);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -126,12 +127,12 @@ export function useTransport(video: RefObject<HTMLVideoElement | null>, o: Optio
         setVolume(el.volume);
         setMuted(el.muted);
         prefs.current = { ...prefs.current, volume: el.volume, muted: el.muted };
-        localStorage.setItem(PREFS_KEY, JSON.stringify(prefs.current));
+        writeStored(PREFS_KEY, JSON.stringify(prefs.current));
       },
       onRateChange: (e: { currentTarget: HTMLVideoElement }) => {
         setRate(e.currentTarget.playbackRate);
         prefs.current = { ...prefs.current, rate: e.currentTarget.playbackRate };
-        localStorage.setItem(PREFS_KEY, JSON.stringify(prefs.current));
+        writeStored(PREFS_KEY, JSON.stringify(prefs.current));
       },
       onPlay: () => setPaused(false),
       onPause: () => {

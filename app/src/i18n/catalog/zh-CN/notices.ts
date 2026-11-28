@@ -136,7 +136,7 @@ export const notices = {
   "notice.shell.update.noSource": "此版本没有设置更新来源，无法检查更新。",
   "notice.shell.update.notDownloaded": "更新文件还没有下载完成。",
   "notice.shell.update.notUpdateInfo": "更新来源返回的不是更新信息（网址可能已失效，或需要先登录）。请稍后再试，或到项目网页重新下载安装程序。",
-  "notice.shell.update.stalled": "更新文件下载到一半就没有再收到数据，已经放弃。请确认网络连接，然后再按一次“下载”。",
+  "notice.shell.update.stalled": "更新文件下载到一半就没有再收到数据，已经放弃。请确认网络连接。",
   "notice.shell.update.timeout": "更新服务器没有在 10 秒内响应。请稍后再试。",
   "notice.shell.update.unreachable": "无法连接更新服务器。请确认网络连接，稍后再试。",
   "notice.shell.update.unsupported": "此平台还没有自动更新。请到项目网页下载新版安装程序，直接替换现有的应用程序。",

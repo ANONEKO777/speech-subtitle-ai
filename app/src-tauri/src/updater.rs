@@ -1,4 +1,5 @@
-//! Update check, download and install, driven by the settings page. Nothing here runs at start.
+//! Update check, download and install. The window calls `update_check` at start, at most once a day
+//! and only when the person left that on, and from the settings page. Nothing installs without a click.
 //! The endpoint comes from `plugins.updater.endpoints` in tauri.conf.json. `VST_UPDATE_URL` replaces
 //! it (the e2e drivers do); the signature is still checked against the configured public key.
 
@@ -64,6 +65,22 @@ fn ensure_supported() -> Result<(), Said> {
     } else {
         Err(notice::UPDATE_UNSUPPORTED.say())
     }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct BuildInfo {
+    supported: bool,
+    current: String,
+}
+
+/// Whether this build can update itself, and its version, so the window knows without going online.
+#[tauri::command]
+pub fn update_build_info<R: Runtime>(app: AppHandle<R>) -> BuildInfo {
+    build_info(platform::Os::CURRENT, app.package_info().version.to_string())
+}
+
+fn build_info(os: platform::Os, current: String) -> BuildInfo {
+    BuildInfo { supported: platform::updates_supported(os), current }
 }
 
 #[tauri::command]
@@ -174,6 +191,14 @@ mod tests {
         let answer = tauri::async_runtime::block_on(update_check(handle.clone(), handle.state::<Pending>()));
 
         assert_eq!(answer.err(), Some(notice::UPDATE_UNSUPPORTED.say()));
+    }
+
+    #[test]
+    fn the_build_info_names_the_version_and_only_windows_is_supported() {
+        let info = |os| serde_json::to_value(build_info(os, "0.2.0".into())).unwrap();
+        assert_eq!(info(platform::Os::Windows), serde_json::json!({ "supported": true, "current": "0.2.0" }));
+        assert_eq!(info(platform::Os::MacOs), serde_json::json!({ "supported": false, "current": "0.2.0" }));
+        assert_eq!(info(platform::Os::Other), serde_json::json!({ "supported": false, "current": "0.2.0" }));
     }
 
     #[test]

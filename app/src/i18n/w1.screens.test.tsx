@@ -15,8 +15,8 @@ import { HardwareSection } from "../settings/HardwareSection";
 import { LicensesSection } from "../settings/LicensesSection";
 import { LlmSection } from "../settings/LlmSection";
 import { SettingsBar } from "../settings/SettingsBar";
-import { SettingsPage } from "../settings/SettingsPage";
-import { UpdateSection } from "../settings/UpdateSection";
+import { SettingsPageAlone } from "../settings/updateTestkit";
+import { UpdateSectionAlone } from "../settings/updateTestkit";
 import { DEFAULTS } from "../settings/settings";
 import { licenses, macView, windowsView } from "../manage/screens.fixture";
 import type { DownloadJob, LlmTest, ProfileView, SelfTest, SettingsView } from "../manage/types";
@@ -281,7 +281,7 @@ const SCREENS: Record<string, Screen> = {
     shot("table", container);
   },
   "updates: every phase": async (shot, locale) => {
-    const { container } = render(wrap(locale, <UpdateSection />));
+    const { container } = render(wrap(locale, <UpdateSectionAlone />));
     shot("idle", container);
     let finish: (v: unknown) => void = () => undefined;
     mocks.check = new Promise((r) => (finish = r));
@@ -310,7 +310,7 @@ const SCREENS: Record<string, Screen> = {
   "update checks that fail": async (shot, locale) => {
     for (const mode of ["nonsense", "unknown"] as const) {
       mocks.checkMode = mode;
-      const { container, unmount } = render(wrap(locale, <UpdateSection />));
+      const { container, unmount } = render(wrap(locale, <UpdateSectionAlone />));
       click("update-check");
       await screen.findByTestId("update-failed");
       shot(mode, container);
@@ -320,7 +320,7 @@ const SCREENS: Record<string, Screen> = {
   "the settings page frame": async (shot, locale) => {
     mocks.licenses = [];
     mocks.settings = llmView();
-    const { container } = render(wrap(locale, <SettingsPage backend={backend} initial="update" />));
+    const { container } = render(wrap(locale, <SettingsPageAlone backend={backend} initial="update" />));
     shot("update", container);
     click("section-language");
     const names = container.cloneNode(true) as Element;

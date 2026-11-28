@@ -12,7 +12,7 @@ import { parseSelfTest } from "../manage/parse";
 import { BurnCard } from "../player/Overlays";
 import { SelfTestPanel } from "../settings/HardwareSection";
 import { LicensesSection } from "../settings/LicensesSection";
-import { UpdateSection } from "../settings/UpdateSection";
+import { UpdateSectionAlone } from "../settings/updateTestkit";
 import { I18nProvider, useI18n } from "./I18nProvider";
 import type { Locale } from "./locale";
 import { NOT_ENGLISH } from "./notEnglish";
@@ -164,7 +164,7 @@ describe("what the shell rejects a command with", () => {
   it("is worded on the update page, and again after a change", async () => {
     const message = shell["shell.update.unreachable"].english;
     tauri.invoke.mockRejectedValue({ message, notices: [{ code: "shell.update.unreachable", params: {}, message }] });
-    show(<UpdateSection />);
+    show(<UpdateSectionAlone />);
     fireEvent.click(screen.getByTestId("update-check"));
     await waitFor(() => expect(screen.getByTestId("update-failed").textContent).toBe(shellBefore["shell.update.unreachable"]));
 

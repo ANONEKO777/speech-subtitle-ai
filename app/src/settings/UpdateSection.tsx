@@ -1,52 +1,54 @@
 import { Download, RefreshCw, RotateCw } from "lucide-react";
-import { useState } from "react";
 import { useT } from "../i18n/I18nProvider";
-import { type Checked, reasonOf, updateCheck, updateDownload, updateInstall } from "./update";
-import { type Said, word } from "../i18n/notice";
+import type { Locale } from "../i18n/locale";
+import { word } from "../i18n/notice";
+import { stalledDownload } from "./update";
+import type { Updates } from "./useUpdates";
+import { workReason } from "./work";
 
-type Available = Extract<Checked, { state: "available" }>;
+const when = (at: number, locale: Locale) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(at);
 
-type Phase =
-  | { readonly kind: "idle" }
-  | { readonly kind: "checking" }
-  | { readonly kind: "checked"; readonly result: Checked }
-  | { readonly kind: "downloading"; readonly result: Available }
-  | { readonly kind: "downloaded"; readonly result: Available }
-  | { readonly kind: "installing" }
-  | { readonly kind: "failed"; readonly reason: Said | null };
-
-export function UpdateSection() {
+function StartCheck({ updates }: { updates: Updates }) {
   const { t, locale } = useT();
-  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  const { build, state, setCheckAtStart } = updates;
+  const { prefs } = state;
+  const supported = build?.supported ?? false;
+  const failure = prefs.lastFailure;
+  return (
+    <div className="start-check" data-testid="update-at-start">
+      <label className="consent">
+        <input
+          type="checkbox"
+          role="switch"
+          className="switch"
+          data-testid="update-at-start-toggle"
+          checked={supported && prefs.checkAtStart}
+          disabled={!supported}
+          onChange={(e) => setCheckAtStart(e.target.checked)}
+        />
+        <span>
+          <span className="start-check-label">{t("autoUpdate.atStart")}</span>
+          <span className="muted">{build && !supported ? t("autoUpdate.unsupported") : t("autoUpdate.atStartHint")}</span>
+        </span>
+      </label>
+      {supported && failure && (
+        <p className="muted" data-testid="update-last-failed">
+          {t("autoUpdate.lastFailed", { time: when(failure.at, locale), reason: failure.reason ? word(failure.reason, locale) : t("errors.updateIncomplete") })}
+        </p>
+      )}
+      {supported && !failure && prefs.lastCheckAt !== null && (
+        <p className="muted" data-testid="update-last-checked">
+          {t("autoUpdate.lastChecked", { time: when(prefs.lastCheckAt, locale) })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function UpdateSection({ updates }: { updates: Updates }) {
+  const { t, locale } = useT();
+  const { phase } = updates.state;
   const busy = phase.kind === "checking" || phase.kind === "downloading" || phase.kind === "installing";
-
-  const check = async () => {
-    setPhase({ kind: "checking" });
-    try {
-      setPhase({ kind: "checked", result: await updateCheck(t) });
-    } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e) });
-    }
-  };
-  const download = async (result: Available) => {
-    setPhase({ kind: "downloading", result });
-    try {
-      await updateDownload();
-      setPhase({ kind: "downloaded", result });
-    } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e) });
-    }
-  };
-  const install = async () => {
-    setPhase({ kind: "installing" });
-    try {
-      await updateInstall();
-    } catch (e) {
-      setPhase({ kind: "failed", reason: reasonOf(e) });
-    }
-  };
-
-  const available = phase.kind === "checked" && phase.result.state === "available" ? phase.result : null;
   return (
     <section className="panel" data-testid="update-section" aria-labelledby="update-title">
       <div className="panel-head">
@@ -54,38 +56,52 @@ export function UpdateSection() {
           <h2 id="update-title">{t("update.title")}</h2>
           <p className="muted">{t("update.hint")}</p>
         </div>
-        <button type="button" className="ghost" data-testid="update-check" disabled={busy} onClick={() => void check()}>
+        <button type="button" className="ghost" data-testid="update-check" disabled={busy} onClick={() => void updates.check()}>
           <RefreshCw className="icon" aria-hidden />
           {t("update.check")}
         </button>
       </div>
+      <StartCheck updates={updates} />
       <div role="status" aria-live="polite" data-testid="update-status">
         {phase.kind === "checking" && <p className="note">{t("update.checking")}</p>}
-        {phase.kind === "checked" && phase.result.state === "upToDate" && (
+        {phase.kind === "upToDate" && (
           <p className="note ok" data-testid="update-uptodate">
-            {phase.result.current ? t("update.upToDateVersion", { version: phase.result.current }) : t("update.upToDate")}
+            {phase.current ? t("update.upToDateVersion", { version: phase.current }) : t("update.upToDate")}
           </p>
         )}
-        {available && (
+        {phase.kind === "available" && (
           <div className="note" data-testid="update-available">
             <p>
-              {available.current ? t("update.availableFrom", { version: available.version, current: available.current }) : t("update.available", { version: available.version })}
+              {phase.update.current
+                ? t("update.availableFrom", { version: phase.update.version, current: phase.update.current })
+                : t("update.available", { version: phase.update.version })}
             </p>
-            {available.notes && <p className="muted">{available.notes}</p>}
-            <button type="button" className="primary" data-testid="update-download" onClick={() => void download(available)}>
+            {phase.update.notes && <p className="muted update-notes">{phase.update.notes}</p>}
+            <button type="button" className="primary" data-testid="update-download" onClick={() => void updates.download()}>
               <Download className="icon" aria-hidden />
               {t("update.download")}
             </button>
           </div>
         )}
-        {phase.kind === "downloading" && <p className="note">{t("update.downloading", { version: phase.result.version })}</p>}
+        {phase.kind === "downloading" && <p className="note">{t("update.downloading", { version: phase.update.version })}</p>}
         {phase.kind === "downloaded" && (
-          <div className="note ok" data-testid="update-downloaded">
-            <p>{t("update.downloaded", { version: phase.result.version })}</p>
-            <button type="button" className="primary" data-testid="update-install" onClick={() => void install()}>
+          <div className={updates.work ? "note ok update-held" : "note ok"} data-testid="update-downloaded">
+            <p>{t("update.downloaded", { version: phase.update.version })}</p>
+            <button
+              type="button"
+              className="primary"
+              data-testid="update-install"
+              disabled={updates.work !== null}
+              onClick={() => void updates.install()}
+            >
               <RotateCw className="icon" aria-hidden />
               {t("update.install")}
             </button>
+            {updates.work && (
+              <p className="muted" data-testid="update-install-blocked">
+                {workReason(updates.work, t)}
+              </p>
+            )}
           </div>
         )}
         {phase.kind === "installing" && <p className="note">{t("update.installing")}</p>}
@@ -93,6 +109,17 @@ export function UpdateSection() {
           <p className="note bad" role="alert" data-testid="update-failed">
             {phase.reason ? word(phase.reason, locale) : t("errors.updateIncomplete")}
           </p>
+        )}
+        {phase.kind === "failed" && stalledDownload(phase.reason) && (
+          <p className="muted" data-testid="update-retry">
+            {t("autoUpdate.retry", { button: t("update.download") })}
+          </p>
+        )}
+        {phase.kind === "failed" && phase.update && (
+          <button type="button" className="primary" data-testid="update-download" onClick={() => void updates.download()}>
+            <Download className="icon" aria-hidden />
+            {t("update.download")}
+          </button>
         )}
       </div>
     </section>

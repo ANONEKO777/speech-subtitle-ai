@@ -1,6 +1,6 @@
 export const update = {
   "update.title": "Check for updates",
-  "update.hint": "The app only goes online to check when you press the button. Updating does not re-download your models or settings.",
+  "update.hint": "Press the button to check right away. Updating does not re-download your models or settings.",
   "update.check": "Check for updates",
   "update.checking": "Checking for updates…",
   "update.upToDate": "You're up to date.",

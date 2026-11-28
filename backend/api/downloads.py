@@ -3,16 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from backend.api.deps import Context, job_json
+from backend.api.deps import Context, job_json, pipeline_busy
 from backend.api.models import model_entry
 from backend.api.runtimes import runtime_entry
 from backend.manager import profiles
 from backend.manager.context import ManagerContext
+from backend.manager.download import TERMINAL
 from backend.manager.storage import StorageError, parse_config
-from backend.manager.storage_move import installed_models
+from backend.manager.storage_move import MoveState, installed_models
 
 router = APIRouter(prefix="/api", tags=["downloads"])
 
@@ -28,6 +29,21 @@ def registry(ctx: Context) -> dict[str, Any]:
         "models": [model_entry(ctx, m) for m in ctx.registry.models.values()],
         "runtimes": [runtime_entry(ctx, r) for r in ctx.registry.runtimes.values()],
     }
+
+
+@router.get("/work")
+def work(request: Request, ctx: Context) -> dict[str, list[str]]:
+    """What the backend is doing now that an app update would cut off, because installing stops
+    the backend. The window holds the install while this list is not empty."""
+    burns = getattr(request.app.state, "burns", None)
+    doing = {
+        "job": pipeline_busy(request),
+        "export": burns is not None and burns.running() is not None,
+        "download": any(j.state not in TERMINAL for j in ctx.runner.jobs()),
+        "move": ctx.mover.status().state is MoveState.RUNNING,
+        "selftest": ctx.selftest.running,
+    }
+    return {"work": [kind for kind, now in doing.items() if now]}
 
 
 @router.get("/downloads")

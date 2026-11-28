@@ -77,7 +77,7 @@ Queue many videos and let them run, overnight if you like. Add several files at 
 
 The first time you start the app with no speech or translation model installed, a setup wizard detects your GPU, VRAM, driver, RAM and free disk. It recommends one of three profiles (24 GB GPU, 8 GB GPU, CPU only), lists every download with its size and license, downloads with progress and a cancel button, and ends with a self-test. If the GPU test fails, it falls back to the CPU and says why.
 
-The gear button opens the settings page. There you can verify, repair, re-download or delete each model and runtime, check for updates, move the models folder, switch the profile at any time, choose the language model (built in, Ollama, or a cloud model after you agree that the text leaves your PC), and read the license of every component.
+The gear button opens the settings page. There you can verify, repair, re-download or delete each model and runtime, check for updates, move the models folder, switch the profile at any time, choose the language model (built in, Ollama, or a cloud model after you agree that the text leaves your PC), and read the license of every component. On Windows the app also checks for a new version at startup, at most once a day, and offers it in a banner. It installs nothing until you click, and you can turn the check off on the same page.
 
 | First-run wizard | Downloading, with progress |
 | --- | --- |
@@ -202,7 +202,7 @@ Speech recognition and translation run on your machine by default. The video, th
 
 A cloud language model is optional and off by default. If you choose it, the backend refuses to save the setting until you explicitly agree, because the text of your video leaves your PC. The API key is encrypted with Windows DPAPI, can be written but not read back through the API, and does not appear in config files or logs. You choose it on the settings page, where the window asks for your agreement first.
 
-Downloading the models and runtimes is the only time the app needs the network, apart from the optional cloud model.
+Apart from the optional cloud model, the app uses the network only to download the models and runtimes and to check for updates. On Windows it checks at startup, at most once a day, unless you turn off "Check for updates at startup" on the settings page (section "Check for updates"). The check asks GitHub for the `latest.json` file of this project's latest release. GitHub answers with a redirect to its own download server, so the app sends one more request there. Neither request sends a video, file name, setting or app version. GitHub sees your IP address, the time, and the name and version of the updater library (`tauri-plugin-updater`) as the user agent. A new version is only offered: the installer is downloaded from GitHub only when you click to install it. Pressing "Check for updates" sends the same requests.
 
 ## Target languages
 

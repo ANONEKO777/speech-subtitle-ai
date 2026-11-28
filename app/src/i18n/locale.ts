@@ -1,3 +1,4 @@
+import { readStored, writeStored } from "../storage";
 export const LOCALES = ["en", "zh-TW", "zh-CN", "ja"] as const;
 export type Locale = (typeof LOCALES)[number];
 
@@ -60,18 +61,10 @@ export function resolveLocale(setting: UiLanguage, browserLanguages: readonly st
 
 /** The mirror in localStorage, so the first paint before the backend answers is already right. */
 export function readMirror(): UiLanguage {
-  try {
-    const value = localStorage.getItem(MIRROR_KEY);
-    return isUiLanguage(value) ? value : DEFAULT_UI_LANGUAGE;
-  } catch {
-    return DEFAULT_UI_LANGUAGE;
-  }
+  const value = readStored(MIRROR_KEY);
+  return isUiLanguage(value) ? value : DEFAULT_UI_LANGUAGE;
 }
 
 export function writeMirror(value: UiLanguage): void {
-  try {
-    localStorage.setItem(MIRROR_KEY, value);
-  } catch {
-    // storage can be blocked; the backend setting still holds the choice
-  }
+  writeStored(MIRROR_KEY, value);
 }

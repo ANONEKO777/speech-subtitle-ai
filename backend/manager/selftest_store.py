@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -96,6 +98,23 @@ class SelfTestStore:
     def __init__(self, user_data: Path) -> None:
         self._path = user_data / SELFTEST_FILE
         self._lock = threading.Lock()
+        self._runs = 0
+
+    @property
+    def running(self) -> bool:
+        """Whether a self-test is running now, so an app update knows it would cut one off."""
+        with self._lock:
+            return self._runs > 0
+
+    @contextmanager
+    def run(self) -> Generator[None]:
+        with self._lock:
+            self._runs += 1
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._runs -= 1
 
     def load(self) -> SelfTestReport | None:
         try:
